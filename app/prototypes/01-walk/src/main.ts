@@ -12,6 +12,7 @@ import { loadShip, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
+import { updateVisibility } from './visibility';
 import { createWorld, updateWorld } from './world';
 
 const STEP = 1 / 60; // fixed simulation step
@@ -125,7 +126,28 @@ async function start(): Promise<void> {
     // frame when already at the target, which made the hole flicker).
     if (cutAmount < cutTarget) cutAmount = Math.min(cutTarget, cutAmount + dt / 0.3);
     else if (cutAmount > cutTarget) cutAmount = Math.max(cutTarget, cutAmount - dt / 0.3);
-    updateCutaway(view.camera.position, chest, character.root.position.y, cutAmount, { radius: settings.cutRadius, softness: settings.cutSoftness, backColor: settings.cutBackColor });
+    updateCutaway(view.camera.position, chest, character.root.position.y, cutAmount, {
+      radius: settings.cutRadius,
+      softness: settings.cutSoftness,
+      backColor: settings.cutBackColor,
+      furnitureLook: settings.furnitureLook,
+      minVisibility: settings.furnitureMinVisibility,
+      showOccluders: settings.showOccluders,
+      nearPart: settings.furnitureNearPart,
+    });
+    if (ship) {
+      // Furniture on her deck: cut only while it hides her (or the way ahead).
+      const feet = character.root.position;
+      updateVisibility(ship.cutUnits, {
+        camera: view.camera.position,
+        feet,
+        height: settings.zamboniHeight,
+        facing: character.facing,
+        moving: character.movedSpeed > 0.3,
+        active: inside && settings.seeThrough,
+        deck: feet.y >= ship.upperFloorY - 0.5 ? 1 : 0,
+      }, dt);
+    }
     updateWorld(world, scene, character.root.position);
     if (ship) updateShip(ship, dt);
     renderer.toneMappingExposure = settings.exposure;

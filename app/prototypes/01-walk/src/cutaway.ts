@@ -1,15 +1,20 @@
 // See-through hull: on the ship's surfaces (everything but what's tagged `cuttable: false`), discard
-// the pixels inside a capsule from the camera to Dr. Green's chest, so she stays visible inside the
-// ship while the camera stays outside. The hole's edge is dithered (no transparency, so no sorting
-// problems).
-// Plan: doc/plans/features/see-through-hull.md
+// pixels so Dr. Green stays visible inside the ship while the camera stays outside. Dithered, so no
+// transparency and no sorting problems.
+// Plans: doc/plans/features/see-through-hull.md, doc/plans/features/see-through-rules.md
+//
+// - Structure (hull, walls, ceilings, and furniture on another deck): a hole, the pixels inside a
+//   capsule from the camera to her chest.
+// - Furniture on her deck: cut only while it hides her (visibility.ts sets a per-object fade),
+//   either by the same hole or by dithering out the whole object (tuning panel). Furniture near the
+//   camera is cut by the hole anyway: it isn't next to her, it just fills the view.
 //
 // - material.maskNode: the cut (a pixel is discarded where it's false).
 // - material.maskShadowNode = true: the shadow pass ignores the cut, so the hull keeps its full shadow.
 // - Double-sided, back faces drawn in one dark colour: the cut edge reads as a solid cross-section.
 
 import * as THREE from 'three/webgpu';
-import { abs, bool, dot, floor, frontFacing, length, materialColor, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, uniform } from 'three/tsl';
+import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, uniform, vec3 } from 'three/tsl';
 
 /** Shared by every cuttable material; updated each frame by updateCutaway(). */
 const u = {
@@ -19,7 +24,16 @@ const u = {
   soft: uniform(0.25),
   floorY: uniform(0), // no upward-facing surface below this height is cut (the floor she stands on)
   backColor: uniform(new THREE.Color(0x1b2327)),
+  furnitureFade: uniform(0), // furniture look: 0 = hole, 1 = whole-object fade
+  minVisibility: uniform(0), // whole-object fade: how much of the object stays (0 = gone)
+  showOccluders: uniform(0), // debug: tint furniture that is being cut
+  nearPart: uniform(0.5), // furniture in the hole is cut on this part of the way from the camera to her
 };
+
+/** Per object (set on each mesh's userData by visibility.ts): 1 = cut like structure. */
+const structure = uniform(1).onObjectUpdate(({ object }) => (object?.userData.cutStructure as number | undefined) ?? 1);
+/** Per object: furniture's fade, 0 = whole, 1 = cut. */
+const fade = uniform(0).onObjectUpdate(({ object }) => (object?.userData.cutFade as number | undefined) ?? 0);
 
 /** True where the pixel is kept. */
 const keep = (() => {
@@ -28,9 +42,7 @@ const keep = (() => {
   const t = dot(ap, ab).div(dot(ab, ab));
   const closest = u.camera.add(ab.mul(t));
   const d = length(positionWorld.sub(closest));
-  // 0 inside the hole, 1 outside it, with a soft band of width `soft` at the edge.
-  const mask = smoothstep(u.radius.sub(u.soft), u.radius, d);
-  // 4x4 ordered (Bayer) dither per screen pixel: turns the soft band into a regular pattern,
+  // 4x4 ordered (Bayer) dither per screen pixel: turns soft edges and fades into a regular pattern,
   // which crawls far less than random noise when the camera moves.
   const px = floor(screenCoordinate.x);
   const py = floor(screenCoordinate.y);
@@ -38,16 +50,36 @@ const keep = (() => {
   const fine = bayer2(mod(px, 2), mod(py, 2));
   const coarse = bayer2(mod(floor(px.div(2)), 2), mod(floor(py.div(2)), 2));
   const noise = fine.mul(4).add(coarse).add(0.5).div(16);
-  // Only between the camera and the target, and only when there's a hole at all (with radius 0,
-  // smoothstep's edges meet and its result is undefined on GPUs).
   // Never the ground under her: upward-facing surfaces below her feet stay (floors, the pallet,
   // hatches; upstairs, that floor is also the cargo bay's ceiling). Everything else is cut all the
   // way down, so furniture leaves no stubs.
   const upY = select(frontFacing, normalWorld.y, normalWorld.y.negate());
   const ground = upY.greaterThan(0.7).and(positionWorld.y.lessThan(u.floorY));
-  const cutting = t.greaterThan(0).and(t.lessThan(0.98)).and(u.radius.greaterThan(0.001)).and(ground.not());
-  return cutting.not().or(mask.greaterThan(noise));
+
+  // The hole. Structure: full size. Furniture (look A): scaled by its fade, so it only appears on
+  // furniture that hides her. 0 inside the hole, 1 outside, with a soft band of width `soft`.
+  const isStructure = structure.greaterThan(0.5);
+  const scale = select(isStructure, float(1), fade);
+  const radius = u.radius.mul(scale);
+  const soft = u.soft.mul(scale);
+  const mask = smoothstep(radius.sub(soft), radius, d);
+  // Only between the camera and the target, and only when there's a hole at all (with radius 0,
+  // smoothstep's edges meet and its result is undefined on GPUs).
+  const inHole = t.greaterThan(0).and(t.lessThan(0.98)).and(radius.greaterThan(0.001)).and(mask.lessThanEqual(noise));
+  // Whole-object fade (look B): dithers out the whole object, down to the minimum visibility.
+  const faded = fade.mul(float(1).sub(u.minVisibility)).greaterThan(noise);
+  // Near the camera, furniture is cut by the full hole whether or not it hides her (it fills the
+  // view); near her, it stays unless it hides her. Soft over 10% of the way.
+  const fullMask = smoothstep(u.radius.sub(u.soft), u.radius, d);
+  const nearMask = smoothstep(u.nearPart.sub(0.1), u.nearPart, t);
+  const nearCamera = t.greaterThan(0).and(u.radius.greaterThan(0.001)).and(fullMask.max(nearMask).lessThanEqual(noise));
+  const furnitureCut = select(u.furnitureFade.greaterThan(0.5), faded, inHole).or(nearCamera);
+  const cut = select(isStructure, inHole, furnitureCut).and(ground.not());
+  return cut.not();
 })();
+
+/** Debug tint for furniture being cut (only visible in the fade look's ghost, or at the hole's edge). */
+const occluderTint = u.showOccluders.mul(fade).mul(select(structure.lessThan(0.5), float(1), float(0))).mul(0.7);
 
 /** One cuttable copy per source material, shared by every mesh that uses it. */
 const copies = new Map<THREE.Material, THREE.MeshStandardNodeMaterial>();
@@ -74,7 +106,7 @@ export function makeCuttable(mesh: THREE.Mesh): void {
     material.side = THREE.DoubleSide;
     // Cast shadows from the back faces only, as a closed single-sided hull would.
     material.shadowSide = THREE.BackSide;
-    material.colorNode = select(frontFacing, materialColor.rgb, u.backColor.rgb);
+    material.colorNode = select(frontFacing, mix(materialColor.rgb, vec3(1, 0.1, 0.3), occluderTint), u.backColor.rgb);
     material.maskNode = keep;
     material.maskShadowNode = bool(true);
     copies.set(source, material);
@@ -86,6 +118,10 @@ export interface CutawaySettings {
   radius: number; // m
   softness: number; // m
   backColor: string;
+  furnitureLook: 'hole' | 'fade';
+  minVisibility: number; // 0..1
+  showOccluders: boolean;
+  nearPart: number; // 0..1
 }
 
 /**
@@ -98,4 +134,8 @@ export function updateCutaway(cameraPosition: THREE.Vector3, target: THREE.Vecto
   u.radius.value = s.radius * amount;
   u.soft.value = Math.min(s.softness, s.radius) * amount;
   u.backColor.value.set(s.backColor);
+  u.furnitureFade.value = s.furnitureLook === 'fade' ? 1 : 0;
+  u.minVisibility.value = s.minVisibility;
+  u.showOccluders.value = s.showOccluders ? 1 : 0;
+  u.nearPart.value = s.nearPart;
 }

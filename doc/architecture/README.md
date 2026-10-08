@@ -41,7 +41,7 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Loader** | Loads each area (ship, landing sites) as glTF, progressively, with compressed geometry and textures | Three's `GLTFLoader`, Draco/Meshopt, KTX2 |
 | **Player controller** | Third-person character movement, stairs, ladders, collisions | Rapier kinematic character controller |
 | **Camera** | Third-person follow camera, collision, indoor/outdoor rules, cutscene takeover | `three-mesh-bvh` raycasts |
-| **See-through hull** | Cuts away tagged walls between the camera and the character | TSL material node. Plan: [`../features/see-through-hull.md`](../features/see-through-hull.md) |
+| **See-through hull** | Cuts away what hides the character from the camera: walls and other decks by a hole, furniture only while it hides her | TSL material node. Doc: [`../features/see-through-hull.md`](../features/see-through-hull.md); next: [rules plan](../plans/features/see-through-rules.md) |
 | **Interaction** | Finds what the player is looking at or near, shows a prompt, runs the verb: *pick up*, *use*, *open*, *talk*, *scan* | Data from glTF custom properties |
 | **Physics objects** | Small objects that can be picked up, carried, dropped, thrown | Rapier rigid bodies |
 | **Devices** | Objects with their own behaviour: boombox, doors, lockers, levers, ship controls, screens | One small class per device type, configured from data |
@@ -55,6 +55,8 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Audio** | Music, ambience, positional sound effects, UI sounds, mix buses | Web Audio. See [`audio.md`](audio.md) |
 | **Save** | Checkpoint saves: story state, mission data, chat history; props reset on reload ([`platform.md`](platform.md)) | Ink state JSON in IndexedDB. Scope: see [`scope.md`](scope.md) |
 | **Input** | Actions (move, look, jump/fly, interact, comm, pause…) mapped to the **gamepad (primary)** and keyboard/mouse (secondary); button prompts follow the last device used | Gamepad API, browser events |
+
+> **[Agent note]** For the Interaction system, from the owner (2026-10-08), to work out when Interaction is planned: **Dr. Green turns her head to look at interesting objects and people** as she walks past them. What counts as "interesting" is still to be defined, probably a per-object checkbox decided case by case (a custom property, e.g. `lookAt: true`). Objects she's looking at, inside her field of view, should be fully visible: the see-through rules keep a protected "look target" slot for this ([rules plan](../plans/features/see-through-rules.md)). If a look target hides her, she wins and the target is cut.
 
 ## Cutscenes
 

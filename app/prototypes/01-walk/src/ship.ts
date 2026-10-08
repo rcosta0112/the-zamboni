@@ -2,13 +2,15 @@
 // cockpit seats and consoles, engineering benches...), landed a few metres from the start.
 // Exported by app/tools/export-ship.py and compressed with Meshopt: the ship, and its collider
 // (`zamboni_col`, positions only) in a separate file. Everything gets the see-through hull except
-// what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear. The cargo ramp ("Door Cargo") is a separate
+// what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear.
+// Objects tagged `structure: true` are always cut by the hole; the rest is furniture (visibility.ts). The cargo ramp ("Door Cargo") is a separate
 // object hinged at its bottom edge; it opens down to the ground and has its own collider.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { makeCuttable } from './cutaway';
+import { newCutUnit, type CutUnit } from './visibility';
 import type { Physics } from './physics';
 import { settings } from './settings';
 
@@ -36,6 +38,10 @@ export interface Ship {
   rampWalkway: { setEnabled: (on: boolean) => void };
   /** The ship's inside, in world space (both decks): "inside" for the see-through hull. */
   interior: THREE.Box3;
+  /** The upper deck's floor height (world): decks for the see-through rules. */
+  upperFloorY: number;
+  /** The ship's objects, for the see-through rules. */
+  cutUnits: CutUnit[];
 }
 
 /**
@@ -92,6 +98,13 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     if (named(o, 'Hull_Merged')) hull = o;
   });
   if (!hull) throw new Error('The ship has no "Hull_Merged"');
+  let upperFloor: THREE.Object3D | undefined;
+  object.traverse((o) => {
+    if (named(o, 'Floor Top.001')) upperFloor = o;
+  });
+  if (!upperFloor) throw new Error('The ship has no upper floor ("Floor Top.001")');
+  const upperFloorY = new THREE.Box3().setFromObject(upperFloor).max.y;
+  const cutUnits = groupCutUnits(object, gltf.parser.associations, cuttable, upperFloorY);
   const hullBox = new THREE.Box3().setFromObject(hull);
   const interior = new THREE.Box3(
     new THREE.Vector3(hullBox.min.x, floorBox.max.y - 0.3, hullBox.min.z),
@@ -122,9 +135,54 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     rampCollider,
     rampWalkway,
     interior,
+    upperFloorY,
+    cutUnits,
   };
   updateShip(ship, 0, true);
   return ship;
+}
+
+/**
+ * Groups the cuttable meshes by the object (glTF node) they belong to: a Blender object with
+ * several materials loads as a group of meshes, one per material. Each object gets its group
+ * (structure or furniture) from its tags and its deck from its bounds.
+ */
+function groupCutUnits(
+  ship: THREE.Object3D,
+  associations: Map<unknown, { nodes?: number }>,
+  meshes: THREE.Mesh[],
+  upperFloorY: number,
+): CutUnit[] {
+  const byNode = new Map<THREE.Object3D, THREE.Mesh[]>();
+  for (const mesh of meshes) {
+    let node: THREE.Object3D = mesh;
+    while (associations.get(node)?.nodes === undefined && node.parent && node.parent !== ship) node = node.parent;
+    const list = byNode.get(node) ?? [];
+    list.push(mesh);
+    byNode.set(node, list);
+  }
+  const units: CutUnit[] = [];
+  for (const [node, list] of byNode) {
+    const box = new THREE.Box3();
+    for (const mesh of list) box.expandByObject(mesh);
+    const structure = tagged(node, ship, 'structure');
+    const unit = newCutUnit(node, structure, box.min.y >= upperFloorY - 0.4 ? 1 : 0);
+    unit.meshes = list;
+    for (const mesh of list) {
+      mesh.userData.cutStructure = structure ? 1 : 0;
+      mesh.userData.cutFade = 0;
+    }
+    units.push(unit);
+  }
+  return units;
+}
+
+/** True if the object or one of its parents (up to the ship) has `userData[key] === true`. */
+function tagged(o: THREE.Object3D, ship: THREE.Object3D, key: string): boolean {
+  for (let n: THREE.Object3D | null = o; n && n !== ship; n = n.parent) {
+    if (n.userData[key] === true) return true;
+  }
+  return false;
 }
 
 /** True if the mesh or one of its parents (up to the ship) is tagged `cuttable: false`. */

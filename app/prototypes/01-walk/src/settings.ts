@@ -72,6 +72,14 @@ export const settings = {
   cutSoftness: 0.25, // m, width of the dithered edge (0 = hard edge)
   cutTargetHeight: 0.75, // m above her feet: the end of the capsule (chest)
   cutBackColor: '#1b2327', // inside faces of cut surfaces
+  // Furniture on her deck is cut only while it hides her (or the way ahead).
+  furnitureLook: 'hole' as 'hole' | 'fade', // hole: the same hole as structure; fade: the whole object dithers out
+  furnitureMinVisibility: 0, // fade look: how much of the object stays (0 = gone, 0.25 = a ghost)
+  furnitureFadeTime: 0.2, // s, to fade out or back in
+  furnitureHoldTime: 0.3, // s it must be clear before it comes back (stops flicker at the edge)
+  wayAheadDistance: 1.0, // m ahead of her feet, protected while she walks
+  furnitureNearPart: 0.5, // furniture in the hole is cut anyway on this part of the way from the camera to her (0 = never)
+  showOccluders: false, // debug: tint furniture that is being cut
   cameraCollision: true, // outside the ship
 
   // Rendering

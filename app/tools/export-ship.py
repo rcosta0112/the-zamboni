@@ -18,6 +18,8 @@ then compress both (Meshopt) into app/assets, from app/:
   property, exported as glTF extras, read by the game as ``userData.cuttable``). The script tags
   NEVER_CUT unless the object already has that property: this list stands in until the tags are
   set in Blender.
+- Tags the see-through hull's structure group (``structure: true``: hull, walls, ceilings, doors,
+  hatches...; untagged objects are furniture) from STRUCTURE_GROUP the same way.
 - Writes ``zamboni_col`` to its own file, positions only: every exported object except moving
   parts, joined into one mesh at full detail (``*_col`` in the naming contract: never rendered).
   Very dense furniture goes in as its convex hull instead. A decimated collider closed openings
@@ -64,6 +66,17 @@ INTERIOR = [
 # Never cut by the see-through hull: outside the hull, the camera never looks through them from
 # inside. (Floors need no tag: the game never cuts upward-facing surfaces below her feet.)
 NEVER_CUT = {'Door Cargo', 'Landing Gear Front', 'Landing Gear Back Left', 'Landing Gear Back Right'}
+
+# The see-through hull's structure group: always cut by the hole. Everything else is furniture, cut
+# only while it hides her. (Walls and seat.* mix walls and seats: structure.)
+STRUCTURE_GROUP = {
+    'Hull_Merged', 'Windshield', 'Door', 'Top Hatch', 'Top Hatch Bottom', 'Hatch.002',
+    'Floor Bottom', 'Floor Top.001', 'Bulkhead Cargo', 'Bulkhead Cockpit', 'Crew Quarters Ceiling',
+    'Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002', 'Door Boolean.001',
+    'Door Cockpit', 'Door Cockpit 2', 'Door Engineering', 'Door Engineering 2',
+    'Ceiling Light.001', 'Ceiling Light.002', 'Ceiling Light.003', 'Ceiling Light.004',
+    'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002', 'Lab Window', 'Lab Window.001',
+}
 
 # Moving parts get their own collider in the game, so they're left out of zamboni_col.
 MOVING = {'Door Cargo'}
@@ -116,6 +129,9 @@ for ob in objects:
     if 'cuttable' not in ob and ob.name in NEVER_CUT:
         ob['cuttable'] = False
         tagged += 1
+    if 'structure' not in ob and ob.name in STRUCTURE_GROUP:
+        ob['structure'] = True
+        tagged += 1
 
 # Collision mesh: evaluated copies (modifiers applied) of everything except moving parts.
 depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -166,4 +182,4 @@ export(objects, args.out, export_extras=True)
 # The collider: positions only (no normals, UVs or materials).
 export([collider], args.collider_out, export_normals=False, export_texcoords=False, export_materials='NONE')
 print('EXPORTED', args.out, args.collider_out)
-print(f'objects: {len(objects)}, never-cut tags set: {tagged}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')
+print(f'objects: {len(objects)}, tags set: {tagged}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')

@@ -77,6 +77,13 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   cut.add(settings, 'cutSoftness', 0, 1.5, 0.05).name('edge softness (m)');
   cut.add(settings, 'cutTargetHeight', 0.2, 1.5, 0.05).name('target height (m)');
   cut.addColor(settings, 'cutBackColor').name('cut edge colour');
+  cut.add(settings, 'furnitureLook', { 'hole': 'hole', 'whole-object fade': 'fade' }).name('furniture look');
+  cut.add(settings, 'furnitureMinVisibility', 0, 0.9, 0.05).name('fade: min visibility');
+  cut.add(settings, 'furnitureFadeTime', 0, 1, 0.05).name('furniture fade (s)');
+  cut.add(settings, 'furnitureHoldTime', 0, 1.5, 0.05).name('clear before back (s)');
+  cut.add(settings, 'wayAheadDistance', 0, 3, 0.1).name('way ahead (m)');
+  cut.add(settings, 'furnitureNearPart', 0, 1, 0.05).name('furniture cut near camera');
+  cut.add(settings, 'showOccluders').name('tint cut furniture');
   cut.add(settings, 'cameraCollision').name('camera collision (outside)');
 
   const render = gui.addFolder('Rendering');

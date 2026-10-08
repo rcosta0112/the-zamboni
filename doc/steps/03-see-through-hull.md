@@ -11,6 +11,7 @@ Cut a hole in the hull and walls between the camera and Dr. Green, so she stays 
 | Plan | Status |
 |---|---|
 | [See-through hull](../plans/features/see-through-hull.md) | Built |
+| [See-through rules](../plans/features/see-through-rules.md) | Built |
 
 ## Deliverables
 
