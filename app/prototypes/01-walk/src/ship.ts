@@ -3,14 +3,16 @@
 // Exported by app/tools/export-ship.py and compressed with Meshopt: the ship, and its collider
 // (`zamboni_col`, positions only) in a separate file. Everything gets the see-through hull except
 // what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear.
-// Objects tagged `structure: true` are always cut by the hole; the rest is furniture (visibility.ts). The cargo ramp ("Door Cargo") is a separate
+// Objects tagged `structure: true` are cut by the hole; the rest is furniture (visibility.ts), with
+// exceptions tagged `seeThrough: "keep"` and `divider: true`. The cargo ramp ("Door Cargo") is a separate
 // object hinged at its bottom edge; it opens down to the ground and has its own collider.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { makeCuttable } from './cutaway';
-import { newCutUnit, type CutUnit } from './visibility';
+import { newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { Physics } from './physics';
 import { settings } from './settings';
 
@@ -77,8 +79,13 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
 
-  // See-through hull: cuttable copies of the materials (one per source material).
-  for (const mesh of cuttable) makeCuttable(mesh);
+  // See-through hull: cuttable copies of the materials (one per source material), and a BVH per
+  // mesh so the see-through rules' raycasts are fast (the hull and the Contraption are dense).
+  for (const mesh of cuttable) {
+    makeCuttable(mesh);
+    mesh.geometry.boundsTree = new MeshBVH(mesh.geometry);
+    mesh.raycast = acceleratedRaycast;
+  }
   // The collider shares the ship's transform.
   object.add(colGltf.scene);
   const col: THREE.Mesh = collider;
@@ -165,22 +172,28 @@ function groupCutUnits(
   for (const [node, list] of byNode) {
     const box = new THREE.Box3();
     for (const mesh of list) box.expandByObject(mesh);
-    const structure = tagged(node, ship, 'structure');
-    const unit = newCutUnit(node, structure, box.min.y >= upperFloorY - 0.4 ? 1 : 0);
+    const tags = {
+      structure: tagged(node, ship, 'structure', true),
+      divider: tagged(node, ship, 'divider', true),
+      keep: tagged(node, ship, 'seeThrough', 'keep'),
+    };
+    const unit = newCutUnit(node, tags, box.min.y >= upperFloorY - 0.4 ? 1 : 0, box.max.y);
     unit.meshes = list;
+    prepareRaycasts(unit);
     for (const mesh of list) {
-      mesh.userData.cutStructure = structure ? 1 : 0;
+      mesh.userData.cutStructure = tags.structure ? 1 : 0;
       mesh.userData.cutFade = 0;
+      mesh.userData.cutWhole = 0;
     }
     units.push(unit);
   }
   return units;
 }
 
-/** True if the object or one of its parents (up to the ship) has `userData[key] === true`. */
-function tagged(o: THREE.Object3D, ship: THREE.Object3D, key: string): boolean {
+/** True if the object or one of its parents (up to the ship) has `userData[key] === value`. */
+function tagged(o: THREE.Object3D, ship: THREE.Object3D, key: string, value: unknown): boolean {
   for (let n: THREE.Object3D | null = o; n && n !== ship; n = n.parent) {
-    if (n.userData[key] === true) return true;
+    if (n.userData[key] === value) return true;
   }
   return false;
 }

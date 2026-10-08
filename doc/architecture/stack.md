@@ -19,7 +19,7 @@
 | Need | Library | Version (2026-10-08) | Why |
 |---|---|---|---|
 | Physics: character controller, pickable objects, doors | [Rapier](https://rapier.rs/) (`@dimforge/rapier3d-compat`) | 0.21.0, in use in prototype 01 since 2026-10-08. Known issue: the character controller sinks through very large box colliders; use meshes or smaller boxes for big grounds | The immersive-sim side needs real physics objects (pick up, drop, throw). Rapier also has a kinematic character controller, so one system handles both the character and the props |
-| Fast raycasts (camera collision, interaction targeting) | [`three-mesh-bvh`](https://github.com/gkjohnson/three-mesh-bvh) | 0.9.16 | Accelerates raycasts against the ship's detailed meshes |
+| Fast raycasts (camera collision, interaction targeting, see-through rules) | [`three-mesh-bvh`](https://github.com/gkjohnson/three-mesh-bvh) | 0.9.16 | Accelerates raycasts against the ship's detailed meshes. In use in prototype 01 since 2026-10-08 (see-through rules: 15 ms → 0.2 ms per frame) |
 | Dialogue and story state | [Ink](https://www.inklestudios.com/ink/) via [`inkjs`](https://github.com/y-lohse/inkjs) | 2.4.0 | Mature, text-based, runs in the browser; one story file drives VN dialogue, comm chats and barks. See "Dialogue language" below |
 | Post-processing (bloom on emissives and CRTs) | Three's built-in TSL post-processing (`PostProcessing` + bloom node) | ships with three | The `postprocessing` npm library is WebGL-only, so it doesn't fit `WebGPURenderer` |
 | Audio | Web Audio through Three's `AudioListener` / `PositionalAudio` | ships with three | See [`audio.md`](audio.md) |

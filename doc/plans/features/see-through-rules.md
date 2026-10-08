@@ -69,3 +69,42 @@ Cut only what hides something the player needs to see. Today everything inside t
 ## After
 
 - `features/see-through-hull.md` (the three groups, the rules, the chosen look, cost), the naming contract (`structure: true`), the prototype README, a decision-log update.
+
+## Second pass (owner play-test, 2026-10-08)
+
+*Status: built, 2026-10-08 (approved by the owner: "write the plan and run it as is; we'll figure out the exceptions after"); owner play-test pending.*
+
+> **[Agent note]** While building: the structure rays made plain three.js raycasts cost 15 ms per frame (the hull and the Contraption are dense), so `three-mesh-bvh` (already in the stack) was brought in, with cached per-mesh inverse matrices and a bounding-sphere rejection: 0.2 ms. Furniture's cuts got their own size, separate from the hole's, so they still work while the hole is shut.
+
+The owner's play-test found seven edge cases (screenshots in the conversation of 2026-10-08). Most come from one weakness: "hides her" was any one of four points on a single line through her middle, so low furniture covering only her legs was cut, and a locker covering half of her wasn't.
+
+**Principle (owner):** most of the game is spent in the ship, so **every camera angle there should look good and interesting**, even if that takes extra work and exceptions. Bad angles will happen in a third-person game; they're mitigated as much as possible.
+
+| Case | Fix |
+|---|---|
+| Chair back in front of her (cockpit), centre table (crew quarters): should stay | **Coverage rule** (below): they only hide her legs |
+| Lockers covering half of her (cargo bay): should be cut | **Coverage rule**: the wider set of points sees them |
+| The 3D printer in front of her: should stay | **Exception** (owner): tagged `seeThrough: "keep"`. Its frame and ray let her show through, and it frames the shot |
+| The bench near the camera (cargo bay): could stay | **Near the camera, cut only above her waist** |
+| The hull around the windshield (camera in front of the cockpit): should stay | **The hole opens only when something solid hides her**; glass doesn't count. Controls: decided after seeing it |
+| The cockpit bulkhead's cut looks strange (black slabs) | **Cut surface in the object's own colour, darkened**, and a toggle to cut bulkheads **as a whole** instead of by the hole |
+
+**The rules after this pass:**
+
+1. **Coverage:** her silhouette is sampled with 12 points (3 across, at ±0.2 m sideways from the camera's view, × 4 heights: feet, hips, chest, head). Furniture is cut if it hides **her head** (the centre head point) or **more than a third of the points** (tunable).
+2. **The way ahead** only counts for furniture taller than her waist (low furniture hiding the floor ahead stays: she'd be walking into it anyway).
+3. **Near the camera** (the first half of the way to her, tunable), furniture is cut by the hole only **above her waist** (tunable height, default half her height), like a cutaway at waist height. Low furniture near the camera stays.
+4. **The hole opens only when needed:** each frame, rays from the camera to her (5 points: head, chest, hips, and the chest ±0.2 m sideways) against the structure. Transparent materials (glass) don't count. If something solid hides her, the hole eases open (0.3 s); if not, it eases shut after 0.3 s clear (no flicker).
+5. **Exceptions, `seeThrough: "keep"`:** never cut by the furniture rules (coverage, way ahead). Still cut like structure on the other deck, and above the waist near the camera. First entry: `3d Printer`. Set by the export script from a list until set in Blender.
+6. **Cut surface colour:** the inside of the cut is the surface's own colour, darkened (tunable, default 35%), instead of one dark colour. The single colour stays as an option.
+7. **Bulkheads as a whole (toggle):** objects tagged `divider: true` (`Bulkhead Cargo`, `Bulkhead Cockpit` and their doors) can be switched from the hole to the furniture rules with a whole-object fade.
+
+**Tags:** `seeThrough: "keep"` and `divider: true`, added to the naming contract.
+
+**Cost:** about 12 rays per furniture object instead of 4, plus 5 rays against the structure (the hull is the largest mesh). Measured before and after; if the structure rays are slow, the fix is `three-mesh-bvh` (already planned in the stack for camera raycasts).
+
+**Out of scope, noted for the camera work:** the camera avoiding bad angles itself (e.g. sliding along walls instead of passing behind lockers). Recorded in [`architecture/README.md`](../../architecture/README.md).
+
+**The work:** export tags and re-export (checklist first); coverage, way-ahead, keep and divider rules in `visibility.ts`; the hole-only-when-needed test; shader: above-waist near-camera cut, own-colour cut surface, whole-fade for dividers; tuning panel; browser check of the seven cases' situations; docs.
+
+**Done when:** check and build pass; screenshots of each case; no console errors; frame time and ray cost measured. Then the owner play-tests and names further exceptions.

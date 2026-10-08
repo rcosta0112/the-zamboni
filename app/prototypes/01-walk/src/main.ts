@@ -65,7 +65,7 @@ async function start(): Promise<void> {
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }) });
 
   const gui = createTuningPanel({
     cameraDistance: () => view.syncDistance(),
@@ -88,8 +88,10 @@ async function start(): Promise<void> {
   window.addEventListener('resize', resize);
   resize();
 
-  // See-through hull: 0 outside the ship, eased to 1 inside.
-  let cutAmount = 0;
+  // See-through hull: furniture cuts 0 outside the ship, eased to 1 inside; the structure's hole
+  // eased to 1 while something solid hides her.
+  let insideAmount = 0;
+  let holeAmount = 0;
   const chest = new THREE.Vector3();
   const stepChest = new THREE.Vector3();
 
@@ -121,12 +123,26 @@ async function start(): Promise<void> {
     const inside = ship !== null && ship.interior.containsPoint(chest);
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
     view.update(dt, input, character.root.position);
-    const cutTarget = inside && settings.seeThrough ? 1 : 0;
-    // Ease toward the target (0.3 s); once there, stay (the old version stepped away every other
+    // See-through: which furniture hides her, and whether anything solid does (the hole).
+    const active = inside && settings.seeThrough;
+    let holeOpen = active;
+    if (ship) {
+      const feet = character.root.position;
+      holeOpen = updateVisibility(ship.cutUnits, {
+        camera: view.camera.position,
+        feet,
+        height: settings.zamboniHeight,
+        facing: character.facing,
+        moving: character.movedSpeed > 0.3,
+        active,
+        deck: feet.y >= ship.upperFloorY - 0.5 ? 1 : 0,
+      }, dt);
+    }
+    // Ease toward the targets (0.3 s); once there, stay (the old version stepped away every other
     // frame when already at the target, which made the hole flicker).
-    if (cutAmount < cutTarget) cutAmount = Math.min(cutTarget, cutAmount + dt / 0.3);
-    else if (cutAmount > cutTarget) cutAmount = Math.max(cutTarget, cutAmount - dt / 0.3);
-    updateCutaway(view.camera.position, chest, character.root.position.y, cutAmount, {
+    insideAmount = easeTo(insideAmount, active ? 1 : 0, dt / 0.3);
+    holeAmount = easeTo(holeAmount, holeOpen ? 1 : 0, dt / 0.3);
+    updateCutaway(view.camera.position, chest, character.root.position.y, holeAmount, insideAmount, {
       radius: settings.cutRadius,
       softness: settings.cutSoftness,
       backColor: settings.cutBackColor,
@@ -134,20 +150,10 @@ async function start(): Promise<void> {
       minVisibility: settings.furnitureMinVisibility,
       showOccluders: settings.showOccluders,
       nearPart: settings.furnitureNearPart,
+      waist: settings.furnitureWaist * settings.zamboniHeight,
+      ownColour: settings.cutOwnColour,
+      shade: settings.cutShade,
     });
-    if (ship) {
-      // Furniture on her deck: cut only while it hides her (or the way ahead).
-      const feet = character.root.position;
-      updateVisibility(ship.cutUnits, {
-        camera: view.camera.position,
-        feet,
-        height: settings.zamboniHeight,
-        facing: character.facing,
-        moving: character.movedSpeed > 0.3,
-        active: inside && settings.seeThrough,
-        deck: feet.y >= ship.upperFloorY - 0.5 ? 1 : 0,
-      }, dt);
-    }
     updateWorld(world, scene, character.root.position);
     if (ship) updateShip(ship, dt);
     renderer.toneMappingExposure = settings.exposure;
@@ -157,6 +163,10 @@ async function start(): Promise<void> {
     renderer.getDrawingBufferSize(size);
     stats.frame(dt, size.x, size.y);
   });
+}
+
+function easeTo(value: number, target: number, step: number): number {
+  return value < target ? Math.min(target, value + step) : Math.max(target, value - step);
 }
 
 function showHelp(): void {

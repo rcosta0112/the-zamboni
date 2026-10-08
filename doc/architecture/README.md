@@ -56,6 +56,8 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Save** | Checkpoint saves: story state, mission data, chat history; props reset on reload ([`platform.md`](platform.md)) | Ink state JSON in IndexedDB. Scope: see [`scope.md`](scope.md) |
 | **Input** | Actions (move, look, jump/fly, interact, comm, pause…) mapped to the **gamepad (primary)** and keyboard/mouse (secondary); button prompts follow the last device used | Gamepad API, browser events |
 
+> **[Agent note]** For the Camera system, from the owner (2026-10-08): **most of the game is spent in the ship, so every camera angle there should look good and interesting**, even if it takes a lot of extra work and exceptions. Bad angles will happen in a third-person game; mitigate them as much as possible. The see-through rules ([plan](../plans/features/see-through-rules.md)) handle what's cut; the camera itself avoiding bad angles (sliding along walls, not passing behind lockers, preferred angles per room) is still to be planned.
+
 > **[Agent note]** For the Interaction system, from the owner (2026-10-08), to work out when Interaction is planned: **Dr. Green turns her head to look at interesting objects and people** as she walks past them. What counts as "interesting" is still to be defined, probably a per-object checkbox decided case by case (a custom property, e.g. `lookAt: true`). Objects she's looking at, inside her field of view, should be fully visible: the see-through rules keep a protected "look target" slot for this ([rules plan](../plans/features/see-through-rules.md)). If a look target hides her, she wins and the target is cut.
 
 ## Cutscenes

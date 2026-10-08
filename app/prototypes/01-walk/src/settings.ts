@@ -71,13 +71,19 @@ export const settings = {
   cutRadius: 1.44, // m, radius of the capsule from the camera to Dr. Green's chest (1.2 + 20%)
   cutSoftness: 0.25, // m, width of the dithered edge (0 = hard edge)
   cutTargetHeight: 0.75, // m above her feet: the end of the capsule (chest)
-  cutBackColor: '#1b2327', // inside faces of cut surfaces
+  cutBackColor: '#1b2327', // inside faces of cut surfaces (when not in their own colour)
+  cutOwnColour: true, // inside faces in the surface's own colour, darkened
+  cutShade: 0.35, // how much of its own colour the inside keeps
+  holeOnlyWhenHidden: true, // the hole opens only while something solid hides her (glass doesn't count)
+  dividersWhole: false, // bulkheads (divider: true) cut as a whole, by the furniture rules, instead of by the hole
   // Furniture on her deck is cut only while it hides her (or the way ahead).
   furnitureLook: 'hole' as 'hole' | 'fade', // hole: the same hole as structure; fade: the whole object dithers out
   furnitureMinVisibility: 0, // fade look: how much of the object stays (0 = gone, 0.25 = a ghost)
   furnitureFadeTime: 0.2, // s, to fade out or back in
   furnitureHoldTime: 0.3, // s it must be clear before it comes back (stops flicker at the edge)
-  wayAheadDistance: 1.0, // m ahead of her feet, protected while she walks
+  wayAheadDistance: 1.0, // m ahead of her feet, protected while she walks (furniture taller than her waist)
+  furnitureCoverage: 0.34, // cut furniture that hides her head or more than this share of her
+  furnitureWaist: 0.5, // her waist, as a share of her height: near the camera, furniture is cut only above it
   furnitureNearPart: 0.5, // furniture in the hole is cut anyway on this part of the way from the camera to her (0 = never)
   showOccluders: false, // debug: tint furniture that is being cut
   cameraCollision: true, // outside the ship

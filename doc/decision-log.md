@@ -4,6 +4,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
+## [2026-10-08] — Every camera angle in the ship should look good (design)
+
+**Context:** Play-testing the see-through rules turned up edge cases where what's cut, or not, makes a bad picture.
+
+**Decision:** Most of the game is spent in the ship, so every camera angle there should look good and interesting, even at the cost of extra work and per-object exceptions. Bad angles are expected in a third-person game and are mitigated as much as possible: by the see-through rules (what's cut), by exceptions where the rules and taste disagree (first one: the 3D printer stays, its frame and ray let her show through), and later by the camera itself.
+
+**Alternatives considered:** general rules only, accepting some bad angles.
+
+**Rationale:** the ship is where the player spends the game; its framing is part of the art direction.
+
+**Status:** Decided. Applied in [`plans/features/see-through-rules.md`](plans/features/see-through-rules.md) (second pass).
+
+---
+
 ## [2026-10-08] — See-through hull rules (feature)
 
 **Context:** Step 3; the [plan](plans/features/see-through-hull.md) asked where to build it, what happens outside the ship, and how to treat the ceiling.
@@ -20,6 +34,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Update (2026-10-08): cut everything inside the ship** (owner). Cutting only the hull, walls and tall furniture left the rest (seats, couch, table, consoles) floating in the hole, in the way. Now everything is cut except what's tagged `cuttable: false` (the ramp, the landing gear) and Dr. Green; props and other characters inside the ship will be cut too. The "never below her feet" rule now protects only upward-facing surfaces, so floors stay and furniture leaves no stubs (tagging floors was proposed first; the cockpit floor is part of a console object, so a name list would have missed walkable surfaces). Alternatives: clipping with the camera's near plane (cuts the floor behind her and slices the whole screen) or a material clipping plane (a dollhouse cutaway: a different look, no cheaper); both declined, the hole stays. Performance: one material copy per source material (29, was one per mesh) and shaders compiled while loading; no per-frame cost measured on the owner's PC, and the freeze after the ship appeared is gone.
 
 **Update (2026-10-08): rules for what gets cut** (owner, planned in [`plans/features/see-through-rules.md`](plans/features/see-through-rules.md), not built yet). Cut only what hides something the player needs to see. Structure (hull, walls, ceilings, and anything on another deck) keeps the hole; furniture on her deck is cut only while it hides a protected target (Dr. Green, the ground under her, the way ahead, her look and interaction targets). **She always wins** over a look or interaction target. Fades with hysteresis instead of popping. Furniture look: a hole and a whole-object fade are both built for comparison. Alternatives: a list of exceptions by height and distance (the owner's first framing; the occlusion rule covers those cases). **Built 2026-10-08**, plus one rule found in testing: furniture *near the camera* (the first half of the way to her, tunable) is cut by the hole whether or not it hides her, because it fills the view.
+
+**Update (2026-10-08): second pass** (owner play-test). "Hides her" became **coverage**: her head, or more than a third of her silhouette (12 points). Near the camera, furniture is cut only **above her waist**. The hole opens **only while something solid hides her** (glass doesn't count). **Exceptions** by tag: `seeThrough: "keep"` (the 3D printer: owner, its frame and ray let her show through and it frames the shot) and `divider: true` (bulkheads, optionally cut as a whole). Cut surfaces in their own colour, darkened. `three-mesh-bvh` brought in for the raycasts (15 ms → 0.2 ms per frame).
 
 ---
 

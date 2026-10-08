@@ -19,7 +19,8 @@ then compress both (Meshopt) into app/assets, from app/:
   NEVER_CUT unless the object already has that property: this list stands in until the tags are
   set in Blender.
 - Tags the see-through hull's structure group (``structure: true``: hull, walls, ceilings, doors,
-  hatches...; untagged objects are furniture) from STRUCTURE_GROUP the same way.
+  hatches...; untagged objects are furniture) from STRUCTURE_GROUP the same way, and the
+  exceptions: ``seeThrough: "keep"`` (KEEP) and ``divider: true`` (DIVIDERS).
 - Writes ``zamboni_col`` to its own file, positions only: every exported object except moving
   parts, joined into one mesh at full detail (``*_col`` in the naming contract: never rendered).
   Very dense furniture goes in as its convex hull instead. A decimated collider closed openings
@@ -78,6 +79,13 @@ STRUCTURE_GROUP = {
     'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002', 'Lab Window', 'Lab Window.001',
 }
 
+# Furniture the see-through rules never cut for hiding her (owner: the 3D printer's frame and ray
+# let her show through, and it frames the shot).
+KEEP = {'3d Printer'}
+# Interior dividers that can be cut as a whole instead of by the hole (a toggle in the game); their
+# child objects (the doors) follow.
+DIVIDERS = {'Bulkhead Cargo', 'Bulkhead Cockpit'}
+
 # Moving parts get their own collider in the game, so they're left out of zamboni_col.
 MOVING = {'Door Cargo'}
 # Furniture denser than this goes into the collider as its convex hull. Never structure: a convex
@@ -131,6 +139,12 @@ for ob in objects:
         tagged += 1
     if 'structure' not in ob and ob.name in STRUCTURE_GROUP:
         ob['structure'] = True
+        tagged += 1
+    if 'seeThrough' not in ob and ob.name in KEEP:
+        ob['seeThrough'] = 'keep'
+        tagged += 1
+    if 'divider' not in ob and ob.name in DIVIDERS:
+        ob['divider'] = True
         tagged += 1
 
 # Collision mesh: evaluated copies (modifiers applied) of everything except moving parts.
