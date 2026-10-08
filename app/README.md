@@ -30,8 +30,16 @@ npm run build      # build every workspace
 
 1. Write its plan first: `doc/plans/prototypes/NN-<slug>.md`.
 2. Create `prototypes/NN-<slug>/` (copy `01-walk` as a starting point, without `node_modules` and `dist`).
-3. In the copy: set `package.json`'s `name` to `@zamboni/prototype-NN-<slug>`, and the port in `vite.config.ts` to `5200 + NN`.
+3. In the copy: set `package.json`'s `name` to `@zamboni/prototype-NN-<slug>`, and the port in `vite.config.ts` to `5200 + NN`. Keep `vite` and `typescript` in its `devDependencies` (see Deploying).
 4. Add a `dev:NN` script to this folder's `package.json`, then run `npm install`.
+
+## Deploying (Vercel)
+
+One Vercel project per prototype:
+- **Root Directory:** `app/prototypes/NN-<slug>`; keep *Include files outside the Root Directory* on (the prototype uses `app/assets/` and the workspace lockfile).
+- **Framework:** Vite (build `vite build`, output `dist`). **Node.js:** 22.x.
+- Vercel runs `npm install` inside the prototype folder, which installs **only that prototype's own dependencies**, not the workspace root's. So every prototype lists the build tools it uses (`vite`, `typescript`, …) in its own `devDependencies`, pinned to the same versions as the root. (Found 2026-10-08: the first deploy failed with `vite: command not found`.)
+- The site is served from the domain root (`/`).
 
 ## Rules
 

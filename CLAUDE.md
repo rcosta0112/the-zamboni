@@ -35,6 +35,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 
 - Each prototype is a self-contained Vite app in `app/prototypes/NN-<slug>/`, package `@zamboni/prototype-NN-<slug>`, root script `dev:NN`, dev port `5200 + NN`.
 - **Promote on second use:** code stays in its prototype until a second prototype (or the game) needs it unchanged; then it moves to `app/packages/`. Exception: `packages/ui` (the design system's code version) exists from the start.
+- **Each prototype lists the build tools it uses** (`vite`, `typescript`…) in its own `devDependencies`, pinned to the root's versions: Vercel installs from the prototype folder, which installs only that workspace's dependencies.
 - Shared packages are imported as source. Before keeping a change to shared code, `npm run check` must pass in every workspace.
 - Shared production assets go in `app/assets/`; test-only assets in `app/assets/test/`.
 - **Prototypes default to inverted Y** (vertical look); production builds default to normal.

@@ -30,7 +30,8 @@ app/
 5. **Assets are shared** through `app/assets/`.
 6. **Versions are pinned exactly** (`save-exact`); `three` stays at `0.186.1`.
 7. **Inverted Y by default in prototypes** (the owner's preference); production builds default to normal.
-8. **One copy of three.** Three's add-ons (GLTFLoader…) import `three`; each prototype's Vite config aliases `three` to `three/webgpu`, as the official WebGPU examples do.
+8. **Each prototype lists its own build tools** (`vite`, `typescript`…) in `devDependencies`, at the root's versions, so it builds alone: Vercel installs from the prototype folder, which only installs that workspace's dependencies.
+9. **One copy of three.** Three's add-ons (GLTFLoader…) import `three`; each prototype's Vite config aliases `three` to `three/webgpu`, as the official WebGPU examples do.
 
 ## Naming
 
