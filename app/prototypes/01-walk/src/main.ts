@@ -45,7 +45,20 @@ async function start(): Promise<void> {
       character.setModels(models);
       return loadShip(scene, physics, settings.zamboniHeight / zamboniFileHeight);
     })
-    .then((s) => (ship = s))
+    .then(async (s) => {
+      // Build the ship's shaders now, not the first time each part comes into view (that stalled
+      // the first frames). compileAsync skips what's outside the view, so culling is off meanwhile.
+      const culled: THREE.Object3D[] = [];
+      s.object.traverse((o) => {
+        if (o.frustumCulled) culled.push(o);
+        o.frustumCulled = false;
+      });
+      const start = performance.now();
+      await renderer.compileAsync(scene, view.camera);
+      for (const o of culled) o.frustumCulled = true;
+      console.info(`[01-walk] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
+      ship = s;
+    })
     .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err));
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);

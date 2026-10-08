@@ -1,8 +1,8 @@
 // The Zamboni: exterior, cargo bay and the large interior elements (walls, bunks, couch, galley,
 // cockpit seats and consoles, engineering benches...), landed a few metres from the start.
 // Exported by app/tools/export-ship.py and compressed with Meshopt: the ship, and its collider
-// (`zamboni_col`, positions only) in a separate file. Surfaces tagged `cuttable` in the file
-// (glTF extras → userData) get the see-through hull. The cargo ramp ("Door Cargo") is a separate
+// (`zamboni_col`, positions only) in a separate file. Everything gets the see-through hull except
+// what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear. The cargo ramp ("Door Cargo") is a separate
 // object hinged at its bottom edge; it opens down to the ground and has its own collider.
 
 import * as THREE from 'three/webgpu';
@@ -53,12 +53,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
 
   let ramp: THREE.Object3D | null = null;
   let cargoFloor: THREE.Object3D | null = null;
-  const cuttable: THREE.Object3D[] = [];
+  const cuttable: THREE.Mesh[] = [];
   object.traverse((o) => {
     if (RAMP.includes(o.name)) ramp = o;
     if (CARGO_FLOOR.includes(o.name)) cargoFloor = o;
-    if (o.userData.cuttable) cuttable.push(o);
     const mesh = o as THREE.Mesh;
+    if (mesh.isMesh && !neverCut(mesh, object)) cuttable.push(mesh);
     if (!mesh.isMesh) return;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -71,8 +71,8 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
 
-  // See-through hull: cuttable copies of the tagged surfaces' materials.
-  for (const node of cuttable) node.traverse((o) => (o as THREE.Mesh).isMesh && makeCuttable(o as THREE.Mesh));
+  // See-through hull: cuttable copies of the materials (one per source material).
+  for (const mesh of cuttable) makeCuttable(mesh);
   // The collider shares the ship's transform.
   object.add(colGltf.scene);
   const col: THREE.Mesh = collider;
@@ -125,6 +125,14 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   };
   updateShip(ship, 0, true);
   return ship;
+}
+
+/** True if the mesh or one of its parents (up to the ship) is tagged `cuttable: false`. */
+function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
+  for (let o: THREE.Object3D | null = mesh; o && o !== ship; o = o.parent) {
+    if (o.userData.cuttable === false) return true;
+  }
+  return false;
 }
 
 /** Per frame: animate the ramp toward open or closed, and keep its colliders with it. */

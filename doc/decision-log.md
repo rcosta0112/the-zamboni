@@ -17,6 +17,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** Built. See [`features/see-through-hull.md`](features/see-through-hull.md).
 
+**Update (2026-10-08): cut everything inside the ship** (owner). Cutting only the hull, walls and tall furniture left the rest (seats, couch, table, consoles) floating in the hole, in the way. Now everything is cut except what's tagged `cuttable: false` (the ramp, the landing gear) and Dr. Green; props and other characters inside the ship will be cut too. The "never below her feet" rule now protects only upward-facing surfaces, so floors stay and furniture leaves no stubs (tagging floors was proposed first; the cockpit floor is part of a console object, so a name list would have missed walkable surfaces). Alternatives: clipping with the camera's near plane (cuts the floor behind her and slices the whole screen) or a material clipping plane (a dollhouse cutaway: a different look, no cheaper); both declined, the hole stays. Performance: one material copy per source material (29, was one per mesh) and shaders compiled while loading; no per-frame cost measured on the owner's PC, and the freeze after the ship appeared is gone.
+
 ---
 
 ## [2026-10-08] — Ink for dialogue (tech)

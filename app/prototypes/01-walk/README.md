@@ -76,7 +76,7 @@ npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-c
 - **Size:** 10 MB uncompressed (the Contraption alone is 21,500 triangles) → 1.53 MB with Meshopt; three.js decodes it with its `MeshoptDecoder`.
 - **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files).
 - **Collider:** its own file, positions only: everything except the ramp, joined at full detail (29,139 triangles); the four densest pieces of furniture (dials, 3D printer, Contraption, sledge) as convex hulls. A decimated version closed the cargo opening. Ladders block like walls: no climbing yet.
-- **Cuttable surfaces** are tagged in the file (`cuttable: true` → glTF extras → `userData.cuttable`), set by the export script until they're set in Blender: hull, windshield, walls, ceilings, bulkheads, doors, tall furniture (bunks, lockers, galley, cabinets, Contraption, ladders, the head) and the engine pods (they hang outside the hull at deck height and blocked the view into the lower deck). Low furniture and floors stay solid.
+- **See-through hull:** everything in the ship is cut, except what's tagged `cuttable: false` in the file (→ glTF extras → `userData.cuttable`), set by the export script until it's set in Blender: the cargo ramp and the landing gear. Upward-facing surfaces below her feet are never cut, so the floors stay. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md).
 - **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `pivot` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
 - **Double-sided materials** (export report, to fix in Blender): see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md).
 
@@ -88,7 +88,7 @@ npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-c
 
 ## See-through hull and camera collision
 
-Inside the ship (Dr. Green in the cargo bay), a round, dither-edged hole is cut through the hull, walls and ceiling between the camera and her chest; outside, the camera collides with the ship instead. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md). Code: [`src/cutaway.ts`](src/cutaway.ts) (TSL), wired up in `src/ship.ts` (which surfaces, the cargo bay volume) and `src/main.ts`; camera collision in `src/camera.ts` + `Physics.castRay`. Tuning panel → *See-through hull*.
+Inside the ship, a round, dither-edged hole is cut through everything between the camera and her chest (hull, walls, ceiling, furniture); outside, the camera collides with the ship instead. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md). Code: [`src/cutaway.ts`](src/cutaway.ts) (TSL), wired up in `src/ship.ts` (which surfaces, the cargo bay volume) and `src/main.ts`; camera collision in `src/camera.ts` + `Physics.castRay`. Tuning panel → *See-through hull*.
 
 ## Resolution and anti-aliasing
 
@@ -123,7 +123,7 @@ Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Sit
 | `src/model.ts` | Loads both models; blends standing/walk/run by speed; jump |
 | `src/physics.ts` | Rapier world: ground, ship collider, capsule + character controller |
 | `src/ship.ts` | Loads the ship exterior, places it, builds its collider |
-| `src/cutaway.ts` | See-through hull: the TSL cut, cuttable material copies |
+| `src/cutaway.ts` | See-through hull: the TSL cut, cuttable material copies (one per source material) |
 | `src/retarget.ts` | Retargets animations between skeletons with the same bone names but different bone orientations |
 | `src/camera.ts` | Third-person orbit camera with smoothed follow |
 | `src/world.ts` | Sky, fog, lights, sun shadow that follows the character, TSL grid floor |
@@ -142,6 +142,7 @@ From Part 1 (*Big Moon Tiny Moon*, `Main.unity`): walk 1.5 m/s, run 7 m/s, accel
 | 2026-10-08 | Same, with Part 1's Dr. Green | Chrome | WebGPU | 60 fps, no errors. Standing, walking (Shift), running and jumping checked in screenshots; facing correct. Camera defaults changed to 4.5 m / aim height 1.0 m for the smaller character |
 | 2026-10-08 | Same, with the reference look and mist | Chrome | WebGPU | 60 fps once shaders had compiled, no errors. A screenshot 4 s after loading read 7 fps while the new noise shaders compiled: first-use stutter, as predicted in the performance plan |
 | 2026-10-08 | Same, with the interior | Chrome | WebGPU | 60 fps once shaders compiled (the first second after loading read 11 fps: 159 cuttable meshes compiling), no errors. All four areas visible through the hull; collision with furniture checked (walking into the crew quarters' furniture stops her) |
+| 2026-10-08 | Same, see-through hull on everything inside | Chrome | WebGPU | 60 fps, no errors. Cargo bay: the bench in front of her is cut (before: whole, in the way); floor solid. Upper deck: couch, table and cockpit seats cut with no stubs; floor under her solid in the crew quarters and the cockpit (whose floor is part of `Dashboard Body`). Ship shaders compiled during loading (2.2–2.6 s): the 0.57 s freeze after the ship appeared is gone; total load stall unchanged (~3 s) |
 | 2026-10-08 | Same, see-through hull + camera collision | Chrome | WebGPU | 60 fps, no errors. In the cargo bay: hole through the hull from the side and through the ceiling from above, floor solid; off: hull opaque. Ship's shadow identical with the cut on and off. Outside with the ship in the way: camera came in from 8 m to 2.96 m |
 | 2026-10-08 | Same, Zamboni Dr. Green with retargeted animations | Chrome | WebGPU | No errors. Standing (back and front), walking, running checked in screenshots: legs stride correctly, arms not twisted, facing correct |
 
