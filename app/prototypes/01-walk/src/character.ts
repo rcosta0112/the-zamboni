@@ -21,6 +21,7 @@ export class Character {
   movedSpeed = 0; // horizontal speed it actually moved at (less when blocked), m/s
   verticalVelocity = 0;
   grounded = true;
+  indoors = false; // inside the ship: the indoor walk and run speeds apply
 
   /** Previous state, for interpolating between fixed steps when rendering. */
   private prevPosition = new THREE.Vector3();
@@ -61,14 +62,16 @@ export class Character {
     const current = settings.showModel ? this.models[settings.characterModel] : undefined;
     this.capsule.visible = !current;
     for (const m of Object.values(this.models)) m.object.visible = m === current;
-    current?.update(dt, this.movedSpeed, this.grounded);
+    current?.update(dt, this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed());
   }
 
   /**
    * One fixed simulation step.
    * @param cameraYaw camera orbit angle; movement input is relative to it
+   * @param indoors inside the ship (the indoor speeds apply)
    */
-  update(dt: number, input: Input, cameraYaw: number, physics: Physics | null): void {
+  update(dt: number, input: Input, cameraYaw: number, physics: Physics | null, indoors: boolean): void {
+    this.indoors = indoors;
     this.prevPosition.copy(this.position);
     this.prevFacing = this.facing;
 
@@ -92,7 +95,7 @@ export class Character {
       );
 
       // Keyboard: run unless Shift is held. Stick: speed follows how far it's pushed.
-      const maxSpeed = input.walkHeld ? settings.walkSpeed : settings.runSpeed;
+      const maxSpeed = input.walkHeld ? this.walkSpeed() : this.runSpeed();
       const targetSpeed = maxSpeed * amount;
       if (this.speed < targetSpeed) {
         this.speed = Math.min(targetSpeed, this.speed + settings.acceleration * dt);
@@ -138,6 +141,14 @@ export class Character {
       }
       this.movedSpeed = this.speed;
     }
+  }
+
+  walkSpeed(): number {
+    return this.indoors ? settings.indoorWalkSpeed : settings.walkSpeed;
+  }
+
+  runSpeed(): number {
+    return this.indoors ? settings.indoorRunSpeed : settings.runSpeed;
   }
 
   /** Place the visible model between the last two fixed steps. */

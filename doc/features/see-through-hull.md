@@ -9,7 +9,8 @@ Inside the ship, the hull, walls and ceilings between the camera and Dr. Green a
 ## How it works
 
 - **The capsule:** from the camera to Dr. Green's chest (0.75 m above her feet). Pixels of cuttable surfaces that fall inside it, between the two, are discarded.
-- **Dithered edge:** a band at the hole's edge is broken up pixel by pixel with a 4×4 **ordered (Bayer) dither**. It looks soft without transparency, so there are no sorting problems. (Random per-pixel noise was tried first: it sparkled on the edge as the camera moved; the ordered pattern crawls far less. Softness 0 gives a hard edge.)
+- **Dithered edge:** a band at the hole's edge is broken up pixel by pixel with a 4×4 **ordered (Bayer) dither**. It looks soft without transparency, so there are no sorting problems. (Random per-pixel noise was tried first; the ordered pattern crawls less when the camera moves. Softness 0 gives a hard edge.)
+- **Flicker fix (2026-10-08):** the hole flickered even when nothing moved. Cause: the code that eases the hole in and out stepped *away* from its target on every other frame once it had reached it, so the radius alternated between two sizes. Fixed; consecutive frames of a still scene are now identical.
 - **Never below her feet:** nothing lower than 0.15 m above her feet is cut, so the floor she stands on stays, even upstairs, where that floor is also the cargo bay's cuttable ceiling.
 - **TSL, r186:**
   - `material.maskNode`: the cut condition (a pixel is discarded where it's false).
@@ -27,9 +28,9 @@ Inside the ship, the hull, walls and ceilings between the camera and Dr. Green a
 
 ## What's cuttable
 
-Prototype: `Hull_Merged`, `Floor Top.001` (the cargo bay ceiling / upper deck floor), `Bulkhead Cargo`, `Windshield`, `Door`, `Top Hatch`. Never cut: floors she stands on, the ramp, landing gear, turbines, characters, props.
+Tagged in the ship file by the export script (`cuttable: true`, read as `userData.cuttable`): the hull, windshield, walls, ceilings, bulkheads, doors, tall furniture (bunks, lockers, galley, cabinets, the Contraption, ladders, the head) and the **engine pods** (they hang outside the hull at deck height and blocked the view into the lower deck; first planned as never cut). Never cut: floors, low furniture (seats, couch, table, benches), the ramp, landing gear, characters, props.
 
-**For the game:** objects are tagged in Blender with the custom property `cuttable: true` (naming contract, [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md)); the exporter passes it through as glTF `extras` and the game reads `userData.cuttable`. The prototype still uses a list of names.
+**For the game:** objects are tagged in Blender with the custom property `cuttable: true` (naming contract, [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md)); the exporter passes it through as glTF `extras` and the game reads `userData.cuttable`. Until the tags are set in Blender, `app/tools/export-ship.py` sets them from its own list (it never overrides a tag already in the file).
 
 ## Tuning (prototype panel → *See-through hull*)
 
@@ -43,4 +44,4 @@ A few instructions per pixel on cuttable surfaces only, plus losing an early-dep
 
 - Oval or constant-on-screen-size hole, glowing rim (options from the original design notes).
 - A real trigger-volume system for "inside" (today: one box, the hull's bounds).
-- Tagging through Blender custom properties instead of names.
+- Tags set in Blender instead of by the export script.

@@ -70,8 +70,11 @@ export class AnimatedModel {
     });
   }
 
-  /** Called every rendered frame with the character's current horizontal speed. */
-  update(dt: number, actualSpeed: number, grounded: boolean): void {
+  /**
+   * Called every rendered frame with the character's current horizontal speed, and the walk and
+   * run speeds in use (they differ indoors), which set the walk/run blend.
+   */
+  update(dt: number, actualSpeed: number, grounded: boolean, walk: number, run: number): void {
     this.object.scale.setScalar(settings.modelScale * this.heightToScale());
     this.object.rotation.y = THREE.MathUtils.degToRad(this.baseYawDeg + settings.modelYawOffsetDeg);
 
@@ -87,8 +90,6 @@ export class AnimatedModel {
     const { standing, walking, running, jumping } = this.clips;
 
     // Ground blend: 0 = standing, 1 = walking, 2 = running.
-    const walk = settings.walkSpeed;
-    const run = settings.runSpeed;
     const blend = speed <= walk ? speed / walk : 1 + Math.min(1, (speed - walk) / Math.max(0.01, run - walk));
     const wWalk = blend <= 1 ? blend : 2 - blend;
     const wRun = Math.max(0, blend - 1);

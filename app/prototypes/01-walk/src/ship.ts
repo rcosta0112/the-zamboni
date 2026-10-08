@@ -1,25 +1,21 @@
-// The Zamboni's exterior and cargo bay, landed a few metres from the start, with a simple mesh
-// collider. Exported by app/tools/export-ship-exterior.py: the outer hull and outside parts, the
-// cargo bay (floor, front wall, ceiling), and `zamboni_col` (a decimated copy, never rendered)
-// used as the collider. The cargo ramp ("Door Cargo") is a separate object hinged at its bottom
-// edge; it opens down to the ground and has its own collider that moves with it.
+// The Zamboni: exterior, cargo bay and the large interior elements (walls, bunks, couch, galley,
+// cockpit seats and consoles, engineering benches...), landed a few metres from the start.
+// Exported by app/tools/export-ship.py and compressed with Meshopt: the ship, and its collider
+// (`zamboni_col`, positions only) in a separate file. Surfaces tagged `cuttable` in the file
+// (glTF extras → userData) get the see-through hull. The cargo ramp ("Door Cargo") is a separate
+// object hinged at its bottom edge; it opens down to the ground and has its own collider.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { makeCuttable } from './cutaway';
 import type { Physics } from './physics';
 import { settings } from './settings';
 
-const SHIP_URL = '/test/zamboni-exterior.glb';
-const COLLIDER = 'zamboni_col';
+const SHIP_URL = '/test/zamboni-ship.glb';
+const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
-const CARGO_CEILING = 'Floor Top.001';
-/**
- * Surfaces the see-through hull may cut (hull, walls, ceilings). For the game these come from a
- * `cuttable: true` custom property set in Blender; in the prototype, a list of names.
- */
-const CUTTABLE = ['Hull_Merged', 'Floor Top.001', 'Bulkhead Cargo', 'Windshield', 'Door', 'Top Hatch'];
 
 /** GLTFLoader's node names: spaces become underscores; . : / [ ] are removed. */
 const sanitize = (name: string) => name.replace(/\s/g, '_').replace(/[[\].:/]/g, '');
@@ -46,7 +42,8 @@ export interface Ship {
  * @param scale the same scale as the characters (ship and crew share units in the Blender files)
  */
 export async function loadShip(scene: THREE.Scene, physics: Physics, scale: number): Promise<Ship> {
-  const gltf = await new GLTFLoader().loadAsync(SHIP_URL);
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const [gltf, colGltf] = await Promise.all([loader.loadAsync(SHIP_URL), loader.loadAsync(COLLIDER_URL)]);
   const object = gltf.scene;
 
   // Landed ahead of the player, back toward them, so the open cargo ramp faces the start.
@@ -54,34 +51,32 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   object.position.set(4, 0, -17);
   object.rotation.y = Math.PI;
 
-  let collider: THREE.Mesh | null = null;
   let ramp: THREE.Object3D | null = null;
   let cargoFloor: THREE.Object3D | null = null;
-  let cargoCeiling: THREE.Object3D | null = null;
   const cuttable: THREE.Object3D[] = [];
   object.traverse((o) => {
     if (RAMP.includes(o.name)) ramp = o;
     if (CARGO_FLOOR.includes(o.name)) cargoFloor = o;
-    if (named(o, CARGO_CEILING)) cargoCeiling = o;
-    if (CUTTABLE.some((n) => named(o, n))) cuttable.push(o);
+    if (o.userData.cuttable) cuttable.push(o);
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
-    if (o.name === COLLIDER) {
-      collider = mesh;
-      return;
-    }
     mesh.castShadow = true;
     mesh.receiveShadow = true;
   });
-  if (!collider) throw new Error(`${SHIP_URL} has no "${COLLIDER}" mesh`);
+  let collider: THREE.Mesh | null = null;
+  colGltf.scene.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) collider = o as THREE.Mesh;
+  });
+  if (!collider) throw new Error(`${COLLIDER_URL} has no mesh`);
   if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
-  if (!cargoCeiling) throw new Error(`${SHIP_URL} has no cargo ceiling ("${CARGO_CEILING}")`);
 
-  // See-through hull: cuttable copies of these surfaces' materials.
+  // See-through hull: cuttable copies of the tagged surfaces' materials.
   for (const node of cuttable) node.traverse((o) => (o as THREE.Mesh).isMesh && makeCuttable(o as THREE.Mesh));
+  // The collider shares the ship's transform.
+  object.add(colGltf.scene);
   const col: THREE.Mesh = collider;
-  const rampNode: THREE.Object3D = ramp;
+  const rampDoor: THREE.Object3D = ramp;
   col.material = new THREE.MeshBasicNodeMaterial({ color: 0xff3366, wireframe: true });
   col.visible = false;
 
@@ -103,11 +98,15 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     new THREE.Vector3(hullBox.max.x, hullBox.max.y, hullBox.max.z),
   );
 
-  // The ramp: find the hinge angle at which it reaches the ground. While it moves (or is closed)
-  // it has a convex collider that follows it (a copy of its mesh would keep the window cut
-  // through it, which the character falls into). Fully open, a smooth walkable slope replaces it:
-  // the modelled ramp has a lip where it meets the ground and its hinge sits ~0.29 m below the
-  // cargo floor, both awkward for the character controller.
+  // The ramp hinges on the door's origin in The Zamboni 1.18.blend, at the bottom of the hull
+  // opening (owner, 2026-10-08). The export records it as `pivot`: compression moved the door
+  // node's own origin, so a pivot is placed there and the door attached to it.
+  const rampNode = hingeAt(object, rampDoor);
+
+  // Find the hinge angle at which the ramp reaches the ground. While it moves (or is closed) it
+  // has a convex collider that follows it (a copy of its mesh would keep the window cut through
+  // it, which the character falls into). Fully open, a smooth walkable slope replaces it (the
+  // modelled ramp has a lip where it meets the ground).
   const rampOpenAngle = findRampOpenAngle(rampNode);
   const rampWalkway = physics.addStaticTriangles(...walkwayTriangles(object, rampNode, cargoFloor));
   rampNode.rotation.x = 0;
@@ -181,7 +180,24 @@ function walkwayTriangles(ship: THREE.Object3D, ramp: THREE.Object3D, floor: THR
 }
 
 /**
- * The ramp is hinged at its bottom edge (its origin). Rotating it outward (negative angle around
+ * A pivot at the moving part's recorded `pivot` (ship space, from the export), with the part
+ * attached to it (keeping its place). Rotating the pivot swings the part around its hinge.
+ */
+function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
+  const p = part.userData.pivot as [number, number, number] | undefined;
+  if (!p) throw new Error(`"${part.name}" has no pivot recorded (re-export with app/tools/export-ship.py)`);
+  ship.updateMatrixWorld(true);
+  const pivot = new THREE.Object3D();
+  pivot.name = `${part.name} hinge`;
+  pivot.position.set(p[0], p[1], p[2]);
+  ship.add(pivot);
+  pivot.updateMatrixWorld(true);
+  pivot.attach(part);
+  return pivot;
+}
+
+/**
+ * The ramp swings on its hinge (the pivot's X axis). Rotating it outward (negative angle around
  * its X axis, toward the back of the ship), find the first angle at which its lowest point
  * reaches the ground.
  */

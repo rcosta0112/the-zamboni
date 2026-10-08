@@ -21,6 +21,8 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   const move = gui.addFolder('Movement');
   move.add(settings, 'walkSpeed', 0.5, 4, 0.1).name('walk speed (m/s)');
   move.add(settings, 'runSpeed', 2, 12, 0.1).name('run speed (m/s)');
+  move.add(settings, 'indoorWalkSpeed', 0.5, 4, 0.1).name('indoor walk speed (m/s)');
+  move.add(settings, 'indoorRunSpeed', 0.5, 12, 0.1).name('indoor run speed (m/s)');
   move.add(settings, 'acceleration', 1, 60, 0.5).name('acceleration (m/s²)');
   move.add(settings, 'deceleration', 5, 200, 1).name('deceleration (m/s²)');
   move.add(settings, 'turnSmoothTime', 0.02, 0.6, 0.01).name('turn smoothing (s)');

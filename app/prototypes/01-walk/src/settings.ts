@@ -3,9 +3,11 @@
 
 export const settings = {
   // Movement (m/s, m/s²). Part 1: walk 1.5, run 7, acceleration 0.1/frame ≈ 6 m/s²,
-  // deceleration 20× acceleration. Run speed is its own value so an indoor run can be added later.
+  // deceleration 20× acceleration. Outdoor speeds; inside the ship the indoor ones apply.
   walkSpeed: 1.5,
   runSpeed: 7,
+  indoorWalkSpeed: 1.5,
+  indoorRunSpeed: 3.5,
   acceleration: 6,
   deceleration: 120,
   // Seconds to turn toward the movement direction (Part 1: 0.2).

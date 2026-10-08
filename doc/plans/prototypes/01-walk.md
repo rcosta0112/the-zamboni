@@ -72,6 +72,15 @@ To test walk/run animation, prototype 01 also shows **Part 1's Dr. Green** (from
 
 **Third addition (owner request, 2026-10-08):** the **Zamboni's exterior** (outer hull only) landed a few metres from Dr. Green, with a **simple mesh collider**. Then (same day) the **cargo ramp opened** so the player can walk into the cargo bay, with its own colliders. This brings **Rapier** in earlier than planned (the plan's "Options" recommended plain movement code until there were obstacles; now there are). See the prototype README.
 
+**Fourth addition (owner request, 2026-10-08): indoor walk and run speeds.** *Status: built, 2026-10-08; owner tuning the values.*
+
+- **Why:** inside the ship she moved too fast. The movement code and physics never go past the run speed (checked in a headless Rapier simulation), but 7 m/s is a lot for a 1.23 m character in corridors. On the stick, speed is `run speed × push`, so even a part push is well above walk speed. This was expected: [scope.md](../../architecture/scope.md) says "probably two run speeds: outdoors and indoors". A slower indoor run speed was proposed, then walk-only indoors (built and rolled back); the owner chose **two sliders, indoor walk and indoor run speed**, and will find the values.
+- **Constraint:** [architecture/README.md](../../architecture/README.md) says indoor/outdoor is switched by trigger volumes (`zone_indoor_*`). The prototype has none yet, so it uses the same "inside" test as the see-through hull: Dr. Green's chest inside the ship's interior box (`ship.interior`), checked each fixed step. Once the game has `zone_indoor_*` volumes, it uses those for both.
+- **The work:** settings `indoorWalkSpeed` (starts at 1.5 m/s) and `indoorRunSpeed` (starts at 3.5 m/s), with sliders in the tuning panel's Movement folder. Inside, they replace the walk and run speeds for the stick (`run × push`) and the keyboard (run unless Shift is held). The walk/run animation blend uses the pair in use.
+- **Not done:** going in at a full run, she drops to the indoor speed with the normal deceleration, almost instantly. If that feels abrupt, the fix is a gentler slowdown for this case.
+- **Done when:** `npm run check` and `npm run build` pass. The owner tunes the values with a gamepad; the agreed numbers go in the prototype README.
+- **After:** the prototype README (done), and a decision-log entry once the values are agreed.
+
 ## Decided (owner, 2026-10-08)
 
 - **Movement values:** start from Part 1's, read from its Unity scene (`Main.unity`): walk 1.5 m/s, run 7 m/s, turn smoothing 0.2 s, acceleration 0.1 per frame (frame-rate dependent in Part 1; about 6 m/s² at 60 fps). A second, slower run speed for indoors will probably be needed later.

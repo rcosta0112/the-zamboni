@@ -20,6 +20,8 @@ npm run dev:01     # → http://localhost:5201
 | Invert vertical look (on by default in prototypes) | (tuning panel) | Y |
 | Tuning panel | View/Back | ` (backtick) |
 
+**Indoor speeds:** inside the ship (the same test as the see-through hull: her chest inside the ship's interior box) she uses the *indoor walk speed* and *indoor run speed* sliders (Movement folder) instead of the outdoor ones. Starting values: walk 1.5 m/s, run 3.5 m/s; the owner is tuning them. The walk/run animation blend follows whichever pair is in use. Going in at a full run, she drops to the indoor speed almost instantly (the normal deceleration).
+
 The **Copy values** button in the tuning panel copies all settings as JSON.
 
 ## The character models
@@ -60,22 +62,27 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 
 ## The ship and collisions
 
-**The Zamboni's exterior and cargo bay**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-exterior.glb` (561 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship-exterior.py`](../../tools/export-ship-exterior.py):
+**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (1.53 MB) and its collider `zamboni-ship-col.glb` (104 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship.py`](../../tools/export-ship.py), then compressed with Meshopt (glTF-Transform):
 
 ```sh
-blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship-exterior.py --   --out app/assets/test/zamboni-exterior.glb
+blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship.py -- \
+  --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
+cd app
+npx gltf-transform meshopt <raw>/zamboni-ship.glb assets/test/zamboni-ship.glb
+npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
 ```
 
-- **Objects:** `Hull_Merged`, `Windshield`, the four turbines, the three landing gears, `Door`, `Door Cargo` (the ramp), `Top Hatch`, the two lab windows, and the cargo bay: `Floor Bottom` (its floor), `Bulkhead Cargo` (its front wall, with a doorway), `Floor Top.001` (its ceiling). Modifiers applied. It stands on its landing gear at y = 0, as modelled.
-- **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files), so their proportions are as modelled.
-- **Collider:** `zamboni_col`, all of the above except the ramp joined into one mesh at full detail (4,662 triangles), never rendered (*show colliders* draws it as a wireframe). A decimated version (the first try) partly closed the cargo opening.
-- **Cargo ramp** (`Door Cargo`, a separate object hinged at its bottom edge): opens outward until its far end touches the ground (92° from closed; it's slanted when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it open/closed (1.5 s).
-  - While moving or closed it has a **convex** collider that follows it (a copy of its mesh keeps the window cut through it, and the character fell into that).
-  - Fully open, a **walkable slope** replaces it: one smooth surface from where the ramp meets the ground up to the rear edge of the cargo floor. The modelled ramp has a lip on the ground and its hinge sits ~0.29 m below the cargo floor, which stopped the character controller. Near the top, the feet can float up to ~0.29 m above the visible ramp; fixing the model (hinge level with the floor) would remove the need for this.
-- **Double-sided materials** (export report, to fix in Blender): `Dark Teal`, `Darkest Teal`, `Floor Tiles`, `Glass`, `Grate`, `Gray`, `Metal`, `Teal Dark`, `Thruster`, `White Emission`.
-- **Not handled yet:** the camera has no collision, so it follows the character inside the hull (the see-through hull is the planned answer); the interior beyond the cargo bay is unfurnished (only floors and the cargo bay wall are exported).
+- **What's in it (77 objects):** the exterior (hull, windshield, engine pods, landing gear, side door, top hatch, lab windows, the cargo ramp) and the **large interior elements**: floors, bulkheads, walls and ceilings, consoles and dashboards, interior doors, ceiling lights; crew quarters (bunks, couch, table, galley, stove, lockers, ladder); cockpit (seats, dials, monitors); engineering (benches, cabinets, 3D printer, power supplies, the Contraption); cargo bay (sledge, pallet, locker, head, jetpack racks, ladder). Collections excluded from the view layer in the file are included for the export only. **Small props** (mugs, books, chests, computers…) are left for a later step.
+- **Size:** 10 MB uncompressed (the Contraption alone is 21,500 triangles) → 1.53 MB with Meshopt; three.js decodes it with its `MeshoptDecoder`.
+- **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files).
+- **Collider:** its own file, positions only: everything except the ramp, joined at full detail (29,139 triangles); the four densest pieces of furniture (dials, 3D printer, Contraption, sledge) as convex hulls. A decimated version closed the cargo opening. Ladders block like walls: no climbing yet.
+- **Cuttable surfaces** are tagged in the file (`cuttable: true` → glTF extras → `userData.cuttable`), set by the export script until they're set in Blender: hull, windshield, walls, ceilings, bulkheads, doors, tall furniture (bunks, lockers, galley, cabinets, Contraption, ladders, the head) and the engine pods (they hang outside the hull at deck height and blocked the view into the lower deck). Low furniture and floors stay solid.
+- **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `pivot` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
+- **Double-sided materials** (export report, to fix in Blender): see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md).
 
 **Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.
+
+> **Ground check (2026-10-08):** Rapier's own "grounded" flag also says grounded against steep, leaning walls. That reset her fall speed every step (she slid down walls slowly) and let her jump again off them (she could climb to the top floor). She now counts as grounded only if Rapier says so **and** a ray straight down from her centre finds a surface no steeper than 45° within a few centimetres of her feet. (A downward sphere was tried first: it also touched edges, like the cargo floor's rear edge, and stopped her at the top of the ramp.) Known leftovers: pushing into a wall that leans over her can wedge her a few cm up, and walking under the hull's belly edge outside presses her a few cm into the ground; both settle when she moves away.
 
 > **Rapier note (2026-10-08):** with Rapier 0.19–0.21, the character controller sinks through a very large box collider (a 1000 m ground box); a smaller box or a triangle mesh works. The ground is therefore a flat two-triangle mesh. Also, `@types/three` pulls in an old Rapier (0.12.0) for its type definitions, so two copies are installed; the prototype uses the pinned 0.21.0.
 
@@ -134,6 +141,7 @@ From Part 1 (*Big Moon Tiny Moon*, `Main.unity`): walk 1.5 m/s, run 7 m/s, accel
 | 2026-10-08 | Owner's PC (GTX 1070), headless Chrome at 1280×720 | Chrome | WebGPU | 60 fps (vsync-limited), no errors. Walking, turning and jumping checked with simulated keys; gamepad not tested (no gamepad in headless mode) |
 | 2026-10-08 | Same, with Part 1's Dr. Green | Chrome | WebGPU | 60 fps, no errors. Standing, walking (Shift), running and jumping checked in screenshots; facing correct. Camera defaults changed to 4.5 m / aim height 1.0 m for the smaller character |
 | 2026-10-08 | Same, with the reference look and mist | Chrome | WebGPU | 60 fps once shaders had compiled, no errors. A screenshot 4 s after loading read 7 fps while the new noise shaders compiled: first-use stutter, as predicted in the performance plan |
+| 2026-10-08 | Same, with the interior | Chrome | WebGPU | 60 fps once shaders compiled (the first second after loading read 11 fps: 159 cuttable meshes compiling), no errors. All four areas visible through the hull; collision with furniture checked (walking into the crew quarters' furniture stops her) |
 | 2026-10-08 | Same, see-through hull + camera collision | Chrome | WebGPU | 60 fps, no errors. In the cargo bay: hole through the hull from the side and through the ceiling from above, floor solid; off: hull opaque. Ship's shadow identical with the cut on and off. Outside with the ship in the way: camera came in from 8 m to 2.96 m |
 | 2026-10-08 | Same, Zamboni Dr. Green with retargeted animations | Chrome | WebGPU | No errors. Standing (back and front), walking, running checked in screenshots: legs stride correctly, arms not twisted, facing correct |
 

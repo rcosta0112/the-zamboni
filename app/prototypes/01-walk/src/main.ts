@@ -51,7 +51,7 @@ async function start(): Promise<void> {
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE });
 
   const gui = createTuningPanel({
     cameraDistance: () => view.syncDistance(),
@@ -77,6 +77,7 @@ async function start(): Promise<void> {
   // See-through hull: 0 outside the ship, eased to 1 inside.
   let cutAmount = 0;
   const chest = new THREE.Vector3();
+  const stepChest = new THREE.Vector3();
 
   let last = performance.now();
   let accumulator = 0;
@@ -90,7 +91,10 @@ async function start(): Promise<void> {
     accumulator += dt;
     let steps = 0;
     while (accumulator >= STEP && steps < MAX_STEPS) {
-      character.update(STEP, input, view.yaw, physics);
+      // Indoors: the same "inside" test as the see-through hull, on the simulated position.
+      stepChest.copy(character.position).y += settings.cutTargetHeight;
+      const indoors = ship !== null && ship.interior.containsPoint(stepChest);
+      character.update(STEP, input, view.yaw, physics, indoors);
       accumulator -= STEP;
       steps++;
     }
@@ -104,7 +108,10 @@ async function start(): Promise<void> {
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
     view.update(dt, input, character.root.position);
     const cutTarget = inside && settings.seeThrough ? 1 : 0;
-    cutAmount = cutTarget > cutAmount ? Math.min(1, cutAmount + dt / 0.3) : Math.max(0, cutAmount - dt / 0.3);
+    // Ease toward the target (0.3 s); once there, stay (the old version stepped away every other
+    // frame when already at the target, which made the hole flicker).
+    if (cutAmount < cutTarget) cutAmount = Math.min(cutTarget, cutAmount + dt / 0.3);
+    else if (cutAmount > cutTarget) cutAmount = Math.max(cutTarget, cutAmount - dt / 0.3);
     updateCutaway(view.camera.position, chest, character.root.position.y, cutAmount, { radius: settings.cutRadius, softness: settings.cutSoftness, backColor: settings.cutBackColor });
     updateWorld(world, scene, character.root.position);
     if (ship) updateShip(ship, dt);

@@ -7,6 +7,8 @@ import * as THREE from 'three/webgpu';
 
 /** Gap the character controller keeps between the capsule and what it touches (m). */
 const OFFSET = 0.02;
+/** Steepest surface the character can stand on and walk up. */
+const MAX_SLOPE = THREE.MathUtils.degToRad(45);
 
 export interface CapsuleSize {
   radius: number;
@@ -43,7 +45,7 @@ export class Physics {
 
     this.controller = this.world.createCharacterController(OFFSET);
     this.controller.enableAutostep(0.3, 0.2, false);
-    this.controller.setMaxSlopeClimbAngle(THREE.MathUtils.degToRad(45));
+    this.controller.setMaxSlopeClimbAngle(MAX_SLOPE);
     this.controller.setMinSlopeSlideAngle(THREE.MathUtils.degToRad(30));
   }
 
@@ -137,12 +139,29 @@ export class Physics {
     this.controller.computeColliderMovement(this.capsule, desired);
     const m = this.controller.computedMovement();
     this.moved.set(m.x, m.y, m.z);
-    this.grounded = this.controller.computedGrounded();
     const t = this.capsule.translation();
     this.capsule.setTranslation({ x: t.x + m.x, y: t.y + m.y, z: t.z + m.z });
     this.world.step(); // keeps the scene queries up to date
+    // Rapier's own ground flag (computedGrounded) also says "grounded" against steep walls, which
+    // stopped the fall (she slid down walls slowly) and let her jump again off them (climbing to
+    // the top floor). So it must also find walkable ground right under her.
+    this.grounded = this.controller.computedGrounded() && this.onWalkableGround();
     const c = this.capsule.translation();
     this.feet.set(c.x, c.y - this.size.halfHeight - this.size.radius - OFFSET, c.z);
+  }
+
+  /**
+   * True if there's walkable ground right under her: a ray straight down from the capsule's
+   * centre hits a surface no steeper than MAX_SLOPE within a few centimetres of her feet. (A ray,
+   * not a sphere: a sphere also touched edges, like the cargo floor's rear edge at the top of the
+   * ramp, whose sideways normal read as "not walkable" and stopped her there.)
+   */
+  private onWalkableGround(): boolean {
+    const c = this.capsule.translation();
+    const reach = this.size.halfHeight + this.size.radius + OFFSET + 0.12;
+    const ray = new RAPIER.Ray({ x: c.x, y: c.y, z: c.z }, { x: 0, y: -1, z: 0 });
+    const hit = this.world.castRayAndGetNormal(ray, reach, true, undefined, undefined, this.capsule);
+    return hit !== null && hit.normal.y >= Math.cos(MAX_SLOPE);
   }
 
   private centreFromFeet(feet: THREE.Vector3): THREE.Vector3 {
