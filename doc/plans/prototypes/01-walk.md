@@ -70,7 +70,7 @@ To test walk/run animation, prototype 01 also shows **Part 1's Dr. Green** (from
 
 **Second addition (owner request, 2026-10-08):** the **Zamboni Dr. Green** (parka, from `The Crew 1.09 Dr. Green.blend`) driven by Part 1's walk/run/jump animations. The two rigs share bone names but not bone orientations, so the animations are **retargeted** at load time. Now the default model; Part 1's Dr. Green is still selectable.
 
-**Third addition (owner request, 2026-10-08):** the **Zamboni's exterior** (outer hull only) landed a few metres from Dr. Green, with a **simple mesh collider**. This brings **Rapier** in earlier than planned (the plan's "Options" recommended plain movement code until there were obstacles; now there are). See the prototype README.
+**Third addition (owner request, 2026-10-08):** the **Zamboni's exterior** (outer hull only) landed a few metres from Dr. Green, with a **simple mesh collider**. Then (same day) the **cargo ramp opened** so the player can walk into the cargo bay, with its own colliders. This brings **Rapier** in earlier than planned (the plan's "Options" recommended plain movement code until there were obstacles; now there are). See the prototype README.
 
 ## Decided (owner, 2026-10-08)
 

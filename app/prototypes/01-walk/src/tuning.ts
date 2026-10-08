@@ -56,6 +56,7 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   look.add(settings, 'hazeFar', 20, 400, 1).name('haze full (m)');
   look.add(settings, 'showGrid').name('grid');
   look.add(settings, 'showColliders').name('show colliders');
+  look.add(settings, 'cargoRampOpen').name('cargo ramp open');
 
   const render = gui.addFolder('Rendering');
   render.add(settings, 'maxPixelRatio', 0.5, 3, 0.25).name('max pixel ratio').onChange(onChange.pixelRatio);

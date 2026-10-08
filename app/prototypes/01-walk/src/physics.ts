@@ -68,6 +68,51 @@ export class Physics {
   }
 
   /**
+   * A collider for a moving object (a door, a ramp): the convex hull of all its meshes, in the
+   * object's own space with its world scale baked in. Convex, so holes (the ramp's window) are
+   * filled and it's cheap to test against. Call the returned function whenever the object moves.
+   */
+  addMovingConvex(object: THREE.Object3D): { sync: () => void; setEnabled: (on: boolean) => void } {
+    object.updateWorldMatrix(true, true);
+    const scale = new THREE.Vector3();
+    object.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale);
+    const toObject = new THREE.Matrix4().copy(object.matrixWorld).invert();
+    const points: number[] = [];
+    const v = new THREE.Vector3();
+    object.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const local = new THREE.Matrix4().multiplyMatrices(toObject, mesh.matrixWorld);
+      const position = mesh.geometry.getAttribute('position');
+      for (let i = 0; i < position.count; i++) {
+        v.fromBufferAttribute(position, i).applyMatrix4(local);
+        points.push(v.x * scale.x, v.y * scale.y, v.z * scale.z);
+      }
+    });
+    const desc = RAPIER.ColliderDesc.convexHull(new Float32Array(points));
+    if (!desc) throw new Error(`Couldn't build a convex hull for "${object.name}"`);
+    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased());
+    const collider = this.world.createCollider(desc, body);
+
+    const p = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+    const sync = () => {
+      object.updateWorldMatrix(true, false);
+      object.matrixWorld.decompose(p, q, scale);
+      body.setTranslation({ x: p.x, y: p.y, z: p.z }, true);
+      body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
+    };
+    sync();
+    return { sync, setEnabled: (on) => collider.setEnabled(on) };
+  }
+
+  /** A static triangle-mesh collider from world-space vertices; can be switched on and off. */
+  addStaticTriangles(vertices: Float32Array, indices: Uint32Array): { setEnabled: (on: boolean) => void } {
+    const collider = this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices));
+    return { setEnabled: (on) => collider.setEnabled(on) };
+  }
+
+  /**
    * Try to move the capsule by `desired` (metres); Rapier shortens or deflects it on contact.
    * Updates `moved` and `grounded`, and steps the world.
    */

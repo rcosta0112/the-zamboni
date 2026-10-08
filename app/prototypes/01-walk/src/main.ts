@@ -7,7 +7,7 @@ import { Character } from './character';
 import { Input } from './input';
 import { loadModels } from './model';
 import { Physics } from './physics';
-import { loadShip, type Ship } from './ship';
+import { loadShip, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import { Stats } from './stats';
 import { createTuningPanel } from './tuning';
@@ -38,7 +38,7 @@ async function start(): Promise<void> {
 
   // Character models, then the ship at the same scale; the capsule stays if they fail to load.
   // Dev only: settings, renderer and character reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship });
 
   let ship: Ship | null = null;
   loadModels()
@@ -92,7 +92,7 @@ async function start(): Promise<void> {
     character.animate(dt);
     view.update(dt, input, character.root.position);
     updateWorld(world, scene, character.root.position);
-    if (ship) ship.collider.visible = settings.showColliders;
+    if (ship) updateShip(ship, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];
 

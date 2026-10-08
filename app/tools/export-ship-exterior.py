@@ -6,8 +6,10 @@ Run with Blender from the command line. The .blend is opened read-only: nothing 
         --out app/assets/test/zamboni-exterior.glb
 
 - Exports the objects in EXTERIOR with modifiers applied (mirrors, booleans, geometry nodes).
+- Includes the cargo bay (floor, front wall, ceiling) so the player can walk in through the ramp.
 - Adds ``zamboni_col``: a decimated copy of the same objects, joined into one mesh, for collision
-  (``*_col`` in the naming contract: never rendered).
+  (``*_col`` in the naming contract: never rendered). Moving parts (the cargo ramp, ``Door Cargo``)
+  are left out of it: the game gives them their own collider that moves with them.
 - Reports every double-sided material ("PERF:"), as the pipeline requires; nothing is forced.
 """
 
@@ -32,11 +34,17 @@ EXTERIOR = [
     'Top Hatch',
     'Lab Window',
     'Lab Window.001',
+    # Cargo bay, so the player can walk in through the open ramp:
+    'Floor Bottom',  # cargo bay floor
+    'Bulkhead Cargo',  # its front wall
+    'Floor Top.001',  # its ceiling (the upper deck)
 ]
+# Moving parts get their own collider in the game, so they're left out of zamboni_col.
+MOVING = {'Door Cargo'}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--out', required=True)
-parser.add_argument('--collider-ratio', type=float, default=0.25, help='decimate ratio for the collision mesh')
+parser.add_argument('--collider-ratio', type=float, default=1.0, help='decimate ratio for the collision mesh (1 = full detail; lower values can close openings like the cargo door)')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
 objects = [bpy.data.objects[name] for name in EXTERIOR]
@@ -49,6 +57,8 @@ for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.
 depsgraph = bpy.context.evaluated_depsgraph_get()
 bm = bmesh.new()
 for ob in objects:
+    if ob.name in MOVING:
+        continue
     evaluated = ob.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
     mesh.transform(ob.matrix_world)

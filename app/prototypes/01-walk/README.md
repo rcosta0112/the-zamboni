@@ -60,16 +60,20 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 
 ## The ship and collisions
 
-**The Zamboni's exterior**, landed about 15 m ahead and to the right of the start: `app/assets/test/zamboni-exterior.glb` (351 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship-exterior.py`](../../tools/export-ship-exterior.py):
+**The Zamboni's exterior and cargo bay**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-exterior.glb` (561 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship-exterior.py`](../../tools/export-ship-exterior.py):
 
 ```sh
 blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship-exterior.py --   --out app/assets/test/zamboni-exterior.glb
 ```
 
-- **Objects:** `Hull_Merged`, `Windshield`, the four turbines, the three landing gears, `Door`, `Door Cargo`, `Top Hatch`, the two lab windows. Modifiers applied. It stands on its landing gear at y = 0, as modelled.
-- **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files), so their proportions are as modelled. The ship is about 7 m tall next to her 1.23 m.
-- **Collider:** `zamboni_col`, a decimated copy of the same objects joined into one mesh (1,104 triangles), never rendered (*show colliders* in the tuning panel draws it as a wireframe). Being decimated, it's slightly rougher than the visible hull.
-- **Double-sided materials** (export report, to fix in Blender): `Dark Teal`, `Darkest Teal`, `Glass`, `Gray`, `Metal`, `Teal Dark`, `Thruster`, `White Emission`.
+- **Objects:** `Hull_Merged`, `Windshield`, the four turbines, the three landing gears, `Door`, `Door Cargo` (the ramp), `Top Hatch`, the two lab windows, and the cargo bay: `Floor Bottom` (its floor), `Bulkhead Cargo` (its front wall, with a doorway), `Floor Top.001` (its ceiling). Modifiers applied. It stands on its landing gear at y = 0, as modelled.
+- **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files), so their proportions are as modelled.
+- **Collider:** `zamboni_col`, all of the above except the ramp joined into one mesh at full detail (4,662 triangles), never rendered (*show colliders* draws it as a wireframe). A decimated version (the first try) partly closed the cargo opening.
+- **Cargo ramp** (`Door Cargo`, a separate object hinged at its bottom edge): opens outward until its far end touches the ground (92° from closed; it's slanted when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it open/closed (1.5 s).
+  - While moving or closed it has a **convex** collider that follows it (a copy of its mesh keeps the window cut through it, and the character fell into that).
+  - Fully open, a **walkable slope** replaces it: one smooth surface from where the ramp meets the ground up to the rear edge of the cargo floor. The modelled ramp has a lip on the ground and its hinge sits ~0.29 m below the cargo floor, which stopped the character controller. Near the top, the feet can float up to ~0.29 m above the visible ramp; fixing the model (hinge level with the floor) would remove the need for this.
+- **Double-sided materials** (export report, to fix in Blender): `Dark Teal`, `Darkest Teal`, `Floor Tiles`, `Glass`, `Grate`, `Gray`, `Metal`, `Teal Dark`, `Thruster`, `White Emission`.
+- **Not handled yet:** the camera has no collision, so it follows the character inside the hull (the see-through hull is the planned answer); the interior beyond the cargo bay is unfurnished (only floors and the cargo bay wall are exported).
 
 **Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.
 

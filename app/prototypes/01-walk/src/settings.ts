@@ -62,6 +62,7 @@ export const settings = {
   hazeFar: 190,
   showGrid: false, // faint 1 m / 10 m grid for judging speed
   showColliders: false, // the ship's collision mesh as a wireframe
+  cargoRampOpen: true, // the Zamboni's cargo ramp, down to the ground
 
   // Rendering
   maxPixelRatio: 2,
