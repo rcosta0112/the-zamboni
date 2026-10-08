@@ -1,0 +1,13 @@
+{
+  "name": "@zamboni/ui",
+  "private": true,
+  "type": "module",
+  "description": "The design system's code version: tokens and Svelte 5 components. Consumed as source, no build step.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  }
+}

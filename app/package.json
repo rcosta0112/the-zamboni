@@ -1,0 +1,24 @@
+{
+  "name": "zamboni",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "prototypes/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev:01": "npm run dev -w prototypes/01-walk",
+    "check": "npm run check --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3",
+    "vite": "8.3.3"
+  }
+}

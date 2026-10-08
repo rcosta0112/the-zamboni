@@ -1,0 +1,35 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #7cc7da;
+  font: 12px/1.4 ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  color: #fff;
+}
+
+#view {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  outline: none;
+}
+
+#stats,
+#help {
+  position: fixed;
+  left: 8px;
+  padding: 6px 8px;
+  background: rgb(0 0 0 / 0.45);
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: pre;
+}
+
+#stats {
+  top: 8px;
+}
+
+#help {
+  bottom: 8px;
+}

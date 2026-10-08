@@ -1,0 +1,22 @@
+# Text files use LF line endings in the repo
+* text=auto eol=lf
+
+# Binary assets
+*.glb binary
+*.gltf -text
+*.bin binary
+*.ktx2 binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.m4a binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
