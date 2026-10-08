@@ -58,6 +58,23 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 - **Starting and stopping:** the movement stops almost instantly (Part 1's deceleration), but the animation follows a smoothed speed, so the stride eases out and the legs settle instead of snapping. Tunable: *start blend* (0.08 s) and *stop blend* (0.18 s).
 - **Jump:** the jump animation plays from the start on take-off and holds its last frame until landing.
 
+## The ship and collisions
+
+**The Zamboni's exterior**, landed about 15 m ahead and to the right of the start: `app/assets/test/zamboni-exterior.glb` (351 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship-exterior.py`](../../tools/export-ship-exterior.py):
+
+```sh
+blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship-exterior.py --   --out app/assets/test/zamboni-exterior.glb
+```
+
+- **Objects:** `Hull_Merged`, `Windshield`, the four turbines, the three landing gears, `Door`, `Door Cargo`, `Top Hatch`, the two lab windows. Modifiers applied. It stands on its landing gear at y = 0, as modelled.
+- **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files), so their proportions are as modelled. The ship is about 7 m tall next to her 1.23 m.
+- **Collider:** `zamboni_col`, a decimated copy of the same objects joined into one mesh (1,104 triangles), never rendered (*show colliders* in the tuning panel draws it as a wireframe). Being decimated, it's slightly rougher than the visible hull.
+- **Double-sided materials** (export report, to fix in Blender): `Dark Teal`, `Darkest Teal`, `Glass`, `Gray`, `Metal`, `Teal Dark`, `Thruster`, `White Emission`.
+
+**Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.
+
+> **Rapier note (2026-10-08):** with Rapier 0.19–0.21, the character controller sinks through a very large box collider (a 1000 m ground box); a smaller box or a triangle mesh works. The ground is therefore a flat two-triangle mesh. Also, `@types/three` pulls in an old Rapier (0.12.0) for its type definitions, so two copies are installed; the prototype uses the pinned 0.21.0.
+
 ## The look
 
 Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Site 1.01.blend` (tuning panel → *Look*), and checked side by side against the owner's reference render:
@@ -80,6 +97,8 @@ Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Sit
 | `src/input.ts` | Action-based input: gamepad first (standard mapping, radial dead zone), keyboard/mouse second |
 | `src/character.ts` | Movement (Part 1's controller: acceleration, smooth turning, move along facing) + jump; capsule placeholder |
 | `src/model.ts` | Loads both models; blends standing/walk/run by speed; jump |
+| `src/physics.ts` | Rapier world: ground, ship collider, capsule + character controller |
+| `src/ship.ts` | Loads the ship exterior, places it, builds its collider |
 | `src/retarget.ts` | Retargets animations between skeletons with the same bone names but different bone orientations |
 | `src/camera.ts` | Third-person orbit camera with smoothed follow |
 | `src/world.ts` | Sky, fog, lights, sun shadow that follows the character, TSL grid floor |
@@ -99,7 +118,7 @@ From Part 1 (*Big Moon Tiny Moon*, `Main.unity`): walk 1.5 m/s, run 7 m/s, accel
 | 2026-10-08 | Same, with the reference look and mist | Chrome | WebGPU | 60 fps once shaders had compiled, no errors. A screenshot 4 s after loading read 7 fps while the new noise shaders compiled: first-use stutter, as predicted in the performance plan |
 | 2026-10-08 | Same, Zamboni Dr. Green with retargeted animations | Chrome | WebGPU | No errors. Standing (back and front), walking, running checked in screenshots: legs stride correctly, arms not twisted, facing correct |
 
-**Build size:** 1,012 KB minified, 278 KB gzipped (three's WebGPU build + GLTFLoader + this prototype), plus the 272 KB model.
+**Build size:** 5.35 MB minified, **1.95 MB gzipped** with Rapier (was 278 KB before). The `-compat` Rapier package embeds its WebAssembly as base64 inside the JavaScript (~1.4 MB of wasm becomes ~1.9 MB of text). It fits the 3 MB boot budget but takes most of it; the non-compat package (`@dimforge/rapier3d`) loads the `.wasm` as a separate, smaller file that the browser can compile while it downloads, and is worth switching to before the game ships.
 
 ## Tuned values
 

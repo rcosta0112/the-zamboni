@@ -6,6 +6,7 @@ import * as THREE from 'three/webgpu';
 import { settings } from './settings';
 import type { Input } from './input';
 import type { AnimatedModel, ModelId } from './model';
+import type { Physics } from './physics';
 
 const HEIGHT = 1.8;
 const RADIUS = 0.35;
@@ -16,7 +17,8 @@ export class Character {
   /** Simulation state (fixed timestep). */
   readonly position = new THREE.Vector3();
   facing = 0; // radians around +Y; 0 faces -Z
-  speed = 0; // horizontal, m/s
+  speed = 0; // horizontal speed the character is trying to move at, m/s
+  movedSpeed = 0; // horizontal speed it actually moved at (less when blocked), m/s
   verticalVelocity = 0;
   grounded = true;
 
@@ -59,14 +61,14 @@ export class Character {
     const current = settings.showModel ? this.models[settings.characterModel] : undefined;
     this.capsule.visible = !current;
     for (const m of Object.values(this.models)) m.object.visible = m === current;
-    current?.update(dt, this.speed, this.grounded);
+    current?.update(dt, this.movedSpeed, this.grounded);
   }
 
   /**
    * One fixed simulation step.
    * @param cameraYaw camera orbit angle; movement input is relative to it
    */
-  update(dt: number, input: Input, cameraYaw: number): void {
+  update(dt: number, input: Input, cameraYaw: number, physics: Physics | null): void {
     this.prevPosition.copy(this.position);
     this.prevFacing = this.facing;
 
@@ -106,19 +108,35 @@ export class Character {
       this.verticalVelocity = Math.sqrt(2 * settings.gravity * settings.jumpHeight);
       this.grounded = false;
     }
-    if (!this.grounded) {
-      this.verticalVelocity -= settings.gravity * dt;
-    }
+    this.verticalVelocity -= settings.gravity * dt;
 
-    this.position.x += -Math.sin(this.facing) * this.speed * dt;
-    this.position.z += -Math.cos(this.facing) * this.speed * dt;
-    this.position.y += this.verticalVelocity * dt;
+    const desired = new THREE.Vector3(
+      -Math.sin(this.facing) * this.speed * dt,
+      this.verticalVelocity * dt,
+      -Math.cos(this.facing) * this.speed * dt,
+    );
 
-    // The floor is the plane y = 0.
-    if (this.position.y <= 0) {
-      this.position.y = 0;
-      this.verticalVelocity = 0;
-      this.grounded = true;
+    if (physics) {
+      // Rapier decides how much of the move is possible (walls, the ship, the ground).
+      physics.move(desired);
+      // Feet from where the capsule actually is (not accumulated moves), so they sit on the ground.
+      this.position.copy(physics.feet);
+      this.grounded = physics.grounded;
+      if (this.grounded && this.verticalVelocity < 0) this.verticalVelocity = 0;
+      // Head hit something on the way up.
+      if (!this.grounded && this.verticalVelocity > 0 && physics.moved.y < desired.y * 0.5) this.verticalVelocity = 0;
+      this.movedSpeed = Math.hypot(physics.moved.x, physics.moved.z) / dt;
+    } else {
+      // No physics yet (still loading): the floor is the plane y = 0.
+      this.position.add(desired);
+      if (this.position.y <= 0) {
+        this.position.y = 0;
+        this.verticalVelocity = 0;
+        this.grounded = true;
+      } else {
+        this.grounded = false;
+      }
+      this.movedSpeed = this.speed;
     }
   }
 

@@ -6,6 +6,8 @@ import { FollowCamera } from './camera';
 import { Character } from './character';
 import { Input } from './input';
 import { loadModels } from './model';
+import { Physics } from './physics';
+import { loadShip, type Ship } from './ship';
 import { settings } from './settings';
 import { Stats } from './stats';
 import { createTuningPanel } from './tuning';
@@ -26,15 +28,26 @@ async function start(): Promise<void> {
 
   const scene = new THREE.Scene();
   const world = createWorld(scene);
-  // Dev only: settings and renderer reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer });
+
 
   const character = new Character();
   scene.add(character.root);
-  // Character models; the capsule stays if they fail to load.
+  // Physics: a capsule the size of the character (Part 1 height), and the ground.
+  const radius = 0.28;
+  const physics = await Physics.create({ radius, halfHeight: settings.zamboniHeight / 2 - radius }, character.position);
+
+  // Character models, then the ship at the same scale; the capsule stays if they fail to load.
+  // Dev only: settings, renderer and character reachable from the browser console and test scripts.
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics });
+
+  let ship: Ship | null = null;
   loadModels()
-    .then((models) => character.setModels(models))
-    .catch((err: unknown) => console.warn('[01-walk] model not loaded, using the capsule:', err));
+    .then(({ models, zamboniFileHeight }) => {
+      character.setModels(models);
+      return loadShip(scene, physics, settings.zamboniHeight / zamboniFileHeight);
+    })
+    .then((s) => (ship = s))
+    .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err));
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
 
@@ -69,7 +82,7 @@ async function start(): Promise<void> {
     accumulator += dt;
     let steps = 0;
     while (accumulator >= STEP && steps < MAX_STEPS) {
-      character.update(STEP, input, view.yaw);
+      character.update(STEP, input, view.yaw, physics);
       accumulator -= STEP;
       steps++;
     }
@@ -79,6 +92,7 @@ async function start(): Promise<void> {
     character.animate(dt);
     view.update(dt, input, character.root.position);
     updateWorld(world, scene, character.root.position);
+    if (ship) ship.collider.visible = settings.showColliders;
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];
 

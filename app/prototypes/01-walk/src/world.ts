@@ -53,10 +53,10 @@ export function createWorld(scene: THREE.Scene): World {
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.radius = 1.5; // the Blender sun's angle is 0.5°: nearly sharp shadows
   const s = sun.shadow.camera;
-  s.left = -15;
-  s.right = 15;
-  s.top = 15;
-  s.bottom = -15;
+  s.left = -25;
+  s.right = 25;
+  s.top = 25;
+  s.bottom = -25;
   s.near = 1;
   s.far = 80;
   sun.shadow.bias = -0.0005;

@@ -70,6 +70,8 @@ To test walk/run animation, prototype 01 also shows **Part 1's Dr. Green** (from
 
 **Second addition (owner request, 2026-10-08):** the **Zamboni Dr. Green** (parka, from `The Crew 1.09 Dr. Green.blend`) driven by Part 1's walk/run/jump animations. The two rigs share bone names but not bone orientations, so the animations are **retargeted** at load time. Now the default model; Part 1's Dr. Green is still selectable.
 
+**Third addition (owner request, 2026-10-08):** the **Zamboni's exterior** (outer hull only) landed a few metres from Dr. Green, with a **simple mesh collider**. This brings **Rapier** in earlier than planned (the plan's "Options" recommended plain movement code until there were obstacles; now there are). See the prototype README.
+
 ## Decided (owner, 2026-10-08)
 
 - **Movement values:** start from Part 1's, read from its Unity scene (`Main.unity`): walk 1.5 m/s, run 7 m/s, turn smoothing 0.2 s, acceleration 0.1 per frame (frame-rate dependent in Part 1; about 6 m/s² at 60 fps). A second, slower run speed for indoors will probably be needed later.

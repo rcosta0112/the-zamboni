@@ -61,6 +61,7 @@ export const settings = {
   hazeNear: 60,
   hazeFar: 190,
   showGrid: false, // faint 1 m / 10 m grid for judging speed
+  showColliders: false, // the ship's collision mesh as a wireframe
 
   // Rendering
   maxPixelRatio: 2,
