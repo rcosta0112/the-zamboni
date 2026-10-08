@@ -33,10 +33,10 @@ The parka Dr. Green from `resources/models/The Crew 1.09 Dr. Green.blend`, **dri
 ```sh
 blender -b "resources/models/The Crew 1.09 Dr. Green.blend" --python app/tools/export-crew-character.py -- \
   --armature "Dr. Green Parka" --objects "Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002" \
-  --out app/assets/test/green-parka.glb
+  --out app/assets/test/green-parka.glb --force-double-sided
 ```
 
-The script exports in the rest pose at the origin, applies modifiers (the mesh is mirrored), and leaves out bones that are flagged as deforming but carry no weights: `Elbow_r` (the IK pointer), `Foot_l` and `Foot_r`.
+The script exports in the rest pose at the origin, applies modifiers (the mesh is mirrored), leaves out bones that are flagged as deforming but carry no weights (`Elbow_r`, the IK pointer, plus `Foot_l` and `Foot_r`), and reports double-sided materials (a performance cost, to be fixed in Blender). This model uses `--force-double-sided` as a **temporary** workaround: the hood is a single surface on materials with backface culling on (`Black`, `Teal`, `White`, `Brown`, `Dark Brown`), so its back was invisible. Drop the flag once the hood is fixed in Blender.
 
 **Retargeting** ([`src/retarget.ts`](src/retarget.ts)): both rigs use the same bone names, but the bones are rolled differently, so Part 1's tracks can't be copied across directly. At load time, each Part 1 clip is sampled at 30 fps; for every bone, its rotation away from rest (in world space) is applied to the Zamboni bone of the same name on top of that bone's own rest pose, and `Body`'s movement is scaled by the ratio of hip heights. The result is ordinary animation clips, so playback costs nothing extra. Bones Part 1 doesn't have (`Hood`) stay at rest.
 

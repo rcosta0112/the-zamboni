@@ -10,6 +10,9 @@ Run with Blender from the command line. The .blend is opened read-only: nothing 
 - Exports mesh + skeleton only, no animations (characters and animations are separate files).
 - Modifiers are applied, so mirrored halves are exported.
 - Exported in the rest pose with the armature at the origin, whatever pose or position it has in the file.
+- Backface culling follows Blender. Every double-sided material is reported as a performance cost
+  ("PERF:"), to be fixed in Blender. ``--force-double-sided`` is a temporary workaround for thin
+  single surfaces that need their backs (the parka's hood, until it's fixed in Blender).
 - Bones flagged as deforming but carrying no weights are left out of the exported skeleton
   (e.g. ``Elbow_r``, an IK pointer flagged as deforming: see "Before the next export" in
   doc/architecture/asset-pipeline.md). Each one is reported.
@@ -24,6 +27,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--armature', required=True)
 parser.add_argument('--objects', required=True, help='comma-separated object names to export with the armature')
 parser.add_argument('--out', required=True)
+parser.add_argument('--force-double-sided', action='store_true', help='temporary workaround: export every material double-sided')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
 armature = bpy.data.objects[args.armature]
@@ -48,6 +52,18 @@ for bone in armature.data.bones:
     if bone.use_deform and bone.name not in weighted:
         bone.use_deform = False
         print(f'NOTE: bone {bone.name!r} is flagged as deforming but has no weights: left out of the export')
+
+# Double-sided materials: glTF's doubleSided follows Blender's backface culling setting.
+# Double-sided costs performance, so the fix belongs in Blender (geometry with real backs, culling
+# on); by default this script keeps Blender's setting and reports every double-sided material.
+# --force-double-sided is a temporary workaround for thin single surfaces (e.g. the hood).
+materials = {slot.material for ob in parts for slot in ob.material_slots if slot.material}
+for mat in sorted(materials, key=lambda m: m.name):
+    if args.force_double_sided and mat.use_backface_culling:
+        mat.use_backface_culling = False
+        print(f'NOTE: material {mat.name!r}: backface culling turned off for this export (--force-double-sided)')
+    elif not mat.use_backface_culling:
+        print(f'PERF: material {mat.name!r} is double-sided (backface culling off in Blender)')
 
 # Export in the rest pose, standing at the origin (the crew file has characters posed and placed
 # in a layout). Rotation and scale are kept.

@@ -30,6 +30,8 @@ Copied on 2026-10-08 from `The Zamboni.archive` (the newest versions only). The 
 
 **Units and orientation:** metres, scale applied, Blender's default glTF export (+Y up).
 
+**Backface culling on.** Double-sided materials cost performance (every hidden back face is drawn too). Thin parts that need a back get real geometry in Blender; the export reports any double-sided material (owner, 2026-10-08).
+
 **Lighting:** interiors get baked lighting (Cycles bake to lightmaps on a second UV set), since the web renderer has no real-time global illumination. The baking workflow is to be worked out in the vertical slice.
 
 **Characters:** source file `models/The Crew 1.09 Dr. Green.blend`. One shared skeleton for the humans, their outfits and Adam; mitten hands. Each human has at least two outfits (indoor jumpsuit with a name tag, outdoor parka), each its own mesh and texture. Adam is a single rigid-block mesh; both bodies share one animation set. Details and file split: [game architecture plan: characters](../plans/architecture/game-architecture/characters.md); they move here once confirmed.
@@ -63,6 +65,9 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 > **[Agent note]** Checklist of known issues to handle the next time assets are exported.
 
 - **`Elbow_r` in the character rigs** (`models/The Crew 1.09 Dr. Green.blend`) is an IK pointer, but it's flagged as a deforming bone, so a plain glTF export includes it. Leave it out of the exported skeleton. Flagged 2026-10-08. **Handled** in [`app/tools/export-crew-character.py`](../../app/tools/export-crew-character.py) (first used 2026-10-08 for prototype 01): bones flagged as deforming but carrying no weights are left out and reported. That also catches `Foot_l` and `Foot_r` (unparented, no weights: IK targets). Keep this rule in the production export script.
+- **Double-sided materials cost performance: fix in Blender, not in the export** (owner, 2026-10-08). glTF's double-sided flag follows Blender's backface culling. The owner fixes these in Blender (geometry with real backs, culling on); the export script keeps Blender's setting and reports every double-sided material as `PERF:`. On every import, list the `PERF:` materials to the owner.
+  - **Crew file, as of 2026-10-08:** the parka's **hood** is a single surface on a culled material, so its back is invisible. The test model is exported with `--force-double-sided` as a temporary workaround (5 materials: `Black`, `Teal`, `White`, `Brown`, `Dark Brown`); drop the flag once the hood is fixed in Blender.
+  - Already double-sided in Blender (culling off, Blender's default), to review: `Dr. Green Jumpsuit Baked`, `Gray`, `Gray Metal`, `Red`, `Shiny`, `Teal Dark`, `Teal Darkest`.
 - **Crew file export quirks** (found 2026-10-08): characters are posed and placed in a layout, so export in the rest pose at the origin with constraints muted; meshes use a mirror modifier, so modifiers must be applied. Both handled in the same script. The glTF exporter still writes an odd rest translation for the `Body` root bone of the scaled armature; skinning is unaffected, but worth a look when the production export is written.
 - **Scale:** Dr. Green is about **0.75 m tall** in the crew file (armature scaled 0.826), against Part 1's 1.23 m. Is 1 Blender unit meant to be 1 metre in the Zamboni files? The game's movement speeds, camera and physics all depend on it.
 
