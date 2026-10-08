@@ -4,6 +4,17 @@
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { settings } from './settings';
 
+const ANTIALIAS_KEY = 'zamboni-01-antialias';
+
+/** Anti-aliasing (MSAA) is fixed when the renderer is created, so it's kept in local storage and applied on reload. */
+export function antialiasEnabled(): boolean {
+  try {
+    return localStorage.getItem(ANTIALIAS_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
 export function createTuningPanel(onChange: { cameraDistance: () => void; pixelRatio: () => void }) {
   const gui = new GUI({ title: 'Tuning  ( ` or View button )' });
 
@@ -58,8 +69,25 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   look.add(settings, 'showColliders').name('show colliders');
   look.add(settings, 'cargoRampOpen').name('cargo ramp open');
 
+  const cut = gui.addFolder('See-through hull');
+  cut.add(settings, 'seeThrough').name('on (inside the ship)');
+  cut.add(settings, 'cutRadius', 0.2, 4, 0.05).name('radius (m)');
+  cut.add(settings, 'cutSoftness', 0, 1.5, 0.05).name('edge softness (m)');
+  cut.add(settings, 'cutTargetHeight', 0.2, 1.5, 0.05).name('target height (m)');
+  cut.addColor(settings, 'cutBackColor').name('cut edge colour');
+  cut.add(settings, 'cameraCollision').name('camera collision (outside)');
+
   const render = gui.addFolder('Rendering');
-  render.add(settings, 'maxPixelRatio', 0.5, 3, 0.25).name('max pixel ratio').onChange(onChange.pixelRatio);
+  render.add(settings, 'maxPixelRatio', 0.1, 3, 0.05).name('max pixel ratio').onChange(onChange.pixelRatio);
+  render.add(settings, 'pixelated').name('pixelated upscale').onChange(onChange.pixelRatio);
+  render.add({ antialias: antialiasEnabled() }, 'antialias').name('anti-aliasing (reloads)').onChange((on: boolean) => {
+    try {
+      localStorage.setItem(ANTIALIAS_KEY, on ? '1' : '0');
+    } catch {
+      /* storage unavailable: the setting isn't kept */
+    }
+    location.reload();
+  });
 
   gui
     .add(

@@ -22,6 +22,7 @@ plans/
 | [Repo and prototype workspace](architecture/repo-and-prototypes.md) | [Step 2](../steps/02-first-prototype.md) | Done |
 | [Prototype 01: walk](prototypes/01-walk.md) | [Step 2](../steps/02-first-prototype.md) | Built; owner play-test pending |
 | [Prototype 02: low-resolution rendering](prototypes/02-low-res.md) | [Step 2](../steps/02-first-prototype.md) | Draft, for review |
+| [See-through hull](features/see-through-hull.md) | [Step 3](../steps/03-see-through-hull.md) | Built; owner play-test pending |
 
 ## Plan format
 

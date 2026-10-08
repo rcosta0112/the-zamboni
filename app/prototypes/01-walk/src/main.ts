@@ -7,10 +7,11 @@ import { Character } from './character';
 import { Input } from './input';
 import { loadModels } from './model';
 import { Physics } from './physics';
+import { updateCutaway } from './cutaway';
 import { loadShip, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import { Stats } from './stats';
-import { createTuningPanel } from './tuning';
+import { antialiasEnabled, createTuningPanel } from './tuning';
 import { createWorld, updateWorld } from './world';
 
 const STEP = 1 / 60; // fixed simulation step
@@ -19,7 +20,7 @@ const MAX_STEPS = 5; // per frame, so a long pause doesn't spiral
 
 async function start(): Promise<void> {
   const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
-  const renderer = new THREE.WebGPURenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true;
   await renderer.init();
 
@@ -37,8 +38,6 @@ async function start(): Promise<void> {
   const physics = await Physics.create({ radius, halfHeight: settings.zamboniHeight / 2 - radius }, character.position);
 
   // Character models, then the ship at the same scale; the capsule stays if they fail to load.
-  // Dev only: settings, renderer and character reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship });
 
   let ship: Ship | null = null;
   loadModels()
@@ -50,6 +49,9 @@ async function start(): Promise<void> {
     .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err));
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
+
+  // Dev only: reachable from the browser console and test scripts.
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view });
 
   const gui = createTuningPanel({
     cameraDistance: () => view.syncDistance(),
@@ -63,12 +65,18 @@ async function start(): Promise<void> {
   const size = new THREE.Vector2();
   function resize(): void {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, settings.maxPixelRatio));
+    // When the render is smaller than the window, the browser stretches it: hard square pixels, or smoothed.
+    canvas.style.imageRendering = settings.pixelated ? 'pixelated' : 'auto';
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     view.camera.aspect = window.innerWidth / window.innerHeight;
     view.camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize);
   resize();
+
+  // See-through hull: 0 outside the ship, eased to 1 inside.
+  let cutAmount = 0;
+  const chest = new THREE.Vector3();
 
   let last = performance.now();
   let accumulator = 0;
@@ -90,7 +98,14 @@ async function start(): Promise<void> {
 
     character.render(accumulator / STEP);
     character.animate(dt);
+    // Inside the ship: the hull is cut and the camera doesn't collide. Outside: camera collision.
+    chest.copy(character.root.position).y += settings.cutTargetHeight;
+    const inside = ship !== null && ship.interior.containsPoint(chest);
+    view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
     view.update(dt, input, character.root.position);
+    const cutTarget = inside && settings.seeThrough ? 1 : 0;
+    cutAmount = cutTarget > cutAmount ? Math.min(1, cutAmount + dt / 0.3) : Math.max(0, cutAmount - dt / 0.3);
+    updateCutaway(view.camera.position, chest, character.root.position.y, cutAmount, { radius: settings.cutRadius, softness: settings.cutSoftness, backColor: settings.cutBackColor });
     updateWorld(world, scene, character.root.position);
     if (ship) updateShip(ship, dt);
     renderer.toneMappingExposure = settings.exposure;

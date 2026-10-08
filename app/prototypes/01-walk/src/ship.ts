@@ -6,6 +6,7 @@
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { makeCuttable } from './cutaway';
 import type { Physics } from './physics';
 import { settings } from './settings';
 
@@ -13,6 +14,16 @@ const SHIP_URL = '/test/zamboni-exterior.glb';
 const COLLIDER = 'zamboni_col';
 const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
+const CARGO_CEILING = 'Floor Top.001';
+/**
+ * Surfaces the see-through hull may cut (hull, walls, ceilings). For the game these come from a
+ * `cuttable: true` custom property set in Blender; in the prototype, a list of names.
+ */
+const CUTTABLE = ['Hull_Merged', 'Floor Top.001', 'Bulkhead Cargo', 'Windshield', 'Door', 'Top Hatch'];
+
+/** GLTFLoader's node names: spaces become underscores; . : / [ ] are removed. */
+const sanitize = (name: string) => name.replace(/\s/g, '_').replace(/[[\].:/]/g, '');
+const named = (o: THREE.Object3D, name: string) => o.name === name || o.name === sanitize(name);
 const RAMP_SECONDS = 1.5; // time to open or close
 
 export interface Ship {
@@ -27,6 +38,8 @@ export interface Ship {
   rampCollider: { sync: () => void; setEnabled: (on: boolean) => void };
   /** When fully open: a smooth walkable slope from the ground to the cargo floor. */
   rampWalkway: { setEnabled: (on: boolean) => void };
+  /** The ship's inside, in world space (both decks): "inside" for the see-through hull. */
+  interior: THREE.Box3;
 }
 
 /**
@@ -44,9 +57,13 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   let collider: THREE.Mesh | null = null;
   let ramp: THREE.Object3D | null = null;
   let cargoFloor: THREE.Object3D | null = null;
+  let cargoCeiling: THREE.Object3D | null = null;
+  const cuttable: THREE.Object3D[] = [];
   object.traverse((o) => {
     if (RAMP.includes(o.name)) ramp = o;
     if (CARGO_FLOOR.includes(o.name)) cargoFloor = o;
+    if (named(o, CARGO_CEILING)) cargoCeiling = o;
+    if (CUTTABLE.some((n) => named(o, n))) cuttable.push(o);
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     if (o.name === COLLIDER) {
@@ -59,6 +76,10 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   if (!collider) throw new Error(`${SHIP_URL} has no "${COLLIDER}" mesh`);
   if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
+  if (!cargoCeiling) throw new Error(`${SHIP_URL} has no cargo ceiling ("${CARGO_CEILING}")`);
+
+  // See-through hull: cuttable copies of these surfaces' materials.
+  for (const node of cuttable) node.traverse((o) => (o as THREE.Mesh).isMesh && makeCuttable(o as THREE.Mesh));
   const col: THREE.Mesh = collider;
   const rampNode: THREE.Object3D = ramp;
   col.material = new THREE.MeshBasicNodeMaterial({ color: 0xff3366, wireframe: true });
@@ -67,6 +88,20 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   scene.add(object);
   object.updateMatrixWorld(true);
   physics.addStaticMesh(col);
+
+  // Inside the ship = within the hull's bounds (both decks), from just below the cargo floor up.
+  // (The hull is roughly box-shaped; a proper trigger-volume system comes later.)
+  const floorBox = new THREE.Box3().setFromObject(cargoFloor);
+  let hull: THREE.Object3D | undefined;
+  object.traverse((o) => {
+    if (named(o, 'Hull_Merged')) hull = o;
+  });
+  if (!hull) throw new Error('The ship has no "Hull_Merged"');
+  const hullBox = new THREE.Box3().setFromObject(hull);
+  const interior = new THREE.Box3(
+    new THREE.Vector3(hullBox.min.x, floorBox.max.y - 0.3, hullBox.min.z),
+    new THREE.Vector3(hullBox.max.x, hullBox.max.y, hullBox.max.z),
+  );
 
   // The ramp: find the hinge angle at which it reaches the ground. While it moves (or is closed)
   // it has a convex collider that follows it (a copy of its mesh would keep the window cut
@@ -87,6 +122,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     rampAmount: 0,
     rampCollider,
     rampWalkway,
+    interior,
   };
   updateShip(ship, 0, true);
   return ship;

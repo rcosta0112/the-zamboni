@@ -79,6 +79,19 @@ blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-s
 
 > **Rapier note (2026-10-08):** with Rapier 0.19–0.21, the character controller sinks through a very large box collider (a 1000 m ground box); a smaller box or a triangle mesh works. The ground is therefore a flat two-triangle mesh. Also, `@types/three` pulls in an old Rapier (0.12.0) for its type definitions, so two copies are installed; the prototype uses the pinned 0.21.0.
 
+## See-through hull and camera collision
+
+Inside the ship (Dr. Green in the cargo bay), a round, dither-edged hole is cut through the hull, walls and ceiling between the camera and her chest; outside, the camera collides with the ship instead. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md). Code: [`src/cutaway.ts`](src/cutaway.ts) (TSL), wired up in `src/ship.ts` (which surfaces, the cargo bay volume) and `src/main.ts`; camera collision in `src/camera.ts` + `Physics.castRay`. Tuning panel → *See-through hull*.
+
+## Resolution and anti-aliasing
+
+Tuning panel → *Rendering*:
+- **Max pixel ratio** from 0.1 to 3: below 1, the 3D is rendered with fewer pixels than the window has (0.25 on a 1280×720 window = 320×180).
+- **Pixelated upscale** (on by default): the browser stretches a small render with hard, square pixels instead of smoothing it.
+- **Anti-aliasing** (MSAA, on by default): smooths edges; it's fixed when the renderer is created, so switching it reloads the page (remembered in the browser's local storage).
+
+Together these give the low-resolution look planned for [prototype 02](../../../doc/plans/prototypes/02-low-res.md) on this scene.
+
 ## The look
 
 Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Site 1.01.blend` (tuning panel → *Look*), and checked side by side against the owner's reference render:
@@ -103,6 +116,7 @@ Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Sit
 | `src/model.ts` | Loads both models; blends standing/walk/run by speed; jump |
 | `src/physics.ts` | Rapier world: ground, ship collider, capsule + character controller |
 | `src/ship.ts` | Loads the ship exterior, places it, builds its collider |
+| `src/cutaway.ts` | See-through hull: the TSL cut, cuttable material copies |
 | `src/retarget.ts` | Retargets animations between skeletons with the same bone names but different bone orientations |
 | `src/camera.ts` | Third-person orbit camera with smoothed follow |
 | `src/world.ts` | Sky, fog, lights, sun shadow that follows the character, TSL grid floor |
@@ -120,6 +134,7 @@ From Part 1 (*Big Moon Tiny Moon*, `Main.unity`): walk 1.5 m/s, run 7 m/s, accel
 | 2026-10-08 | Owner's PC (GTX 1070), headless Chrome at 1280×720 | Chrome | WebGPU | 60 fps (vsync-limited), no errors. Walking, turning and jumping checked with simulated keys; gamepad not tested (no gamepad in headless mode) |
 | 2026-10-08 | Same, with Part 1's Dr. Green | Chrome | WebGPU | 60 fps, no errors. Standing, walking (Shift), running and jumping checked in screenshots; facing correct. Camera defaults changed to 4.5 m / aim height 1.0 m for the smaller character |
 | 2026-10-08 | Same, with the reference look and mist | Chrome | WebGPU | 60 fps once shaders had compiled, no errors. A screenshot 4 s after loading read 7 fps while the new noise shaders compiled: first-use stutter, as predicted in the performance plan |
+| 2026-10-08 | Same, see-through hull + camera collision | Chrome | WebGPU | 60 fps, no errors. In the cargo bay: hole through the hull from the side and through the ceiling from above, floor solid; off: hull opaque. Ship's shadow identical with the cut on and off. Outside with the ship in the way: camera came in from 8 m to 2.96 m |
 | 2026-10-08 | Same, Zamboni Dr. Green with retargeted animations | Chrome | WebGPU | No errors. Standing (back and front), walking, running checked in screenshots: legs stride correctly, arms not twisted, facing correct |
 
 **Build size:** 5.35 MB minified, **1.95 MB gzipped** with Rapier (was 278 KB before). The `-compat` Rapier package embeds its WebAssembly as base64 inside the JavaScript (~1.4 MB of wasm becomes ~1.9 MB of text). It fits the 3 MB boot budget but takes most of it; the non-compat package (`@dimforge/rapier3d`) loads the `.wasm` as a separate, smaller file that the browser can compile while it downloads, and is worth switching to before the game ships.

@@ -1,76 +1,46 @@
 # See-through Hull
 
-**Status:** *plan*. Not built. A standalone prototype is a candidate next step (see [`../steps/README.md`](../steps/README.md)).
+**Status:** built in prototype 01 (2026-10-08); owner play-test pending. Plan: [`../plans/features/see-through-hull.md`](../plans/features/see-through-hull.md). Code: [`app/prototypes/01-walk/src/cutaway.ts`](../../app/prototypes/01-walk/src/cutaway.ts).
 
-## Goal
+## What it does
 
-In third person, hide the part of the hull and walls between the camera and the character, like a hole that follows the camera. The camera can then stay outside the hull instead of squeezing into corridors.
+Inside the ship, the hull, walls and ceilings between the camera and Dr. Green are cut away by a round hole that follows her, so she stays visible while the camera stays outside. Outside the ship there's no cut; the camera collides with things instead.
 
-## Approach
+## How it works
 
-- A world-space **capsule from the camera to the character**.
-- Pixels of "cuttable" materials that fall inside the capsule *and* between camera and character are discarded.
-- A **dithered edge** (interleaved gradient noise) gives a soft fade without transparency sorting problems.
-- Applies only to tagged surfaces (hull, walls, bulkheads, ceilings), marked `cuttable: true` in Blender (see [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md)). Floors, props and characters stay solid.
+- **The capsule:** from the camera to Dr. Green's chest (0.75 m above her feet). Pixels of cuttable surfaces that fall inside it, between the two, are discarded.
+- **Dithered edge:** a band at the hole's edge is broken up pixel by pixel with a 4×4 **ordered (Bayer) dither**. It looks soft without transparency, so there are no sorting problems. (Random per-pixel noise was tried first: it sparkled on the edge as the camera moved; the ordered pattern crawls far less. Softness 0 gives a hard edge.)
+- **Never below her feet:** nothing lower than 0.15 m above her feet is cut, so the floor she stands on stays, even upstairs, where that floor is also the cargo bay's cuttable ceiling.
+- **TSL, r186:**
+  - `material.maskNode`: the cut condition (a pixel is discarded where it's false).
+  - `material.maskShadowNode = true`: the shadow pass ignores the cut, so the hull keeps its full shadow (checked: the ship's shadow is identical with the cut on and off).
+  - Cuttable materials are double-sided, with back faces drawn in one dark colour, so the cut edge reads as a solid cross-section; shadows are cast from back faces only.
+- **Copies of materials:** cutting is per material, and the ship's materials are shared (the hull's teal is also on the turbines), so each cuttable mesh gets its own copy.
 
-## Reference implementation
+## The rules
 
-Written for the WebGL renderer (`MeshStandardMaterial` + `onBeforeCompile`). **The project uses `WebGPURenderer` + TSL, so this must be ported to a TSL node**; the maths stays the same.
+| Situation | Behaviour |
+|---|---|
+| Inside the ship (Dr. Green's chest within the hull's bounds, from just below the cargo floor up: both decks) | Hole on, radius 1.44 m (owner: 20% bigger than the first 1.2 m), edge softness 0.25 m; grows in over 0.3 s when she enters, shrinks over 0.3 s when she leaves. Camera collision off |
+| Outside | No cut (owner, 2026-10-08). **Camera collision:** a ray from her chest toward the camera; anything in the way (the ship), the camera moves in front of it (0.25 m short of the hit, but never closer than 1 m), then eases back out when clear. The ground is ignored (the camera is kept above it separately): with the camera tilted up, hitting the ground pulled it into her head |
+| The ceiling (upper deck) | Cut by the same capsule only (owner, 2026-10-08). A full cutaway (hiding the ceiling while she's inside) remains an option |
 
-```js
-const cutout = {
-  uPlayer: { value: new THREE.Vector3() },
-  uCamPos: { value: new THREE.Vector3() },
-  uRadius: { value: 1.2 },
-  uSoft:   { value: 0.4 },
-  uEnabled:{ value: 1 },
-};
+## What's cuttable
 
-export function makeCuttable(material) {
-  material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, cutout);
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWorldPos;')
-      .replace('#include <project_vertex>',
-        '#include <project_vertex>\nvWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>
-        uniform vec3 uPlayer, uCamPos;
-        uniform float uRadius, uSoft, uEnabled;
-        varying vec3 vWorldPos;`)
-      .replace('void main() {', `void main() {
-        if (uEnabled > 0.5) {
-          vec3 ab = uPlayer - uCamPos;
-          float t = dot(vWorldPos - uCamPos, ab) / dot(ab, ab);
-          if (t > 0.0 && t < 0.98) {
-            float d = length(vWorldPos - (uCamPos + ab * t));
-            float mask = smoothstep(uRadius - uSoft, uRadius, d);
-            float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-            if (mask < n) discard;
-          }
-        }`);
-  };
-  material.customProgramCacheKey = () => 'cutout';
-}
-// Every frame: uCamPos = camera position; uPlayer = character position + ~1 m (chest height)
-// Note: InstancedMesh needs instanceMatrix folded into vWorldPos.
-```
+Prototype: `Hull_Merged`, `Floor Top.001` (the cargo bay ceiling / upper deck floor), `Bulkhead Cargo`, `Windshield`, `Door`, `Top Hatch`. Never cut: floors she stands on, the ramp, landing gear, turbines, characters, props.
 
-## Details
+**For the game:** objects are tagged in Blender with the custom property `cuttable: true` (naming contract, [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md)); the exporter passes it through as glTF `extras` and the game reads `userData.cuttable`. The prototype still uses a list of names.
 
-- **Shadows:** in the WebGL version the shadow depth pass doesn't include the discard, so the hull still blocks light. Check this holds for the TSL version (the cutout must not be applied to the shadow pass). Baked lighting isn't affected.
-- **Clean cut edges:** render cuttable walls double-sided and paint back faces a flat dark colour (front-facing test), so the hole's rim looks like a solid cross-section.
-- **Indoor and outdoor modes:** trigger volumes switch behaviour.
-  - Outdoors: cut off, or only when behind the ship.
-  - Indoors: cut on, optionally hiding the ceiling or upper deck entirely (a cutaway view).
-  - Transitions: animate the radius from 0 to full over about 0.3 s at doors.
-- **Camera:** a follow camera with collision; thanks to the hole it can stay outside the hull.
-- **Optional:** oval hole instead of round; constant on-screen size (scale the radius by camera distance); faint glowing rim at the edge.
+## Tuning (prototype panel → *See-through hull*)
 
-## Effort
+On/off, radius, edge softness, target height, cut-edge colour, camera collision.
 
-Core effect in an afternoon; polish (edges, mode rules, transitions) a few days.
+## Cost
 
-## Open questions
+A few instructions per pixel on cuttable surfaces only, plus losing an early-depth optimisation on those materials on some GPUs. 60 fps (vsync-limited) on the owner's PC; not yet measured on the MacBook.
 
-- Camera style indoors: free orbit, fixed angles, or a cutaway/isometric view? (Also listed in [`../architecture/scope.md`](../architecture/scope.md).)
+## Not done yet
+
+- Oval or constant-on-screen-size hole, glowing rim (options from the original design notes).
+- A real trigger-volume system for "inside" (today: one box, the hull's bounds).
+- Tagging through Blender custom properties instead of names.

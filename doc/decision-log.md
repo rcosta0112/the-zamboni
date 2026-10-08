@@ -4,6 +4,21 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
+## [2026-10-08] — See-through hull rules (feature)
+
+**Context:** Step 3; the [plan](plans/features/see-through-hull.md) asked where to build it, what happens outside the ship, and how to treat the ceiling.
+
+**Decision:**
+- Built in prototype 01.
+- **Inside** the ship: a capsule-shaped hole from the camera to Dr. Green's chest, dither-edged, through cuttable surfaces only; the ceiling is cut by the same capsule (no full cutaway, for now). Tune the radius to fix issues.
+- **Outside:** no cut; normal camera collision.
+
+**Alternatives considered:** cutting outside too, whenever the hull is in the way; hiding the ceiling entirely while inside (cutaway view).
+
+**Status:** Built. See [`features/see-through-hull.md`](features/see-through-hull.md).
+
+---
+
 ## [2026-10-08] — Ink for dialogue (tech)
 
 **Context:** The dialogue language was open: Ink was proposed, Yarn Spinner was used in Part 1.

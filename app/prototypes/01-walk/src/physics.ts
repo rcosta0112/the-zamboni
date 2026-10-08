@@ -17,6 +17,7 @@ export class Physics {
   readonly world: RAPIER.World;
   private controller: RAPIER.KinematicCharacterController;
   private capsule: RAPIER.Collider;
+  private ground: RAPIER.Collider;
   private size: CapsuleSize;
   /** Movement actually allowed by the last move() call. */
   readonly moved = new THREE.Vector3();
@@ -31,7 +32,7 @@ export class Physics {
     // Ground: a flat 500 × 500 m triangle mesh at y = 0. (A huge box doesn't work: with Rapier
     // 0.19–0.21 the character controller sinks through a 1000 m cuboid; a mesh is robust.)
     const h = 250;
-    this.world.createCollider(
+    this.ground = this.world.createCollider(
       RAPIER.ColliderDesc.trimesh(new Float32Array([-h, 0, -h, h, 0, -h, h, 0, h, -h, 0, h]), new Uint32Array([0, 2, 1, 0, 3, 2])),
     );
 
@@ -110,6 +111,22 @@ export class Physics {
   addStaticTriangles(vertices: Float32Array, indices: Uint32Array): { setEnabled: (on: boolean) => void } {
     const collider = this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices));
     return { setEnabled: (on) => collider.setEnabled(on) };
+  }
+
+  /**
+   * Distance from `from` toward `to` to the first collider in the way, or null if the way is
+   * clear. Used for camera collision, so it ignores the character's own capsule and the ground
+   * (the camera is kept above the ground separately; hitting it when looking up pulled the camera
+   * into her head).
+   */
+  castRay(from: THREE.Vector3, to: THREE.Vector3): number | null {
+    const dir = new THREE.Vector3().subVectors(to, from);
+    const length = dir.length();
+    if (length < 1e-4) return null;
+    dir.divideScalar(length);
+    const ray = new RAPIER.Ray({ x: from.x, y: from.y, z: from.z }, { x: dir.x, y: dir.y, z: dir.z });
+    const hit = this.world.castRay(ray, length, true, undefined, undefined, this.capsule, undefined, (c) => c !== this.ground);
+    return hit ? hit.timeOfImpact : null;
   }
 
   /**

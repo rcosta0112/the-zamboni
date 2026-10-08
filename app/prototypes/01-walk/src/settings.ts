@@ -64,8 +64,17 @@ export const settings = {
   showColliders: false, // the ship's collision mesh as a wireframe
   cargoRampOpen: true, // the Zamboni's cargo ramp, down to the ground
 
+  // See-through hull (inside the ship) and camera collision (outside)
+  seeThrough: true,
+  cutRadius: 1.44, // m, radius of the capsule from the camera to Dr. Green's chest (1.2 + 20%)
+  cutSoftness: 0.25, // m, width of the dithered edge (0 = hard edge)
+  cutTargetHeight: 0.75, // m above her feet: the end of the capsule (chest)
+  cutBackColor: '#1b2327', // inside faces of cut surfaces
+  cameraCollision: true, // outside the ship
+
   // Rendering
-  maxPixelRatio: 2,
+  maxPixelRatio: 2, // below 1 renders fewer pixels than the screen has (down to 0.1)
+  pixelated: true, // stretch a low-resolution render with hard, square pixels instead of smoothing it
 };
 
 export type Settings = typeof settings;

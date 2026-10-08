@@ -53,7 +53,7 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 | `device: <type>` | Device behaviour class | `device: boombox`, `device: lever` |
 | `requires: <id>` | Dependency on another object or story flag | `requires: lever_01` |
 | `scan_id: <id>` | Entry this object adds to the scanner database | `scan_id: ruin_gate_01` |
-| `cuttable: true` | Surface the see-through hull may cut away | hull, walls, bulkheads, ceilings |
+| `cuttable: true` | Surface the see-through hull may cut away (in use: [`features/see-through-hull.md`](../features/see-through-hull.md)) | hull, walls, bulkheads, ceilings |
 | `*_col` | Invisible collision mesh for its parent (simplified geometry) | `galley_col` |
 | `zone_indoor_*`, `zone_outdoor_*` | Trigger volumes that switch indoor/outdoor rules | `zone_indoor_cockpit` |
 | `boundary_soft`, `boundary_hard` | Outdoor boundary volumes | |
