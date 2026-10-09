@@ -76,6 +76,7 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre (°)');
   interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight');
   interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');
+  interact.add(settings, 'doorsPush').name('doors push her');
   interact.add(settings, 'climbSpeed', 0.3, 4, 0.05).name('climb speed (m/s)');
 
   const lights = gui.addFolder('Room lights');

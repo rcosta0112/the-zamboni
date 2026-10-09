@@ -71,6 +71,7 @@ export const settings = {
   interactMaxAngleDeg: 30, // how far from the screen centre a target may be
   highlight: 0.25, // the target's lift toward white (0 = no highlight)
   doorSeconds: 0.6, // to open or close a door
+  doorsPush: true, // a moving door pushes her out of its way (off: it just stops against her)
   climbSpeed: 1.2, // m/s along a ladder
 
   // See-through hull (inside the ship) and camera collision (outside)

@@ -4,8 +4,8 @@
 // opening attaches her at the top. Jump lets go. A closed hatch above stops her (a ray from her head),
 // and she can open it from the ladder. While climbing she's placed directly, without collisions.
 // No climbing animation yet: she's shown standing.
-// Ladders: `Ladder Cargo Bay` (through the trapdoor) and `Ladder Crew Quarters` (rungs on the cockpit
-// bulkhead, up to the ceiling). (The side door, open, is a ramp: doors.ts.)
+// Ladders: `Ladder Cargo Bay` (through the trapdoor). (The rungs on the cockpit bulkhead were removed
+// on 2026-10-09; the side door, open, is a ramp: doors.ts.)
 // Plan: doc/plans/features/interaction-doors.md
 
 import * as THREE from 'three/webgpu';
@@ -40,7 +40,7 @@ export interface Ladder {
 /** The ship's ladders. */
 export function shipLadders(ship: THREE.Object3D, physics: Physics): Ladder[] {
   const ladders: Ladder[] = [];
-  for (const name of ['Ladder Cargo Bay', 'Ladder Crew Quarters']) {
+  for (const name of ['Ladder Cargo Bay']) {
     let object: THREE.Object3D | undefined;
     ship.traverse((o) => {
       if (named(o, name)) object = o;

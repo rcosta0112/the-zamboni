@@ -3,22 +3,76 @@
 // the hinge axis (ship space), the open angle, `toGround` (the side door drops outward until it rests
 // on the ground; fully open, it's a ramp: a smooth walkable slope stands in for its steps, as for the
 // cargo ramp) and `startOpen` (the trapdoor, for now). The hinge is at the recorded `hinge` point.
-// Plan: doc/plans/features/interaction-doors.md
+// A moving door pushes her out of its way, sideways, through her character controller (so never into
+// a wall). If she can't be pushed (pinned, on a ladder, or it would have to lift her), it stops and
+// waits until she's clear. Plans: doc/plans/features/interaction-doors.md,
+// doc/plans/features/interaction-clearance.md
 
 import * as THREE from 'three/webgpu';
-import { named } from './names';
 import { prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
 import { settings } from './settings';
 
-/** Doors big enough to collide with her (the fridge and galley doors are small and low: no collider). */
-const COLLIDES = ['Door', 'Hatch.002', 'Top Hatch', 'Top Hatch Bottom', 'Locker Door', 'Locker Door.001', 'Locker Door.003'];
+/** What a moving door can do to her. */
+export interface Pusher {
+  /** Move her by this much, through her character controller (walls stop her). */
+  push: (by: THREE.Vector3) => void;
+  /** On a ladder: she can't be pushed. */
+  climbing: () => boolean;
+}
+
+/** Pushed this far clear of the door (m). */
+const PUSH_MARGIN = 0.02;
+/** A door that stopped against her waits until she's this far clear of its next position (m). */
+const RESUME_GAP = 0.05;
+/** A contact normal steeper than this would lift her: the door stops instead. */
+const LIFTS = 0.5;
+/**
+ * A door that stops against her backs off until there's this much room (m): left touching her (within
+ * her controller's contact gap), wedged against furniture on the other side, she couldn't move at all.
+ */
+const STOP_GAP = 0.03;
+
+/**
+ * Moves a part (a door, the ramp) from `from` to `to` (0..1), pushing her out of its way. Returns
+ * where it got to, and whether it's now waiting for her to move.
+ */
+export function advance(collider: MovingCollider, pose: (t: number) => void, from: number, to: number, pusher: Pusher, waiting: boolean): { amount: number; waiting: boolean } {
+  pose(to);
+  const stop = () => {
+    // Back off (toward where it came from) until it's clear of her by STOP_GAP.
+    const back = Math.sign(from - to) || -1;
+    let t = from;
+    pose(t);
+    for (let i = 0; i < 25 && collider.contact(STOP_GAP); i++) {
+      t = THREE.MathUtils.clamp(t + back * 0.01, 0, 1);
+      pose(t);
+    }
+    return { amount: t, waiting: true };
+  };
+  // After stopping against her, it doesn't creep after her: it waits for room.
+  if (waiting) {
+    const c = collider.contact(RESUME_GAP);
+    if (c && c.depth > -RESUME_GAP) return stop();
+  }
+  for (let i = 0; i < 3; i++) {
+    const c = collider.contact(0);
+    if (!c || c.depth <= 0.002) return { amount: to, waiting: false };
+    const sideways = new THREE.Vector3(c.normal.x, 0, c.normal.z);
+    const length = sideways.length();
+    if (!settings.doorsPush || pusher.climbing() || c.normal.y > LIFTS || length < 0.3) return stop();
+    // Sideways only, far enough to clear the overlap along the normal.
+    pusher.push(sideways.divideScalar(length).multiplyScalar(c.depth / length + PUSH_MARGIN));
+  }
+  const c = collider.contact(0);
+  return c && c.depth > 0.002 ? stop() : { amount: to, waiting: false };
+}
 
 export class Door {
   /** 0 = closed, 1 = open. */
   amount = 0;
   open = false;
-  /** Set when the door stopped against her. */
+  /** Stopped against her: waiting until she's clear. */
   blocked = false;
   readonly units: CutUnit[] = [];
   /** A door that's a ramp when fully open: the walkable slope then replaces its collider. */
@@ -39,21 +93,28 @@ export class Door {
     this.open = !this.open;
   }
 
-  /** Per frame: ease toward open or closed. A door that would swing into her stops where it is. */
-  update(dt: number, force = false): void {
+  /**
+   * One fixed step: ease toward open or closed, pushing her out of the way (`force`: jump there,
+   * at load).
+   */
+  update(dt: number, force = false, pusher?: Pusher): void {
     const target = this.open ? 1 : 0;
-    if (!force && this.amount === target) return;
-    const before = this.amount;
-    const step = dt / settings.doorSeconds;
-    this.amount = force ? target : target > this.amount ? Math.min(target, this.amount + step) : Math.max(target, this.amount - step);
-    this.pose();
-    if (this.collider && !force && this.collider.overlapsCharacter()) {
-      this.amount = before;
-      this.pose();
-      this.blocked = true;
+    if (!force && this.amount === target) {
+      this.blocked = false;
       return;
     }
-    this.blocked = false;
+    const step = dt / settings.doorSeconds;
+    const next = force ? target : target > this.amount ? Math.min(target, this.amount + step) : Math.max(target, this.amount - step);
+    if (force || !this.collider || !pusher) {
+      this.amount = next;
+      this.pose();
+    } else {
+      const moved = advance(this.collider, (t) => {
+        this.amount = t;
+        this.pose();
+      }, this.amount, next, pusher, this.blocked);
+      this.blocked = moved.waiting;
+    }
     this.collider?.sync();
     if (this.walkway) {
       const open = this.amount === 1;
@@ -87,7 +148,7 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
     const walkway = data.toGround ? physics.addStaticTriangles(...walkwayTriangles(hinge, axis, physics)) : null;
     hinge.quaternion.identity();
     hinge.updateMatrixWorld(true);
-    const collider = COLLIDES.some((n) => named(object, n)) ? physics.addMovingConvex(hinge) : null;
+    const collider = physics.addMovingConvex(hinge);
     const door = new Door(object.name, object, hinge, axis, openAngle, collider);
     door.walkway = walkway;
     door.open = data.startOpen === true; // posed by the ship's first (forced) update

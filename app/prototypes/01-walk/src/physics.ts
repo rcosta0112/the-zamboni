@@ -22,6 +22,13 @@ export interface MovingCollider {
   setEnabled: (on: boolean) => void;
   /** True if the object, where it is now (not where the collider was last synced), overlaps her capsule. */
   overlapsCharacter: () => boolean;
+  /**
+   * The object (where it is now) against her capsule, if they're closer than `margin` (m): `depth` > 0
+   * is how far they overlap (< 0: the gap), `normal` points out of the object (the way to push her).
+   */
+  contact: (margin: number) => { depth: number; normal: THREE.Vector3 } | null;
+  /** True if she's standing on it. */
+  under: () => boolean;
 }
 
 export interface RayHit {
@@ -126,7 +133,19 @@ export class Physics {
       object.matrixWorld.decompose(p, q, scale);
       return collider.shape.intersectsShape({ x: p.x, y: p.y, z: p.z }, { x: q.x, y: q.y, z: q.z, w: q.w }, this.capsule.shape, this.capsule.translation(), this.capsule.rotation());
     };
-    return { sync, setEnabled: (on) => collider.setEnabled(on), overlapsCharacter };
+    const contact = (margin: number) => {
+      object.updateWorldMatrix(true, false);
+      object.matrixWorld.decompose(p, q, scale);
+      const c = collider.shape.contactShape({ x: p.x, y: p.y, z: p.z }, { x: q.x, y: q.y, z: q.z, w: q.w }, this.capsule.shape, this.capsule.translation(), this.capsule.rotation(), margin);
+      return c ? { depth: -c.distance, normal: new THREE.Vector3(c.normal1.x, c.normal1.y, c.normal1.z) } : null;
+    };
+    const under = () => {
+      const c = this.capsule.translation();
+      const ray = new RAPIER.Ray({ x: c.x, y: c.y, z: c.z }, { x: 0, y: -1, z: 0 });
+      const reach = this.size.halfHeight + this.size.radius + OFFSET + 0.12;
+      return this.world.castRay(ray, reach, true, undefined, undefined, this.capsule)?.collider === collider;
+    };
+    return { sync, setEnabled: (on) => collider.setEnabled(on), overlapsCharacter, contact, under };
   }
 
   /** A static box collider, axis-aligned in world space (the crew, for now). */

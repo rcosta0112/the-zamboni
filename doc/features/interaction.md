@@ -39,7 +39,11 @@ The highlight rides on the see-through hull's per-object uniform (its `w`: bit 0
 - **All start closed except the trapdoor**, which starts open for now (owner, 2026-10-09: from below, the camera angle makes it hard to aim at; to be worked out later). The trapdoor and two galley doors are modelled open in the file; the export closes the galley doors (`MODELLED_OPEN`) and tags the trapdoor `startOpen`.
 - **The side door, fully open, is a ramp** (owner): as for the cargo ramp, a smooth walkable slope stands in for its steps, and its own collider is off. The doorway has a sill 0.13 m above the cargo floor (and above the door's hinge), so the slope climbs to the sill's top at no more than 42° (her controller takes up to 45°), then runs flat across it into the hold; its foot lies about 0.1 m past the door's far end. The door can't be closed while she's on it.
 - Each press toggles; the door eases (smoothstep) over 0.6 s (tunable).
-- **Collision:** the side door, the hatches and the lockers have a convex collider that follows them; the fridge and cupboard doors (small, low) have none. A door that would swing into her **stops where it is** and carries on once she's out of the way.
+- **Collision:** every door has a convex collider that follows it (the fridge and cupboard doors too, since 2026-10-09).
+- **A moving door pushes her out of its way** (owner, 2026-10-09; plan: [`../plans/features/interaction-clearance.md`](../plans/features/interaction-clearance.md)). Each fixed step, after her own movement, if the door's next position overlaps her capsule she's moved out along the contact normal, **sideways only**, through her character controller (so walls and furniture stop her; she's never placed inside anything). She slides, with no animation. The cargo ramp does the same.
+  - **It stops instead** when she can't be cleared (pinned against furniture), when she's on a ladder, or when it would have to lift her (a hatch or the ramp rising under her; the side door and ramp closing while she's on them). A stopped door **backs off until there's 3 cm between them** (left touching her, wedged against furniture on her other side, Rapier's controller wouldn't let her move at all) and **waits** until she's 5 cm clear of its next position, instead of following her.
+  - **No door is offered while she's standing on it** (the closed trapdoor: owner, the camera angles don't work there anyway).
+  - Tuning panel: *doors push her* (off: they only stop, as before).
 - The bulkhead doors (`Door Cockpit`, `Door Engineering`…) aren't interactive.
 - Doors are cut by the see-through hull like before; their raycast data follows them while they move, and they're left out of the ship's merged shadow caster (they cast their own).
 
@@ -59,7 +63,8 @@ No button: walking into a ladder is enough (owner).
 | Ladder | Where | Top |
 |---|---|---|
 | `Ladder Cargo Bay` | cargo bay, up through the trapdoor | the crew quarters floor |
-| `Ladder Crew Quarters` | rungs on the cockpit bulkhead, beside the cockpit door | the ceiling: no way off |
+
+The rungs on the cockpit bulkhead by the galley (`Ladder Crew Quarters`) were removed (owner, 2026-10-09).
 
 Ladders are found from their bounds at load: she stands on the more open side, the bottom is the floor under it, the top is the lowest floor found beside its top end that's reachable straight up (measured with the doors left out).
 

@@ -26,6 +26,7 @@ plans/
 | [See-through rules (what gets cut, and when)](features/see-through-rules.md) | [Step 3](../steps/03-see-through-hull.md) | Built (four passes); rule table next |
 | [The rest of the ship (props, interior lights, Dr. Kaufman)](features/ship-contents.md) | Prototype 01 | Built; owner play-test pending |
 | [Basic interaction (doors, hatches, lockers, the cargo panels, ladders)](features/interaction-doors.md) | Prototype 01 | Built; owner play-test pending |
+| [Doors and the character (getting in the way, getting trapped)](features/interaction-clearance.md) | Prototype 01 | Built; owner play-test pending |
 
 ## Plan format
 

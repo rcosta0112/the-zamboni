@@ -16,7 +16,9 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** Built 2026-10-09; owner play-test pending. Feature doc: [`features/interaction.md`](features/interaction.md).
 
-**Update (2026-10-09):** after the owner's first look: the open side door is a **ramp**, not a ladder (a walkable stand-in slope over its steps, as for the cargo ramp); the trapdoor **starts open** for now (hard to aim at from below); the roof hatch stays out of reach for now (an unfolding ladder later, or not: the crew have jetpacks). Plan: [`plans/features/interaction-doors.md`](plans/features/interaction-doors.md).
+**Update (2026-10-09):** after the owner's first look: the open side door is a **ramp**, not a ladder (a walkable stand-in slope over its steps, as for the cargo ramp); the trapdoor **starts open** for now (hard to aim at from below); the roof hatch stays out of reach for now (an unfolding ladder later, or not: the crew have jetpacks).
+
+**Update (2026-10-09):** doors no longer trap her: **a moving door pushes her out of its way** (sideways, through her controller), and stops (backing off a little) only when she can't be cleared, is on a ladder, or would be lifted. Chosen over walking her to an interaction point first (more polished, more work; maybe later, for use animations) and stepping her out of the swing before opening. No door is offered while she stands on it. Plan: [`plans/features/interaction-clearance.md`](plans/features/interaction-clearance.md). Plan: [`plans/features/interaction-doors.md`](plans/features/interaction-doors.md).
 
 ---
 

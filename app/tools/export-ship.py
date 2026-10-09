@@ -73,7 +73,7 @@ INTERIOR = [
     'Ceiling Light.001', 'Ceiling Light.002', 'Ceiling Light.003', 'Ceiling Light.004',
     # Crew quarters and galley
     'Bunks', 'Bunks.001', 'Bunks.002', 'Couch', 'Table', 'Galley', 'Stove',
-    'Lockers', 'Locker Door.001', 'Locker Door.003', 'Ladder Crew Quarters',
+    'Lockers', 'Locker Door.001', 'Locker Door.003',
     # Cockpit
     'Seat', 'Seat.001', 'Seat.002', 'Seat.004', 'Back seat', 'Back seat.001', 'Back seat.002',
     'Dials.002', 'Monitor.001', 'Monitor.003', 'Monitor.004',
@@ -157,6 +157,15 @@ INCLUDE_COLLECTIONS = ['Crew Quarters', 'Stuff', 'Galley', 'Shelf', 'Table', 'En
 PROP_COLLECTIONS = ['Crew Quarters', 'Stuff', 'Galley', 'Shelf', 'Table', 'Engineering', 'Cargo Bay', 'Cockpit', 'Hull', 'Parts']
 # Not props: the unmerged hull (not rendered), a hidden door panel, an old Dr. Kaufman, an empty.
 NOT_PROPS = {'Hull', 'Door Panel', 'Dr. Kaufman', 'Dr. KaufmanMesh', 'Cockpit Center'}
+# Removed from the game (owner, 2026-10-09): the oscilloscope and its cable on the crew quarters
+# floor, the battery charger and its two batteries on the engineering floor, the rungs on the
+# cockpit bulkhead by the galley.
+REMOVED = {
+    'Osciloscope.001', 'Cube.001', 'Osciloscope.002', 'Cable.001',
+    'Osciloscope.003', 'Osciloscope.005', 'Power Cell.008', 'Power Cell.009',
+    'Ladder Crew Quarters',
+}
+NOT_PROPS |= REMOVED
 # Props this big or bigger (largest side, Blender units: ~0.4 m in the game) stay separate objects
 # with a collider; smaller ones are merged per room and don't collide.
 BIG = 0.25
@@ -356,11 +365,48 @@ flagged = sorted(ob.name for ob in bpy.data.objects if ob.type == 'LIGHT' and ob
 print(f'FLAGGED LIGHTS (not imported): {flagged}')
 print(f'cockpit light at {tuple(round(v, 2) for v in marker.location)}')
 
+# Bulkheads collide as three simple pieces each, left of, right of and above the doorway (owner,
+# 2026-10-09, as in the UE prototype): the modelled bulkhead keeps a strip under the doorway (5-9 cm,
+# narrower than her controller's step), which she bumped into. Each piece is the convex hull of that
+# part of the bulkhead, so it follows the hull's curve. The doorway's frame and the sliding doors
+# (inside the bulkhead's thickness) are left out. Bulkhead: its doorway cutter.
+BULKHEAD_PIECES = {'Bulkhead Cargo': 'Door Boolean.003', 'Bulkhead Cockpit': 'Door Boolean.004'}
+NOT_COLLIDING = {'Door Boolean.001', 'Door Cockpit', 'Door Cockpit 2', 'Door Engineering', 'Door Engineering 2'}
+
+
+def world_bounds(ob):
+    from mathutils import Vector
+    corners = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
+    return Vector([min(c[i] for c in corners) for i in range(3)]), Vector([max(c[i] for c in corners) for i in range(3)])
+
+
+def add_hull(target, points):
+    part = bmesh.new()
+    for p in points:
+        part.verts.new(p)
+    bmesh.ops.convex_hull(part, input=part.verts, use_existing_faces=False)
+    hull_mesh = bpy.data.meshes.new('hull')
+    part.to_mesh(hull_mesh)
+    part.free()
+    target.from_mesh(hull_mesh)
+
+
 # Collision mesh: evaluated copies (modifiers applied) of everything except moving parts.
 bm = bmesh.new()
 hulls = []
 for ob in objects:
-    if ob.name in MOVING:
+    if ob.name in MOVING or ob.name in NOT_COLLIDING:
+        continue
+    if ob.name in BULKHEAD_PIECES:
+        evaluated = ob.evaluated_get(depsgraph)
+        mesh = evaluated.to_mesh()
+        points = [ob.matrix_world @ v.co for v in mesh.vertices]
+        evaluated.to_mesh_clear()
+        lo, hi = world_bounds(bpy.data.objects[BULKHEAD_PIECES[ob.name]])
+        e = 0.002
+        add_hull(bm, [p for p in points if p.x <= lo.x + e])  # left of the doorway
+        add_hull(bm, [p for p in points if p.x >= hi.x - e])  # right
+        add_hull(bm, [p for p in points if p.z >= hi.z - e])  # above
         continue
     evaluated = ob.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()

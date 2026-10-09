@@ -9,6 +9,7 @@ import { loadModels } from './model';
 import { Physics } from './physics';
 import { updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
+import type { Pusher } from './doors';
 import { Interaction, shipInteractables } from './interaction';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
@@ -113,6 +114,15 @@ async function start(): Promise<void> {
   const chest = new THREE.Vector3();
   const stepChest = new THREE.Vector3();
 
+  // How a moving door moves her: sideways, through her controller; not while she's on a ladder.
+  const pusher: Pusher = {
+    push: (by) => {
+      physics.move(by);
+      character.position.copy(physics.feet);
+    },
+    climbing: () => ladders?.climbing ?? false,
+  };
+
   let last = performance.now();
   let accumulator = 0;
 
@@ -149,6 +159,8 @@ async function start(): Promise<void> {
       stepChest.copy(character.position).y += settings.cutTargetHeight;
       const indoors = ship !== null && ship.interior.containsPoint(stepChest);
       if (!ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, physics, indoors);
+      // Doors and the ramp after her own move: a moving door pushes her out of its way.
+      if (ship) updateShip(ship, STEP, false, pusher);
       accumulator -= STEP;
       steps++;
     }
@@ -198,7 +210,6 @@ async function start(): Promise<void> {
     const pressed = input.consumeInteract();
     interaction?.update(chest, view.camera, input.lastDevice, pressed);
     updateWorld(world, scene, character.root.position);
-    if (ship) updateShip(ship, dt);
     crew?.mixer.update(dt);
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;

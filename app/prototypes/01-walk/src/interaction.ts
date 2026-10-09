@@ -19,6 +19,8 @@ export interface Interactable {
   /** What pressing the button does, for the prompt ("Open", "Close"...). */
   verb: () => string;
   act: () => void;
+  /** Offered right now (default: yes). */
+  available?: () => boolean;
 }
 
 /** The ship's interactables: its doors and the keypads that control the ramp and the side door. */
@@ -27,6 +29,8 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[]): Interact
     object: door.object,
     verb: () => (door.open ? 'Close' : 'Open'),
     act: () => door.toggle(),
+    // Not while she's standing on it (the trapdoor, closed).
+    available: () => !door.collider?.under(),
   }));
   ship.traverse((o) => {
     const target = o.userData.controls as string | undefined;
@@ -74,6 +78,7 @@ export class Interaction {
     let bestAngle = Infinity;
     let bestDistance = Infinity;
     for (const item of this.items) {
+      if (item.available && !item.available()) continue;
       this.box.setFromObject(item.object);
       const distance = this.box.distanceToPoint(chest);
       if (distance > settings.interactReach) continue;

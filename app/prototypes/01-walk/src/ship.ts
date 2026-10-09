@@ -13,7 +13,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { makeCuttable } from './cutaway';
-import { createDoors, type Door } from './doors';
+import { advance, createDoors, type Door, type Pusher } from './doors';
 import { named } from './names';
 import { newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
@@ -34,6 +34,8 @@ export interface Ship {
   rampOpenAngle: number;
   /** 0 = closed, 1 = open. */
   rampAmount: number;
+  /** Stopped against her: waiting until she's clear. */
+  rampWaiting: boolean;
   /** While moving or closed: a convex collider that follows the ramp. */
   rampCollider: MovingCollider;
   /** When fully open: a smooth walkable slope from the ground to the cargo floor. */
@@ -154,6 +156,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     ramp: rampNode,
     rampOpenAngle,
     rampAmount: 0,
+    rampWaiting: false,
     rampCollider,
     rampWalkway,
     interior,
@@ -280,17 +283,31 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
   return false;
 }
 
-/** Per frame: animate the ramp toward open or closed, and keep its colliders with it. */
-export function updateShip(ship: Ship, dt: number, force = false): void {
+/**
+ * One fixed step: the doors and the ramp toward open or closed, pushing her out of their way, their
+ * colliders with them. `force`: jump there (at load).
+ */
+export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pusher): void {
   ship.collider.visible = settings.showColliders;
-  for (const door of ship.doors) door.update(dt, force);
+  for (const door of ship.doors) door.update(dt, force, pusher);
   const target = settings.cargoRampOpen ? 1 : 0;
-  if (!force && ship.rampAmount === target) return;
+  if (!force && ship.rampAmount === target) {
+    ship.rampWaiting = false;
+    return;
+  }
   const step = dt / RAMP_SECONDS;
-  ship.rampAmount = force ? target : target > ship.rampAmount ? Math.min(target, ship.rampAmount + step) : Math.max(target, ship.rampAmount - step);
-  const t = ship.rampAmount;
-  const eased = t * t * (3 - 2 * t);
-  ship.ramp.rotation.x = ship.rampOpenAngle * eased;
+  const next = force ? target : target > ship.rampAmount ? Math.min(target, ship.rampAmount + step) : Math.max(target, ship.rampAmount - step);
+  const pose = (t: number) => {
+    ship.rampAmount = t;
+    ship.ramp.rotation.x = ship.rampOpenAngle * t * t * (3 - 2 * t);
+    ship.ramp.updateMatrixWorld(true);
+  };
+  if (force || !pusher) {
+    pose(next);
+  } else {
+    const moved = advance(ship.rampCollider, pose, ship.rampAmount, next, pusher, ship.rampWaiting);
+    ship.rampWaiting = moved.waiting;
+  }
   ship.rampCollider.sync();
   const open = ship.rampAmount === 1;
   ship.rampWalkway.setEnabled(open);
