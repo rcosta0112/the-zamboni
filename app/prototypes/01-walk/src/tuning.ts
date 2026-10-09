@@ -69,7 +69,14 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   look.add(settings, 'hazeFar', 20, 400, 1).name('haze full (m)');
   look.add(settings, 'showGrid').name('grid');
   look.add(settings, 'showColliders').name('show colliders');
-  look.add(settings, 'cargoRampOpen').name('cargo ramp open');
+  look.add(settings, 'cargoRampOpen').name('cargo ramp open').listen();
+
+  const interact = gui.addFolder('Interaction');
+  interact.add(settings, 'interactReach', 0.3, 3, 0.05).name('reach (m)');
+  interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre (°)');
+  interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight');
+  interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');
+  interact.add(settings, 'climbSpeed', 0.3, 4, 0.05).name('climb speed (m/s)');
 
   const lights = gui.addFolder('Room lights');
   lights.add(settings, 'roomLights', ['nearest 4', 'all']).name('on');

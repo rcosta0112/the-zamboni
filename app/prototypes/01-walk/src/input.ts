@@ -7,6 +7,7 @@ export type Device = 'gamepad' | 'keyboard';
 
 // Standard-mapping button indices (Xbox names).
 const PAD_A = 0;
+const PAD_B = 1; // Circle on a PlayStation controller
 const PAD_VIEW = 8;
 const PAD_DPAD_UP = 12;
 const PAD_DPAD_DOWN = 13;
@@ -25,6 +26,7 @@ export class Input {
   private mouseDY = 0;
   private wheel = 0;
   private jumpLatched = false;
+  private interactLatched = false;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
   private padZoom = 0;
@@ -38,6 +40,7 @@ export class Input {
       this.keys.add(e.code);
       this.lastDevice = 'keyboard';
       if (e.code === 'Space') this.jumpLatched = true;
+      if (e.code === 'KeyE') this.interactLatched = true;
       if (e.code === 'KeyY') settings.invertY = !settings.invertY;
       if (e.code === 'Backquote') this.onTogglePanel();
     });
@@ -84,6 +87,7 @@ export class Input {
       const justPressed = (i: number) => pressed[i] === true && this.padButtons[i] !== true;
       this.padPressed = pressed.some((_, i) => justPressed(i));
       if (justPressed(PAD_A)) this.jumpLatched = true;
+      if (justPressed(PAD_B)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       if (pressed[PAD_DPAD_UP]) this.padZoom -= 1;
       if (pressed[PAD_DPAD_DOWN]) this.padZoom += 1;
@@ -128,6 +132,13 @@ export class Input {
     const steps = this.wheel * 0.6 + this.padZoom * 6 * dt;
     this.wheel = 0;
     return steps;
+  }
+
+  /** True once per interact press (E, gamepad B / Circle). */
+  consumeInteract(): boolean {
+    const i = this.interactLatched;
+    this.interactLatched = false;
+    return i;
   }
 
   /** True once per jump press; stays latched until a fixed update consumes it. */

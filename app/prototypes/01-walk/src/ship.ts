@@ -5,15 +5,18 @@
 // what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear.
 // Objects tagged `structure: true` are cut by the hole; the rest is furniture (visibility.ts), with
 // exceptions tagged `seeThrough: "keep"` and `divider: true`. The cargo ramp ("Door Cargo") is a separate
-// object hinged at its bottom edge; it opens down to the ground and has its own collider.
+// object hinged at its bottom edge; it opens down to the ground and has its own collider. The other
+// doors (side door, hatches, fridge, galley and lockers) are in doors.ts.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { makeCuttable } from './cutaway';
+import { createDoors, type Door } from './doors';
+import { named } from './names';
 import { newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
-import type { Physics } from './physics';
+import type { MovingCollider, Physics } from './physics';
 import { settings } from './settings';
 
 const SHIP_URL = '/test/zamboni-ship.glb';
@@ -21,9 +24,6 @@ const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 
-/** GLTFLoader's node names: spaces become underscores; . : / [ ] are removed. */
-const sanitize = (name: string) => name.replace(/\s/g, '_').replace(/[[\].:/]/g, '');
-const named = (o: THREE.Object3D, name: string) => o.name === name || o.name === sanitize(name);
 const RAMP_SECONDS = 1.5; // time to open or close
 
 export interface Ship {
@@ -35,7 +35,7 @@ export interface Ship {
   /** 0 = closed, 1 = open. */
   rampAmount: number;
   /** While moving or closed: a convex collider that follows the ramp. */
-  rampCollider: { sync: () => void; setEnabled: (on: boolean) => void };
+  rampCollider: MovingCollider;
   /** When fully open: a smooth walkable slope from the ground to the cargo floor. */
   rampWalkway: { setEnabled: (on: boolean) => void };
   /** The ship's inside, in world space (both decks): "inside" for the see-through hull. */
@@ -48,6 +48,8 @@ export interface Ship {
   hullUnit: CutUnit | undefined;
   /** The cargo ramp's objects: cut like the hull while closed, never while open. */
   rampUnits: CutUnit[];
+  /** The doors the player opens and closes (not the ramp). */
+  doors: Door[];
   /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
   shadowCaster: THREE.Mesh;
 }
@@ -130,7 +132,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   );
 
   // The ramp hinges on the door's origin in The Zamboni 1.18.blend, at the bottom of the hull
-  // opening (owner, 2026-10-08). The export records it as `pivot`: compression moved the door
+  // opening (owner, 2026-10-08). The export records it as `hinge`: compression moved the door
   // node's own origin, so a pivot is placed there and the door attached to it.
   const rampNode = hingeAt(object, rampDoor);
 
@@ -143,6 +145,8 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   rampNode.rotation.x = 0;
   rampNode.updateWorldMatrix(true, true);
   const rampCollider = physics.addMovingConvex(rampNode);
+  const doors = createDoors(object, physics, hingeAt);
+  for (const door of doors) door.units.push(...cutUnits.filter((u) => isInside(u.object, door.hinge)));
 
   const ship: Ship = {
     object,
@@ -157,7 +161,8 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     cutUnits,
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
     rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
-    shadowCaster: mergeShadowCasters(object, rampNode),
+    doors,
+    shadowCaster: mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)]),
   };
   scene.add(ship.shadowCaster);
   updateShip(ship, 0, true);
@@ -278,6 +283,7 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
 /** Per frame: animate the ramp toward open or closed, and keep its colliders with it. */
 export function updateShip(ship: Ship, dt: number, force = false): void {
   ship.collider.visible = settings.showColliders;
+  for (const door of ship.doors) door.update(dt, force);
   const target = settings.cargoRampOpen ? 1 : 0;
   if (!force && ship.rampAmount === target) return;
   const step = dt / RAMP_SECONDS;
@@ -300,18 +306,18 @@ export function updateShip(ship: Ship, dt: number, force = false): void {
 
 /**
  * The static ship's shadow as one mesh (positions only, world space): every mesh that casts a
- * shadow, except the moving ramp, joined; those meshes then stop casting. Drawing hundreds of
+ * shadow, except the moving parts (ramp, doors), joined; those meshes then stop casting. Drawing hundreds of
  * see-through meshes into the shadow map was ~310 draw calls per frame, each with the see-through
  * material's per-draw cost; this is one. It's on SHADOW_LAYER, so only the sun's shadow camera
  * draws it. Back faces cast, as the see-through materials did (shadowSide).
  */
-function mergeShadowCasters(ship: THREE.Object3D, ramp: THREE.Object3D): THREE.Mesh {
+function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[]): THREE.Mesh {
   ship.updateMatrixWorld(true);
   const positions: number[] = [];
   const v = new THREE.Vector3();
   ship.traverse((o) => {
     const mesh = o as THREE.Mesh;
-    if (!mesh.isMesh || !mesh.castShadow || isInside(mesh, ramp)) return;
+    if (!mesh.isMesh || !mesh.castShadow || moving.some((m) => isInside(mesh, m))) return;
     const position = mesh.geometry.getAttribute('position');
     const index = mesh.geometry.getIndex();
     const count = index ? index.count : position.count;
@@ -376,12 +382,13 @@ function walkwayTriangles(ship: THREE.Object3D, ramp: THREE.Object3D, floor: THR
 }
 
 /**
- * A pivot at the moving part's recorded `pivot` (ship space, from the export), with the part
+ * A pivot at the moving part's recorded `hinge` (ship space, from the export), with the part
  * attached to it (keeping its place). Rotating the pivot swings the part around its hinge.
  */
 function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
-  const p = part.userData.pivot as [number, number, number] | undefined;
-  if (!p) throw new Error(`"${part.name}" has no pivot recorded (re-export with app/tools/export-ship.py)`);
+  // `hinge`, not `pivot`: three's GLTFLoader consumes a `pivot` extra on a node with children.
+  const p = part.userData.hinge as [number, number, number] | undefined;
+  if (!p) throw new Error(`"${part.name}" has no hinge recorded (re-export with app/tools/export-ship.py)`);
   ship.updateMatrixWorld(true);
   const pivot = new THREE.Object3D();
   pivot.name = `${part.name} hinge`;

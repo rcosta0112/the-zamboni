@@ -64,7 +64,14 @@ export const settings = {
   hazeFar: 190,
   showGrid: false, // faint 1 m / 10 m grid for judging speed
   showColliders: false, // the ship's collision mesh as a wireframe
-  cargoRampOpen: true, // the Zamboni's cargo ramp, down to the ground
+  cargoRampOpen: true, // the Zamboni's cargo ramp, down to the ground (the way in: starts open)
+
+  // Interaction: point (the screen centre) at something within her reach and press E / Circle.
+  interactReach: 1.0, // m, from her chest to the object's bounds
+  interactMaxAngleDeg: 30, // how far from the screen centre a target may be
+  highlight: 0.25, // the target's lift toward white (0 = no highlight)
+  doorSeconds: 0.6, // to open or close a door
+  climbSpeed: 1.2, // m/s along a ladder
 
   // See-through hull (inside the ship) and camera collision (outside)
   seeThrough: true,

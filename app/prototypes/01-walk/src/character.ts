@@ -80,11 +80,7 @@ export class Character {
     const amount = Math.min(1, Math.hypot(mx, my));
 
     if (amount > 0.01) {
-      // Camera forward on the ground is (-sin yaw, -cos yaw); right is (cos yaw, -sin yaw).
-      const fx = -Math.sin(cameraYaw);
-      const fz = -Math.cos(cameraYaw);
-      const dirX = fx * my + Math.cos(cameraYaw) * mx;
-      const dirZ = fz * my - Math.sin(cameraYaw) * mx;
+      const { x: dirX, z: dirZ } = moveDirection(input, cameraYaw, direction);
       const target = Math.atan2(-dirX, -dirZ);
       [this.facing, this.turnVelocity] = smoothDampAngle(
         this.facing,
@@ -143,6 +139,23 @@ export class Character {
     }
   }
 
+  /**
+   * On a ladder: placed directly (no physics move, no gravity), facing `facing`. Shown standing:
+   * there's no climbing animation yet.
+   */
+  setClimbing(feet: THREE.Vector3, facing: number, physics: Physics | null): void {
+    this.prevPosition.copy(this.position);
+    this.prevFacing = this.facing;
+    this.position.copy(feet);
+    this.facing = facing;
+    this.turnVelocity = 0;
+    this.speed = 0;
+    this.movedSpeed = 0;
+    this.verticalVelocity = 0;
+    this.grounded = true;
+    physics?.teleport(feet);
+  }
+
   walkSpeed(): number {
     return this.indoors ? settings.indoorWalkSpeed : settings.walkSpeed;
   }
@@ -156,6 +169,19 @@ export class Character {
     this.root.position.lerpVectors(this.prevPosition, this.position, alpha);
     this.root.rotation.y = this.prevFacing + shortestAngle(this.prevFacing, this.facing) * alpha;
   }
+}
+
+const direction = new THREE.Vector3();
+
+/**
+ * The stick or keys as a direction on the ground (world space, length = how far it's pushed,
+ * 0..1), relative to the camera. Camera forward on the ground is (-sin yaw, -cos yaw); right is
+ * (cos yaw, -sin yaw).
+ */
+export function moveDirection(input: Input, cameraYaw: number, out: THREE.Vector3): THREE.Vector3 {
+  const mx = input.move.x;
+  const my = input.move.y;
+  return out.set(-Math.sin(cameraYaw) * my + Math.cos(cameraYaw) * mx, 0, -Math.cos(cameraYaw) * my - Math.sin(cameraYaw) * mx);
 }
 
 function shortestAngle(from: number, to: number): number {

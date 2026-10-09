@@ -9,6 +9,8 @@ import { loadModels } from './model';
 import { Physics } from './physics';
 import { updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
+import { Interaction, shipInteractables } from './interaction';
+import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
@@ -45,6 +47,8 @@ async function start(): Promise<void> {
   let ship: Ship | null = null;
   let crew: Crew | null = null;
   let roomLights: RoomLights | null = null;
+  let interaction: Interaction | null = null;
+  let ladders: Ladders | null = null;
   loadModels()
     .then(({ models, zamboniFileHeight }) => {
       character.setModels(models);
@@ -70,6 +74,8 @@ async function start(): Promise<void> {
       await renderer.compileAsync(scene, view.camera);
       for (const o of culled) o.frustumCulled = true;
       console.info(`[01-walk] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
+      interaction = new Interaction(shipInteractables(s.object, s.doors), physics, document.querySelector<HTMLElement>('#prompt')!);
+      ladders = new Ladders(shipLadders(s.object, physics));
       ship = s;
     })
     .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err));
@@ -77,7 +83,7 @@ async function start(): Promise<void> {
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders });
 
   const gui = createTuningPanel({
     cameraDistance: () => view.syncDistance(),
@@ -130,6 +136,7 @@ async function start(): Promise<void> {
       // Nothing moves; the frame is still drawn (the tuning panel works while paused).
       accumulator = 0;
       input.consumeJump();
+      input.consumeInteract();
       input.consumeLook(dt);
       renderer.render(scene, view.camera);
       return;
@@ -141,7 +148,7 @@ async function start(): Promise<void> {
       // Indoors: the same "inside" test as the see-through hull, on the simulated position.
       stepChest.copy(character.position).y += settings.cutTargetHeight;
       const indoors = ship !== null && ship.interior.containsPoint(stepChest);
-      character.update(STEP, input, view.yaw, physics, indoors);
+      if (!ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, physics, indoors);
       accumulator -= STEP;
       steps++;
     }
@@ -185,7 +192,11 @@ async function start(): Promise<void> {
       waist: settings.furnitureWaist * settings.zamboniHeight,
       ownColour: settings.cutOwnColour,
       shade: settings.cutShade,
+      highlight: settings.highlight,
     });
+    // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
+    const pressed = input.consumeInteract();
+    interaction?.update(chest, view.camera, input.lastDevice, pressed);
     updateWorld(world, scene, character.root.position);
     if (ship) updateShip(ship, dt);
     crew?.mixer.update(dt);
@@ -206,8 +217,9 @@ function easeTo(value: number, target: number, step: number): number {
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · A jump · D-pad zoom · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · Space jump · wheel zoom · Y invert · ` tuning';
+    'Gamepad: left stick move · right stick camera · A jump · B/◯ interact · D-pad zoom · View: tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · Space jump · E interact · wheel zoom · Y invert · ` tuning\n' +
+    'Ladders: walk into them; push toward the ladder to climb, away to go down; jump lets go';
 }
 
 start().catch((err: unknown) => {

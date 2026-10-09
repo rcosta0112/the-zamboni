@@ -4,6 +4,22 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
+## [2026-10-09] — Basic interaction: doors, keypads, ladders (feature)
+
+**Context:** The owner asked for the UE prototype's interaction (point at something, press a button): every door in the ship but the bulkhead ones, the two keypads by the side door (ramp, side door), the trapdoor, the roof hatches, fridge and locker doors; and ladders, if quick. The UE prototype was first-person with a crosshair; this game is third-person, gamepad first.
+
+**Decision (owner):** E / Circle (gamepad B) uses the target. **Targeting:** of the objects within her reach (≈ 1 m from her chest, not behind something solid), the one nearest the centre of the screen; no crosshair; the target is lifted toward white and a prompt names the action. **Doors** toggle open/closed on a hinge (as UE's `BP_Door`), **all start closed**; the side door is hinged at the bottom and drops outward to the ground, where its inside is a ladder. **Ladders need no button:** walking into one attaches her, pushing toward it climbs, away descends; walking toward the opening from the floor above attaches her at the top.
+
+**Alternatives considered:** a crosshair ray (exactly UE's, but hard on a gamepad at third-person distance with 0.2 m keypads); her facing only (can't pick between close neighbours); pressing interact to grab a ladder (owner: walking should be enough).
+
+**Rationale:** "pointing" with the camera keeps the UE feel without a crosshair, and is forgiving with a stick. Built in prototype 01, like the see-through hull and the ship's contents.
+
+**Status:** Built 2026-10-09; owner play-test pending. Feature doc: [`features/interaction.md`](features/interaction.md).
+
+**Update (2026-10-09):** after the owner's first look: the open side door is a **ramp**, not a ladder (a walkable stand-in slope over its steps, as for the cargo ramp); the trapdoor **starts open** for now (hard to aim at from below); the roof hatch stays out of reach for now (an unfolding ladder later, or not: the crew have jetpacks). Plan: [`plans/features/interaction-doors.md`](plans/features/interaction-doors.md).
+
+---
+
 ## [2026-10-09] — The rest of the ship: props, room lights, crew (prototype)
 
 **Context:** The owner asked for the remaining objects of the ship file, its interior lights and Dr. Kaufman with her sitting idle. Imported as they are, the props would have taken the ship to ≈ 780 draw calls and ≈ 60 materials (budgets: 300 and 30), and the file has 15 area lights (budget: 4 small lights on at once).

@@ -5,9 +5,10 @@ Run with Blender from the command line. The .blend is opened read-only: nothing 
     blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship.py -- \
         --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 
-then compress both (Meshopt) into app/assets, from app/:
+then cap the textures at 512 px and compress both (Meshopt) into app/assets, from app/:
 
-    npx gltf-transform meshopt <raw>/zamboni-ship.glb assets/test/zamboni-ship.glb
+    npx gltf-transform resize <raw>/zamboni-ship.glb <raw>/zamboni-ship-512.glb --width 512 --height 512
+    npx gltf-transform meshopt <raw>/zamboni-ship-512.glb assets/test/zamboni-ship.glb
     npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
 
 - Exports the objects in EXTERIOR and INTERIOR with modifiers applied (mirrors, booleans,
@@ -34,12 +35,23 @@ then compress both (Meshopt) into app/assets, from app/:
   parts, joined into one mesh at full detail (``*_col`` in the naming contract: never rendered).
   Very dense furniture goes in as its convex hull instead. A decimated collider closed openings
   (the cargo door), so it isn't decimated.
-- Records each moving part's pivot (its origin) as a custom property ``pivot`` (glTF axes):
-  compression moves node origins, so the game builds hinges from this.
+- Records each moving part's pivot (its origin) as a custom property ``hinge`` (glTF axes):
+  compression moves node origins, so the game builds hinges from this. (Not ``pivot``: three.js
+  r186's GLTFLoader reads a ``pivot`` extra on a node with children as its own pivot pattern and
+  consumes it.)
+- Doors (DOORS: the side door, the hatches, the fridge, galley and locker doors) are exported
+  closed (some are modelled open) and are moving parts, tagged ``interact: "open"`` with a ``door``
+  property: the hinge axis (glTF axes, in the ship's space), the open angle (radians),
+  ``toGround`` (opens until it touches the ground, like the ramp; the angle is then the limit) and
+  ``startOpen``.
+  Their children (the poster on a locker door) move with them.
+- The two keypads by the side door (PANELS) are exported as their own objects, tagged
+  ``interact: "use"`` and ``controls: "<object name>"`` (the door they open and close).
 - Reports every double-sided material ("PERF:"), as the pipeline requires; nothing is forced.
 """
 
 import argparse
+import math
 import sys
 
 import bmesh
@@ -71,6 +83,8 @@ INTERIOR = [
     # Cargo bay
     'Sledge', 'Pallet', 'Locker', 'Locker Door', 'Head', 'Jetpack Rack', 'Jetpack Rack.001',
     'Ladder Cargo Bay', 'Plane.002',
+    # Galley cupboard and fridge doors (children of the galley), the keypads by the side door
+    'Galley Door', 'Galley Door.001', 'Galley Door.002', 'Plane.004', 'Plane.006',
 ]
 
 # Never cut by the see-through hull: outside the hull, the camera never looks through them from
@@ -107,8 +121,30 @@ DIVIDERS = {
     'Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002',
 }
 
+# Doors the player opens and closes (owner, 2026-10-09: every door but the bulkhead ones). Hinged on
+# their origin: (local rotation axis, open angle in degrees, toGround). Exported closed.
+DOORS = {
+    'Door': ('Y', -180, True),  # the side door: drops outward until it rests on the ground (a ramp)
+    'Hatch.002': ('X', 90, False),  # the trapdoor to the crew quarters (modelled open)
+    'Top Hatch': ('X', -100, False),  # roof hatch, outer: flips open, up
+    'Top Hatch Bottom': ('X', 90, False),  # roof hatch, inner: flips down
+    'Galley Door': ('Z', 100, False),  # fridge
+    'Galley Door.001': ('Z', 100, False),  # fridge (modelled open)
+    'Galley Door.002': ('Z', 100, False),  # cupboard (modelled open)
+    'Locker Door': ('Z', 100, False),  # cargo bay
+    'Locker Door.001': ('Z', 100, False),  # crew quarters
+    'Locker Door.003': ('Z', 100, False),
+}
+# Modelled open in the file: closed for the export by setting the hinge axis's rotation to 0 (the
+# others are closed as modelled; the cargo locker door's closed rotation is a half-turn).
+MODELLED_OPEN = {'Hatch.002', 'Galley Door.001', 'Galley Door.002'}
+# Start open in the game (owner, 2026-10-09: the trapdoor, for now; it's hard to aim at from below).
+START_OPEN = {'Hatch.002'}
+# Owner, 2026-10-09: the upper keypad opens the ramp, the lower one the side door.
+PANELS = {'Plane.004': 'Door Cargo', 'Plane.006': 'Door'}
+
 # Moving parts get their own collider in the game, so they're left out of zamboni_col.
-MOVING = {'Door Cargo'}
+MOVING = {'Door Cargo'} | set(DOORS)
 # Furniture denser than this goes into the collider as its convex hull. Never structure: a convex
 # hull of the hull would be a solid block.
 DENSE_TRIS = 2000
@@ -158,6 +194,16 @@ for name in INCLUDE_COLLECTIONS:
 bpy.context.view_layer.update()
 
 objects = [bpy.data.objects[name] for name in EXTERIOR + INTERIOR]
+# What hangs on a door moves with it (the poster on a locker door).
+door_children = [c for name in DOORS for c in bpy.data.objects[name].children_recursive if c.name not in DOORS]
+objects += door_children
+MOVING |= {c.name for c in door_children}
+
+# Doors closed, as they start in the game.
+AXES = {'X': 0, 'Y': 1, 'Z': 2}
+for name in MODELLED_OPEN:
+    bpy.data.objects[name].rotation_euler[AXES[DOORS[name][0]]] = 0.0
+bpy.context.view_layer.update()
 
 for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:
@@ -169,7 +215,22 @@ for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.
 for name in MOVING:
     ob = bpy.data.objects[name]
     x, y, z = ob.matrix_world.translation
-    ob['pivot'] = [x, z, -y]
+    ob['hinge'] = [x, z, -y]
+
+from mathutils import Matrix, Vector
+for name, (axis, degrees, to_ground) in DOORS.items():
+    ob = bpy.data.objects[name]
+    # Turning the object about its own axis = turning about this axis in the ship (scale doesn't
+    # change the direction; the rotations here are single-axis or a half-turn about Z).
+    parent = ob.parent.matrix_world.to_3x3().normalized() if ob.parent else Matrix.Identity(3)
+    a = (parent @ ob.rotation_euler.to_matrix() @ Vector([1.0 if i == AXES[axis] else 0.0 for i in range(3)])).normalized()
+    ob['door'] = {'axis': [a.x, a.z, -a.y], 'angle': math.radians(degrees), 'toGround': to_ground, 'startOpen': name in START_OPEN}
+    ob['interact'] = 'open'
+for name, target in PANELS.items():
+    ob = bpy.data.objects[name]
+    ob['interact'] = 'use'
+    ob['device'] = 'panel'
+    ob['controls'] = target
 
 tagged = 0
 # Child objects (the seats' backrests, the bulkhead's doors) are exported with their parents and

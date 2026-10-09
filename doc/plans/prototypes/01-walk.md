@@ -18,6 +18,8 @@ The first playable thing: a simple scene where the character walks around on a l
 
 **Out:** collisions with anything but the floor, real character models and animation, interaction, the see-through hull, audio, UI. Each of those gets its own prototype.
 
+> **[Agent note]** Since written, prototype 01 has grown to hold the ship, the see-through hull, the ship's contents and (2026-10-09) the first interaction (doors, keypads, ladders), with the owner's approval: they need the ship, the character and the camera already here.
+
 ## Constraints from the docs
 
 - Third-person; **gamepad is the main input**, keyboard and mouse secondary ([`architecture/scope.md`](../../architecture/scope.md)).

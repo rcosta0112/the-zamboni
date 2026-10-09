@@ -15,6 +15,20 @@ export interface CapsuleSize {
   halfHeight: number; // of the cylinder part; total height = 2 × (halfHeight + radius)
 }
 
+/** A moving object's collider (a door, the ramp). */
+export interface MovingCollider {
+  /** Call whenever the object moves. */
+  sync: () => void;
+  setEnabled: (on: boolean) => void;
+  /** True if the object, where it is now (not where the collider was last synced), overlaps her capsule. */
+  overlapsCharacter: () => boolean;
+}
+
+export interface RayHit {
+  distance: number;
+  normal: THREE.Vector3;
+}
+
 export class Physics {
   readonly world: RAPIER.World;
   private controller: RAPIER.KinematicCharacterController;
@@ -68,6 +82,7 @@ export class Physics {
     const index = geometry.getIndex();
     const indices = index ? new Uint32Array(index.array) : Uint32Array.from({ length: position.count }, (_, i) => i);
     this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices));
+    this.world.step(); // updates the scene queries, so rays see it now (measurements at load)
   }
 
   /**
@@ -75,7 +90,7 @@ export class Physics {
    * object's own space with its world scale baked in. Convex, so holes (the ramp's window) are
    * filled and it's cheap to test against. Call the returned function whenever the object moves.
    */
-  addMovingConvex(object: THREE.Object3D): { sync: () => void; setEnabled: (on: boolean) => void } {
+  addMovingConvex(object: THREE.Object3D): MovingCollider {
     object.updateWorldMatrix(true, true);
     const scale = new THREE.Vector3();
     object.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale);
@@ -106,7 +121,12 @@ export class Physics {
       body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
     };
     sync();
-    return { sync, setEnabled: (on) => collider.setEnabled(on) };
+    const overlapsCharacter = () => {
+      object.updateWorldMatrix(true, false);
+      object.matrixWorld.decompose(p, q, scale);
+      return collider.shape.intersectsShape({ x: p.x, y: p.y, z: p.z }, { x: q.x, y: q.y, z: q.z, w: q.w }, this.capsule.shape, this.capsule.translation(), this.capsule.rotation());
+    };
+    return { sync, setEnabled: (on) => collider.setEnabled(on), overlapsCharacter };
   }
 
   /** A static box collider, axis-aligned in world space (the crew, for now). */
@@ -119,6 +139,7 @@ export class Physics {
   /** A static triangle-mesh collider from world-space vertices; can be switched on and off. */
   addStaticTriangles(vertices: Float32Array, indices: Uint32Array): { setEnabled: (on: boolean) => void } {
     const collider = this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices));
+    this.world.step();
     return { setEnabled: (on) => collider.setEnabled(on) };
   }
 
@@ -136,6 +157,30 @@ export class Physics {
     const ray = new RAPIER.Ray({ x: from.x, y: from.y, z: from.z }, { x: dir.x, y: dir.y, z: dir.z });
     const hit = this.world.castRay(ray, length, true, undefined, undefined, this.capsule, undefined, (c) => c !== this.ground);
     return hit ? hit.timeOfImpact : null;
+  }
+
+  /**
+   * The first collider hit along a ray (the ground included, her capsule not), with the surface
+   * normal. `staticOnly`: ignore moving parts (doors), e.g. to measure the ship with its doors open.
+   */
+  ray(from: THREE.Vector3, dir: THREE.Vector3, length: number, staticOnly = false): RayHit | null {
+    const ray = new RAPIER.Ray({ x: from.x, y: from.y, z: from.z }, { x: dir.x, y: dir.y, z: dir.z });
+    const hit = this.world.castRayAndGetNormal(ray, length, true, undefined, undefined, this.capsule, undefined, staticOnly ? (c) => c.parent() === null : undefined);
+    return hit ? { distance: hit.timeOfImpact, normal: new THREE.Vector3(hit.normal.x, hit.normal.y, hit.normal.z) } : null;
+  }
+
+  /** True if her capsule fits with its feet here (touches nothing). */
+  fits(feet: THREE.Vector3): boolean {
+    const c = this.centreFromFeet(feet);
+    return this.world.intersectionWithShape({ x: c.x, y: c.y, z: c.z }, this.capsule.rotation(), this.capsule.shape, undefined, undefined, this.capsule) === null;
+  }
+
+  /** Put the capsule's feet here, ignoring collisions (climbing a ladder). */
+  teleport(feet: THREE.Vector3): void {
+    this.capsule.setTranslation({ x: feet.x, y: feet.y + this.size.halfHeight + this.size.radius + OFFSET, z: feet.z });
+    this.moved.set(0, 0, 0);
+    this.world.step();
+    this.feet.copy(feet);
   }
 
   /**

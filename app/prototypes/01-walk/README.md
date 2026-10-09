@@ -17,6 +17,8 @@ npm run dev:01     # → http://localhost:5201
 | Camera | Right stick | Mouse (click the view to capture it; Esc releases) |
 | Camera distance | D-pad up/down | Mouse wheel |
 | Jump | A | Space |
+| Interact (open, close, use the target) | B / Circle | E |
+| Climb a ladder | Walk into it; toward it = up, away = down; A lets go | Same; Space lets go |
 | Invert vertical look (on by default in prototypes) | (tuning panel) | Y |
 | Tuning panel | View/Back | ` (backtick) |
 
@@ -64,13 +66,14 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 
 ## The ship and collisions
 
-**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (1.53 MB) and its collider `zamboni-ship-col.glb` (104 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship.py`](../../tools/export-ship.py), then compressed with Meshopt (glTF-Transform):
+**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (1.53 MB) and its collider `zamboni-ship-col.glb` (104 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
 
 ```sh
 blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship.py -- \
   --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 cd app
-npx gltf-transform meshopt <raw>/zamboni-ship.glb assets/test/zamboni-ship.glb
+npx gltf-transform resize <raw>/zamboni-ship.glb <raw>/zamboni-ship-512.glb --width 512 --height 512
+npx gltf-transform meshopt <raw>/zamboni-ship-512.glb assets/test/zamboni-ship.glb
 npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
 ```
 
@@ -79,7 +82,8 @@ npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-c
 - **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files).
 - **Collider:** its own file, positions only: everything except the ramp, joined at full detail (29,139 triangles); the four densest pieces of furniture (dials, 3D printer, Contraption, sledge) as convex hulls. A decimated version closed the cargo opening. Ladders block like walls: no climbing yet.
 - **See-through hull:** structure (tagged `structure: true`: hull, walls, ceilings, floors, doors…) is cut by the hole while something solid hides her; furniture is cut near the camera above her waist, and near her only while it hides her head or a third of her. Exceptions: `seeThrough: "keep"` (the 3D printer), `seeThrough: "solid"` (all cockpit furniture, the engineering ceiling machine, the red sled: always visible on her deck), objects attached to a bulkhead behave like it (and with *bulkheads always visible*, on by default, bulkheads and what's attached to them are never cut while she's on their deck), `divider: true` (bulkheads and inner walls: solid while the camera is inside, unless they hide her). Raycasts use `three-mesh-bvh`. The cargo ramp is cut like the hull while closed or moving, never while open. Never cut: `cuttable: false` (the landing gear). Tags are set by the export script until they're set in Blender. Upward-facing surfaces below her feet are never cut, so the floors stay. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md).
-- **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `pivot` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
+- **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `hinge` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
+- **Doors, keypads, ladders** (2026-10-09): the side door, the trapdoor, the roof hatches, the fridge, cupboard and locker doors open and close (all start closed but the trapdoor); the open side door is a ramp; the upper keypad by the side door works the ramp, the lower one the side door; the cargo bay and crew quarters ladders can be climbed. Point the camera at a door within her reach and press E / Circle. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md). Tuning panel: *Interaction* folder (reach, how far from the screen centre, highlight, door time, climb speed).
 - **Double-sided materials** (export report, to fix in Blender): see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md).
 
 **Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.
