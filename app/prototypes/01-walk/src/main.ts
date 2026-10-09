@@ -98,11 +98,30 @@ async function start(): Promise<void> {
   let last = performance.now();
   let accumulator = 0;
 
+  // Paused while the mouse is released (Esc, or the browser taking it back). Clicking the view
+  // captures it again and resumes; so does any gamepad button.
+  const pausedEl = document.querySelector<HTMLElement>('#paused')!;
+  let paused = false;
+  const setPaused = (on: boolean) => {
+    paused = on;
+    pausedEl.hidden = !on;
+  };
+  document.addEventListener('pointerlockchange', () => setPaused(document.pointerLockElement !== canvas));
+
   renderer.setAnimationLoop((now: number) => {
     const dt = Math.min(0.25, (now - last) / 1000);
     last = now;
 
     input.poll();
+    if (paused && input.padPressed) setPaused(false);
+    if (paused) {
+      // Nothing moves; the frame is still drawn (the tuning panel works while paused).
+      accumulator = 0;
+      input.consumeJump();
+      input.consumeLook(dt);
+      renderer.render(scene, view.camera);
+      return;
+    }
 
     accumulator += dt;
     let steps = 0;

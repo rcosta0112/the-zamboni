@@ -46,6 +46,8 @@ export interface Ship {
   cutUnits: CutUnit[];
   /** The hull's object: "is the camera inside the ship?" */
   hullUnit: CutUnit | undefined;
+  /** The cargo ramp's objects: cut like the hull while closed, never while open. */
+  rampUnits: CutUnit[];
 }
 
 /**
@@ -147,6 +149,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     upperFloorY,
     cutUnits,
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
+    rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
   };
   updateShip(ship, 0, true);
   return ship;
@@ -165,8 +168,9 @@ function groupCutUnits(
 ): CutUnit[] {
   const byNode = new Map<THREE.Object3D, THREE.Mesh[]>();
   for (const mesh of meshes) {
-    let node: THREE.Object3D = mesh;
-    while (associations.get(node)?.nodes === undefined && node.parent && node.parent !== ship) node = node.parent;
+    // A mesh is its glTF node, unless it's one material's part of a node with several: then the
+    // node is the group around it (GLTFLoader doesn't always record that group as a node).
+    const node: THREE.Object3D = associations.get(mesh)?.nodes === undefined && mesh.parent && mesh.parent !== ship ? mesh.parent : mesh;
     const list = byNode.get(node) ?? [];
     list.push(mesh);
     byNode.set(node, list);
@@ -179,6 +183,7 @@ function groupCutUnits(
       structure: tagged(node, ship, 'structure', true),
       divider: tagged(node, ship, 'divider', true),
       keep: tagged(node, ship, 'seeThrough', 'keep'),
+      solid: tagged(node, ship, 'seeThrough', 'solid'),
     };
     const unit = newCutUnit(node, tags, box.min.y >= upperFloorY - 0.4 ? 1 : 0, box.max.y);
     unit.meshes = list;
@@ -191,7 +196,52 @@ function groupCutUnits(
     }
     units.push(unit);
   }
+  markAttachedToBulkheads(units, ship);
   return units;
+}
+
+/** How close (m) an object must be to a bulkhead to count as attached to it. */
+const ATTACHED = 0.03;
+
+/**
+ * Objects attached to a bulkhead behave like the bulkhead (owner, 2026-10-09): any furniture whose
+ * surface comes within ATTACHED of a bulkhead's, by the meshes' BVHs.
+ */
+function markAttachedToBulkheads(units: CutUnit[], ship: THREE.Object3D): void {
+  const isBulkhead = (u: CutUnit) => {
+    for (let n: THREE.Object3D | null = u.object; n && n !== ship; n = n.parent) if (n.name.startsWith('Bulkhead')) return true;
+    return false;
+  };
+  const bulkheads = units.filter(isBulkhead);
+  for (const unit of bulkheads) unit.bulkhead = true;
+  const toBulkhead = new THREE.Matrix4();
+  const a = { point: new THREE.Vector3(), distance: 0, faceIndex: 0 };
+  const b = { point: new THREE.Vector3(), distance: 0, faceIndex: 0 };
+  for (const unit of units) {
+    if (unit.structure || unit.divider || unit.solid) continue;
+    search: for (const bulkhead of bulkheads) {
+      if (!unit.sphere.intersectsSphere(new THREE.Sphere(bulkhead.sphere.center, bulkhead.sphere.radius + ATTACHED))) continue;
+      for (const target of bulkhead.targets) {
+        for (const mesh of unit.meshes) {
+          toBulkhead.multiplyMatrices(target.toLocal, mesh.matrixWorld);
+          const hit = target.bvh.closestPointToGeometry(mesh.geometry, toBulkhead, a, b, 0, ATTACHED * target.scale);
+          if (hit) {
+            unit.divider = true;
+            unit.bulkhead = true;
+            unit.attachedTo = bulkheadName(bulkhead, ship);
+            break search;
+          }
+        }
+      }
+    }
+  }
+  const attached = units.filter((u) => u.attachedTo).map((u) => `${u.object.name || `(part of ${u.object.parent?.name})`} → ${u.attachedTo}`);
+  console.info(`[01-walk] attached to bulkheads (behave like them): ${attached.join(', ') || 'none'}`);
+}
+
+function bulkheadName(unit: CutUnit, ship: THREE.Object3D): string {
+  for (let n: THREE.Object3D | null = unit.object; n && n !== ship; n = n.parent) if (n.name.startsWith('Bulkhead')) return n.name;
+  return unit.object.name;
 }
 
 /** True if the object or one of its parents (up to the ship) has `userData[key] === value`. */
@@ -224,6 +274,19 @@ export function updateShip(ship: Ship, dt: number, force = false): void {
   const open = ship.rampAmount === 1;
   ship.rampWalkway.setEnabled(open);
   ship.rampCollider.setEnabled(!open);
+  // See-through: the ramp is the cargo bay's back wall while closed (cut like the hull); open, it's
+  // the way in and is never cut. Its raycast data follows it.
+  ship.ramp.updateMatrixWorld(true);
+  for (const unit of ship.rampUnits) {
+    unit.forceSolid = open;
+    prepareRaycasts(unit);
+  }
+}
+
+/** True if `o` is `ancestor` or below it. */
+function isInside(o: THREE.Object3D, ancestor: THREE.Object3D): boolean {
+  for (let n: THREE.Object3D | null = o; n; n = n.parent) if (n === ancestor) return true;
+  return false;
 }
 
 /**

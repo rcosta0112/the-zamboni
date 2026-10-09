@@ -76,6 +76,7 @@ export const settings = {
   cutShade: 0.35, // how much of its own colour the inside keeps
   holeOnlyWhenHidden: true, // the hole opens only while something solid hides her (glass doesn't count)
   dividersWhole: false, // bulkheads (divider: true) cut as a whole, by the furniture rules, instead of by the hole
+  bulkheadsAlwaysVisible: true, // bulkheads, their doors and what's attached to them: never cut while she's on their deck
   // Furniture on her deck is cut only while it hides her (or the way ahead).
   furnitureLook: 'hole' as 'hole' | 'fade', // hole: the same hole as structure; fade: the whole object dithers out
   furnitureMinVisibility: 0, // fade look: how much of the object stays (0 = gone, 0.25 = a ghost)

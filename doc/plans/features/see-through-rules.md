@@ -121,6 +121,18 @@ The owner's play-test found seven edge cases (screenshots in the conversation of
 - **Accepted (owner):** with the camera in one room and Dr. Green beside the doorway in another, a divider can hide her. A narrow case: the player would have to go out of their way to get it. No fallback.
 - **From outside:** dividers behave as before (the hole, or cut as a whole with the toggle).
 
+## Fourth pass (owner's test, 2026-10-09): always-visible objects, objects on bulkheads
+
+*Status: built, 2026-10-09; owner play-test pending.*
+
+- **Always visible** (`seeThrough: "solid"`, set by the export script): **every piece of furniture in the cockpit** (owner, 2026-10-09, after first asking for the chair backs only): the four seats (their parts follow them), `Dashboard Body` (and `.001`, `.002`), `Dials.002`, the three monitors; plus the machine on the engineering ceiling (`Contraption`) and the red sled (`Sledge`). The cockpit's structure (windshield, top hatch, bulkhead) keeps the structure rules. Never cut on her deck, not even near the camera. **On the other deck they're still cut**, so they don't float in the hole (owner, earlier: exceptions must vanish when she's on another floor).
+- **Objects attached to bulkheads behave like the bulkhead** (divider rules): found at load, any furniture whose surface comes within 3 cm of a bulkhead's (BVH closest-point test). Found: `Galley`, `Head`, both ladders, part of `Locker` (cargo bulkhead). (`Dashboard Body` touches the cockpit bulkhead, but always-visible wins.) Listed in the console at load.
+- **Bulkheads always visible** (owner's test, toggle *bulkheads always visible*, on by default): the bulkheads, their doors and the objects attached to them are never cut while she's on their deck, wherever the camera is (inside or outside). Each part goes by its own deck (the cargo bulkhead's cockpit door is upper deck). The crew quarters' inner walls keep the divider rules. Trade-off: with the camera behind a bulkhead, the bulkhead fills the view; from outside the cargo bay, the cargo bulkhead stays as a column seen edge-on.
+- **The cargo ramp** (owner): cut like the hull while closed or moving (it's the cargo bay's back wall), never while fully open. Tagged `structure: true` (was `cuttable: false`); its raycast data is refreshed whenever it moves.
+- **Pause** (prototype): the game pauses when the mouse is released (Esc, or the browser taking it back); clicking the view captures it again and resumes, as does any gamepad button.
+
+> **[Agent note]** Fixed while building: (1) the export script only tagged the objects on its list, not their children, so the backrests (children of the seats) weren't tagged; it now tags children too. (2) An object with several materials was sometimes grouped with its parent (GLTFLoader doesn't always record the group of a multi-material node), so the backrests counted as part of the whole seat; a mesh that isn't a node now belongs to its direct parent group.
+
 ## Next pass: a rule table for exceptions (outline, for discussion)
 
 Exceptions will keep growing (owner: every angle in the ship should look good), and they now depend on the camera's situation as well as the object. Instead of a code branch per exception, a small table in data:

@@ -39,6 +39,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Update (2026-10-08): dividers from inside** (owner). While the camera is inside the ship (no hull between it and her), dividers (bulkheads, inner walls) stay solid: from inside they're walls of the room or doorways that frame the shot. They're still cut when they hide her (added in testing: otherwise a camera trailing behind an inner wall saw only the wall). Next: exceptions move into a rule table in data (outline in the plan; implementation to be discussed).
 
+**Update (2026-10-09): owner's test of exceptions.** Always visible on her deck (`seeThrough: "solid"`): every piece of furniture in the cockpit (first only the chair backs), the engineering ceiling machine, the red sled; still cut on the other deck. Objects attached to a bulkhead behave like the bulkhead (detected at load, within 3 cm). Then, as a test: **bulkheads always visible** while she's on their deck (a toggle, on by default; inner walls keep the divider rules). **The cargo ramp is cut while closed** (it's the cargo bay's back wall), never while open (it was never cut).
+
 ---
 
 ## [2026-10-08] — Ink for dialogue (tech)

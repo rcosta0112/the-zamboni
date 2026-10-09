@@ -3,10 +3,14 @@
 //   something solid hides her; glass doesn't count.
 // - Furniture on her deck is cut only while it hides her head or enough of her (coverage), or the
 //   way ahead (tall furniture only), and fades in and out instead of popping.
-// - Exceptions: `seeThrough: "keep"` furniture is never cut for hiding her; `divider: true`
+// - Exceptions: `seeThrough: "keep"` furniture is never cut for hiding her; `seeThrough: "solid"`
+//   is never cut at all on her deck (on the other deck, it's cut like the rest); `divider: true`
 //   (bulkheads, inner walls) isn't cut while the camera is inside the ship (no hull between the
 //   camera and her) unless it hides her (the camera trailing behind an inner wall); from outside
-//   it's cut by the hole, or as a whole (tuning panel).
+//   it's cut by the hole, or as a whole (tuning panel). Objects attached to a bulkhead (found at
+//   load) count as dividers.
+// - Bulkheads always visible (tuning panel, on by default): the bulkheads, their doors and what's
+//   attached to them are never cut while she's on their deck, wherever the camera is.
 // The result goes on each mesh's userData (cutStructure, cutFade, cutWhole, cutSolid), read per
 // object by cutaway.ts.
 // Plan: doc/plans/features/see-through-rules.md
@@ -25,6 +29,14 @@ export interface CutUnit {
   divider: boolean;
   /** Tagged `seeThrough: "keep"`: never cut for hiding her. */
   keep: boolean;
+  /** Tagged `seeThrough: "solid"`: never cut at all on her deck. */
+  solid: boolean;
+  /** Set when it touches a bulkhead: the bulkhead's name (it then counts as a divider). */
+  attachedTo?: string;
+  /** Part of a bulkhead (or attached to one). */
+  bulkhead?: boolean;
+  /** Never cut right now, whatever the rules (the cargo ramp while it's open). */
+  forceSolid?: boolean;
   /** 0 = lower deck, 1 = upper deck, from the bottom of its bounds. */
   deck: 0 | 1;
   /** Top of its bounds (world y). */
@@ -106,7 +118,10 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
   if (cameraInside) {
     for (const unit of units) if (unit.divider && !covers(unit, s.camera)) solidDividers.add(unit);
   }
-  const solid = (unit: CutUnit) => solidDividers.has(unit);
+  const solid = (unit: CutUnit) =>
+    unit.forceSolid === true ||
+    solidDividers.has(unit) ||
+    ((unit.solid || (unit.bulkhead === true && settings.bulkheadsAlwaysVisible)) && unit.deck === s.deck);
 
   // The hole: open while anything solid that the hole cuts (structure, the other deck) hides her.
   let hidden = false;
@@ -189,7 +204,7 @@ function isGlass(mesh: THREE.Mesh): boolean {
   return m.transparent || (m.transmission ?? 0) > 0;
 }
 
-/** Bounds and BVHs for the raycasts; call once the meshes are in place (the ship doesn't move). */
+/** Bounds and BVHs for the raycasts; call once the meshes are in place, and again when they move. */
 export function prepareRaycasts(unit: CutUnit): void {
   const box = new THREE.Box3();
   for (const mesh of unit.meshes) box.expandByObject(mesh);
@@ -204,6 +219,6 @@ export function prepareRaycasts(unit: CutUnit): void {
     });
 }
 
-export function newCutUnit(object: THREE.Object3D, tags: { structure: boolean; divider: boolean; keep: boolean }, deck: 0 | 1, top: number): CutUnit {
+export function newCutUnit(object: THREE.Object3D, tags: { structure: boolean; divider: boolean; keep: boolean; solid: boolean }, deck: 0 | 1, top: number): CutUnit {
   return { object, meshes: [], ...tags, deck, top, fade: 0, clearFor: Infinity, sphere: new THREE.Sphere(), targets: [] };
 }

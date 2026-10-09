@@ -81,6 +81,7 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   cut.addColor(settings, 'cutBackColor').name('cut edge colour');
   cut.add(settings, 'holeOnlyWhenHidden').name('hole only when hidden');
   cut.add(settings, 'dividersWhole').name('bulkheads cut as a whole');
+  cut.add(settings, 'bulkheadsAlwaysVisible').name('bulkheads always visible');
   cut.add(settings, 'furnitureLook', { 'hole': 'hole', 'whole-object fade': 'fade' }).name('furniture look');
   cut.add(settings, 'furnitureMinVisibility', 0, 0.9, 0.05).name('fade: min visibility');
   cut.add(settings, 'furnitureFadeTime', 0, 1, 0.05).name('furniture fade (s)');

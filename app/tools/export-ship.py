@@ -20,7 +20,8 @@ then compress both (Meshopt) into app/assets, from app/:
   set in Blender.
 - Tags the see-through hull's structure group (``structure: true``: hull, walls, ceilings, doors,
   hatches...; untagged objects are furniture) from STRUCTURE_GROUP the same way, and the
-  exceptions: ``seeThrough: "keep"`` (KEEP) and ``divider: true`` (DIVIDERS).
+  exceptions: ``seeThrough: "keep"`` (KEEP), ``seeThrough: "solid"`` (SOLID) and ``divider: true``
+  (DIVIDERS).
 - Writes ``zamboni_col`` to its own file, positions only: every exported object except moving
   parts, joined into one mesh at full detail (``*_col`` in the naming contract: never rendered).
   Very dense furniture goes in as its convex hull instead. A decimated collider closed openings
@@ -66,7 +67,7 @@ INTERIOR = [
 
 # Never cut by the see-through hull: outside the hull, the camera never looks through them from
 # inside. (Floors need no tag: the game never cuts upward-facing surfaces below her feet.)
-NEVER_CUT = {'Door Cargo', 'Landing Gear Front', 'Landing Gear Back Left', 'Landing Gear Back Right'}
+NEVER_CUT = {'Landing Gear Front', 'Landing Gear Back Left', 'Landing Gear Back Right'}
 
 # The see-through hull's structure group: always cut by the hole. Everything else is furniture, cut
 # only while it hides her. (Walls and seat.* mix walls and seats: structure.)
@@ -77,11 +78,20 @@ STRUCTURE_GROUP = {
     'Door Cockpit', 'Door Cockpit 2', 'Door Engineering', 'Door Engineering 2',
     'Ceiling Light.001', 'Ceiling Light.002', 'Ceiling Light.003', 'Ceiling Light.004',
     'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002', 'Lab Window', 'Lab Window.001',
+    # The cargo ramp: closed, it's the cargo bay's back wall (the game never cuts it while open).
+    'Door Cargo',
 }
 
 # Furniture the see-through rules never cut for hiding her (owner: the 3D printer's frame and ray
 # let her show through, and it frames the shot).
 KEEP = {'3d Printer'}
+# Always visible on her deck, never cut (owner's test, 2026-10-09): every piece of furniture in the
+# cockpit (the seats' parts follow their seat), the machine on the engineering ceiling, the red sled.
+COCKPIT = {
+    'Seat', 'Seat.001', 'Seat.002', 'Seat.004', 'Dashboard Body', 'Dashboard Body.001',
+    'Dashboard Body.002', 'Dials.002', 'Monitor.001', 'Monitor.003', 'Monitor.004',
+}
+SOLID = COCKPIT | {'Contraption', 'Sledge'}
 # Interior dividers: always visible while the camera is inside the ship; from outside, cut by the
 # hole or as a whole (a toggle in the game). Their child objects (the doors) follow.
 DIVIDERS = {
@@ -136,7 +146,9 @@ for name in MOVING:
     ob['pivot'] = [x, z, -y]
 
 tagged = 0
-for ob in objects:
+# Child objects (the seats' backrests, the bulkhead's doors) are exported with their parents and
+# can be tagged too.
+for ob in objects + [child for parent in objects for child in parent.children_recursive]:
     if 'cuttable' not in ob and ob.name in NEVER_CUT:
         ob['cuttable'] = False
         tagged += 1
@@ -145,6 +157,9 @@ for ob in objects:
         tagged += 1
     if 'seeThrough' not in ob and ob.name in KEEP:
         ob['seeThrough'] = 'keep'
+        tagged += 1
+    if 'seeThrough' not in ob and ob.name in SOLID:
+        ob['seeThrough'] = 'solid'
         tagged += 1
     if 'divider' not in ob and ob.name in DIVIDERS:
         ob['divider'] = True

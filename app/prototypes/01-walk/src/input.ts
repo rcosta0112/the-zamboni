@@ -17,6 +17,8 @@ export class Input {
   /** Keyboard walk modifier (Shift). The stick walks by being pushed less far. */
   walkHeld = false;
   lastDevice: Device = 'keyboard';
+  /** A gamepad button went down this frame. */
+  padPressed = false;
 
   private keys = new Set<string>();
   private mouseDX = 0;
@@ -68,6 +70,7 @@ export class Input {
     this.padLook.x = 0;
     this.padLook.y = 0;
     this.padZoom = 0;
+    this.padPressed = false;
 
     if (pad) {
       const [lx, ly] = deadZone(pad.axes[0] ?? 0, pad.axes[1] ?? 0, settings.stickDeadZone);
@@ -79,6 +82,7 @@ export class Input {
 
       const pressed = pad.buttons.map((b) => b.pressed);
       const justPressed = (i: number) => pressed[i] === true && this.padButtons[i] !== true;
+      this.padPressed = pressed.some((_, i) => justPressed(i));
       if (justPressed(PAD_A)) this.jumpLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       if (pressed[PAD_DPAD_UP]) this.padZoom -= 1;

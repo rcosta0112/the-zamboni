@@ -33,3 +33,24 @@ body {
 #help {
   bottom: 8px;
 }
+
+#paused {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 28px;
+  background: rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+
+#paused[hidden] {
+  display: none;
+}
+
+#paused small {
+  font-size: 13px;
+  opacity: 0.8;
+}
