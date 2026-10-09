@@ -4,7 +4,7 @@ As this is a mostly unexplored planet, an archeological survey needs to take pla
 
 They also have to document any fauna and flora on the planet. That’s Dr. Kaufman’s job. For some reason there seems to be penguins on every planet on the portal network. Dr. Kaufman is also the expedition’s doctor. She’s more of a vet though.
 
-Adam is there to provide redundancy in any one of those jobs. They mostly help Dr. Ogawa with maintenance and they pilot the ship. Adam doesn’t need to sleep, just a 2 hours charge cycle every few days. He can also read a book and fly the ship at the same time. One of the perks of having multiple bodies.
+Adam is there to provide redundancy in any one of those jobs. They mostly help Dr. Ogawa with maintenance and they pilot the ship. Adam doesn’t need to sleep, just a 2 hours charge cycle every few days. They can also read a book and fly the ship at the same time. One of the perks of having multiple bodies.
 
 There’s a penguin on the ship for some reason. Dr. Kaufman would never let anyone take them from their natural habitat, so I guess they are a stowaway? Maybe they landed somewhere and the little dude just walked in while they were doing a survey. They will return him to his family on the way back.
 
