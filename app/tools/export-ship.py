@@ -82,9 +82,12 @@ STRUCTURE_GROUP = {
 # Furniture the see-through rules never cut for hiding her (owner: the 3D printer's frame and ray
 # let her show through, and it frames the shot).
 KEEP = {'3d Printer'}
-# Interior dividers that can be cut as a whole instead of by the hole (a toggle in the game); their
-# child objects (the doors) follow.
-DIVIDERS = {'Bulkhead Cargo', 'Bulkhead Cockpit'}
+# Interior dividers: always visible while the camera is inside the ship; from outside, cut by the
+# hole or as a whole (a toggle in the game). Their child objects (the doors) follow.
+DIVIDERS = {
+    'Bulkhead Cargo', 'Bulkhead Cockpit',
+    'Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002',
+}
 
 # Moving parts get their own collider in the game, so they're left out of zamboni_col.
 MOVING = {'Door Cargo'}

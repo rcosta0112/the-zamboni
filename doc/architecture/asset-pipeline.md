@@ -55,7 +55,7 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 | `scan_id: <id>` | Entry this object adds to the scanner database | `scan_id: ruin_gate_01` |
 | `structure: true` | The see-through hull's structure group: always cut by the hole (untagged = furniture, cut only while it hides her). [`features/see-through-hull.md`](../features/see-through-hull.md) | hull, walls, ceilings, floors, doors, hatches |
 | `seeThrough: "keep"` | See-through exception: furniture never cut for hiding her (its shape lets her show through) | `3d Printer` |
-| `divider: true` | See-through: an interior divider that can be cut as a whole instead of by the hole | bulkheads |
+| `divider: true` | See-through: an interior divider, solid while the camera is inside the ship (unless it hides her); from outside, the hole or cut as a whole | bulkheads, inner walls |
 | `cuttable: false` | Never cut by the see-through hull; everything else in the ship is (in use: [`features/see-through-hull.md`](../features/see-through-hull.md)). Until 2026-10-08 the contract was the reverse, `cuttable: true` on what may be cut | cargo ramp, landing gear |
 | `*_col` | Invisible collision mesh for its parent (simplified geometry) | `galley_col` |
 | `zone_indoor_*`, `zone_outdoor_*` | Trigger volumes that switch indoor/outdoor rules | `zone_indoor_cockpit` |

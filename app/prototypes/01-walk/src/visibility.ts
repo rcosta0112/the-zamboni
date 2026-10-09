@@ -4,9 +4,11 @@
 // - Furniture on her deck is cut only while it hides her head or enough of her (coverage), or the
 //   way ahead (tall furniture only), and fades in and out instead of popping.
 // - Exceptions: `seeThrough: "keep"` furniture is never cut for hiding her; `divider: true`
-//   (bulkheads) can be switched from the hole to the furniture rules, cut as a whole.
-// The result goes on each mesh's userData (cutStructure, cutFade, cutWhole), read per object by
-// cutaway.ts.
+//   (bulkheads, inner walls) isn't cut while the camera is inside the ship (no hull between the
+//   camera and her) unless it hides her (the camera trailing behind an inner wall); from outside
+//   it's cut by the hole, or as a whole (tuning panel).
+// The result goes on each mesh's userData (cutStructure, cutFade, cutWhole, cutSolid), read per
+// object by cutaway.ts.
 // Plan: doc/plans/features/see-through-rules.md
 
 import * as THREE from 'three/webgpu';
@@ -39,6 +41,8 @@ export interface CutUnit {
 }
 
 export interface VisibilityInput {
+  /** The hull: the camera is inside the ship when it isn't between the camera and her. */
+  hull: CutUnit | undefined;
   camera: THREE.Vector3;
   /** Her feet (the rendered position). */
   feet: THREE.Vector3;
@@ -72,6 +76,7 @@ const local = new THREE.Ray();
 const dir = new THREE.Vector3();
 const closest = new THREE.Vector3();
 let holeClearFor = Infinity;
+const solidDividers = new Set<CutUnit>();
 
 /**
  * Per frame, after the camera has moved. Returns whether the hole should be open (something solid
@@ -92,11 +97,22 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
     ahead.y += 0.15;
   }
 
+  // The camera is inside the ship when the hull isn't between it and her chest (through the
+  // windshield counts as inside: glass doesn't hide her).
+  const chest = herPoints[2 * COLUMNS.length + 1]!;
+  const cameraInside = s.active && !(s.hull && hides(s.hull, s.camera, chest));
+  // Dividers stay solid from inside, unless they hide her: then the hole cuts them as usual.
+  solidDividers.clear();
+  if (cameraInside) {
+    for (const unit of units) if (unit.divider && !covers(unit, s.camera)) solidDividers.add(unit);
+  }
+  const solid = (unit: CutUnit) => solidDividers.has(unit);
+
   // The hole: open while anything solid that the hole cuts (structure, the other deck) hides her.
   let hidden = false;
   if (s.active) {
     for (const unit of units) {
-      if (!cutByHole(unit, s.deck)) continue;
+      if (!cutByHole(unit, s.deck) || solid(unit)) continue;
       if (STRUCTURE_POINTS.some((k) => hides(unit, s.camera, herPoints[k]!))) {
         hidden = true;
         break;
@@ -109,8 +125,9 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
   const step = settings.furnitureFadeTime > 0 ? dt / settings.furnitureFadeTime : 1;
   for (const unit of units) {
     const byHole = cutByHole(unit, s.deck);
+    const isSolid = solid(unit);
     let hidesHer = false;
-    if (s.active && !byHole && !unit.keep) {
+    if (s.active && !byHole && !unit.keep && !isSolid) {
       hidesHer = covers(unit, s.camera) ||
         (!unit.lookTarget && unit.top > waistY && s.moving && settings.wayAheadDistance > 0 && hides(unit, s.camera, ahead)) ||
         (!unit.lookTarget && others.some((p) => hides(unit, s.camera, p)));
@@ -123,6 +140,7 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
       mesh.userData.cutStructure = byHole ? 1 : 0;
       mesh.userData.cutFade = unit.fade;
       mesh.userData.cutWhole = unit.divider ? 1 : 0;
+      mesh.userData.cutSolid = isSolid ? 1 : 0;
     }
   }
   return holeOpen;

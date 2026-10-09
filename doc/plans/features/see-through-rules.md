@@ -108,3 +108,32 @@ The owner's play-test found seven edge cases (screenshots in the conversation of
 **The work:** export tags and re-export (checklist first); coverage, way-ahead, keep and divider rules in `visibility.ts`; the hole-only-when-needed test; shader: above-waist near-camera cut, own-colour cut surface, whole-fade for dividers; tuning panel; browser check of the seven cases' situations; docs.
 
 **Done when:** check and build pass; screenshots of each case; no console errors; frame time and ray cost measured. Then the owner play-tests and names further exceptions.
+
+## Third pass (owner, 2026-10-08): dividers stay while the camera is inside
+
+*Status: built, 2026-10-08 (approved by the owner: "build it as is"); owner play-test pending.*
+
+> **[Agent note]** Changed while building: dividers are solid from inside **unless they hide her** (coverage rule); then the hole cuts them as usual. Always-solid turned the whole screen into a wall when the camera trailed behind an inner wall (the camera doesn't collide inside the ship). It also covers the accepted edge case (her beside a doorway).
+
+- **Rule:** while the camera is inside the ship, **dividers are always visible** (never cut, not even near the camera). From inside, a divider is a wall of the camera's room or a doorway it looks through, which frames the shot; only from outside does it behave like the hull.
+- **"Camera inside":** no hull (`Hull_Merged`) between the camera and her chest, by the same BVH raycasts. Seen through the windshield, that also counts as inside (the hole is shut there anyway).
+- **Dividers:** the bulkheads and their doors, plus the crew quarters' inner walls (`Crew Quarters Sitting Area Walls`, `Walls and seat.001`, `Walls and seat.002`), tagged `divider: true` by the export script.
+- **Accepted (owner):** with the camera in one room and Dr. Green beside the doorway in another, a divider can hide her. A narrow case: the player would have to go out of their way to get it. No fallback.
+- **From outside:** dividers behave as before (the hole, or cut as a whole with the toggle).
+
+## Next pass: a rule table for exceptions (outline, for discussion)
+
+Exceptions will keep growing (owner: every angle in the ship should look good), and they now depend on the camera's situation as well as the object. Instead of a code branch per exception, a small table in data:
+
+| Column | Meaning | Values (first ideas) |
+|---|---|---|
+| **Objects** | Which objects the row applies to | a tag (`structure`, `divider`, `keep`…), a group (furniture, structure), or object names |
+| **Camera** | Where the camera is | anywhere, inside, outside; later the camera's room, or "same room as her" / "another room" (needs room volumes, `zone_indoor_*`) |
+| **Her** | Where she is (optional) | her deck, later her room |
+| **Behaviour** | What happens | `hole` (structure's hole), `furniture` (cut when it hides her, by coverage), `whole` (cut as a whole when it hides her), `ghost` (fade to partial visibility when it hides her), `keep` (never cut for hiding her), `solid` (never cut at all) |
+| **Note** | Why (owner's words) | e.g. "the 3D printer's frame lets her show through" |
+
+- **Order:** the most specific row wins (object names over tags, tags over groups; a camera condition over "anywhere"). The default rows reproduce today's rules, so the table starts as a description of what exists.
+- **Where it lives:** a data file next to the game's other data; objects are matched by their Blender tags and names. The docs show the table as it stands.
+- **Debugging:** a tuning-panel option shows which row applies to the object under the screen centre, or tints objects by behaviour.
+- **To discuss:** file format and location; whether tags in Blender should name a behaviour directly (`seeThrough: "keep"`) or only a group that the table maps; per-room rules once rooms exist.

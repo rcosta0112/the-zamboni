@@ -129,6 +129,7 @@ async function start(): Promise<void> {
     if (ship) {
       const feet = character.root.position;
       holeOpen = updateVisibility(ship.cutUnits, {
+        hull: ship.hullUnit,
         camera: view.camera.position,
         feet,
         height: settings.zamboniHeight,

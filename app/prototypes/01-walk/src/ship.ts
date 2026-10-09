@@ -44,6 +44,8 @@ export interface Ship {
   upperFloorY: number;
   /** The ship's objects, for the see-through rules. */
   cutUnits: CutUnit[];
+  /** The hull's object: "is the camera inside the ship?" */
+  hullUnit: CutUnit | undefined;
 }
 
 /**
@@ -144,6 +146,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     interior,
     upperFloorY,
     cutUnits,
+    hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
   };
   updateShip(ship, 0, true);
   return ship;
@@ -184,6 +187,7 @@ function groupCutUnits(
       mesh.userData.cutStructure = tags.structure ? 1 : 0;
       mesh.userData.cutFade = 0;
       mesh.userData.cutWhole = 0;
+      mesh.userData.cutSolid = 0;
     }
     units.push(unit);
   }

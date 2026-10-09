@@ -37,6 +37,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Update (2026-10-08): second pass** (owner play-test). "Hides her" became **coverage**: her head, or more than a third of her silhouette (12 points). Near the camera, furniture is cut only **above her waist**. The hole opens **only while something solid hides her** (glass doesn't count). **Exceptions** by tag: `seeThrough: "keep"` (the 3D printer: owner, its frame and ray let her show through and it frames the shot) and `divider: true` (bulkheads, optionally cut as a whole). Cut surfaces in their own colour, darkened. `three-mesh-bvh` brought in for the raycasts (15 ms → 0.2 ms per frame).
 
+**Update (2026-10-08): dividers from inside** (owner). While the camera is inside the ship (no hull between it and her), dividers (bulkheads, inner walls) stay solid: from inside they're walls of the room or doorways that frame the shot. They're still cut when they hide her (added in testing: otherwise a camera trailing behind an inner wall saw only the wall). Next: exceptions move into a rule table in data (outline in the plan; implementation to be discussed).
+
 ---
 
 ## [2026-10-08] — Ink for dialogue (tech)

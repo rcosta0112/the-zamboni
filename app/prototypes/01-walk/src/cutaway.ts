@@ -8,7 +8,8 @@
 // - Furniture on her deck: cut only while it hides her (visibility.ts sets a per-object fade),
 //   either by the same hole or by dithering out the whole object (tuning panel). Furniture near the
 //   camera is cut by the hole above her waist anyway: it isn't next to her, it just fills the view.
-// - Dividers (bulkheads) switched to the furniture rules are always cut as a whole.
+// - Dividers (bulkheads, inner walls) switched to the furniture rules are always cut as a whole;
+//   while the camera is inside the ship, they aren't cut at all.
 //
 // - material.maskNode: the cut (a pixel is discarded where it's false).
 // - material.maskShadowNode = true: the shadow pass ignores the cut, so the hull keeps its full shadow.
@@ -38,6 +39,8 @@ const u = {
 
 /** Per object (set on each mesh's userData by visibility.ts): 1 = cut like structure. */
 const structure = uniform(1).onObjectUpdate(({ object }) => (object?.userData.cutStructure as number | undefined) ?? 1);
+/** Per object: 1 = not cut at all right now (dividers while the camera is inside). */
+const solid = uniform(0).onObjectUpdate(({ object }) => (object?.userData.cutSolid as number | undefined) ?? 0);
 /** Per object: 1 = always cut as a whole when it's cut (dividers). */
 const whole = uniform(0).onObjectUpdate(({ object }) => (object?.userData.cutWhole as number | undefined) ?? 0);
 /** Per object: furniture's fade, 0 = whole, 1 = cut. */
@@ -81,7 +84,7 @@ const keep = (() => {
   const nearMask = smoothstep(u.nearPart.sub(0.1), u.nearPart, t);
   const nearCamera = t.greaterThan(0).and(u.furnitureRadius.greaterThan(0.001)).and(fullMask.max(nearMask).lessThanEqual(noise)).and(positionWorld.y.greaterThan(u.waistY));
   const furnitureCut = select(u.furnitureFade.greaterThan(0.5).or(whole.greaterThan(0.5)), faded, inHole).or(nearCamera);
-  const cut = select(isStructure, inHole, furnitureCut).and(ground.not());
+  const cut = select(isStructure, inHole, furnitureCut).and(ground.not()).and(solid.lessThan(0.5));
   return cut.not();
 })();
 
