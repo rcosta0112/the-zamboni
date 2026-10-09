@@ -89,6 +89,11 @@ export const settings = {
   showOccluders: false, // debug: tint furniture that is being cut
   cameraCollision: true, // outside the ship
 
+  // Room lights inside the ship: the 4 nearest her are on (budget), or all of them to compare.
+  roomLights: 'nearest 4' as 'nearest 4' | 'all',
+  roomLightIntensity: 1.6, // per light (three's units; ≈ a 20 W Blender light: 20 / 4π)
+  roomLightRange: 6, // m, where a light's reach ends
+
   // Rendering
   maxPixelRatio: 2, // below 1 renders fewer pixels than the screen has (down to 0.1)
   pixelated: true, // stretch a low-resolution render with hard, square pixels instead of smoothing it

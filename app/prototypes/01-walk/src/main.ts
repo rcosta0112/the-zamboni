@@ -8,7 +8,9 @@ import { Input } from './input';
 import { loadModels } from './model';
 import { Physics } from './physics';
 import { updateCutaway } from './cutaway';
-import { loadShip, updateShip, type Ship } from './ship';
+import { loadCrew, type Crew } from './crew';
+import { findLightMarkers, RoomLights } from './lights';
+import { loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
@@ -41,12 +43,22 @@ async function start(): Promise<void> {
   // Character models, then the ship at the same scale; the capsule stays if they fail to load.
 
   let ship: Ship | null = null;
+  let crew: Crew | null = null;
+  let roomLights: RoomLights | null = null;
   loadModels()
     .then(({ models, zamboniFileHeight }) => {
       character.setModels(models);
       return loadShip(scene, physics, settings.zamboniHeight / zamboniFileHeight);
     })
     .then(async (s) => {
+      // The crew placed in the ship, and the room lights, before the shaders are built.
+      // The ship's shadow comes from one merged mesh that only the sun's shadow camera sees.
+      world.sun.shadow.camera.layers.enable(SHADOW_LAYER);
+      crew = await loadCrew(s.object, physics);
+      const markers = findLightMarkers(s.object);
+      roomLights = new RoomLights(scene, markers);
+      roomLights.update(character.position, 0);
+      console.info(`[01-walk] room lights: ${markers.map((m) => m.name).join(', ')}`);
       // Build the ship's shaders now, not the first time each part comes into view (that stalled
       // the first frames). compileAsync skips what's outside the view, so culling is off meanwhile.
       const culled: THREE.Object3D[] = [];
@@ -65,7 +77,7 @@ async function start(): Promise<void> {
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }) });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew });
 
   const gui = createTuningPanel({
     cameraDistance: () => view.syncDistance(),
@@ -176,6 +188,8 @@ async function start(): Promise<void> {
     });
     updateWorld(world, scene, character.root.position);
     if (ship) updateShip(ship, dt);
+    crew?.mixer.update(dt);
+    roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];
 

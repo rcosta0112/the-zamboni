@@ -71,6 +71,11 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   look.add(settings, 'showColliders').name('show colliders');
   look.add(settings, 'cargoRampOpen').name('cargo ramp open');
 
+  const lights = gui.addFolder('Room lights');
+  lights.add(settings, 'roomLights', ['nearest 4', 'all']).name('on');
+  lights.add(settings, 'roomLightIntensity', 0, 20, 0.1).name('brightness');
+  lights.add(settings, 'roomLightRange', 1, 20, 0.5).name('range (m)');
+
   const cut = gui.addFolder('See-through hull');
   cut.add(settings, 'seeThrough').name('on (inside the ship)');
   cut.add(settings, 'cutRadius', 0.2, 4, 0.05).name('radius (m)');

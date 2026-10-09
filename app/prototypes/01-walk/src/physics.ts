@@ -109,6 +109,13 @@ export class Physics {
     return { sync, setEnabled: (on) => collider.setEnabled(on) };
   }
 
+  /** A static box collider, axis-aligned in world space (the crew, for now). */
+  addStaticBox(box: THREE.Box3): void {
+    const c = box.getCenter(new THREE.Vector3());
+    const s = box.getSize(new THREE.Vector3());
+    this.world.createCollider(RAPIER.ColliderDesc.cuboid(s.x / 2, s.y / 2, s.z / 2).setTranslation(c.x, c.y, c.z));
+  }
+
   /** A static triangle-mesh collider from world-space vertices; can be switched on and off. */
   addStaticTriangles(vertices: Float32Array, indices: Uint32Array): { setEnabled: (on: boolean) => void } {
     const collider = this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices));

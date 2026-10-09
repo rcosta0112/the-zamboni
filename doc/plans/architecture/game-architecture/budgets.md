@@ -5,6 +5,7 @@ Part of the [game architecture plan](README.md). All numbers are *proposed* unti
 ## Measured so far
 
 - **The ship:** `The Zamboni 1.18.blend` (2026-10-08): 375 mesh objects, about **107k triangles** (85k unique), 79 materials, 15 images, almost all tiny.
+- **The ship in prototype 01, with its props** (2026-10-09): 2.58 MB compressed (+ 171 KB collider), 98k triangles, **547 primitives** (small props merged per room; ≈ 780 without), 54 materials after deduplication. Rendered: 743–941 draw calls per view including the sun's shadow pass; 60 fps on the owner's PC (GTX 1070). Shader build at load ~8 s. Over the draw-call and material budgets until the palette material exists.
 - **The characters:** `The Crew 1.09 Dr. Green.blend` (2026-10-08): 400–722 triangles per character, mostly flat colours, one 1024² or 2048² texture each. About 0.1–0.5 MB per outfit after compression *(estimate)*.
 
 ## Download (compressed sizes)

@@ -8,6 +8,8 @@
 - **Installable web app (PWA), playable offline.** The player can download the whole game at once and play with no connection.
 - **Hosting:** Vercel, probably.
 - **Browsers:** current Chrome, Edge, Safari and Firefox on desktop. WebGPU where available, WebGL2 otherwise.
+
+> **[Agent note]** Conflict to resolve (2026-10-09): in prototype 01 with the full ship, the owner measured Chrome at a solid 60 fps but **Firefox at 1080p a bit under 30 fps**. The owner's call: drop Firefox unless there's an easy fix, to be looked into later; testing on Chrome meanwhile. This line stands until that's decided.
 - **Out of scope:** phones, tablets, Chromebooks, Steam Deck.
 
 ## Input

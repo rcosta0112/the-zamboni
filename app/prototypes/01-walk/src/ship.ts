@@ -48,7 +48,12 @@ export interface Ship {
   hullUnit: CutUnit | undefined;
   /** The cargo ramp's objects: cut like the hull while closed, never while open. */
   rampUnits: CutUnit[];
+  /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
+  shadowCaster: THREE.Mesh;
 }
+
+/** Layer of the merged shadow caster: the sun's shadow camera renders it, the view camera doesn't. */
+export const SHADOW_LAYER = 1;
 
 /**
  * @param scale the same scale as the characters (ship and crew share units in the Blender files)
@@ -72,7 +77,9 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh && !neverCut(mesh, object)) cuttable.push(mesh);
     if (!mesh.isMesh) return;
-    mesh.castShadow = true;
+    // Props don't cast shadows: inside the hull the sun doesn't reach them, and each shadow-casting
+    // mesh is drawn twice.
+    mesh.castShadow = !isProp(mesh, object);
     mesh.receiveShadow = true;
   });
   let collider: THREE.Mesh | null = null;
@@ -150,7 +157,9 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     cutUnits,
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
     rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
+    shadowCaster: mergeShadowCasters(object, rampNode),
   };
+  scene.add(ship.shadowCaster);
   updateShip(ship, 0, true);
   return ship;
 }
@@ -252,6 +261,12 @@ function tagged(o: THREE.Object3D, ship: THREE.Object3D, key: string, value: unk
   return false;
 }
 
+/** True if the mesh or one of its parents (up to the ship) is a prop (tagged `prop: true`). */
+function isProp(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
+  for (let o: THREE.Object3D | null = mesh; o && o !== ship; o = o.parent) if (o.userData.prop === true) return true;
+  return false;
+}
+
 /** True if the mesh or one of its parents (up to the ship) is tagged `cuttable: false`. */
 function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
   for (let o: THREE.Object3D | null = mesh; o && o !== ship; o = o.parent) {
@@ -281,6 +296,41 @@ export function updateShip(ship: Ship, dt: number, force = false): void {
     unit.forceSolid = open;
     prepareRaycasts(unit);
   }
+}
+
+/**
+ * The static ship's shadow as one mesh (positions only, world space): every mesh that casts a
+ * shadow, except the moving ramp, joined; those meshes then stop casting. Drawing hundreds of
+ * see-through meshes into the shadow map was ~310 draw calls per frame, each with the see-through
+ * material's per-draw cost; this is one. It's on SHADOW_LAYER, so only the sun's shadow camera
+ * draws it. Back faces cast, as the see-through materials did (shadowSide).
+ */
+function mergeShadowCasters(ship: THREE.Object3D, ramp: THREE.Object3D): THREE.Mesh {
+  ship.updateMatrixWorld(true);
+  const positions: number[] = [];
+  const v = new THREE.Vector3();
+  ship.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.castShadow || isInside(mesh, ramp)) return;
+    const position = mesh.geometry.getAttribute('position');
+    const index = mesh.geometry.getIndex();
+    const count = index ? index.count : position.count;
+    for (let i = 0; i < count; i++) {
+      v.fromBufferAttribute(position, index ? index.getX(i) : i).applyMatrix4(mesh.matrixWorld);
+      positions.push(v.x, v.y, v.z);
+    }
+    mesh.castShadow = false;
+  });
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  const material = new THREE.MeshBasicNodeMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide });
+  material.shadowSide = THREE.BackSide;
+  const caster = new THREE.Mesh(geometry, material);
+  caster.name = 'ship shadow caster';
+  caster.castShadow = true;
+  caster.frustumCulled = false;
+  caster.layers.set(SHADOW_LAYER);
+  return caster;
 }
 
 /** True if `o` is `ancestor` or below it. */

@@ -64,6 +64,8 @@ Measured 2026-10-08 on the owner's PC (GTX 1070, headless Chrome, WebGPU, 1280×
 - **Per frame:** a few instructions per pixel, plus losing the GPU's early depth test on the whole interior and drawing back faces (double-sided). 60 fps (vsync-limited); no frame over 17 ms on first entry. Not yet measured on the MacBook.
 - **Loading:** compiling the ship's shaders takes 2.2–2.6 s, during loading. Total stall time while loading is about the same as before (~3 s, which includes the character and scene). The ship appears ~0.7 s later, and the 0.57 s freeze just after it appeared is gone.
 - **See-through rules:** 0.2 ms per frame for the rays (12 per piece of furniture, 5 against the structure), with a BVH per mesh; no change in frame time. BVHs are built at load.
+- **Shadows (2026-10-09):** the ship's meshes don't draw themselves into the sun's shadow map any more: one merged, positions-only copy of the static ship does (on a layer only the shadow camera sees). Drawn with the see-through materials, every mesh took three.js's slow path in the shadow pass (a custom material per draw); the merged caster is one draw. The ramp, Dr. Green and the crew cast their own shadows.
+- **Per-draw cost (audit, 2026-10-09):** any custom material (the mask, a per-object value) adds ~10 µs of three.js CPU work per draw; with ~500 ship draws that's ~5 ms per frame. The next win is using the see-through material only where something is cut (plain copies elsewhere).
 - **Draw calls and shadows:** unchanged by the cut (every mesh is its own draw call either way; the shadow pass ignores the cut).
 
 ## Not done yet

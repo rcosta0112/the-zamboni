@@ -4,6 +4,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
+## [2026-10-09] — The rest of the ship: props, room lights, crew (prototype)
+
+**Context:** The owner asked for the remaining objects of the ship file, its interior lights and Dr. Kaufman with her sitting idle. Imported as they are, the props would have taken the ship to ≈ 780 draw calls and ≈ 60 materials (budgets: 300 and 30), and the file has 15 area lights (budget: 4 small lights on at once).
+
+**Decision (owner):** optimise what's simple now, skip anything complicated: small props merged per room at export, materials deduplicated, props don't cast shadows. Lights: one or two ambient lights per room (7 in all, one new in the cockpit), the 4 nearest her on; the other file lights flagged. Big props collide, small ones don't (to review with object interaction). The characters in the scene come in (Dr. Kaufman animated; Adam ×2 and Dr. Ogawa static), all visible all the time.
+
+**Alternatives considered:** importing everything as is; the palette material now (a step of its own); all 15 lights; RectAreaLights.
+
+**Rationale:** see the ship full now; the optimised pipeline (palette material) is planned for the measurement prototype.
+
+**Status:** Built in prototype 01. See [`plans/features/ship-contents.md`](plans/features/ship-contents.md). Still over the draw-call and material budgets; shader build at load ~8 s.
+
+---
+
 ## [2026-10-08] — Every camera angle in the ship should look good (design)
 
 **Context:** Play-testing the see-through rules turned up edge cases where what's cut, or not, makes a bad picture.

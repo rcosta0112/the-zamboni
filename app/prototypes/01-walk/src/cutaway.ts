@@ -37,14 +37,25 @@ const u = {
   shade: uniform(0.35), // how much of its own colour the cut surface keeps
 };
 
-/** Per object (set on each mesh's userData by visibility.ts): 1 = cut like structure. */
-const structure = uniform(1).onObjectUpdate(({ object }) => (object?.userData.cutStructure as number | undefined) ?? 1);
-/** Per object: 1 = not cut at all right now (dividers while the camera is inside). */
-const solid = uniform(0).onObjectUpdate(({ object }) => (object?.userData.cutSolid as number | undefined) ?? 0);
-/** Per object: 1 = always cut as a whole when it's cut (dividers). */
-const whole = uniform(0).onObjectUpdate(({ object }) => (object?.userData.cutWhole as number | undefined) ?? 0);
-/** Per object: furniture's fade, 0 = whole, 1 = cut. */
-const fade = uniform(0).onObjectUpdate(({ object }) => (object?.userData.cutFade as number | undefined) ?? 0);
+/**
+ * Per object, set on each mesh's userData by visibility.ts, packed into one uniform (one update per
+ * draw instead of four: per-object uniforms cost CPU time on every draw):
+ * x = 1: cut like structure; y: furniture's fade (0 whole, 1 cut); z = 1: cut as a whole when it's
+ * cut (dividers); w = 1: not cut at all right now.
+ */
+const perObject = uniform(new THREE.Vector4(1, 0, 0, 0)).onObjectUpdate(({ object }, self) => {
+  const d = object?.userData;
+  (self.value as THREE.Vector4).set(
+    (d?.cutStructure as number | undefined) ?? 1,
+    (d?.cutFade as number | undefined) ?? 0,
+    (d?.cutWhole as number | undefined) ?? 0,
+    (d?.cutSolid as number | undefined) ?? 0,
+  );
+});
+const structure = perObject.x;
+const fade = perObject.y;
+const whole = perObject.z;
+const solid = perObject.w;
 
 /** True where the pixel is kept. */
 const keep = (() => {
