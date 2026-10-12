@@ -2,6 +2,8 @@
 
 The project is broken into steps. The list is open-ended: new steps are added as the project goes, numbered in the order they're started. Each step has its own file with its goal, deliverables, status and open questions.
 
+**Work in progress:** [`current.md`](current.md) (what's being done now, what's next, what's waiting on the owner). Read it first.
+
 | # | Step | File | Status |
 |---|---|---|---|
 | 1 | Documentation structure and project architecture (stack, scope) | [`01-docs-and-architecture.md`](01-docs-and-architecture.md) | In progress |

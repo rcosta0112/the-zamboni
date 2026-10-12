@@ -2,6 +2,45 @@
 
 A running record of project decisions: technology, architecture, pipeline, scope, story direction and documentation. Newest first. Each entry is headed `## [YYYY-MM-DD] — Title (area)` and follows **Context → Decision → Alternatives considered → Rationale → Status**. When a decision changes, add an **Update (date):** note under the entry instead of rewriting it, so the history stays visible.
 
+## Index
+
+> **[Agent note]** One line per entry, newest first: read this, then only the entry needed. A new entry gets a new row; an *Update* note that changes a decision changes its row.
+
+| Date | Decision | Area | In one line |
+|---|---|---|---|
+| 2026-10-12 | Keeping context small between sessions | docs | A state file read first (`steps/current.md`), a backlog tracker, a code map, this index |
+| 2026-10-09 | Basic interaction: doors, keypads, ladders | feature | E / Circle uses the target nearest the screen centre within reach; doors toggle on a hinge; ladders need no button |
+| 2026-10-09 | The rest of the ship: props, room lights, crew | prototype | Small props merged per room, no prop shadows; one or two lights per room, the four nearest on; the crew placed in the ship |
+| 2026-10-08 | Every camera angle in the ship should look good | design | Worth extra work and per-object exceptions |
+| 2026-10-08 | See-through hull rules | feature | Inside: a dithered hole from the camera to her chest. Outside: no cut, camera collision |
+| 2026-10-08 | Ink for dialogue | tech | Ink through `inkjs`: one story for dialogue, comm chats, barks and story state |
+| 2026-10-08 | Inverted Y in prototypes, normal in production | input | As the title says; changeable in settings |
+| 2026-10-08 | No spoken dialogue; characters talk by nodding | scope | All dialogue is text; no mouth movement |
+| 2026-10-08 | Prototype workspace built; TypeScript 6 | tech | One npm workspace in `app/`; prototypes on port 5200 + NN; TypeScript 6, not 7 |
+| 2026-10-08 | Platform, saving and performance targets | scope | Installable web app, playable offline; checkpoint saves; 60 fps on the PC, 30 on the MacBook |
+| 2026-10-08 | Gamepad is the main input | scope | Gamepad first; prompts follow the last device used |
+| 2026-10-08 | Svelte 5 for the UI | tech | Svelte 5 (runes) with Vite, as an HTML overlay; not SvelteKit |
+| 2026-10-08 | A design system in Figma, with a code version | design | One design system for brand, screens and in-game devices |
+| 2026-10-08 | `doc/` goes in git: the whole project folder is the repo | pipeline | `doc/` and `app/` versioned together; `resources/` ignored |
+| 2026-10-08 | In-world name: comm, not phone | docs | The device and its chat are the *comm* |
+| 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
+| 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
+| 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-12] — Keeping context small between sessions (docs)
+
+**Context:** Picking up the backlog on 2026-10-12 meant reading about 23 files (roughly 200 KB) before any work: the state of the work was spread over feature docs, built plans, the prototype README and the source. The owner asked for an audit of the project and documentation structure to use fewer tokens.
+
+**Decision (owner):** Five changes, none of which removes anything: (1) [`steps/current.md`](steps/current.md), the state of the work in progress, read first and rewritten at the end of every session; (2) a code map at the top of the prototype's README; (3) [`plans/backlog.md`](plans/backlog.md) as a tracker, one line per item; (4) the index at the top of this log; (5) `.claude/settings.json` stops the agent reading `package-lock.json`, `.glb` files and `resources/`.
+
+**Alternatives considered (proposed, not decided):** one home per fact (behaviour in `features/`, how in the code's comments, why here; the rest links); collapsing built plans to short stubs (changes the "superseded docs move to `_archive/`" convention); a scripted check (`npm run smoke`) in place of screenshots (to come with pass 1 of the backlog); shorter lines in docs.
+
+**Rationale:** A new session should start from one short file, not from re-reading the project.
+
+**Status:** Done, 2026-10-12. The saving hasn't been measured yet.
+
 ---
 
 ## [2026-10-09] — Basic interaction: doors, keypads, ladders (feature)

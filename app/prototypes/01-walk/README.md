@@ -2,6 +2,35 @@
 
 A character walking around a 200 × 200 m floor, seen from a third-person camera: **Part 1's Dr. Green** with walk, run and jump animations (switchable back to a capsule). Proves the stack (Three.js r186 `WebGPURenderer`, TSL, Vite, TypeScript) and gives a first feel for movement and camera. Plan: [`doc/plans/prototypes/01-walk.md`](../../../doc/plans/prototypes/01-walk.md).
 
+## Code map
+
+> **[Agent note]** Read this before opening source files. All paths are in `src/`.
+
+| File | Owns | Start at |
+|---|---|---|
+| `main.ts` | Start-up and load order; the fixed 60 Hz step; the frame loop (who is called, in what order); dev hooks on `window` | `start` |
+| `settings.ts` | Every tunable value and its starting point | `settings` |
+| `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
+| `input.ts` | Actions from gamepad and keyboard: move, look, zoom, jump, interact, last device used | `Input.poll`, `consume*` |
+| `character.ts` | Her movement, jump and gravity; placing her on a ladder | `Character.update`, `setClimbing`, `moveDirection` |
+| `physics.ts` | Rapier: ground, static colliders, her capsule and controller, moving colliders (doors), rays | `Physics.move`, `addMovingConvex`, `ray`, `castRay`, `fits` |
+| `camera.ts` | Orbit camera: yaw, pitch, distance, follow, collision outside the ship | `FollowCamera.update` |
+| `ship.ts` | Loading the ship and its collider; "inside"; decks; see-through units and their tags; **the cargo ramp**; hinges; the merged shadow caster | `loadShip`, `updateShip`, `groupCutUnits`, `hingeAt` |
+| `doors.ts` | Hinged doors; a moving part pushing her (also used by the ramp); the side door's walkable slope | `Door.update`, `advance`, `createDoors` |
+| `interaction.ts` | What can be used; picking the target; the prompt and highlight | `shipInteractables`, `Interaction.update` |
+| `ladders.ts` | Finding ladders; attaching, climbing, stepping off | `shipLadders`, `Ladders.update`, `findExit` |
+| `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
+| `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `updateCutaway` |
+| `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |
+| `world.ts` | Sky, haze, sun and its shadow, the ground | `createWorld`, `updateWorld` |
+| `crew.ts` | The crew placed in the ship: load, idle loop, box colliders | `loadCrew` |
+| `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; retargeting Part 1's animations | `loadModels`, `AnimatedModel.update` |
+| `names.ts`, `stats.ts` | Blender names as GLTFLoader gives them; the frame-time readout | `named` |
+
+Outside `src/`: `index.html` and `style.css` (the prompt, help and pause overlays). Export scripts are in [`app/tools/`](../../tools/): `export-ship.py` (ship, props, light markers, collider, every tag), `export-ship-crew.py`, `export-crew-character.py`, `export-part1-character.py`.
+
+Per frame, in order (`main.ts`): input → fixed steps (ladders or character, then doors and ramp) → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.
+
 ## Run
 
 ```sh
@@ -124,26 +153,6 @@ Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Sit
 - **Mist removed** (owner, 2026-10-08). A distance haze in the horizon colour remains, to hide the floor's edge (*distance haze*).
 - **Why a hemisphere light and not an environment map:** setting the gradient as `scene.environment` (directly, and pre-filtered with PMREM) didn't light anything in this setup: the shaded side came out black. For these matte, flat-colour materials the diffuse part is what matters, and the hemisphere light gives it exactly. Worth revisiting if shiny materials need sky reflections.
 - **Ground:** near-white snow with faint variation; optional speed *grid*.
-
-## Code
-
-| File | What |
-|---|---|
-| `src/main.ts` | Renderer, fixed 60 Hz simulation step with interpolated rendering, the frame loop |
-| `src/input.ts` | Action-based input: gamepad first (standard mapping, radial dead zone), keyboard/mouse second |
-| `src/character.ts` | Movement (Part 1's controller: acceleration, smooth turning, move along facing) + jump; capsule placeholder |
-| `src/model.ts` | Loads both models; blends standing/walk/run by speed; jump |
-| `src/physics.ts` | Rapier world: ground, ship collider, capsule + character controller |
-| `src/ship.ts` | Loads the ship exterior, places it, builds its collider |
-| `src/cutaway.ts` | See-through hull: the TSL cut, cuttable material copies (one per source material) |
-| `src/lights.ts` | Room lights: markers from the ship file, the 4 nearest her (fading), or all |
-| `src/crew.ts` | The crew placed in the ship: loads, loops Dr. Kaufman's animation, box colliders |
-| `src/visibility.ts` | See-through rules: does the structure hide her (the hole), which furniture hides her (coverage), exceptions; fades with hysteresis; BVH raycasts |
-| `src/retarget.ts` | Retargets animations between skeletons with the same bone names but different bone orientations |
-| `src/camera.ts` | Third-person orbit camera with smoothed follow |
-| `src/world.ts` | Sky, fog, lights, sun shadow that follows the character, TSL grid floor |
-| `src/settings.ts` | All tunable values and their starting points |
-| `src/tuning.ts`, `src/stats.ts` | Tuning panel (lil-gui), frame-time readout |
 
 ## Starting values
 

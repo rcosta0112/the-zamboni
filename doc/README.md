@@ -10,6 +10,7 @@ doc/
   overview.md          the game: pitch, pillars, structure, features, constraints
   decision-log.md      every project decision, newest first
   steps/               the project broken into steps (open-ended, added as we go)
+    current.md         the work in progress: read first when picking the work up
   plans/               plans written before each step; not part of the final docs (see plans/README.md)
     README.md          step index with status
     NN-<slug>.md       one file per step: goal, deliverables, status, open questions

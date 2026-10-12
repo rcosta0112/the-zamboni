@@ -16,6 +16,8 @@ plans/
 
 ## Index
 
+Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its pass and status). The state of the work in progress: [`../steps/current.md`](../steps/current.md).
+
 | Plan | For step | Status |
 |---|---|---|
 | [Game architecture (levels, loading, budgets, characters, performance, saving, offline)](architecture/game-architecture/README.md) | [Step 1](../steps/01-docs-and-architecture.md) | Draft, for review |
@@ -27,6 +29,7 @@ plans/
 | [The rest of the ship (props, interior lights, Dr. Kaufman)](features/ship-contents.md) | Prototype 01 | Built; owner play-test pending |
 | [Basic interaction (doors, hatches, lockers, the cargo panels, ladders)](features/interaction-doors.md) | Prototype 01 | Built; owner play-test pending |
 | [Doors and the character (getting in the way, getting trapped)](features/interaction-clearance.md) | Prototype 01 | Built; owner play-test pending |
+| [The backlog, in six passes](backlog-passes.md) | Prototype 01 | Approved 2026-10-12; not started |
 
 ## Plan format
 

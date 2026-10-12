@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./app/package-lock.json)",
+      "Read(./**/*.glb)",
+      "Read(./resources/**)"
+    ]
+  }
+}

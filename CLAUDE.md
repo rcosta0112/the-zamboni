@@ -8,6 +8,12 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 - `app/`: the code (npm workspace). See `app/README.md`.
 - `resources/`: source art (Blender, textures, audio masters). **Not in git**; never add it.
 
+## Picking the work up
+
+1. **Read `doc/steps/current.md` first.** It says what's in progress, what's next, what's waiting on the owner and which files are involved. **Rewrite it at the end of every session** (60 lines at most; not a log).
+2. Open other docs and source files only when the task needs them. For code, start from the **code map** at the top of `app/prototypes/01-walk/README.md`; for decisions, from the **index** at the top of `doc/decision-log.md`.
+3. Open items are tracked in `doc/plans/backlog.md`, one line each: keep each item's status current.
+
 ## Rules from the owner
 
 1. **Never edit `doc/story/`** (story, cast, scenes), and never make text edits to the owner's writing anywhere, without a specific instruction. Point out what you'd change and wait.
