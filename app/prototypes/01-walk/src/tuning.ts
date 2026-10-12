@@ -88,6 +88,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   cut.add(settings, 'cutRadius', 0.2, 4, 0.05).name('radius (m)');
   cut.add(settings, 'cutSoftness', 0, 1.5, 0.05).name('edge softness (m)');
   cut.add(settings, 'cutTargetHeight', 0.2, 1.5, 0.05).name('target height (m)');
+  cut.add(settings, 'singleSided').name('single-sided materials');
   cut.add(settings, 'cutOwnColour').name('cut edge in own colour');
   cut.add(settings, 'cutShade', 0, 1, 0.05).name('own colour brightness');
   cut.addColor(settings, 'cutBackColor').name('cut edge colour');

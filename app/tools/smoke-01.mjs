@@ -316,6 +316,84 @@ async function checks() {
     report(false, 'the prompt follows the target on screen', 'the ramp keypad could not be aimed at');
   }
 
+  // --- Pass 2: the re-export from the reference file (12, 18, 19, 20) --------------------------
+  const part = (blenderName) => {
+    let found = null;
+    ship.object.traverse((o) => {
+      if (!found && o.userData.name === blenderName) found = o;
+    });
+    return found;
+  };
+  const worldBox = (blenderName) => {
+    const o = part(blenderName);
+    return o ? new T.Box3().setFromObject(o) : null;
+  };
+  const shipScale = ship.object.scale.x;
+  report(Math.abs(ship.rampClosedAngle) < 0.001, 'the ramp is closed in the file', `closed at ${T.MathUtils.radToDeg(ship.rampClosedAngle).toFixed(1)}° from the file's pose`);
+
+  /** Walk from `from` in a straight line on the ground for `ms`; where she ends up. */
+  const walk = async (from, dx, dz, ms) => {
+    put(from);
+    view.yaw = yawToward(dx, dz);
+    view.pitch = 0.15;
+    await wait(300);
+    key('KeyW', true);
+    await wait(ms);
+    key('KeyW', false);
+    await wait(200);
+    return character.position.clone();
+  };
+  const hull = worldBox('Hull_Merged');
+  if (!hull) {
+    report(false, 'she cannot walk under the hull', 'no "Hull_Merged" in the ship');
+  } else {
+    // From the side with no door, at the middle of the hull's length, toward its centre line.
+    const centre = hull.getCenter(new T.Vector3());
+    const half = (hull.max.x - hull.min.x) / 2;
+    const end = await walk(new T.Vector3(hull.min.x - 2, 0.05, centre.z), 1, 0, 3500);
+    const reached = (centre.x - end.x) / half;
+    report(reached > 0.75 && reached < 1.1 && end.y > -0.02, 'she cannot walk under the hull', `stopped at ${(reached * 100).toFixed(0)}% of the hull's half-width from its centre line (feet at ${fmt(end)})`);
+  }
+  for (const name of ['Turbine.001', 'Turbine.002']) {
+    const box = worldBox(name);
+    if (!box) {
+      report(false, `she cannot walk under the front thruster ${name}`, 'not in the ship');
+      continue;
+    }
+    // From the outer side, toward the hull.
+    const centre = box.getCenter(new T.Vector3());
+    const outward = Math.sign(centre.x - inside.x);
+    const end = await walk(new T.Vector3(centre.x + outward * ((box.max.x - box.min.x) / 2 + 2), 0.05, centre.z), -outward, 0, 3500);
+    const reached = ((end.x - centre.x) * outward) / ((box.max.x - box.min.x) / 2);
+    report(reached > 0.4 && end.y > -0.02, `she cannot walk under the front thruster ${name}`, `stopped at ${(reached * 100).toFixed(0)}% of its half-width from its centre; feet at height ${end.y.toFixed(3)} m`);
+  }
+
+  const display = worldBox('Monitor Arm.031');
+  if (!display || !hull) {
+    report(false, 'the engineering display is in the room', 'no "Monitor Arm.031" in the ship');
+  } else {
+    // Posed, the arm reaches 0.4 Blender units out from the wall; in its rest pose (the bug) 0.23, inside the wall.
+    const reach = (display.max.x - display.min.x) / shipScale;
+    const fromHull = Math.min(display.min.x - hull.min.x, hull.max.x - display.max.x) / shipScale;
+    report(reach > 0.35 && fromHull > 0.15, 'the engineering display is in the room', `reaches ${reach.toFixed(2)} out, starting ${fromHull.toFixed(2)} in from the hull's side (Blender units)`);
+  }
+
+  const cuttable = [];
+  ship.object.traverse((o) => {
+    if (o.isMesh && o.material.name.endsWith('(cuttable)') && !cuttable.includes(o.material)) cuttable.push(o.material);
+  });
+  const sides = () => cuttable.filter((m) => m.side === T.DoubleSide).length;
+  const single = settings.singleSided;
+  settings.singleSided = true;
+  await wait(100);
+  const doubleWhenSingle = sides();
+  settings.singleSided = false;
+  await wait(100);
+  const doubleWhenDouble = sides();
+  settings.singleSided = single;
+  await wait(100);
+  report(single === true && doubleWhenSingle === 0 && doubleWhenDouble === cuttable.length && cuttable.length > 0, 'single-sided materials, with a switch', `${cuttable.length} see-through materials: ${doubleWhenSingle} double-sided with the switch on, ${doubleWhenDouble} with it off`);
+
   // --- Every door, with her out of the way -----------------------------------------------------
   put(new T.Vector3(0, 0.05, 0));
   await wait(300);

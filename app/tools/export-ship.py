@@ -1,8 +1,8 @@
-"""Export the Zamboni: exterior, cargo bay and the large interior elements, plus a collision mesh.
+"""Export the Zamboni from its reference file: the ship, its props and room lights, plus a collision mesh.
 
 Run with Blender from the command line. The .blend is opened read-only: nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship.py -- \
+    blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship.py -- \
         --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 
 then cap the textures at 512 px and compress both (Meshopt) into app/assets, from app/:
@@ -11,42 +11,34 @@ then cap the textures at 512 px and compress both (Meshopt) into app/assets, fro
     npx gltf-transform meshopt <raw>/zamboni-ship-512.glb assets/test/zamboni-ship.glb
     npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
 
-- Exports the objects in EXTERIOR and INTERIOR with modifiers applied (mirrors, booleans,
-  geometry nodes). Interior collections excluded from the view layer in the file (Crew Quarters,
-  Engineering, Cargo Bay...) are included for the export only.
-- Props: every other render-visible mesh, curve and text object in the room collections
-  (PROP_COLLECTIONS), baked to a mesh in place. Big ones (BIG and up) stay separate objects and go
-  into the collider as convex hulls; small ones are merged into one object per room collection
-  ("Props <collection>"), one draw call per material. Props in the cockpit are always visible.
-  Every prop is tagged ``prop: true`` (the game doesn't let them cast shadows: inside the hull the
-  sun doesn't reach them, and it halves their draw calls).
-- Lights: glTF can't carry area lights, so the room lights (LIGHTS, plus one new light in the
-  cockpit, which has none) are written as empties named "light ..." with a ``light`` custom
-  property (room, colour, energy). The other lights in the file are reported as flagged.
-- Everything is cut by the see-through hull except what's tagged ``cuttable: false`` (custom
-  property, exported as glTF extras, read by the game as ``userData.cuttable``). The script tags
-  NEVER_CUT unless the object already has that property: this list stands in until the tags are
-  set in Blender.
-- Tags the see-through hull's structure group (``structure: true``: hull, walls, ceilings, doors,
-  hatches...; untagged objects are furniture) from STRUCTURE_GROUP the same way, and the
-  exceptions: ``seeThrough: "keep"`` (KEEP), ``seeThrough: "solid"`` (SOLID) and ``divider: true``
-  (DIVIDERS).
-- Writes ``zamboni_col`` to its own file, positions only: every exported object except moving
-  parts, joined into one mesh at full detail (``*_col`` in the naming contract: never rendered).
-  Very dense furniture goes in as its convex hull instead. A decimated collider closed openings
-  (the cargo door), so it isn't decimated.
-- Records each moving part's pivot (its origin) as a custom property ``hinge`` (glTF axes):
-  compression moves node origins, so the game builds hinges from this. (Not ``pivot``: three.js
-  r186's GLTFLoader reads a ``pivot`` extra on a node with children as its own pivot pattern and
-  consumes it.)
-- Doors (DOORS: the side door, the hatches, the fridge, galley and locker doors) are exported
-  closed (some are modelled open) and are moving parts, tagged ``interact: "open"`` with a ``door``
-  property: the hinge axis (glTF axes, in the ship's space), the open angle (radians),
-  ``toGround`` (opens until it touches the ground, like the ramp; the angle is then the limit) and
-  ``startOpen``.
-  Their children (the poster on a locker door) move with them.
-- The two keypads by the side door (PANELS) are exported as their own objects, tagged
-  ``interact: "use"`` and ``controls: "<object name>"`` (the door they open and close).
+What is exported, and how it behaves in the game, is set in the file with custom properties
+(doc/architecture/asset-pipeline.md, "Naming contract"): this script holds no list of objects.
+It does what is derived from the scene:
+
+- Parts (``part``): exported as their own objects, with modifiers applied (mirrors, booleans,
+  geometry nodes). What hangs on a door (the poster on a locker door) is exported with it. A part
+  posed by an armature (the engineering display) is baked in its posed place first.
+- Props: every other render-visible mesh, curve and text object in the ship's collections (under
+  SHIP_COLLECTION; not the collections or objects tagged ``export: false``), baked to a mesh in
+  place. Big ones (BIG and up) stay separate objects and go into the collider as convex hulls;
+  small ones are merged into one object per collection ("Props <collection>"), one draw call per
+  material. Every prop is tagged ``prop: true`` (the game doesn't let them cast shadows: inside
+  the hull the sun doesn't reach them, and it halves their draw calls) and takes its collection's
+  ``seeThrough`` tag (the cockpit's props are never cut).
+- Lights: glTF can't carry area lights, so the room lights are marker empties in the file
+  (``lightRoom``, ``lightColor``, ``lightEnergy``), written with one ``light`` property.
+- Doors (``doorAxis``, ``doorAngle``, ``doorToGround``, ``doorStartOpen``; closed in the file) are
+  written with one ``door`` property: the hinge axis (glTF axes, in the ship's space), the open
+  angle (radians), ``toGround`` and ``startOpen``.
+- Each moving part's pivot (its origin) is recorded as ``hinge`` (glTF axes): compression moves
+  node origins, so the game builds hinges from this. (Not ``pivot``: three.js r186's GLTFLoader
+  reads a ``pivot`` extra on a node with children as its own pivot pattern and consumes it.)
+- ``zamboni_col``, in its own file, positions only: every part except the moving ones and those
+  tagged ``collider: "none"``, joined into one mesh at full detail; ``collider: "hull"`` parts and
+  big props as their convex hulls (not those tagged ``collider: "none"``); and every ``*_col``
+  object in the file, whatever collection it's in (the bulkheads' pieces,
+  the boxes under the hull). A decimated collider closed openings (the cargo door), so it isn't
+  decimated.
 - Reports every double-sided material ("PERF:"), as the pipeline requires; nothing is forced.
 """
 
@@ -56,163 +48,32 @@ import sys
 
 import bmesh
 import bpy
+from mathutils import Matrix, Vector
 
-EXTERIOR = [
-    'Hull_Merged', 'Windshield', 'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002',
-    'Landing Gear Front', 'Landing Gear Back Left', 'Landing Gear Back Right',
-    'Door', 'Door Cargo', 'Top Hatch', 'Lab Window', 'Lab Window.001',
-]
-
-INTERIOR = [
-    # Structure: floors, walls, ceilings, consoles, doors
-    'Floor Bottom', 'Floor Top.001', 'Bulkhead Cargo', 'Bulkhead Cockpit',
-    'Crew Quarters Ceiling', 'Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002',
-    'Dashboard Body', 'Dashboard Body.001', 'Dashboard Body.002', 'Door Boolean.001',
-    'Door Cockpit', 'Door Cockpit 2', 'Door Engineering', 'Door Engineering 2',
-    'Top Hatch Bottom', 'Hatch.002',
-    'Ceiling Light.001', 'Ceiling Light.002', 'Ceiling Light.003', 'Ceiling Light.004',
-    # Crew quarters and galley
-    'Bunks', 'Bunks.001', 'Bunks.002', 'Couch', 'Table', 'Galley', 'Stove',
-    'Lockers', 'Locker Door.001', 'Locker Door.003',
-    # Cockpit
-    'Seat', 'Seat.001', 'Seat.002', 'Seat.004', 'Back seat', 'Back seat.001', 'Back seat.002',
-    'Dials.002', 'Monitor.001', 'Monitor.003', 'Monitor.004',
-    # Engineering
-    'Bench', 'Bench.001', 'Cabinet', 'Cabinet.001', '3d Printer', 'Power Supply', 'Power Supply.001',
-    'Stand', 'Monitor Arm.031', 'Contraption',
-    # Cargo bay
-    'Sledge', 'Pallet', 'Locker', 'Locker Door', 'Head', 'Jetpack Rack', 'Jetpack Rack.001',
-    'Ladder Cargo Bay', 'Plane.002',
-    # Galley cupboard and fridge doors (children of the galley), the keypads by the side door
-    'Galley Door', 'Galley Door.001', 'Galley Door.002', 'Plane.004', 'Plane.006',
-]
-
-# Never cut by the see-through hull: outside the hull, the camera never looks through them from
-# inside. (Floors need no tag: the game never cuts upward-facing surfaces below her feet.)
-NEVER_CUT = {'Landing Gear Front', 'Landing Gear Back Left', 'Landing Gear Back Right'}
-
-# The see-through hull's structure group: always cut by the hole. Everything else is furniture, cut
-# only while it hides her. (Walls and seat.* mix walls and seats: structure.)
-STRUCTURE_GROUP = {
-    'Hull_Merged', 'Windshield', 'Door', 'Top Hatch', 'Top Hatch Bottom', 'Hatch.002',
-    'Floor Bottom', 'Floor Top.001', 'Bulkhead Cargo', 'Bulkhead Cockpit', 'Crew Quarters Ceiling',
-    'Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002', 'Door Boolean.001',
-    'Door Cockpit', 'Door Cockpit 2', 'Door Engineering', 'Door Engineering 2',
-    'Ceiling Light.001', 'Ceiling Light.002', 'Ceiling Light.003', 'Ceiling Light.004',
-    'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002', 'Lab Window', 'Lab Window.001',
-    # The cargo ramp: closed, it's the cargo bay's back wall (the game never cuts it while open).
-    'Door Cargo',
-}
-
-# Furniture the see-through rules never cut for hiding her (owner: the 3D printer's frame and ray
-# let her show through, and it frames the shot).
-KEEP = {'3d Printer'}
-# Always visible on her deck, never cut (owner's test, 2026-10-09): every piece of furniture in the
-# cockpit (the seats' parts follow their seat), the machine on the engineering ceiling, the red sled.
-COCKPIT = {
-    'Seat', 'Seat.001', 'Seat.002', 'Seat.004', 'Dashboard Body', 'Dashboard Body.001',
-    'Dashboard Body.002', 'Dials.002', 'Monitor.001', 'Monitor.003', 'Monitor.004',
-}
-SOLID = COCKPIT | {'Contraption', 'Sledge'}
-# Interior dividers: always visible while the camera is inside the ship; from outside, cut by the
-# hole or as a whole (a toggle in the game). Their child objects (the doors) follow.
-DIVIDERS = {
-    'Bulkhead Cargo', 'Bulkhead Cockpit',
-    'Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002',
-}
-
-# Doors the player opens and closes (owner, 2026-10-09: every door but the bulkhead ones). Hinged on
-# their origin: (local rotation axis, open angle in degrees, toGround). Exported closed.
-DOORS = {
-    'Door': ('Y', -180, True),  # the side door: drops outward until it rests on the ground (a ramp)
-    'Hatch.002': ('X', 90, False),  # the trapdoor to the crew quarters (modelled open)
-    'Top Hatch': ('X', -100, False),  # roof hatch, outer: flips open, up
-    'Top Hatch Bottom': ('X', 90, False),  # roof hatch, inner: flips down
-    'Galley Door': ('Z', 100, False),  # fridge
-    'Galley Door.001': ('Z', 100, False),  # fridge (modelled open)
-    'Galley Door.002': ('Z', 100, False),  # cupboard (modelled open)
-    'Locker Door': ('Z', 100, False),  # cargo bay
-    'Locker Door.001': ('Z', 100, False),  # crew quarters
-    'Locker Door.003': ('Z', 100, False),
-}
-# Modelled open in the file: closed for the export by setting the hinge axis's rotation to 0 (the
-# others are closed as modelled; the cargo locker door's closed rotation is a half-turn).
-MODELLED_OPEN = {'Hatch.002', 'Galley Door.001', 'Galley Door.002'}
-# Start open in the game (owner, 2026-10-09: the trapdoor, for now; it's hard to aim at from below).
-START_OPEN = {'Hatch.002'}
-# Owner, 2026-10-09: the upper keypad opens the ramp, the lower one the side door.
-PANELS = {'Plane.004': 'Door Cargo', 'Plane.006': 'Door'}
-
-# Moving parts get their own collider in the game, so they're left out of zamboni_col.
-MOVING = {'Door Cargo'} | set(DOORS)
-# Furniture denser than this goes into the collider as its convex hull. Never structure: a convex
-# hull of the hull would be a solid block.
-DENSE_TRIS = 2000
-STRUCTURE = set(EXTERIOR) | {'Floor Bottom', 'Floor Top.001', 'Bulkhead Cargo', 'Bulkhead Cockpit'}
-
-# Collections excluded from the view layer in the file that hold interior objects.
-INCLUDE_COLLECTIONS = ['Crew Quarters', 'Stuff', 'Galley', 'Shelf', 'Table', 'Engineering', 'Contraption', 'Cargo Bay']
-
-# Props: the rest of what's in these collections (not their sub-collections: the crew, Hidden...).
-PROP_COLLECTIONS = ['Crew Quarters', 'Stuff', 'Galley', 'Shelf', 'Table', 'Engineering', 'Cargo Bay', 'Cockpit', 'Hull', 'Parts']
-# Not props: the unmerged hull (not rendered), a hidden door panel, an old Dr. Kaufman, an empty.
-NOT_PROPS = {'Hull', 'Door Panel', 'Dr. Kaufman', 'Dr. KaufmanMesh', 'Cockpit Center'}
-# Removed from the game (owner, 2026-10-09): the oscilloscope and its cable on the crew quarters
-# floor, the battery charger and its two batteries on the engineering floor, the rungs on the
-# cockpit bulkhead by the galley.
-REMOVED = {
-    'Osciloscope.001', 'Cube.001', 'Osciloscope.002', 'Cable.001',
-    'Osciloscope.003', 'Osciloscope.005', 'Power Cell.008', 'Power Cell.009',
-    'Ladder Crew Quarters',
-}
-NOT_PROPS |= REMOVED
+# The ship's collections: everything under this one, included in the view layer and not tagged
+# ``export: false``, is looked through for props.
+SHIP_COLLECTION = 'Ship'
 # Props this big or bigger (largest side, Blender units: ~0.4 m in the game) stay separate objects
 # with a collider; smaller ones are merged per room and don't collide.
 BIG = 0.25
-
-# Room lights (owner, 2026-10-09: one or two ambient lights per room; the rest flagged). Positions
-# from these lights in the file; brightness is set in the game.
-LIGHTS = {
-    'Area.002': 'cargo bay', 'Area.003': 'cargo bay',
-    'Area.001': 'engineering', 'Area.015': 'engineering',
-    'Area.013': 'crew quarters', 'Area.007': 'crew quarters',
-}
-# The cockpit has no light in the file: one is added above its centre (Blender units).
-COCKPIT_LIGHT_ABOVE_CENTRE = 0.6
+# Tags that only this script reads: not written to the exported file.
+EXPORT_ONLY = ['part', 'collider', 'moving', 'doorAxis', 'doorAngle', 'doorToGround', 'doorStartOpen', 'lightRoom', 'lightColor', 'lightEnergy']
+AXES = {'X': 0, 'Y': 1, 'Z': 2}
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--out', required=True)
 parser.add_argument('--collider-out', required=True)
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
-
-def find_layer(layer, name):
-    if layer.collection.name == name:
-        return layer
-    for child in layer.children:
-        found = find_layer(child, name)
-        if found:
-            return found
-    return None
-
-
-for name in INCLUDE_COLLECTIONS:
-    layer = find_layer(bpy.context.view_layer.layer_collection, name)
-    if layer:
-        layer.exclude = False
-bpy.context.view_layer.update()
-
-objects = [bpy.data.objects[name] for name in EXTERIOR + INTERIOR]
+in_scene = list(bpy.context.view_layer.objects)
+objects = [ob for ob in in_scene if ob.get('part')]
+if not objects:
+    sys.exit('No object is tagged "part": this script exports the reference file (The Zamboni 1.19.blend or later).')
+doors = [ob for ob in objects if 'doorAxis' in ob]
 # What hangs on a door moves with it (the poster on a locker door).
-door_children = [c for name in DOORS for c in bpy.data.objects[name].children_recursive if c.name not in DOORS]
+door_children = [c for door in doors for c in door.children_recursive if c not in objects]
+moving = doors + door_children + [ob for ob in objects if ob.get('moving')]
 objects += door_children
-MOVING |= {c.name for c in door_children}
-
-# Doors closed, as they start in the game.
-AXES = {'X': 0, 'Y': 1, 'Z': 2}
-for name in MODELLED_OPEN:
-    bpy.data.objects[name].rotation_euler[AXES[DOORS[name][0]]] = 0.0
-bpy.context.view_layer.update()
 
 for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:
@@ -221,56 +82,31 @@ for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.
 # Moving parts: record their pivot (the object origin, which is the hinge) as a custom property,
 # in glTF axes (y up). Compression (Meshopt quantisation) folds offsets into node transforms and
 # moves node origins, so the game can't rely on them: it builds the hinge from this instead.
-for name in MOVING:
-    ob = bpy.data.objects[name]
+for ob in moving:
     x, y, z = ob.matrix_world.translation
     ob['hinge'] = [x, z, -y]
 
-from mathutils import Matrix, Vector
-for name, (axis, degrees, to_ground) in DOORS.items():
-    ob = bpy.data.objects[name]
+for ob in doors:
     # Turning the object about its own axis = turning about this axis in the ship (scale doesn't
     # change the direction; the rotations here are single-axis or a half-turn about Z).
     parent = ob.parent.matrix_world.to_3x3().normalized() if ob.parent else Matrix.Identity(3)
-    a = (parent @ ob.rotation_euler.to_matrix() @ Vector([1.0 if i == AXES[axis] else 0.0 for i in range(3)])).normalized()
-    ob['door'] = {'axis': [a.x, a.z, -a.y], 'angle': math.radians(degrees), 'toGround': to_ground, 'startOpen': name in START_OPEN}
-    ob['interact'] = 'open'
-for name, target in PANELS.items():
-    ob = bpy.data.objects[name]
-    ob['interact'] = 'use'
-    ob['device'] = 'panel'
-    ob['controls'] = target
-
-tagged = 0
-# Child objects (the seats' backrests, the bulkhead's doors) are exported with their parents and
-# can be tagged too.
-for ob in objects + [child for parent in objects for child in parent.children_recursive]:
-    if 'cuttable' not in ob and ob.name in NEVER_CUT:
-        ob['cuttable'] = False
-        tagged += 1
-    if 'structure' not in ob and ob.name in STRUCTURE_GROUP:
-        ob['structure'] = True
-        tagged += 1
-    if 'seeThrough' not in ob and ob.name in KEEP:
-        ob['seeThrough'] = 'keep'
-        tagged += 1
-    if 'seeThrough' not in ob and ob.name in SOLID:
-        ob['seeThrough'] = 'solid'
-        tagged += 1
-    if 'divider' not in ob and ob.name in DIVIDERS:
-        ob['divider'] = True
-        tagged += 1
+    a = (parent @ ob.rotation_euler.to_matrix() @ Vector([1.0 if i == AXES[ob['doorAxis']] else 0.0 for i in range(3)])).normalized()
+    ob['door'] = {
+        'axis': [a.x, a.z, -a.y], 'angle': math.radians(ob['doorAngle']),
+        'toGround': bool(ob['doorToGround']), 'startOpen': bool(ob['doorStartOpen']),
+    }
 
 # Props: baked to meshes in place (modifiers applied, curves and text turned into meshes).
 depsgraph = bpy.context.evaluated_depsgraph_get()
-listed = {ob.name for ob in objects}
 
 
 def is_prop(ob):
-    if ob.name in listed or ob.name in NOT_PROPS or ob.hide_render or ob.type not in ('MESH', 'CURVE', 'FONT'):
+    if ob in objects or ob.get('export', True) is False or ob.hide_render or ob.type not in ('MESH', 'CURVE', 'FONT'):
         return False
-    # Posed crew meshes belong to their character (Monitor Arm is a rigged lamp, a prop).
-    return not (ob.parent and ob.parent.type == 'ARMATURE' and ob.parent.name != 'Monitor Arm')
+    if ob.name.endswith('_col'):
+        return False
+    # Meshes on an armature are posed characters: they have their own export.
+    return not (ob.parent and ob.parent.type == 'ARMATURE')
 
 
 def baked_mesh(ob):
@@ -284,29 +120,73 @@ def baked_mesh(ob):
 
 
 def largest_side(ob):
-    from mathutils import Vector
     corners = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
     return max(max(c[i] for c in corners) - min(c[i] for c in corners) for i in range(3))
 
 
-props, big_props = [], []
+def prop_collections(layer, inside=False):
+    """The ship's collections, in the outliner's order."""
+    collection = layer.collection
+    if layer.exclude or collection.get('export', True) is False:
+        return
+    inside = inside or collection.name == SHIP_COLLECTION
+    if inside:
+        yield collection
+    for child in layer.children:
+        yield from prop_collections(child, inside)
+
+
+def copy_tags(source, target):
+    for key in source.keys():
+        value = source[key]
+        target[key] = value.to_dict() if hasattr(value, 'to_dict') else value
+
+
+# Parts posed by an armature (the engineering display on its arm) are baked in their posed place:
+# the glTF exporter doesn't apply an armature, so they came out in the rest pose, inside the wall.
+for i, ob in enumerate(objects):
+    if not any(m.type == 'ARMATURE' for m in ob.modifiers):
+        continue
+    name = ob.name
+    baked = bpy.data.objects.new(name + ' (baked)', baked_mesh(ob))
+    copy_tags(ob, baked)
+    ob.name = name + ' (source)'
+    baked.name = name
+    bpy.context.scene.collection.objects.link(baked)
+    objects[i] = baked
+    if ob in moving:
+        moving[moving.index(ob)] = baked
+    print(f'BAKED (posed by an armature): {name}')
+bpy.context.view_layer.update()
+depsgraph = bpy.context.evaluated_depsgraph_get()
+
+props, big_props, hull_props = [], [], []
+
+
+def add_prop(name, mesh, collection):
+    prop = bpy.data.objects.new(name, mesh)
+    prop['prop'] = True
+    if 'seeThrough' in collection:
+        prop['seeThrough'] = collection['seeThrough']
+    bpy.context.scene.collection.objects.link(prop)
+    props.append(prop)
+    return prop
+
+
 prop_count = {'big': 0, 'small': 0}
-for cname in PROP_COLLECTIONS:
+for collection in list(prop_collections(bpy.context.view_layer.layer_collection)):
     small = []
-    for ob in bpy.data.collections[cname].objects:
+    for ob in list(collection.objects):
         if not is_prop(ob):
             continue
         if largest_side(ob) >= BIG and ob.type == 'MESH':
             mesh = baked_mesh(ob)
             name = ob.name
             ob.name = name + ' (source)'
-            prop = bpy.data.objects.new(name, mesh)
-            prop['prop'] = True
-            bpy.context.scene.collection.objects.link(prop)
-            if cname == 'Cockpit':
-                prop['seeThrough'] = 'solid'
-            props.append(prop)
-            big_props.append(prop)
+            ob['export'] = False  # nothing is saved: so an object in two collections is baked once
+            big_props.append(add_prop(name, mesh, collection))
+            if ob.get('collider') != 'none':  # tagged: its own *_col mesh collides instead
+                hull_props.append(big_props[-1])
             prop_count['big'] += 1
         else:
             small.append(ob)
@@ -329,61 +209,28 @@ for cname in PROP_COLLECTIONS:
             if remap:
                 face.material_index = remap[face.material_index] if face.material_index < len(remap) else remap[0]
         bpy.data.meshes.remove(mesh)
+        ob['export'] = False
         prop_count['small'] += 1
-    merged = bpy.data.meshes.new(f'Props {cname}')
+    merged = bpy.data.meshes.new(f'Props {collection.name}')
     bm_props.to_mesh(merged)
     bm_props.free()
     for mat in materials:
         merged.materials.append(mat)
-    prop = bpy.data.objects.new(f'Props {cname}', merged)
-    prop['prop'] = True
-    bpy.context.scene.collection.objects.link(prop)
-    if cname == 'Cockpit':
-        prop['seeThrough'] = 'solid'
-    props.append(prop)
+    add_prop(f'Props {collection.name}', merged, collection)
 
 for mat in sorted({s.material for ob in props for s in ob.material_slots if s.material} - {s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:
         print(f'PERF: material {mat.name!r} is double-sided (backface culling off in Blender)')
 
 # Light markers.
-markers = []
-for name, room in LIGHTS.items():
-    source = bpy.data.objects[name]
-    marker = bpy.data.objects.new(f'light {room} ({name})', None)
-    marker.matrix_world = source.matrix_world.copy()
-    marker['light'] = {'room': room, 'color': list(source.data.color), 'energy': source.data.energy}
-    bpy.context.scene.collection.objects.link(marker)
-    markers.append(marker)
-centre = bpy.data.objects['Cockpit Center'].matrix_world.translation
-marker = bpy.data.objects.new('light cockpit (new)', None)
-marker.location = (centre.x, centre.y, centre.z + COCKPIT_LIGHT_ABOVE_CENTRE)
-marker['light'] = {'room': 'cockpit', 'color': [1.0, 1.0, 1.0], 'energy': 20.0}
-bpy.context.scene.collection.objects.link(marker)
-markers.append(marker)
-flagged = sorted(ob.name for ob in bpy.data.objects if ob.type == 'LIGHT' and ob.name not in LIGHTS)
-print(f'FLAGGED LIGHTS (not imported): {flagged}')
-print(f'cockpit light at {tuple(round(v, 2) for v in marker.location)}')
-
-# Bulkheads collide as three simple pieces each, left of, right of and above the doorway (owner,
-# 2026-10-09, as in the UE prototype): the modelled bulkhead keeps a strip under the doorway (5-9 cm,
-# narrower than her controller's step), which she bumped into. Each piece is the convex hull of that
-# part of the bulkhead, so it follows the hull's curve. The doorway's frame and the sliding doors
-# (inside the bulkhead's thickness) are left out. Bulkhead: its doorway cutter.
-BULKHEAD_PIECES = {'Bulkhead Cargo': 'Door Boolean.003', 'Bulkhead Cockpit': 'Door Boolean.004'}
-NOT_COLLIDING = {'Door Boolean.001', 'Door Cockpit', 'Door Cockpit 2', 'Door Engineering', 'Door Engineering 2'}
+markers = [ob for ob in in_scene if 'lightRoom' in ob]
+for marker in markers:
+    marker['light'] = {'room': marker['lightRoom'], 'color': list(marker['lightColor']), 'energy': marker['lightEnergy']}
 
 
-def world_bounds(ob):
-    from mathutils import Vector
-    corners = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
-    return Vector([min(c[i] for c in corners) for i in range(3)]), Vector([max(c[i] for c in corners) for i in range(3)])
-
-
-def add_hull(target, points):
+def add_hull(target, mesh):
     part = bmesh.new()
-    for p in points:
-        part.verts.new(p)
+    part.from_mesh(mesh)
     bmesh.ops.convex_hull(part, input=part.verts, use_existing_faces=False)
     hull_mesh = bpy.data.meshes.new('hull')
     part.to_mesh(hull_mesh)
@@ -391,48 +238,27 @@ def add_hull(target, points):
     target.from_mesh(hull_mesh)
 
 
-# Collision mesh: evaluated copies (modifiers applied) of everything except moving parts.
+# Collision mesh: evaluated copies (modifiers applied) of every part except the moving ones, then
+# the file's own collision pieces.
 bm = bmesh.new()
 hulls = []
-for ob in objects:
-    if ob.name in MOVING or ob.name in NOT_COLLIDING:
-        continue
-    if ob.name in BULKHEAD_PIECES:
-        evaluated = ob.evaluated_get(depsgraph)
-        mesh = evaluated.to_mesh()
-        points = [ob.matrix_world @ v.co for v in mesh.vertices]
-        evaluated.to_mesh_clear()
-        lo, hi = world_bounds(bpy.data.objects[BULKHEAD_PIECES[ob.name]])
-        e = 0.002
-        add_hull(bm, [p for p in points if p.x <= lo.x + e])  # left of the doorway
-        add_hull(bm, [p for p in points if p.x >= hi.x - e])  # right
-        add_hull(bm, [p for p in points if p.z >= hi.z - e])  # above
+col_objects = [ob for ob in in_scene if ob.type == 'MESH' and ob.name.endswith('_col')]
+for ob in objects + col_objects:
+    how = ob.get('collider', 'mesh')
+    if ob in moving or how == 'none':
         continue
     evaluated = ob.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
     mesh.transform(ob.matrix_world)
-    mesh.calc_loop_triangles()
-    if len(mesh.loop_triangles) > DENSE_TRIS and ob.name not in STRUCTURE:
-        part = bmesh.new()
-        part.from_mesh(mesh)
-        bmesh.ops.convex_hull(part, input=part.verts, use_existing_faces=False)
-        hull_mesh = bpy.data.meshes.new('hull')
-        part.to_mesh(hull_mesh)
-        part.free()
-        bm.from_mesh(hull_mesh)
+    if how == 'hull':
+        add_hull(bm, mesh)
         hulls.append(ob.name)
     else:
         bm.from_mesh(mesh)
     evaluated.to_mesh_clear()
 # Big props: their convex hulls (already baked in place).
-for prop in big_props:
-    part = bmesh.new()
-    part.from_mesh(prop.data)
-    bmesh.ops.convex_hull(part, input=part.verts, use_existing_faces=False)
-    hull_mesh = bpy.data.meshes.new('hull')
-    part.to_mesh(hull_mesh)
-    part.free()
-    bm.from_mesh(hull_mesh)
+for prop in hull_props:
+    add_hull(bm, prop.data)
 bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.005)
 bmesh.ops.triangulate(bm, faces=bm.faces)
 col_mesh = bpy.data.meshes.new('zamboni_col')
@@ -442,9 +268,16 @@ col_mesh.materials.clear()  # one primitive, no materials: it's never rendered
 collider = bpy.data.objects.new('zamboni_col', col_mesh)
 bpy.context.scene.collection.objects.link(collider)
 
+for ob in objects + markers:
+    for key in EXPORT_ONLY:
+        if key in ob:
+            del ob[key]
+
 
 def export(selection, path, **options):
-    bpy.ops.object.select_all(action='DESELECT')
+    # Every object, not the operator: it leaves hidden objects selected, and they'd be exported.
+    for ob in bpy.context.view_layer.objects:
+        ob.select_set(False)
     for ob in selection:
         ob.hide_set(False)
         ob.hide_viewport = False
@@ -459,4 +292,4 @@ export(objects + props + markers, args.out, export_extras=True)
 # The collider: positions only (no normals, UVs or materials).
 export([collider], args.collider_out, export_normals=False, export_texcoords=False, export_materials='NONE')
 print('EXPORTED', args.out, args.collider_out)
-print(f'objects: {len(objects)}, props: {prop_count["big"]} big, {prop_count["small"]} small merged into {len(props) - len(big_props)} objects, lights: {len(markers)}, tags set: {tagged}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')
+print(f'objects: {len(objects)}, props: {prop_count["big"]} big, {prop_count["small"]} small merged into {len(props) - len(big_props)} objects, lights: {len(markers)}, collision pieces: {len(col_objects)}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')

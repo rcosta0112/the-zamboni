@@ -8,6 +8,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-12 | Single-sided materials in the ship | pipeline | Backface culling on in the ship file; the game draws what the file says, with a switch back; no measurable saving |
+| 2026-10-12 | The ship's reference file | pipeline | `The Zamboni 1.19.blend` is the scene as in the game; tags are custom properties in the file, not lists in the export script |
 | 2026-10-12 | Keeping context small between sessions | docs | A state file read first (`steps/current.md`), a backlog tracker, a code map, this index |
 | 2026-10-09 | Basic interaction: doors, keypads, ladders | feature | E / Circle uses the target nearest the screen centre within reach, with a prompt next to it; doors toggle on a hinge (a door with a keypad only from the keypad); ladders need no button and go up only |
 | 2026-10-09 | The rest of the ship: props, room lights, crew | prototype | Small props merged per room, no prop shadows; one or two lights per room, the four nearest on; the crew placed in the ship |
@@ -28,6 +30,30 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-12] — Single-sided materials in the ship (pipeline)
+
+**Context:** 44 of the 57 materials the ship's export uses were double-sided in Blender, and the see-through hull drew every cuttable material double-sided whatever the file said, with back faces in a dark colour so a cut reads as a solid cross-section. The owner asked for every double-sided material to be single-sided, for performance, with any surface that disappears fixed in Blender.
+
+**Decision (owner):** Backface culling is on for every material the ship's export uses, in the reference file. The game draws each see-through material with the side it has in the file; a switch in the tuning panel (*single-sided materials*, on by default) goes back to double-sided with the dark cut surface. The characters stay as they are for now.
+
+**Alternatives considered:** forcing single-sided in the export or in the game (the rule of 2026-10-08 stands: the export keeps Blender's setting, so one material can be made double-sided again in Blender); keeping double-sided only on the see-through materials (the look of 2026-10-08).
+
+**Rationale:** The owner's instruction; the switch is there to measure it and to compare the two looks.
+
+**Status:** Built 2026-10-12, owner play-test pending. **Measured** (owner's PC, headless Chrome, frame-rate limit off, 1264×569): engineering 112 fps single-sided against 109 double-sided, crew quarters 75 against 73, outside about 300 either way. No measurable saving at this size; the look changes (through a cut you see what's behind, not a cross-section). Whether to keep it is the owner's call after playing with the switch. Details: [`features/see-through-hull.md`](features/see-through-hull.md).
+
+## [2026-10-12] — The ship's reference file (pipeline)
+
+**Context:** The game's ship was the owner's Blender file plus about 150 lines of lists in `export-ship.py`: which objects are exported, which are doors and how they open, what's structure, what's removed, where the lights are, how the bulkheads collide. The Blender file and the game had drifted apart (doors modelled open, the ramp keyed open, objects removed only in the export), and one such difference caused the ramp bug of pass 1.
+
+**Decision (owner):** A copy of the file, `The Zamboni 1.19.blend`, is updated to match the scene in the game and is the reference from now on (1.18 is left untouched). Everything that is scene content lives in it: doors closed, removed objects deleted, every tag as a custom property on its object or collection, the room light markers as empties, collision pieces as `*_col` objects. The export script keeps only what is derived (modifiers, baking and merging props, the collider, hinges, the `PERF:` report). The file was built by a script (`app/tools/build-ship-reference.py`), kept as the record.
+
+**Alternatives considered:** keeping the lists in the export script (the drift continues, and the owner can't change behaviour from Blender); a data file next to the `.blend` (a third place to keep in step).
+
+**Rationale:** "Art drives behaviour through names and custom properties" ([`architecture/README.md`](architecture/README.md)) was the rule; the lists were a stand-in. With the tags in the file, a new door or collision box is a change in Blender and a re-export.
+
+**Status:** Done 2026-10-12. Proven before anything else changed: the reference file exported with the new script matched 1.18's export object for object (differences: the ramp, now closed, and the new `opensWith` tag; the collider has the same vertices and surface area). Details: [`architecture/asset-pipeline.md`](architecture/asset-pipeline.md#the-ships-reference-file).
 
 ## [2026-10-12] — Keeping context small between sessions (docs)
 

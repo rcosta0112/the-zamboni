@@ -1,6 +1,6 @@
 # Plan: the backlog, in six passes
 
-**Status:** *approved*, 2026-10-12 (order and answers below); not started. Before pass 1: an audit of the project and documentation structure (owner, 2026-10-12). Covers every item in [`backlog.md`](backlog.md) (1–23). All of it is in prototype 01, like the ship so far.
+**Status:** *in progress*: approved 2026-10-12 (order and answers below); passes 1 and 2 built on 2026-10-12, owner play-test pending. Before pass 1: an audit of the project and documentation structure (owner, 2026-10-12). Covers every item in [`backlog.md`](backlog.md) (1–23). All of it is in prototype 01, like the ship so far.
 
 ## Decided (owner, 2026-10-12)
 

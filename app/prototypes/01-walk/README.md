@@ -81,14 +81,15 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 
 ## The ship and collisions
 
-**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (1.53 MB) and its collider `zamboni-ship-col.glb` (104 KB), exported from `resources/models/The Zamboni 1.18.blend` with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
+**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (3.3 MB) and its collider `zamboni-ship-col.glb` (160 KB), exported from the reference file `resources/models/The Zamboni 1.19.blend` (see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md#the-ships-reference-file)) with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
 
 ```sh
-blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship.py -- \
+blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship.py -- \
   --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 cd app
 npx gltf-transform resize <raw>/zamboni-ship.glb <raw>/zamboni-ship-512.glb --width 512 --height 512
-npx gltf-transform meshopt <raw>/zamboni-ship-512.glb assets/test/zamboni-ship.glb
+npx gltf-transform dedup <raw>/zamboni-ship-512.glb <raw>/zamboni-ship-dedup.glb
+npx gltf-transform meshopt <raw>/zamboni-ship-dedup.glb assets/test/zamboni-ship.glb
 npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
 ```
 
@@ -100,6 +101,7 @@ npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-c
 - **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `hinge` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). "Closed" is the door object with no rotation of its own: the current file has the ramp lying open (turned 88°), which the game undoes (before 2026-10-12 it took the file's pose for closed, and the ramp only moved 4°). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
 - **Doors, keypads, ladders** (2026-10-09): the side door, the trapdoor, the roof hatches, the fridge, cupboard and locker doors open and close (all start closed but the trapdoor); the open side door is a ramp; the upper keypad by the side door works the ramp, the lower one the side door; the cargo bay ladder can be climbed. Point the camera at a door within her reach and press E / Circle. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md). A moving door pushes her out of its way (or stops, if she's pinned). Tuning panel: *Interaction* folder (reach, how far from the screen centre, highlight, door time, doors push her, climb speed).
 - **Changed 2026-10-12** (backlog pass 1): the side door has no prompt of its own (its keypad only); the roof hatch's two parts are one target; ladders go up only (down is through the trapdoor); the prompt sits next to the target on screen and the highlight is off by default.
+- **Changed 2026-10-12** (backlog pass 2): exported from the reference file, where every tag now lives. The cargo ramp is closed in the file (the game opens it at the start, as before). The engineering display is on its arm, not inside the wall. She can't get under the hull or the front thrusters (collision boxes in the file's `Game Collision` collection: resize them in Blender). The ship's materials are single-sided, with a switch back (*single-sided materials*, tuning panel → see-through).
 - **Double-sided materials** (export report, to fix in Blender): see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md).
 
 **Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.

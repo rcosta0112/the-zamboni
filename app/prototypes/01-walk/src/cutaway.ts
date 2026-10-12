@@ -14,6 +14,8 @@
 // - material.maskNode: the cut (a pixel is discarded where it's false).
 // - material.maskShadowNode = true: the shadow pass ignores the cut, so the hull keeps its full shadow.
 // - Double-sided, back faces drawn in one dark colour: the cut edge reads as a solid cross-section.
+//   Or single-sided (a switch in the tuning panel; owner, 2026-10-12): each material keeps the side
+//   it has in the ship file, so through a cut you see what's behind it, not the surface's back.
 
 import * as THREE from 'three/webgpu';
 import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, uniform, vec3 } from 'three/tsl';
@@ -106,6 +108,20 @@ const occluderTint = u.showOccluders.mul(fade).mul(select(structure.lessThan(0.5
 
 /** One cuttable copy per source material, shared by every mesh that uses it. */
 const copies = new Map<THREE.Material, THREE.MeshStandardNodeMaterial>();
+let singleSided = false;
+
+/**
+ * Single-sided: every cuttable material is drawn with the side it has in the ship file (backface
+ * culling in Blender). Otherwise double-sided, with the dark back faces.
+ */
+export function setSingleSided(on: boolean): void {
+  if (on === singleSided) return;
+  singleSided = on;
+  for (const [source, material] of copies) {
+    material.side = on ? source.side : THREE.DoubleSide;
+    material.needsUpdate = true;
+  }
+}
 
 /**
  * Give a mesh the cuttable copy of its material (copies, because nothing else may be cut, e.g. the
@@ -126,7 +142,7 @@ export function makeCuttable(mesh: THREE.Mesh): void {
       target[key] = (source as unknown as Record<string, unknown>)[key];
     }
     material.name = `${source.name} (cuttable)`;
-    material.side = THREE.DoubleSide;
+    material.side = singleSided ? source.side : THREE.DoubleSide;
     // Cast shadows from the back faces only, as a closed single-sided hull would.
     material.shadowSide = THREE.BackSide;
     const cutSurface = select(u.ownColour.greaterThan(0.5), materialColor.rgb.mul(u.shade), u.backColor.rgb);

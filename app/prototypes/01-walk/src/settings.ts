@@ -83,6 +83,7 @@ export const settings = {
   cutBackColor: '#1b2327', // inside faces of cut surfaces (when not in their own colour)
   cutOwnColour: true, // inside faces in the surface's own colour, darkened
   cutShade: 0.35, // how much of its own colour the inside keeps
+  singleSided: true, // the ship's materials as in the file (backface culling); off: double-sided, with the dark cut surface
   holeOnlyWhenHidden: true, // the hole opens only while something solid hides her (glass doesn't count)
   dividersWhole: false, // bulkheads (divider: true) cut as a whole, by the furniture rules, instead of by the hole
   bulkheadsAlwaysVisible: true, // bulkheads, their doors and what's attached to them: never cut while she's on their deck

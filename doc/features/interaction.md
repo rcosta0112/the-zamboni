@@ -28,13 +28,13 @@ The prompt shows the button of the last device used (◯ or E).
 - **A door that a keypad controls** (owner, 2026-10-12): the side door and the cargo ramp are used from their keypads only.
 - A door she's standing on (see *Doors*).
 
-**Doors that open together are one target:** the roof hatch's two parts (`Top Hatch`, `Top Hatch Bottom`). Aiming at either shows one prompt; one press moves both to the same state. The pair is listed in the code (`OPEN_TOGETHER` in `interaction.ts`) until the next export gives it a tag (`opensWith`).
+**Doors that open together are one target:** the roof hatch's two parts (`Top Hatch`, `Top Hatch Bottom`). Aiming at either shows one prompt; one press moves both to the same state. Each part is tagged `opensWith: "<the other's name>"` in the ship file (since the export of 2026-10-12; until then the pair was listed in the code).
 
 **The highlight is off by default** (the *highlight* slider in the tuning panel, 0 = off): the target lifted toward white, the first version's feedback. The slider stays until the owner has seen the prompt; then it's removed with its shader code. It rides on the see-through hull's per-object uniform (its `w`: bit 0 = never cut, bit 1 = highlighted), so it costs no extra per-draw update.
 
 ## Doors
 
-| Door | Object in `The Zamboni 1.18.blend` | Hinge | Opens |
+| Door | Object in `The Zamboni 1.19.blend` | Hinge | Opens |
 |---|---|---|---|
 | Side door (cargo hold): **from its keypad only** | `Door` | bottom edge | outward and down until it rests on the ground (126°): **open, it's a ramp** |
 | Trapdoor to the crew quarters | `Hatch.002` | one edge | up, 90° |
@@ -85,10 +85,11 @@ Ladders are found from their bounds at load: she stands on the more open side, t
 
 ## Data
 
-From the ship file's custom properties (glTF extras), set by [`app/tools/export-ship.py`](../../app/tools/export-ship.py) until they're set in Blender (naming contract: [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#naming-contract-proposed)):
+From the ship file's custom properties (glTF extras). Since 2026-10-12 they're set in Blender, in the reference file (`doorAxis`, `doorAngle`, `doorToGround`, `doorStartOpen`, which [`app/tools/export-ship.py`](../../app/tools/export-ship.py) writes as `door`; naming contract: [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#naming-contract-proposed)):
 
 - `door: {axis, angle, toGround, startOpen}` and `interact: "open"` on each door; `hinge` (its hinge point).
 - `interact: "use"`, `device: "panel"`, `controls: "<object name>"` on the keypads.
+- `opensWith: "<object name>"` on doors that open together.
 - Ladders are listed by name in the code for now.
 
 ## Code

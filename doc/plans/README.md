@@ -29,7 +29,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [The rest of the ship (props, interior lights, Dr. Kaufman)](features/ship-contents.md) | Prototype 01 | Built; owner play-test pending |
 | [Basic interaction (doors, hatches, lockers, the cargo panels, ladders)](features/interaction-doors.md) | Prototype 01 | Built; owner play-test pending |
 | [Doors and the character (getting in the way, getting trapped)](features/interaction-clearance.md) | Prototype 01 | Built; owner play-test pending |
-| [The backlog, in six passes](backlog-passes.md) | Prototype 01 | Approved 2026-10-12; not started |
+| [The backlog, in six passes](backlog-passes.md) | Prototype 01 | In progress: passes 1 and 2 built (owner play-test pending); pass 3 next |
 
 ## Plan format
 

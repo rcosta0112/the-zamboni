@@ -16,6 +16,7 @@ Inside the ship, what hides Dr. Green from the camera is cut away, so she stays 
   - `material.maskNode`: the cut condition (a pixel is discarded where it's false).
   - `material.maskShadowNode = true`: the shadow pass ignores the cut, so the hull keeps its full shadow (checked: the ship's shadow is identical with the cut on and off).
   - Cuttable materials are double-sided, with back faces drawn in one dark colour, so the cut edge reads as a solid cross-section; shadows are cast from back faces only.
+  - **Single-sided, on by default since 2026-10-12** (owner; *single-sided materials* in the tuning panel's see-through folder): each material keeps the side it has in the ship file, which is single-sided for all of them. Through a cut you then see what's behind the surface (the next room, the sky) instead of its dark back, and a surface with no modelled back isn't there from behind: those are fixed in Blender. Switching back gives the look above. Flipping the switch rebuilds the ship's shaders (a pause of a second or two).
 - **Copies of materials:** cutting is per material, and what must never be cut (the landing gear, Dr. Green) can share materials with the ship, so cuttable meshes use a copy. **One copy per source material**, shared by every mesh that uses it (29 for the ship; until 2026-10-08 it was one per mesh, 159). The copy keeps every property of the source, physical ones included (transmission, specular…).
 - **Compiled while loading:** after the ship loads, its shaders are compiled (`renderer.compileAsync`, with view culling off meanwhile so parts outside the view are included) before the ship counts as loaded. This removed a ~0.57 s freeze just after the ship first appeared.
 
@@ -61,6 +62,7 @@ On/off, radius, edge softness, target height, cut edge in own colour (and its br
 
 Measured 2026-10-08 on the owner's PC (GTX 1070, headless Chrome, WebGPU, 1280×720), everything cuttable (52,200 triangles, 286 draw calls, 29 cuttable materials):
 
+- **Single-sided against double-sided** (2026-10-12, same PC, headless Chrome with the frame-rate limit off, 1264×569): engineering 112 against 109 fps, crew quarters 75 against 73, outside about 300 either way (differences within the noise). Single-sided is not a measurable saving here; to confirm in the owner's browser with the switch.
 - **Per frame:** a few instructions per pixel, plus losing the GPU's early depth test on the whole interior and drawing back faces (double-sided). 60 fps (vsync-limited); no frame over 17 ms on first entry. Not yet measured on the MacBook.
 - **Loading:** compiling the ship's shaders takes 2.2–2.6 s, during loading. Total stall time while loading is about the same as before (~3 s, which includes the character and scene). The ship appears ~0.7 s later, and the 0.57 s freeze just after it appeared is gone.
 - **See-through rules:** 0.2 ms per frame for the rays (12 per piece of furniture, 5 against the structure), with a BVH per mesh; no change in frame time. BVHs are built at load.

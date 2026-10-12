@@ -7,7 +7,7 @@ import { Character } from './character';
 import { Input } from './input';
 import { loadModels } from './model';
 import { Physics } from './physics';
-import { updateCutaway } from './cutaway';
+import { setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
 import type { Pusher } from './doors';
 import { Interaction, shipInteractables } from './interaction';
@@ -190,6 +190,7 @@ async function start(): Promise<void> {
     // frame when already at the target, which made the hole flicker).
     insideAmount = easeTo(insideAmount, active ? 1 : 0, dt / 0.3);
     holeAmount = easeTo(holeAmount, holeOpen ? 1 : 0, dt / 0.3);
+    setSingleSided(settings.singleSided);
     updateCutaway(view.camera.position, chest, character.root.position.y, holeAmount, insideAmount, {
       radius: settings.cutRadius,
       softness: settings.cutSoftness,

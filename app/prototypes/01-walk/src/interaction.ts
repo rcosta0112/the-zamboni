@@ -29,10 +29,26 @@ export interface Interactable {
 }
 
 /**
- * Doors that open and close together, as one target (Blender names). Listed here until the next
- * export gives them a tag (`opensWith`).
+ * Doors that open and close together, as one target: each is tagged `opensWith: "<object name>"`
+ * in the ship file (the roof hatch's two parts).
  */
-const OPEN_TOGETHER: string[][] = [['Top Hatch', 'Top Hatch Bottom']];
+function doorGroups(doors: Door[]): Door[][] {
+  const groups: Door[][] = [];
+  const grouped = new Set<Door>();
+  for (const door of doors) {
+    const other = door.object.userData.opensWith as string | undefined;
+    if (!other || grouped.has(door)) continue;
+    const partner = doors.find((d) => d !== door && named(d.object, other));
+    if (!partner) {
+      console.warn(`[01-walk] "${door.name}" opens with "${other}", which isn't a door`);
+      continue;
+    }
+    const group = [door, partner].sort((x, y) => x.name.localeCompare(y.name));
+    for (const d of group) grouped.add(d);
+    groups.push(group);
+  }
+  return groups;
+}
 
 /** The ship's interactables: its doors and the keypads that control the ramp and the side door. */
 export function shipInteractables(ship: THREE.Object3D, doors: Door[]): Interactable[] {
@@ -55,9 +71,8 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[]): Interact
     list.push({ name: o.name, objects: [o], verb: () => (door.open ? 'Close door' : 'Open door'), act: () => door.toggle() });
   });
   const grouped = new Set<Door>();
-  for (const names of OPEN_TOGETHER) {
-    const group = names.map((n) => doors.find((d) => named(d.object, n))).filter((d): d is Door => d !== undefined && !withKeypad.has(d));
-    if (group.length !== names.length) console.warn(`[01-walk] doors that open together: not all of ${names.join(', ')} are in the ship`);
+  for (const all of doorGroups(doors)) {
+    const group = all.filter((d) => !withKeypad.has(d));
     if (group.length === 0) continue;
     for (const door of group) grouped.add(door);
     const first = group[0]!;
