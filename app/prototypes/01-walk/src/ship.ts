@@ -56,6 +56,8 @@ export interface Ship {
   doors: Door[];
   /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
   shadowCaster: THREE.Mesh;
+  /** The same for its glass (windows, windshield): casts only while the sun isn't let through. */
+  glassShadowCaster: THREE.Mesh;
 }
 
 /** Layer of the merged shadow caster: the sun's shadow camera renders it, the view camera doesn't. */
@@ -170,9 +172,9 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
     rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
     doors,
-    shadowCaster: mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)]),
+    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)]),
   };
-  scene.add(ship.shadowCaster);
+  scene.add(ship.shadowCaster, ship.glassShadowCaster);
   updateShip(ship, 0, true);
   return ship;
 }
@@ -294,6 +296,7 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
  */
 export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pusher): void {
   ship.collider.visible = settings.showColliders;
+  ship.glassShadowCaster.castShadow = !settings.sunThroughGlass;
   for (const door of ship.doors) door.update(dt, force, pusher);
   const target = settings.cargoRampOpen ? 1 : 0;
   if (!force && ship.rampAmount === target) {
@@ -331,15 +334,21 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
  * shadow, except the moving parts (ramp, doors), joined; those meshes then stop casting. Drawing hundreds of
  * see-through meshes into the shadow map was ~310 draw calls per frame, each with the see-through
  * material's per-draw cost; this is one. It's on SHADOW_LAYER, so only the sun's shadow camera
- * draws it. Back faces cast, as the see-through materials did (shadowSide).
+ * draws it. Both faces cast: with back faces only (until 2026-10-12), a wall facing the sun cast
+ * nothing, and the sun leaked in along the seams between the inner walls once it was let in at all.
+ * The glass (transparent materials: windows, the windshield) is a second mesh, so the sun can be let
+ * through it into the rooms (owner, 2026-10-12: the crew quarters and cockpit were too blue).
  */
-function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[]): THREE.Mesh {
+function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[]): { shadowCaster: THREE.Mesh; glassShadowCaster: THREE.Mesh } {
   ship.updateMatrixWorld(true);
-  const positions: number[] = [];
+  const solid: number[] = [];
+  const glass: number[] = [];
   const v = new THREE.Vector3();
   ship.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || !mesh.castShadow || moving.some((m) => isInside(mesh, m))) return;
+    const material = mesh.material as THREE.MeshPhysicalMaterial;
+    const positions = material.transparent || (material.transmission ?? 0) > 0 ? glass : solid;
     const position = mesh.geometry.getAttribute('position');
     const index = mesh.geometry.getIndex();
     const count = index ? index.count : position.count;
@@ -349,16 +358,20 @@ function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[]): THR
     }
     mesh.castShadow = false;
   });
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   const material = new THREE.MeshBasicNodeMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide });
-  material.shadowSide = THREE.BackSide;
-  const caster = new THREE.Mesh(geometry, material);
-  caster.name = 'ship shadow caster';
-  caster.castShadow = true;
-  caster.frustumCulled = false;
-  caster.layers.set(SHADOW_LAYER);
-  return caster;
+  material.shadowSide = THREE.DoubleSide;
+  const caster = (name: string, positions: number[]) => {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.castShadow = true;
+    mesh.frustumCulled = false;
+    mesh.layers.set(SHADOW_LAYER);
+    return mesh;
+  };
+  console.info(`[01-walk] ship shadow: ${solid.length / 9} triangles, glass ${glass.length / 9}`);
+  return { shadowCaster: caster('ship shadow caster', solid), glassShadowCaster: caster('ship shadow caster (glass)', glass) };
 }
 
 /** True if `o` is `ancestor` or below it. */

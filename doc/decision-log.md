@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-12 | Lighting inside the ship | look | Sun through the glass, the world's blue light at half strength indoors, warm-tinted lights in the rooms with windows, sky reflections on metal |
 | 2026-10-12 | Single-sided materials in the ship | pipeline | Backface culling on in the ship file; the game draws what the file says, with a switch back; no measurable saving |
 | 2026-10-12 | The ship's reference file | pipeline | `The Zamboni 1.19.blend` is the scene as in the game; tags are custom properties in the file, not lists in the export script |
 | 2026-10-12 | Keeping context small between sessions | docs | A state file read first (`steps/current.md`), a backlog tracker, a code map, this index |
@@ -30,6 +31,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-12] — Lighting inside the ship (look)
+
+**Context:** The crew quarters and the cockpit were too blue (owner): sunlight through the windows should warm them. And metal looked black (owner: "reflective but very dark"). Found: the ship's shadow came from one merged mesh that included the glass, so no sun got in; the blue was the world light (a hemisphere light), which lights the inside of the hull as if it weren't there (with it off the rooms are grey); and metallic materials had nothing to reflect (`scene.environment` gave nothing because three sizes its reflection map from the texture's width, and the sky texture is 8 px wide).
+
+**Decision (agent, for the owner to judge; every value is in the tuning panel):** (A) the glass casts no shadow; (C) the world light is at half strength while she's inside; in place of (B), the lights of the rooms with windows are tinted 60% toward the sun's colour; metallic, non-transparent materials reflect the sky gradient at half strength, through their own environment node.
+
+**Alternatives considered:** (B) as planned, sun-coloured fill lights at the windows from new markers in the ship file: better (light from the window's side), but it needs markers added in Blender and uses the four-light budget; the tint is a stand-in the owner can replace by setting marker colours. `scene.environment` for everything: lights every material a second time and changes the approved outdoor look. Lower metalness in Blender: changes the materials rather than the lighting.
+
+**Rationale:** A alone gives sun patches, not a warmer room: there's no bounced light. The world light indoors is the actual source of the blue, so C does most of the work.
+
+**Status:** Built 2026-10-12; the owner judges the colour. Details: the prototype's [`README`](../app/prototypes/01-walk/README.md).
 
 ## [2026-10-12] — Single-sided materials in the ship (pipeline)
 

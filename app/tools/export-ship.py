@@ -53,6 +53,9 @@ from mathutils import Matrix, Vector
 # The ship's collections: everything under this one, included in the view layer and not tagged
 # ``export: false``, is looked through for props.
 SHIP_COLLECTION = 'Ship'
+# The light markers and collision pieces: included for the export even when it's excluded from the
+# view layer in the file (nothing is saved).
+GAME_COLLECTION = 'Game'
 # Props this big or bigger (largest side, Blender units: ~0.4 m in the game) stay separate objects
 # with a collider; smaller ones are merged per room and don't collide.
 BIG = 0.25
@@ -64,6 +67,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--out', required=True)
 parser.add_argument('--collider-out', required=True)
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
+
+
+
+def include(layer, inside=False):
+    """The game's own collection may be switched off in the file, to keep it out of the way."""
+    inside = inside or layer.collection.name == GAME_COLLECTION
+    if inside:
+        layer.exclude = False
+    for child in layer.children:
+        include(child, inside)
+
+
+include(bpy.context.view_layer.layer_collection)
+bpy.context.view_layer.update()
 
 in_scene = list(bpy.context.view_layer.objects)
 objects = [ob for ob in in_scene if ob.get('part')]

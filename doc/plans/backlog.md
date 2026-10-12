@@ -5,7 +5,7 @@
 | # | Item | Pass | Status |
 |---|---|---|---|
 | 1 | Copy the `.blend` and update it to match the scene in the game; it becomes the reference (`The Zamboni 1.19.blend`) | 2 | Built |
-| 2 | The cargo ramp keypad, moved away from the side door's in the file: re-export | 2 | Re-exported; **waiting on the owner**: in 1.18 on disk (saved 2026-10-09 13:20) both keypads are where they've been in every export |
+| 2 | The cargo ramp keypad, moved away from the side door's in the file: re-export | 2 | Built (re-exported 2026-10-12 from the owner's updated 1.19: `Door Panel - Cargo Ramp`, moved toward the ramp) |
 | 3 | The side door: no interaction of its own; it opens only from its keypad | 1 | Built |
 | 4 | Bug: the ladder gets stuck at the top | 1 | Built |
 | 5 | Ladders go up only; going down, she jumps down the hatch | 1 | Built |
@@ -13,7 +13,7 @@
 | 7 | The engineering window opens like a bulkhead door, from a lever next to it | 4 | To do |
 | 8 | 6 and 7 as in the UE prototype (`BP_Door_Internal`, `BP_Engineering_Window`, `BP_Lever_Panel`) | 4 | To do |
 | 9 | Bug: the cargo ramp doesn't close | 1 | Built |
-| 10 | Crew quarters and cockpit are too blue: sunlight through the windows should warm them | 3 | To do |
+| 10 | Crew quarters and cockpit are too blue: sunlight through the windows should warm them | 3 | Built |
 | 11 | Everything in engineering and the cargo hold is always visible while she's on that floor | 5 | To do |
 | 12 | The engineering display (`Monitor Arm`) is invisible most of the time: it ends up inside the wall | 2 | Built |
 | 13 | See-through in the crew quarters: furniture close to the walls (bunks, lockers); only their back walls are hidden | 5 | To do |

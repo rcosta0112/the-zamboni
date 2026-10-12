@@ -394,6 +394,19 @@ async function checks() {
   await wait(100);
   report(single === true && doubleWhenSingle === 0 && doubleWhenDouble === cuttable.length && cuttable.length > 0, 'single-sided materials, with a switch', `${cuttable.length} see-through materials: ${doubleWhenSingle} double-sided with the switch on, ${doubleWhenDouble} with it off`);
 
+  // --- Pass 3: lighting (10) --------------------------------------------------------------------
+  const glassTriangles = ship.glassShadowCaster.geometry.getAttribute('position').count / 3;
+  report(settings.sunThroughGlass && glassTriangles > 0 && ship.glassShadowCaster.castShadow === false && ship.shadowCaster.castShadow === true, 'the sun gets in through the glass', `${glassTriangles} glass triangles cast no shadow; the rest of the ship does`);
+  const metals = cuttable.filter((m) => m.metalness >= 0.5 && !m.transparent);
+  report(metals.length > 0 && metals.every((m) => m.envNode) && cuttable.filter((m) => m.metalness < 0.5).every((m) => !m.envNode), 'metal has something to reflect, and only metal', `${metals.length} metallic materials: ${metals.map((m) => m.name.replace(' (cuttable)', '')).join(', ')}`);
+  // (The single-sided check above rebuilds the shaders: frames stall for a while, so wait on the value.)
+  const worldLight = () => w.__world.ambient.intensity / (Math.PI * settings.worldStrength);
+  put(new T.Vector3(0, 0.05, 0));
+  const fullOutside = await until(() => Math.abs(worldLight() - 1) < 0.01, 8000);
+  put(inside.clone().setY(ship.upperFloorY + 0.05));
+  const downInside = await until(() => Math.abs(worldLight() - settings.worldIndoors) < 0.01, 8000);
+  report(fullOutside && downInside, 'the world light is turned down inside the ship', `full outside: ${fullOutside}; inside at ${worldLight().toFixed(2)} of it (setting ${settings.worldIndoors})`);
+
   // --- Every door, with her out of the way -----------------------------------------------------
   put(new T.Vector3(0, 0.05, 0));
   await wait(300);

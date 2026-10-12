@@ -63,6 +63,12 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   look.add(settings, 'sunAzimuthDeg', -180, 180, 1).name('sun direction (°)');
   look.add(settings, 'sunIntensity', 0, 15, 0.1).name('sun strength');
   look.add(settings, 'worldStrength', 0, 3, 0.05).name('world strength');
+  look.add(settings, 'sunThroughGlass').name('sun through glass');
+  look.add(settings, 'shadowMapSize', [1024, 2048, 4096]).name('shadow map (px)');
+  look.add(settings, 'shadowRange', 8, 40, 1).name('shadow range (m)');
+  look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
+  look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');
+  look.add(settings, 'metalReflections', 0, 2, 0.05).name('metal reflections');
   look.add(settings, 'haze').name('distance haze');
   look.add(settings, 'hazeNear', 0, 150, 1).name('haze starts (m)');
   look.add(settings, 'hazeFar', 20, 400, 1).name('haze full (m)');

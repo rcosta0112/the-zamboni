@@ -29,13 +29,23 @@ export interface World {
   sun: THREE.DirectionalLight;
   ambient: THREE.HemisphereLight;
   sky: THREE.DataTexture;
+  /** The same gradient, for metal to reflect (see `reflections`). */
+  reflections: THREE.DataTexture;
 }
+
+/** The sun's colour: also what the room lights of sunlit rooms are tinted toward. */
+export const sunColor: Readonly<THREE.Color> = SUN_COLOR;
 
 export function createWorld(scene: THREE.Scene): World {
   // The world gradient, as an equirectangular texture: the visible background, as the World is
   // in Blender. Its lighting is the hemisphere light below.
-  const sky = worldGradientTexture();
+  const sky = worldGradientTexture(8, 128);
   scene.background = sky;
+  // For reflections on metal: the same gradient, wide enough for three's PMREM (it sizes its cube
+  // from the texture's width; at 8 px it gave nothing). Not scene.environment: that would light
+  // every material a second time. Only metallic materials get it (cutaway.ts), and metal has no
+  // diffuse part, so nothing else changes.
+  const reflections = worldGradientTexture(256, 128);
 
   // Ambient light from the same gradient. (scene.environment, with or without PMREM, didn't light
   // anything in this setup, so the diffuse part is computed directly: what matters for these matte
@@ -50,13 +60,9 @@ export function createWorld(scene: THREE.Scene): World {
 
   const sun = new THREE.DirectionalLight(SUN_COLOR, settings.sunIntensity);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(settings.shadowMapSize, settings.shadowMapSize);
   sun.shadow.radius = 1.5; // the Blender sun's angle is 0.5°: nearly sharp shadows
   const s = sun.shadow.camera;
-  s.left = -25;
-  s.right = 25;
-  s.top = 25;
-  s.bottom = -25;
   s.near = 1;
   s.far = 80;
   sun.shadow.bias = -0.0005;
@@ -68,11 +74,15 @@ export function createWorld(scene: THREE.Scene): World {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  return { sun, ambient, sky };
+  return { sun, ambient, sky, reflections };
 }
 
-/** Per frame: keep the sun's shadow area on the character; apply tuning. */
-export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3): void {
+/**
+ * Per frame: keep the sun's shadow area on the character; apply tuning. `insideAmount` (0..1): how
+ * far she is inside the ship, where the world's blue light is turned down (it has no way in but the
+ * windows, and it made the rooms too blue; owner, 2026-10-12).
+ */
+export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3, insideAmount: number): void {
   const el = THREE.MathUtils.degToRad(settings.sunElevationDeg);
   const az = THREE.MathUtils.degToRad(settings.sunAzimuthDeg);
   const dist = 30;
@@ -83,8 +93,25 @@ export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vect
   );
   world.sun.target.position.copy(target);
   world.sun.intensity = settings.sunIntensity;
-  world.ambient.intensity = Math.PI * settings.worldStrength;
+  // The shadow map: its size, and the square around her that it covers. One texel is
+  // 2 × range / size (1.2 cm at 4096 and 25 m): the size of the steps on a shadow's edge.
+  const shadow = world.sun.shadow;
+  if (shadow.mapSize.x !== settings.shadowMapSize) {
+    shadow.mapSize.set(settings.shadowMapSize, settings.shadowMapSize);
+    shadow.map?.dispose();
+    shadow.map = null;
+  }
+  if (shadow.camera.right !== settings.shadowRange) {
+    const r = settings.shadowRange;
+    shadow.camera.left = -r;
+    shadow.camera.right = r;
+    shadow.camera.top = r;
+    shadow.camera.bottom = -r;
+    shadow.camera.updateProjectionMatrix();
+  }
+  world.ambient.intensity = Math.PI * settings.worldStrength * THREE.MathUtils.lerp(1, settings.worldIndoors, insideAmount);
   scene.backgroundIntensity = settings.worldStrength;
+  scene.environmentIntensity = settings.metalReflections; // no scene.environment: this scales the metals' envNode
 
   const f = scene.fog as THREE.Fog;
   f.near = settings.haze ? settings.hazeNear : 1e6;
@@ -132,9 +159,7 @@ function ramp(t: number): [number, number, number] {
 }
 
 /** Equirectangular texture of the world gradient: the ramp is driven by the direction's height (Blender's Z). */
-function worldGradientTexture(): THREE.DataTexture {
-  const w = 8;
-  const h = 128;
+function worldGradientTexture(w: number, h: number): THREE.DataTexture {
   const data = new Float32Array(w * h * 4);
   for (let y = 0; y < h; y++) {
     // Data row 0 is the bottom of the equirect (straight down): elevation −90° … +90°.

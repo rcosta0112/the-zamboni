@@ -18,7 +18,7 @@
 //   it has in the ship file, so through a cut you see what's behind it, not the surface's back.
 
 import * as THREE from 'three/webgpu';
-import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, uniform, vec3 } from 'three/tsl';
+import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, texture, uniform, vec3 } from 'three/tsl';
 
 /** Shared by every cuttable material; updated each frame by updateCutaway(). */
 const u = {
@@ -109,6 +109,16 @@ const occluderTint = u.showOccluders.mul(fade).mul(select(structure.lessThan(0.5
 /** One cuttable copy per source material, shared by every mesh that uses it. */
 const copies = new Map<THREE.Material, THREE.MeshStandardNodeMaterial>();
 let singleSided = false;
+let reflections: THREE.Texture | null = null;
+
+/**
+ * What metal reflects (an equirectangular texture): set before the ship loads. Metallic materials
+ * have no diffuse colour, so without something to reflect they're black but for the lights'
+ * highlights. Its strength is `scene.environmentIntensity`.
+ */
+export function setReflections(environment: THREE.Texture): void {
+  reflections = environment;
+}
 
 /**
  * Single-sided: every cuttable material is drawn with the side it has in the ship file (backface
@@ -149,6 +159,8 @@ export function makeCuttable(mesh: THREE.Mesh): void {
     const lifted = mix(materialColor.rgb, vec3(1, 1, 1), highlight.mul(u.highlight));
     material.colorNode = select(frontFacing, mix(lifted, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
     material.maskNode = keep;
+    // Not glass: it's see-through, and in the ship file it's fully metallic too.
+    if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections);
     material.maskShadowNode = bool(true);
     copies.set(source, material);
   }

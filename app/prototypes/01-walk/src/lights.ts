@@ -8,6 +8,7 @@
 
 import * as THREE from 'three/webgpu';
 import { settings } from './settings';
+import { sunColor } from './world';
 
 export interface LightMarker {
   name: string;
@@ -27,6 +28,12 @@ export function findLightMarkers(ship: THREE.Object3D): LightMarker[] {
     markers.push({ name: o.name, room: light.room, position: o.getWorldPosition(new THREE.Vector3()), color: new THREE.Color(r, g, b) });
   });
   return markers;
+}
+
+const tinted = new THREE.Color();
+function markerColor(marker: LightMarker): THREE.Color {
+  const warmth = settings.sunlitRooms.includes(marker.room) ? settings.sunlitRoomWarmth : 0;
+  return tinted.copy(marker.color).lerp(sunColor, warmth);
 }
 
 /** Seconds for a light to fade out or in when it moves to another marker. */
@@ -72,9 +79,10 @@ export class RoomLights {
       if (!free) break;
       free.marker = marker;
       free.light.position.copy(marker.position);
-      free.light.color.copy(marker.color);
     }
     for (const slot of this.slots) {
+      // Rooms the sun gets into are tinted toward its colour (a stand-in for bounced sunlight).
+      if (slot.marker) slot.light.color.copy(markerColor(slot.marker));
       slot.light.intensity = settings.roomLightIntensity * slot.level;
       slot.light.distance = settings.roomLightRange;
     }

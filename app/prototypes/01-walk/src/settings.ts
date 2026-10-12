@@ -60,6 +60,13 @@ export const settings = {
   sunAzimuthDeg: -52, // 0 = behind the starting camera; negative = to its left
   sunIntensity: 7.5, // Blender sun strength (same units)
   worldStrength: 1.0, // Blender world strength
+  worldIndoors: 0.5, // the world's (blue) light while she's inside the ship, as a share of its strength outside
+  metalReflections: 0.5, // how strongly metal reflects the sky gradient
+  sunlitRooms: ['crew quarters', 'cockpit'], // rooms with windows (the markers' `room`): their lights are tinted
+  sunlitRoomWarmth: 0.6, // 0 = the marker's own colour, 1 = the sun's colour
+  shadowMapSize: 4096, // px; 2048 until 2026-10-12 (steps on the edges of the sun patches inside)
+  shadowRange: 25, // m around her covered by the sun's shadow (smaller = sharper, but far shadows disappear)
+  sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   haze: true, // distance haze in the horizon colour, hides the floor's edge
   hazeNear: 60,
   hazeFar: 190,

@@ -7,7 +7,7 @@ import { Character } from './character';
 import { Input } from './input';
 import { loadModels } from './model';
 import { Physics } from './physics';
-import { setSingleSided, updateCutaway } from './cutaway';
+import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
 import type { Pusher } from './doors';
 import { Interaction, shipInteractables } from './interaction';
@@ -35,6 +35,7 @@ async function start(): Promise<void> {
 
   const scene = new THREE.Scene();
   const world = createWorld(scene);
+  setReflections(world.reflections);
 
 
   const character = new Character();
@@ -84,7 +85,7 @@ async function start(): Promise<void> {
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
@@ -107,6 +108,7 @@ async function start(): Promise<void> {
   // See-through hull: furniture cuts 0 outside the ship, eased to 1 inside; the structure's hole
   // eased to 1 while something solid hides her.
   let insideAmount = 0;
+  let indoorLight = 0; // 0..1, eased: she's inside the ship (whether or not the see-through hull is on)
   let holeAmount = 0;
   const chest = new THREE.Vector3();
   const stepChest = new THREE.Vector3();
@@ -207,7 +209,8 @@ async function start(): Promise<void> {
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
     interaction?.update(chest, view.camera, input.lastDevice, pressed);
-    updateWorld(world, scene, character.root.position);
+    indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
+    updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;

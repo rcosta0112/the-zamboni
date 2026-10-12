@@ -16,7 +16,7 @@
 | `interaction.ts` | What can be used (not doors with a keypad; doors that open together, from `opensWith`); picking the target; the prompt next to it; the highlight | `shipInteractables`, `Interaction.update`, `placePrompt` |
 | `ladders.ts` | Finding ladders; attaching at the foot, climbing up, stepping off at the top, letting go | `shipLadders`, `Ladders.update`, `findExit` |
 | `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
-| `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `updateCutaway` |
+| `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
 | `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |
 | `world.ts` | Sky, haze, sun and its shadow, the ground | `createWorld`, `updateWorld` |
 | `crew.ts` | The crew placed in the ship: load, idle loop, box colliders | `loadCrew` |
