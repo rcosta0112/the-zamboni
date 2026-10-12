@@ -15,7 +15,7 @@ export function antialiasEnabled(): boolean {
   }
 }
 
-export function createTuningPanel(onChange: { cameraDistance: () => void; pixelRatio: () => void }) {
+export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   const gui = new GUI({ title: 'Tuning  ( ` or View button )' });
 
   const move = gui.addFolder('Movement');
@@ -32,9 +32,8 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   jump.add(settings, 'gravity', 5, 50, 0.5).name('gravity (m/s²)');
 
   const cam = gui.addFolder('Camera');
-  cam.add(settings, 'cameraDistance', settings.cameraMinDistance, settings.cameraMaxDistance, 0.1)
-    .name('distance (m)')
-    .onChange(onChange.cameraDistance);
+  cam.add(settings, 'cameraDistanceIndoors', 1, 12, 0.1).name('distance indoors (m)');
+  cam.add(settings, 'cameraDistanceOutdoors', 1, 12, 0.1).name('distance outdoors (m)');
   cam.add(settings, 'cameraHeight', 0.5, 2.5, 0.05).name('aim height (m)');
   cam.add(settings, 'cameraFollowSharpness', 1, 40, 0.5).name('follow sharpness');
   cam.add(settings, 'cameraMinPitchDeg', -45, 0, 1).name('min pitch (°)');
@@ -74,7 +73,7 @@ export function createTuningPanel(onChange: { cameraDistance: () => void; pixelR
   const interact = gui.addFolder('Interaction');
   interact.add(settings, 'interactReach', 0.3, 3, 0.05).name('reach (m)');
   interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre (°)');
-  interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight');
+  interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight (0 = off)');
   interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');
   interact.add(settings, 'doorsPush').name('doors push her');
   interact.add(settings, 'climbSpeed', 0.3, 4, 0.05).name('climb speed (m/s)');

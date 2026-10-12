@@ -86,10 +86,7 @@ async function start(): Promise<void> {
   // Dev only: reachable from the browser console and test scripts.
   if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders });
 
-  const gui = createTuningPanel({
-    cameraDistance: () => view.syncDistance(),
-    pixelRatio: () => resize(),
-  });
+  const gui = createTuningPanel({ pixelRatio: () => resize() });
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
 
   const stats = new Stats(document.querySelector<HTMLElement>('#stats')!, backend);
@@ -172,7 +169,7 @@ async function start(): Promise<void> {
     chest.copy(character.root.position).y += settings.cutTargetHeight;
     const inside = ship !== null && ship.interior.containsPoint(chest);
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
-    view.update(dt, input, character.root.position);
+    view.update(dt, input, character.root.position, inside);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
     const active = inside && settings.seeThrough;
     let holeOpen = active;
@@ -228,9 +225,9 @@ function easeTo(value: number, target: number, step: number): number {
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · A jump · B/◯ interact · D-pad zoom · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · Space jump · E interact · wheel zoom · Y invert · ` tuning\n' +
-    'Ladders: walk into them; push toward the ladder to climb, away to go down; jump lets go';
+    'Gamepad: left stick move · right stick camera · A jump · B/◯ interact · View: tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · Space jump · E interact · Y invert · ` tuning\n' +
+    'Ladders: walk into the foot; push toward the ladder to climb; push away or jump to let go';
 }
 
 start().catch((err: unknown) => {

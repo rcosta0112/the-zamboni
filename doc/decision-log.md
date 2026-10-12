@@ -9,10 +9,10 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | Date | Decision | Area | In one line |
 |---|---|---|---|
 | 2026-10-12 | Keeping context small between sessions | docs | A state file read first (`steps/current.md`), a backlog tracker, a code map, this index |
-| 2026-10-09 | Basic interaction: doors, keypads, ladders | feature | E / Circle uses the target nearest the screen centre within reach; doors toggle on a hinge; ladders need no button |
+| 2026-10-09 | Basic interaction: doors, keypads, ladders | feature | E / Circle uses the target nearest the screen centre within reach, with a prompt next to it; doors toggle on a hinge (a door with a keypad only from the keypad); ladders need no button and go up only |
 | 2026-10-09 | The rest of the ship: props, room lights, crew | prototype | Small props merged per room, no prop shadows; one or two lights per room, the four nearest on; the crew placed in the ship |
 | 2026-10-08 | Every camera angle in the ship should look good | design | Worth extra work and per-object exceptions |
-| 2026-10-08 | See-through hull rules | feature | Inside: a dithered hole from the camera to her chest. Outside: no cut, camera collision |
+| 2026-10-08 | See-through hull rules | feature | Inside: a dithered hole from the camera to her chest. Outside: no cut, camera collision. Camera: fixed distance indoors and outdoors, no zoom, pitch from 0 |
 | 2026-10-08 | Ink for dialogue | tech | Ink through `inkjs`: one story for dialogue, comm chats, barks and story state |
 | 2026-10-08 | Inverted Y in prototypes, normal in production | input | As the title says; changeable in settings |
 | 2026-10-08 | No spoken dialogue; characters talk by nodding | scope | All dialogue is text; no mouth movement |
@@ -41,6 +41,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** Done, 2026-10-12. The saving hasn't been measured yet.
 
+**Update (2026-10-12):** first measurement: the session that built pass 1 of the backlog read about 14 files before its first test, against about 23. The code map moved out of the prototype's README into its own short file, [`CODE-MAP.md`](../app/prototypes/01-walk/CODE-MAP.md) (owner): the README is long, and only the map is needed to start.
+
 ---
 
 ## [2026-10-09] — Basic interaction: doors, keypads, ladders (feature)
@@ -58,6 +60,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Update (2026-10-09):** after the owner's first look: the open side door is a **ramp**, not a ladder (a walkable stand-in slope over its steps, as for the cargo ramp); the trapdoor **starts open** for now (hard to aim at from below); the roof hatch stays out of reach for now (an unfolding ladder later, or not: the crew have jetpacks).
 
 **Update (2026-10-09):** doors no longer trap her: **a moving door pushes her out of its way** (sideways, through her controller), and stops (backing off a little) only when she can't be cleared, is on a ladder, or would be lifted. Chosen over walking her to an interaction point first (more polished, more work; maybe later, for use animations) and stepping her out of the swing before opening. No door is offered while she stands on it. Plan: [`plans/features/interaction-clearance.md`](plans/features/interaction-clearance.md). Plan: [`plans/features/interaction-doors.md`](plans/features/interaction-doors.md).
+
+**Update (2026-10-12): ladders go up only** (owner: "Let the player jump down the hatch. It's way faster"). She attaches at the foot only and climbs while the stick pushes toward the ladder; **at the top she steps off by herself**; pushing away or jump lets go and she drops. Nothing attaches her from the floor above: walking into the opening, she falls through it. This replaces "away descends" and "walking toward the opening from the floor above attaches her at the top". Built in pass 1 of [`plans/backlog-passes.md`](plans/backlog-passes.md); owner play-test pending.
+
+**Update (2026-10-12): a door that a keypad controls isn't offered itself** (owner: the side door opens only from its panel). The cargo ramp already worked this way. Built in pass 1.
+
+**Update (2026-10-12): the prompt sits next to the target, instead of the highlight** (owner). The prompt is placed on screen beside the target's bounds, kept inside the screen's edges. The highlight is off by default; its slider stays until the owner has seen the prompt, then it goes with its shader code. Built in pass 1.
+
+**Update (2026-10-12): the roof hatch is one target** (owner). `Top Hatch` and `Top Hatch Bottom` were two doors; now aiming at either shows one prompt and one press moves both. The pair is listed in the code for now; a tag (`opensWith`) at the next export. Built in pass 1.
 
 ---
 
@@ -109,6 +119,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Update (2026-10-08): second pass** (owner play-test). "Hides her" became **coverage**: her head, or more than a third of her silhouette (12 points). Near the camera, furniture is cut only **above her waist**. The hole opens **only while something solid hides her** (glass doesn't count). **Exceptions** by tag: `seeThrough: "keep"` (the 3D printer: owner, its frame and ray let her show through and it frames the shot) and `divider: true` (bulkheads, optionally cut as a whole). Cut surfaces in their own colour, darkened. `three-mesh-bvh` brought in for the raycasts (15 ms → 0.2 ms per frame).
 
 **Update (2026-10-08): dividers from inside** (owner). While the camera is inside the ship (no hull between it and her), dividers (bulkheads, inner walls) stay solid: from inside they're walls of the room or doorways that frame the shot. They're still cut when they hide her (added in testing: otherwise a camera trailing behind an inner wall saw only the wall). Next: exceptions move into a rule table in data (outline in the plan; implementation to be discussed).
+
+**Update (2026-10-12): fixed camera distance, no zoom, pitch from 0** (owner). The camera keeps one distance indoors and one outdoors (two values in the tuning panel; starting at 3.5 m and 4.5 m, for the owner to set), eased over about half a second when she crosses the same "inside" test as the hole. Zoom is removed from the mouse wheel and the D-pad. The minimum pitch is 0 (was -10°): the camera never looks up from below her, which the owner found fixes several see-through problems. Built in pass 1 of [`plans/backlog-passes.md`](plans/backlog-passes.md); owner play-test pending.
 
 **Update (2026-10-09): owner's test of exceptions.** Always visible on her deck (`seeThrough: "solid"`): every piece of furniture in the cockpit (first only the chair backs), the engineering ceiling machine, the red sled; still cut on the other deck. Objects attached to a bulkhead behave like the bulkhead (detected at load, within 3 cm). Then, as a test: **bulkheads always visible** while she's on their deck (a toggle, on by default; inner walls keep the divider rules). **The cargo ramp is cut while closed** (it's the cargo bay's back wall), never while open (it was never cut).
 

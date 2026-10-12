@@ -4,32 +4,7 @@ A character walking around a 200 × 200 m floor, seen from a third-person camera
 
 ## Code map
 
-> **[Agent note]** Read this before opening source files. All paths are in `src/`.
-
-| File | Owns | Start at |
-|---|---|---|
-| `main.ts` | Start-up and load order; the fixed 60 Hz step; the frame loop (who is called, in what order); dev hooks on `window` | `start` |
-| `settings.ts` | Every tunable value and its starting point | `settings` |
-| `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
-| `input.ts` | Actions from gamepad and keyboard: move, look, zoom, jump, interact, last device used | `Input.poll`, `consume*` |
-| `character.ts` | Her movement, jump and gravity; placing her on a ladder | `Character.update`, `setClimbing`, `moveDirection` |
-| `physics.ts` | Rapier: ground, static colliders, her capsule and controller, moving colliders (doors), rays | `Physics.move`, `addMovingConvex`, `ray`, `castRay`, `fits` |
-| `camera.ts` | Orbit camera: yaw, pitch, distance, follow, collision outside the ship | `FollowCamera.update` |
-| `ship.ts` | Loading the ship and its collider; "inside"; decks; see-through units and their tags; **the cargo ramp**; hinges; the merged shadow caster | `loadShip`, `updateShip`, `groupCutUnits`, `hingeAt` |
-| `doors.ts` | Hinged doors; a moving part pushing her (also used by the ramp); the side door's walkable slope | `Door.update`, `advance`, `createDoors` |
-| `interaction.ts` | What can be used; picking the target; the prompt and highlight | `shipInteractables`, `Interaction.update` |
-| `ladders.ts` | Finding ladders; attaching, climbing, stepping off | `shipLadders`, `Ladders.update`, `findExit` |
-| `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
-| `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `updateCutaway` |
-| `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |
-| `world.ts` | Sky, haze, sun and its shadow, the ground | `createWorld`, `updateWorld` |
-| `crew.ts` | The crew placed in the ship: load, idle loop, box colliders | `loadCrew` |
-| `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; retargeting Part 1's animations | `loadModels`, `AnimatedModel.update` |
-| `names.ts`, `stats.ts` | Blender names as GLTFLoader gives them; the frame-time readout | `named` |
-
-Outside `src/`: `index.html` and `style.css` (the prompt, help and pause overlays). Export scripts are in [`app/tools/`](../../tools/): `export-ship.py` (ship, props, light markers, collider, every tag), `export-ship-crew.py`, `export-crew-character.py`, `export-part1-character.py`.
-
-Per frame, in order (`main.ts`): input → fixed steps (ladders or character, then doors and ramp) → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.
+Which file owns what, and where to start reading: [`CODE-MAP.md`](CODE-MAP.md).
 
 ## Run
 
@@ -38,18 +13,29 @@ cd app
 npm run dev:01     # → http://localhost:5201
 ```
 
+## Scripted check
+
+```sh
+cd app
+npm run smoke
+```
+
+Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, every door, console errors. About a minute. It uses the dev server on port 5201 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
+
 ## Controls
 
 | Action | Gamepad | Keyboard / mouse |
 |---|---|---|
 | Move | Left stick (speed follows how far it's pushed) | W A S D (run), hold Shift to walk |
 | Camera | Right stick | Mouse (click the view to capture it; Esc releases) |
-| Camera distance | D-pad up/down | Mouse wheel |
 | Jump | A | Space |
 | Interact (open, close, use the target) | B / Circle | E |
-| Climb a ladder | Walk into it; toward it = up, away = down; A lets go | Same; Space lets go |
+| Climb a ladder (up only) | Walk into its foot; push toward it to climb; she steps off at the top by herself. Pushing away or A lets go (she drops) | Same; Space lets go |
+| Go down a deck | Walk into the open trapdoor (she falls through) | Same |
 | Invert vertical look (on by default in prototypes) | (tuning panel) | Y |
 | Tuning panel | View/Back | ` (backtick) |
+
+**Camera distance:** fixed, with no zoom (owner, 2026-10-12): *distance indoors* and *distance outdoors* in the tuning panel's Camera folder (starting at 3.5 m and 4.5 m; the owner is setting them). The camera eases from one to the other in about half a second when she crosses the "inside" test (her chest inside the ship's interior box). *Min pitch* starts at 0: the camera doesn't go below her.
 
 **Indoor speeds:** inside the ship (the same test as the see-through hull: her chest inside the ship's interior box) she uses the *indoor walk speed* and *indoor run speed* sliders (Movement folder) instead of the outdoor ones. Starting values: walk 1.5 m/s, run 3.5 m/s; the owner is tuning them. The walk/run animation blend follows whichever pair is in use. Going in at a full run, she drops to the indoor speed almost instantly (the normal deceleration).
 
@@ -111,8 +97,9 @@ npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-c
 - **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files).
 - **Collider:** its own file, positions only: everything except the ramp, joined at full detail (29,139 triangles); the four densest pieces of furniture (dials, 3D printer, Contraption, sledge) as convex hulls. A decimated version closed the cargo opening. Ladders block like walls: no climbing yet.
 - **See-through hull:** structure (tagged `structure: true`: hull, walls, ceilings, floors, doors…) is cut by the hole while something solid hides her; furniture is cut near the camera above her waist, and near her only while it hides her head or a third of her. Exceptions: `seeThrough: "keep"` (the 3D printer), `seeThrough: "solid"` (all cockpit furniture, the engineering ceiling machine, the red sled: always visible on her deck), objects attached to a bulkhead behave like it (and with *bulkheads always visible*, on by default, bulkheads and what's attached to them are never cut while she's on their deck), `divider: true` (bulkheads and inner walls: solid while the camera is inside, unless they hide her). Raycasts use `three-mesh-bvh`. The cargo ramp is cut like the hull while closed or moving, never while open. Never cut: `cuttable: false` (the landing gear). Tags are set by the export script until they're set in Blender. Upward-facing surfaces below her feet are never cut, so the floors stay. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md).
-- **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `hinge` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
-- **Doors, keypads, ladders** (2026-10-09): the side door, the trapdoor, the roof hatches, the fridge, cupboard and locker doors open and close (all start closed but the trapdoor); the open side door is a ramp; the upper keypad by the side door works the ramp, the lower one the side door; the cargo bay and crew quarters ladders can be climbed. Point the camera at a door within her reach and press E / Circle. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md). A moving door pushes her out of its way (or stops, if she's pinned). Tuning panel: *Interaction* folder (reach, how far from the screen centre, highlight, door time, doors push her, climb speed).
+- **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `hinge` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). "Closed" is the door object with no rotation of its own: the current file has the ramp lying open (turned 88°), which the game undoes (before 2026-10-12 it took the file's pose for closed, and the ramp only moved 4°). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
+- **Doors, keypads, ladders** (2026-10-09): the side door, the trapdoor, the roof hatches, the fridge, cupboard and locker doors open and close (all start closed but the trapdoor); the open side door is a ramp; the upper keypad by the side door works the ramp, the lower one the side door; the cargo bay ladder can be climbed. Point the camera at a door within her reach and press E / Circle. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md). A moving door pushes her out of its way (or stops, if she's pinned). Tuning panel: *Interaction* folder (reach, how far from the screen centre, highlight, door time, doors push her, climb speed).
+- **Changed 2026-10-12** (backlog pass 1): the side door has no prompt of its own (its keypad only); the roof hatch's two parts are one target; ladders go up only (down is through the trapdoor); the prompt sits next to the target on screen and the highlight is off by default.
 - **Double-sided materials** (export report, to fix in Blender): see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md).
 
 **Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.
@@ -168,6 +155,7 @@ From Part 1 (*Big Moon Tiny Moon*, `Main.unity`): walk 1.5 m/s, run 7 m/s, accel
 | 2026-10-08 | Same, with the interior | Chrome | WebGPU | 60 fps once shaders compiled (the first second after loading read 11 fps: 159 cuttable meshes compiling), no errors. All four areas visible through the hull; collision with furniture checked (walking into the crew quarters' furniture stops her) |
 | 2026-10-09 | Same, frame time from clear spots | Chrome | WebGPU | 1920×1080 uncapped: crew quarters 9.7 ms median (95th 11.9), engineering 6.1 (7.5), cargo bay 11.1 (12.9). Earlier crew quarters numbers were inflated: the test teleport put her inside the couch (physics controller ~20 ms per step there; one engineering spot ~200 ms, read as 1 fps); at clear floor spots a physics step averages 0.1 ms |
 | 2026-10-09 | Same, audit at 1920×1080 uncapped; merged shadow caster; crew resized | Chrome | WebGPU | CPU-bound on draw calls (half resolution: no change). See-through materials ~5 ms/frame of per-draw overhead; props ~3 ms; shadow pass draws ~0.7 ms. Merged shadow caster: crew quarters 835 → 556 draws, 14.9 → 9.9 ms (92–100 fps uncapped); identical shadow. Opaque glass: no difference. Owner: Chrome a solid 60 fps, Firefox under 30 at 1080p. Crew scaled to the crew file's proportions (Kaufman ×0.65, Ogawa ×0.78, Adams ×0.79) |
+| 2026-10-12 | Same, backlog pass 1 (camera, ramp, ladder, side door, roof hatch, prompt), headless Chrome 1264×569, `npm run smoke` | Chrome | WebGPU | 60 fps, no console errors; 20 of 20 checks pass. Ramp from its keypad: turns 92°, top edge 1.09 → 3.19 m, and back. Ladder: 10 climbs, off at the top each time; drops through the trapdoor; pushing away and jump let go. Side door: never a target; opens and closes from its keypad. Roof hatch: one press, both parts. Prompt: stays 95 px right of the keypad's centre as the camera turns. Camera: 4.5 m outdoors, 3.5 m indoors, eased; wheel does nothing; pitch stops at 0. Doors with her in the way: pushed aside or the door waits, and finishes once she's gone. Gamepad not tested |
 | 2026-10-09 | Same, props, room lights, crew | Chrome | WebGPU | **60 fps** steady, no errors. Draw calls 743–941 per view (with the shadow pass; props cast no shadows), ship 547 primitives, 54 materials, 2.58 MB. Shader build at load ~8 s (was ~2.5 s). Dr. Kaufman animating on the couch; Adams and Dr. Ogawa in the cockpit. *All* lights: a stall of a few seconds while every shader rebuilds, then 60 fps. See-through rays 0.11 ms (140 objects) |
 | 2026-10-09 | Same, cargo ramp cut while closed; bulkheads always visible | Chrome | WebGPU | 60 fps, no errors. Ramp closed, camera behind the ship: the hole opens through it and she's visible in the cargo bay (with the cut off, only the ramp's window shows); ramp open: whole, on the ground. Bulkheads always visible: from outside the cargo bay, the cargo bulkhead stays as a column seen edge-on; from the crew quarters, the cockpit doorway is unchanged |
 | 2026-10-09 | Same, always-visible objects, objects on bulkheads, pause | Chrome | WebGPU | 60 fps, no errors; rays 0.16 ms/frame. Sled, ceiling machine and chair backs stay solid with her behind them (behind a chair back, only her hair shows). Attached to bulkheads (found at load): `Galley`, `Head`, both ladders, part of `Locker`. Then all cockpit furniture made always visible: nothing in the cockpit is cut; with the camera in front, the seat stays and she shows beside it. Pause: shown when the mouse is released, nothing moves while paused, a click resumes |

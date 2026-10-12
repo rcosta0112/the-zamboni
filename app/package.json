@@ -12,7 +12,8 @@
   "scripts": {
     "dev:01": "npm run dev -w prototypes/01-walk",
     "check": "npm run check --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "smoke": "node tools/smoke-01.mjs"
   },
   "devDependencies": {
     "@gltf-transform/cli": "4.5.1",

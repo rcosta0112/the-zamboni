@@ -1,9 +1,9 @@
-// Ladders, without a button (owner, 2026-10-09): walking into a ladder's foot attaches her to it;
-// pushing toward the ladder climbs, pushing away climbs down. At the top she steps off onto the floor
-// above (if there is one), at the bottom onto the floor. Walking from the floor above toward the
-// opening attaches her at the top. Jump lets go. A closed hatch above stops her (a ray from her head),
-// and she can open it from the ladder. While climbing she's placed directly, without collisions.
-// No climbing animation yet: she's shown standing.
+// Ladders, without a button (owner, 2026-10-09), and up only (owner, 2026-10-12): walking into a
+// ladder's foot attaches her to it; pushing toward the ladder climbs. At the top she steps off by
+// herself onto the floor above (if there is one). Pushing away, or jump, lets go: she drops. Nothing
+// attaches her from the floor above: walking into the opening, she falls through it (the way down).
+// A closed hatch above stops her (a ray from her head), and she can open it from the ladder. While
+// climbing she's placed directly, without collisions. No climbing animation yet: she's shown standing.
 // Ladders: `Ladder Cargo Bay` (through the trapdoor). (The rungs on the cockpit bulkhead were removed
 // on 2026-10-09; the side door, open, is a ramp: doors.ts.)
 // Plan: doc/plans/features/interaction-doors.md
@@ -31,8 +31,6 @@ export interface Ladder {
   face: THREE.Vector3;
   /** There's a floor to step onto at the top. */
   topExit: boolean;
-  /** Attaching from above needs an opening under the top (the trapdoor open). */
-  needsOpening: boolean;
   /** Usable right now. */
   available: () => boolean;
 }
@@ -88,7 +86,7 @@ function fixedLadder(name: string, object: THREE.Object3D, physics: Physics): La
   const up = new THREE.Vector3(bottom.x, bottom.y + 0.5, bottom.z);
   const topExit = topY < Infinity && physics.ray(up, UP, topY + 0.3 - up.y, true) === null;
   const top = new THREE.Vector3(bottom.x, topExit ? topY : box.max.y - 0.3, bottom.z);
-  return { name, bottom, top, face: normal.clone().negate(), topExit, needsOpening: true, available: () => true };
+  return { name, bottom, top, face: normal.clone().negate(), topExit, available: () => true };
 }
 
 interface Step {
@@ -96,14 +94,13 @@ interface Step {
   to: THREE.Vector3;
   t: number;
   facing: number;
-  /** Then onto this ladder (at its top), or off it. */
-  then: { ladder: Ladder; s: number } | null;
 }
 
 export class Ladders {
-  private on: { ladder: Ladder; s: number; latchDown: boolean } | null = null;
+  private on: { ladder: Ladder; s: number } | null = null;
+  /** Stepping off at the top. */
   private step: Step | null = null;
-  /** After letting go, she doesn't attach again until the stick is let go too. */
+  /** After leaving a ladder, she doesn't attach again until the stick is let go. */
   private waitForRelease = false;
   private dir = new THREE.Vector3();
   private feet = new THREE.Vector3();
@@ -114,7 +111,12 @@ export class Ladders {
     return this.on !== null || this.step !== null;
   }
 
-  /** One fixed step. Returns true if she's on (or stepping onto or off) a ladder: the ladder moved her. */
+  /** For checks: 'off', 'on' (with how far up, 0..1) or 'stepping off'. */
+  get state(): { is: 'off' | 'on' | 'stepping off'; s: number } {
+    return { is: this.step ? 'stepping off' : this.on ? 'on' : 'off', s: this.on?.s ?? 0 };
+  }
+
+  /** One fixed step. Returns true if she's on (or stepping off) a ladder: the ladder moved her. */
   update(dt: number, input: Input, cameraYaw: number, character: Character, physics: Physics): boolean {
     const dir = moveDirection(input, cameraYaw, this.dir);
     const amount = Math.min(1, dir.length());
@@ -125,13 +127,12 @@ export class Ladders {
       step.t = Math.min(1, step.t + dt / STEP_SECONDS);
       const e = step.t * step.t * (3 - 2 * step.t);
       this.feet.lerpVectors(step.from, step.to, e);
-      // Up first, then across (stepping up over the top), or across then down.
-      this.feet.y = step.to.y > step.from.y ? THREE.MathUtils.lerp(step.from.y, step.to.y, Math.min(1, e * 2)) : THREE.MathUtils.lerp(step.from.y, step.to.y, Math.max(0, e * 2 - 1));
+      // Up first, then across (stepping up over the top).
+      this.feet.y = THREE.MathUtils.lerp(step.from.y, step.to.y, Math.min(1, e * 2));
       character.setClimbing(this.feet, step.facing, physics);
       if (step.t === 1) {
         this.step = null;
-        this.on = step.then ? { ...step.then, latchDown: true } : null;
-        if (!this.on) this.waitForRelease = true;
+        this.waitForRelease = true;
       }
       return true;
     }
@@ -142,38 +143,29 @@ export class Ladders {
       const feet = character.position;
       for (const ladder of this.list) {
         if (!ladder.available()) continue;
-        // At the foot, walking into it.
+        // At the foot, walking into it. (Never from the floor above: she falls through the opening.)
         if (Math.abs(feet.y - ladder.bottom.y) < 0.3 && horizontal(feet, ladder.bottom) < 0.5 && dir.dot(ladder.face) > 0.5) {
-          this.on = { ladder, s: 0, latchDown: false };
+          this.on = { ladder, s: 0 };
           character.setClimbing(ladder.bottom, facingOf(ladder.face), physics);
           return true;
         }
-        // On the floor above, walking toward its top.
-        if (!ladder.topExit || Math.abs(feet.y - ladder.top.y) > 0.3) continue;
-        const d = horizontal(feet, ladder.top);
-        if (d > 0.7 || d < 0.05) continue;
-        const toTop = new THREE.Vector3(ladder.top.x - feet.x, 0, ladder.top.z - feet.z).normalize();
-        if (dir.dot(toTop) < 0.6) continue;
-        if (ladder.needsOpening && physics.ray(new THREE.Vector3(ladder.top.x, ladder.top.y + 0.4, ladder.top.z), DOWN, 0.6)) continue;
-        this.step = { from: feet.clone(), to: ladder.top.clone(), t: 0, facing: facingOf(ladder.face), then: { ladder, s: 1 } };
-        return true;
       }
       return false;
     }
 
     const on = this.on;
     const ladder = on.ladder;
-    if (!ladder.available() || input.consumeJump()) {
+    // Toward the ladder is up; there's no climbing down.
+    const push = amount > 0.2 ? THREE.MathUtils.clamp(dir.dot(ladder.face) * 1.5, -1, 1) * amount : 0;
+    // Jump or pushing away lets go: she drops (at the foot, she just walks off).
+    if (!ladder.available() || input.consumeJump() || push < -0.3) {
       this.on = null;
       this.waitForRelease = true;
       return false;
     }
-    // Entered from the top: whatever the stick says, down, until it's let go.
-    if (on.latchDown && amount < 0.2) on.latchDown = false;
-    const push = on.latchDown ? -amount : amount > 0.2 ? THREE.MathUtils.clamp(dir.dot(ladder.face) * 1.5, -1, 1) * amount : 0;
     const line = new THREE.Vector3().subVectors(ladder.top, ladder.bottom);
     const length = line.length();
-    let ds = (push * settings.climbSpeed * dt) / length;
+    let ds = (Math.max(0, push) * settings.climbSpeed * dt) / length;
     if (ds > 0) {
       // Something above her head (a closed hatch, the ceiling): she stops.
       const head = this.feet.copy(character.position);
@@ -184,41 +176,52 @@ export class Ladders {
     this.feet.lerpVectors(ladder.bottom, ladder.top, on.s);
     character.setClimbing(this.feet, facingOf(ladder.face), physics);
 
-    if (on.s === 1 && push > 0.3 && ladder.topExit) {
-      const exit = findExit(ladder, amount > 0.2 ? dir : ladder.face, physics);
+    // At the top she steps off by herself, whatever the stick says.
+    if (on.s === 1 && ladder.topExit) {
+      const exit = findExit(ladder, physics);
       if (exit) {
         this.on = null;
-        this.step = { from: this.feet.clone(), to: exit, t: 0, facing: facingOf(new THREE.Vector3(exit.x - this.feet.x, 0, exit.z - this.feet.z).normalize()), then: null };
+        this.step = { from: this.feet.clone(), to: exit, t: 0, facing: facingOf(new THREE.Vector3(exit.x - this.feet.x, 0, exit.z - this.feet.z).normalize()) };
       }
-    } else if (on.s === 0 && push < -0.3) {
-      this.on = null; // on the floor: she walks off
-      this.waitForRelease = true;
     }
     return true;
   }
 }
 
-/** Where to step off at the top: floor at the top's height, room for her, nothing in the way; nearest `prefer`. */
-function findExit(ladder: Ladder, prefer: THREE.Vector3, physics: Physics): THREE.Vector3 | null {
+const AROUND = Array.from({ length: 16 }, (_, i) => new THREE.Vector3(Math.cos((i / 16) * Math.PI * 2), 0, Math.sin((i / 16) * Math.PI * 2)));
+
+/**
+ * Where to step off at the top: floor at the top's height, room for her, nothing in the way. Of the
+ * spots found, the one with the most open floor around it (then the one most in front of her). The
+ * first version took the spot nearest the stick's direction, which is toward the ladder: at the
+ * cargo bay ladder that's a corner between the bulkhead and the open trapdoor, where forward and
+ * left are walls and the other ways walked her back onto the ladder (backlog 4: "stuck at the top").
+ */
+function findExit(ladder: Ladder, physics: Physics): THREE.Vector3 | null {
+  /** Her feet on the floor at the top's height at (x, z), if she fits there. */
+  const standAt = (x: number, z: number): THREE.Vector3 | null => {
+    const p = new THREE.Vector3(x, ladder.top.y + 0.5, z);
+    const hit = physics.ray(p, DOWN, 0.8);
+    if (!hit || hit.normal.y < 0.7) return null;
+    p.y -= hit.distance;
+    if (Math.abs(p.y - ladder.top.y) > 0.25) return null;
+    return physics.fits(p) ? p : null;
+  };
   let best: THREE.Vector3 | null = null;
   let bestScore = -Infinity;
   const from = new THREE.Vector3(ladder.top.x, ladder.top.y + 0.4, ladder.top.z);
-  for (let i = 0; i < 16; i++) {
-    const a = (i / 16) * Math.PI * 2;
-    const dir = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
-    const score = dir.dot(prefer);
-    if (score <= bestScore) continue;
+  for (const dir of AROUND) {
     for (const d of [0.55, 0.8]) {
-      const p = new THREE.Vector3(ladder.top.x + dir.x * d, ladder.top.y + 0.5, ladder.top.z + dir.z * d);
-      const hit = physics.ray(p, DOWN, 0.8);
-      if (!hit || hit.normal.y < 0.7) continue;
-      p.y -= hit.distance;
-      if (Math.abs(p.y - ladder.top.y) > 0.25) continue;
-      if (physics.ray(from, dir, d)) continue;
-      if (!physics.fits(p)) continue;
-      best = p;
-      bestScore = score;
-      break;
+      const p = standAt(ladder.top.x + dir.x * d, ladder.top.z + dir.z * d);
+      if (!p || physics.ray(from, dir, d)) continue;
+      // Open floor around it: how many of the spots 0.6 m away she could stand on too.
+      let open = 0;
+      for (const a of AROUND) if (standAt(p.x + a.x * 0.6, p.z + a.z * 0.6)) open++;
+      const score = open + dir.dot(ladder.face) * 0.5 - d * 0.1;
+      if (score > bestScore) {
+        best = p;
+        bestScore = score;
+      }
     }
   }
   return best;

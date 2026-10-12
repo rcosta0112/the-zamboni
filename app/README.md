@@ -10,7 +10,7 @@ app/
   tsconfig.base.json   shared TypeScript settings (strict)
   assets/              assets shared by every prototype (served at the site root)
     test/              test-only assets (e.g. Part 1's Dr. Green); not for the game
-  tools/               scripts run outside the browser (e.g. Blender export scripts)
+  tools/               scripts run outside the browser (Blender export scripts, the scripted check)
   packages/
     ui/                @zamboni/ui: the design system's code version (Svelte 5); empty for now
   prototypes/
@@ -24,6 +24,7 @@ npm install        # once, in app/
 npm run dev:01     # prototype 01 → http://localhost:5201
 npm run check      # type-check every workspace
 npm run build      # build every workspace
+npm run smoke      # scripted check of prototype 01 in headless Chrome: PASS / FAIL lines
 ```
 
 ## Adding a prototype

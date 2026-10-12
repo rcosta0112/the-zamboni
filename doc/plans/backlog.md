@@ -6,27 +6,27 @@
 |---|---|---|---|
 | 1 | Copy the `.blend` and update it to match the scene in the game; it becomes the reference (`The Zamboni 1.19.blend`) | 2 | To do |
 | 2 | The cargo ramp keypad, moved away from the side door's in the file: re-export | 2 | To do |
-| 3 | The side door: no interaction of its own; it opens only from its keypad | 1 | To do |
-| 4 | Bug: the ladder gets stuck at the top | 1 | To do |
-| 5 | Ladders go up only; going down, she jumps down the hatch | 1 | To do |
+| 3 | The side door: no interaction of its own; it opens only from its keypad | 1 | Built |
+| 4 | Bug: the ladder gets stuck at the top | 1 | Built |
+| 5 | Ladders go up only; going down, she jumps down the hatch | 1 | Built |
 | 6 | Bulkhead doors (`Door Cockpit`/`2`, `Door Engineering`/`2`): open and close when she gets close; a panel on each side opens or closes them | 4 | To do |
 | 7 | The engineering window opens like a bulkhead door, from a lever next to it | 4 | To do |
 | 8 | 6 and 7 as in the UE prototype (`BP_Door_Internal`, `BP_Engineering_Window`, `BP_Lever_Panel`) | 4 | To do |
-| 9 | Bug: the cargo ramp doesn't close | 1 | To do |
+| 9 | Bug: the cargo ramp doesn't close | 1 | Built |
 | 10 | Crew quarters and cockpit are too blue: sunlight through the windows should warm them | 3 | To do |
 | 11 | Everything in engineering and the cargo hold is always visible while she's on that floor | 5 | To do |
 | 12 | The engineering display (`Monitor Arm`) is invisible most of the time: it ends up inside the wall | 2 | To do |
 | 13 | See-through in the crew quarters: furniture close to the walls (bunks, lockers); only their back walls are hidden | 5 | To do |
 | 14 | Characters on other floors hide normally; on her floor they're always visible | 5 | To do |
 | 15 | Try a black mask over everything on the floor she isn't on | 5 | To do |
-| 16 | Fixed camera distance, one indoors and one outdoors; no zoom (wheel or D-pad); values in the tuning panel | 1 | To do |
-| 17 | Minimum camera pitch: 0 | 1 | To do |
+| 16 | Fixed camera distance, one indoors and one outdoors; no zoom (wheel or D-pad); values in the tuning panel | 1 | Built |
+| 17 | Minimum camera pitch: 0 | 1 | Built |
 | 18 | All double-sided materials single-sided, with a switch in the tuning panel; issues fixed in Blender | 2 | To do |
 | 19 | The ship's collision extended down to the ground (a box), so she can't get under it | 2 | To do |
 | 20 | The same under the front thrusters | 2 | To do |
 | 21 | The jetpack, as in Big Moon Tiny Moon; no visuals; allowed anywhere for now | 6 | To do |
-| 22 | The top hatch: one interaction opens or closes both parts | 1 | To do |
-| 23 | The control prompt moves next to the object pointed at, instead of the colour highlight | 1 | To do |
+| 22 | The top hatch: one interaction opens or closes both parts | 1 | Built |
+| 23 | The control prompt moves next to the object pointed at, instead of the colour highlight | 1 | Built |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 

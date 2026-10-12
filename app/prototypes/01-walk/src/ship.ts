@@ -30,6 +30,8 @@ export interface Ship {
   object: THREE.Object3D;
   collider: THREE.Mesh;
   ramp: THREE.Object3D;
+  /** Hinge angle (radians) at which the ramp is closed: 0 if the file has it closed. */
+  rampClosedAngle: number;
   /** Hinge angle (radians) at which the ramp's far edge touches the ground. */
   rampOpenAngle: number;
   /** 0 = closed, 1 = open. */
@@ -142,7 +144,9 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   // has a convex collider that follows it (a copy of its mesh would keep the window cut through
   // it, which the character falls into). Fully open, a smooth walkable slope replaces it (the
   // modelled ramp has a lip where it meets the ground).
-  const rampOpenAngle = findRampOpenAngle(rampNode);
+  const rampClosedAngle = closedAngle(rampDoor);
+  const rampOpenAngle = findRampOpenAngle(rampNode, rampClosedAngle);
+  console.info(`[01-walk] cargo ramp: closed at ${THREE.MathUtils.radToDeg(rampClosedAngle).toFixed(1)}°, open at ${THREE.MathUtils.radToDeg(rampOpenAngle).toFixed(1)}° (0° = as in the file)`);
   const rampWalkway = physics.addStaticTriangles(...walkwayTriangles(object, rampNode, cargoFloor));
   rampNode.rotation.x = 0;
   rampNode.updateWorldMatrix(true, true);
@@ -154,6 +158,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     object,
     collider: col,
     ramp: rampNode,
+    rampClosedAngle,
     rampOpenAngle,
     rampAmount: 0,
     rampWaiting: false,
@@ -299,7 +304,7 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   const next = force ? target : target > ship.rampAmount ? Math.min(target, ship.rampAmount + step) : Math.max(target, ship.rampAmount - step);
   const pose = (t: number) => {
     ship.rampAmount = t;
-    ship.ramp.rotation.x = ship.rampOpenAngle * t * t * (3 - 2 * t);
+    ship.ramp.rotation.x = THREE.MathUtils.lerp(ship.rampClosedAngle, ship.rampOpenAngle, t * t * (3 - 2 * t));
     ship.ramp.updateMatrixWorld(true);
   };
   if (force || !pusher) {
@@ -417,11 +422,27 @@ function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
 }
 
 /**
- * The ramp swings on its hinge (the pivot's X axis). Rotating it outward (negative angle around
- * its X axis, toward the back of the ship), find the first angle at which its lowest point
- * reaches the ground.
+ * The hinge angle at which the ramp is closed. Closed is the door object with no rotation of its
+ * own. The file may have it in another pose: the export of 2026-10-09 has the ramp lying open,
+ * turned 88° about its hinge, and taking that pose for "closed" left it 4° of travel (backlog 9:
+ * "the cargo ramp doesn't close"). So the hinge angle that undoes the door's own turn is used.
+ * Call after hingeAt (the door's rotation is then relative to the ship).
  */
-function findRampOpenAngle(ramp: THREE.Object3D): number {
+function closedAngle(door: THREE.Object3D): number {
+  const q = door.quaternion;
+  if (Math.abs(q.y) > 0.01 || Math.abs(q.z) > 0.01) {
+    console.warn(`[01-walk] "${door.name}" is turned about more than its hinge axis in the file: taking its pose as closed`);
+    return 0;
+  }
+  return -2 * Math.atan2(q.x, q.w);
+}
+
+/**
+ * The ramp swings on its hinge (the pivot's X axis). Rotating it outward from closed (negative
+ * angle around its X axis, toward the back of the ship), find the first angle at which its lowest
+ * point reaches the ground.
+ */
+function findRampOpenAngle(ramp: THREE.Object3D, closed: number): number {
   const v = new THREE.Vector3();
   const lowestPoint = (angle: number) => {
     ramp.rotation.x = angle;
@@ -436,7 +457,8 @@ function findRampOpenAngle(ramp: THREE.Object3D): number {
     return min;
   };
   for (let deg = 0; deg <= 180; deg += 0.25) {
-    if (lowestPoint(THREE.MathUtils.degToRad(-deg)) <= 0.01) return THREE.MathUtils.degToRad(-deg);
+    const angle = closed - THREE.MathUtils.degToRad(deg);
+    if (lowestPoint(angle) <= 0.01) return angle;
   }
-  return THREE.MathUtils.degToRad(-90);
+  return closed - THREE.MathUtils.degToRad(90);
 }

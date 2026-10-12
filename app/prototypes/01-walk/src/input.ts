@@ -9,8 +9,6 @@ export type Device = 'gamepad' | 'keyboard';
 const PAD_A = 0;
 const PAD_B = 1; // Circle on a PlayStation controller
 const PAD_VIEW = 8;
-const PAD_DPAD_UP = 12;
-const PAD_DPAD_DOWN = 13;
 
 export class Input {
   /** Movement on the ground plane: x = right, y = forward, length 0..1. */
@@ -24,12 +22,10 @@ export class Input {
   private keys = new Set<string>();
   private mouseDX = 0;
   private mouseDY = 0;
-  private wheel = 0;
   private jumpLatched = false;
   private interactLatched = false;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
-  private padZoom = 0;
   private onTogglePanel: () => void;
 
   constructor(private canvas: HTMLCanvasElement, onTogglePanel: () => void) {
@@ -56,13 +52,6 @@ export class Input {
       this.mouseDY += e.movementY;
       this.lastDevice = 'keyboard';
     });
-    window.addEventListener(
-      'wheel',
-      (e) => {
-        this.wheel += Math.sign(e.deltaY);
-      },
-      { passive: true },
-    );
   }
 
   /** Poll the gamepad and rebuild the move vector. Call once per rendered frame. */
@@ -72,7 +61,6 @@ export class Input {
     let padMoveY = 0;
     this.padLook.x = 0;
     this.padLook.y = 0;
-    this.padZoom = 0;
     this.padPressed = false;
 
     if (pad) {
@@ -89,8 +77,6 @@ export class Input {
       if (justPressed(PAD_A)) this.jumpLatched = true;
       if (justPressed(PAD_B)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
-      if (pressed[PAD_DPAD_UP]) this.padZoom -= 1;
-      if (pressed[PAD_DPAD_DOWN]) this.padZoom += 1;
 
       if (lx || ly || rx || ry || pressed.some(Boolean)) this.lastDevice = 'gamepad';
       this.padButtons = pressed;
@@ -125,13 +111,6 @@ export class Input {
     this.mouseDX = 0;
     this.mouseDY = 0;
     return { yaw, pitch };
-  }
-
-  /** Camera zoom steps this frame (positive = further away). */
-  consumeZoom(dt: number): number {
-    const steps = this.wheel * 0.6 + this.padZoom * 6 * dt;
-    this.wheel = 0;
-    return steps;
   }
 
   /** True once per interact press (E, gamepad B / Circle). */

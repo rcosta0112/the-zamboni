@@ -1,17 +1,21 @@
-// Third-person orbit camera: yaw and pitch from the right stick or mouse, distance from the
-// D-pad or wheel, smoothed follow of a point at chest height above the character.
+// Third-person orbit camera: yaw and pitch from the right stick or mouse, smoothed follow of a
+// point at chest height above the character. The distance is fixed: one value indoors, one
+// outdoors (settings), eased from one to the other; there's no zoom (owner, 2026-10-12).
 
 import * as THREE from 'three/webgpu';
 import { settings } from './settings';
 import type { Input } from './input';
 
 const DEG = Math.PI / 180;
+/** Time constant of the ease between the indoor and outdoor distances: about 0.5 s to get there. */
+const DISTANCE_EASE = 0.17;
 
 export class FollowCamera {
   readonly camera: THREE.PerspectiveCamera;
   yaw = 0;
   pitch = 8 * DEG;
-  private distance = settings.cameraDistance;
+  /** The distance wanted now (before collision): eases toward the indoor or outdoor setting. */
+  distance = settings.cameraDistanceOutdoors;
   private focus = new THREE.Vector3();
   private initialised = false;
   /** Distance actually used after collision (eases back out when the way clears). */
@@ -26,7 +30,8 @@ export class FollowCamera {
     this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 500);
   }
 
-  update(dt: number, input: Input, target: THREE.Vector3): void {
+  /** @param indoors she's inside the ship (the same test as the see-through hull) */
+  update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean): void {
     const look = input.consumeLook(dt);
     this.yaw += look.yaw;
     this.pitch = THREE.MathUtils.clamp(
@@ -34,11 +39,9 @@ export class FollowCamera {
       settings.cameraMinPitchDeg * DEG,
       settings.cameraMaxPitchDeg * DEG,
     );
-    this.distance = THREE.MathUtils.clamp(
-      this.distance + input.consumeZoom(dt),
-      settings.cameraMinDistance,
-      settings.cameraMaxDistance,
-    );
+    const wanted = indoors ? settings.cameraDistanceIndoors : settings.cameraDistanceOutdoors;
+    this.distance += (wanted - this.distance) * (1 - Math.exp(-dt / DISTANCE_EASE));
+    if (Math.abs(wanted - this.distance) < 0.002) this.distance = wanted;
 
     const desired = new THREE.Vector3(target.x, target.y + settings.cameraHeight, target.z);
     if (!this.initialised) {
@@ -72,10 +75,5 @@ export class FollowCamera {
     // Never go below the floor.
     this.camera.position.y = Math.max(0.2, this.camera.position.y);
     this.camera.lookAt(this.focus);
-  }
-
-  /** Settings changed in the tuning panel take effect immediately. */
-  syncDistance(): void {
-    this.distance = settings.cameraDistance;
   }
 }

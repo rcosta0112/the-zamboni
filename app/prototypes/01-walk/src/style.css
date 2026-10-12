@@ -55,11 +55,11 @@ body {
   opacity: 0.8;
 }
 
+/* Placed next to the interaction target each frame (interaction.ts sets the transform). */
 #prompt {
   position: fixed;
-  left: 50%;
-  bottom: 72px;
-  transform: translateX(-50%);
+  left: 0;
+  top: 0;
   padding: 6px 12px;
   background: rgb(0 0 0 / 0.55);
   border-radius: 4px;

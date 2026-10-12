@@ -18,12 +18,13 @@ export const settings = {
   gravity: 20,
 
   // Camera
-  cameraDistance: 4.5,
-  cameraMinDistance: 2.5,
-  cameraMaxDistance: 12,
+  // Fixed distances, no zoom (owner, 2026-10-12): the camera eases from one to the other when she
+  // crosses the ship's "inside" test. Starting values: the owner is tuning them.
+  cameraDistanceIndoors: 3.5,
+  cameraDistanceOutdoors: 4.5,
   cameraHeight: 1.0,
   cameraFollowSharpness: 12,
-  cameraMinPitchDeg: -10,
+  cameraMinPitchDeg: 0, // owner, 2026-10-12: fixes several see-through problems
   cameraMaxPitchDeg: 70,
 
   // Input
@@ -69,7 +70,7 @@ export const settings = {
   // Interaction: point (the screen centre) at something within her reach and press E / Circle.
   interactReach: 1.0, // m, from her chest to the object's bounds
   interactMaxAngleDeg: 30, // how far from the screen centre a target may be
-  highlight: 0.25, // the target's lift toward white (0 = no highlight)
+  highlight: 0, // the target's lift toward white (0 = no highlight: the prompt sits at the target instead)
   doorSeconds: 0.6, // to open or close a door
   doorsPush: true, // a moving door pushes her out of its way (off: it just stops against her)
   climbSpeed: 1.2, // m/s along a ladder
