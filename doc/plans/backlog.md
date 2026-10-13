@@ -9,11 +9,11 @@
 | 3 | The side door: no interaction of its own; it opens only from its keypad | 1 | Built |
 | 4 | Bug: the ladder gets stuck at the top | 1 | Built |
 | 5 | Ladders go up only; going down, she jumps down the hatch | 1 | Built |
-| 6 | Bulkhead doors (`Door Cockpit`/`2`, `Door Engineering`/`2`): open and close when she gets close; a panel on each side opens or closes them | 4 | To do |
-| 7 | The engineering window opens like a bulkhead door, from a lever next to it | 4 | To do |
-| 8 | 6 and 7 as in the UE prototype (`BP_Door_Internal`, `BP_Engineering_Window`, `BP_Lever_Panel`) | 4 | To do |
+| 6 | Bulkhead doors (`Door Cockpit`/`2`, `Door Engineering`/`2`): open and close when she gets close; a panel on each side opens or closes them | 4 | Built ([`features/bulkhead-doors.md`](features/bulkhead-doors.md)) |
+| 7 | The engineering window opens like a bulkhead door, from a lever next to it | 4 | Built ([`features/bulkhead-doors.md`](features/bulkhead-doors.md)) |
+| 8 | 6 and 7 as in the UE prototype (`BP_Door_Internal`, `BP_Engineering_Window`, `BP_Lever_Panel`) | 4 | Built ([`features/bulkhead-doors.md`](features/bulkhead-doors.md)) |
 | 9 | Bug: the cargo ramp doesn't close | 1 | Built |
-| 10 | Crew quarters and cockpit are too blue: sunlight through the windows should warm them | 3 | Built |
+| 10 | Crew quarters and cockpit are too blue: sunlight through the windows should warm them | 3 | In progress (built in pass 3, but still too blue: the owner is making reference images in Blender; the tests and the new direction are in the decision log, 2026-10-12 update) |
 | 11 | Everything in engineering and the cargo hold is always visible while she's on that floor | 5 | To do |
 | 12 | The engineering display (`Monitor Arm`) is invisible most of the time: it ends up inside the wall | 2 | Built |
 | 13 | See-through in the crew quarters: furniture close to the walls (bunks, lockers); only their back walls are hidden | 5 | To do |

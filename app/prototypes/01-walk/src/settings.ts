@@ -79,6 +79,12 @@ export const settings = {
   interactMaxAngleDeg: 30, // how far from the screen centre a target may be
   highlight: 0, // the target's lift toward white (0 = no highlight: the prompt sits at the target instead)
   doorSeconds: 0.6, // to open or close a door
+  slideSeconds: 0.3, // the same for a sliding door (bulkhead doors, the engineering window, its lever)
+  autoDoors: true, // the bulkhead doors open when she's near (off: only from their panels)
+  // m, from her to the closed door: nearer than this, it opens. With the slide time, it must be open
+  // before she gets there at a run (3.5 m/s indoors): at 0.6 s she ran into the leaves. Not much
+  // further either: at 2 m the cockpit's door stays open for most of the cockpit.
+  autoDoorDistance: 1.5,
   doorsPush: true, // a moving door pushes her out of its way (off: it just stops against her)
   climbSpeed: 1.2, // m/s along a ladder
 

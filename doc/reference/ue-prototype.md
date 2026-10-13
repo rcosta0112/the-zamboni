@@ -12,7 +12,7 @@ The first prototype of The Zamboni, built in Unreal Engine 5.7. It's being repla
 
 ## Contents
 
-The inventory below is from file and folder names only. `.uasset` files are binary, so **the Blueprint logic itself hasn't been read yet**.
+The inventory below is from file and folder names only. `.uasset` files are binary, so **the Blueprint logic itself hasn't been read**, except for the three Blueprints under *What was read* below.
 
 ### Ship areas (`Content/Models/`)
 
@@ -35,6 +35,16 @@ About 80 materials, mostly flat colours and emissives, which suits a web rendere
 - `BP_Ladder`, `BP_Lever_Panel`, `BP_Engineering_Window`
 - UI: `W_HUD`, `W_HUD1`, `W_Crosshair`
 - Ambient audio: wind, birds, Cessna flight/landing loops
+
+### What was read (2026-10-13)
+
+For the bulkhead doors and the engineering window ([`../features/interaction.md`](../features/interaction.md)). A `.uasset` holds its names as plain text: components, variables, events, timeline tracks. Listing every run of readable characters in the file gives the shape of the logic. **The numbers aren't readable this way** (timeline lengths, distances, the trigger box's size).
+
+| Blueprint | What it has | So |
+|---|---|---|
+| `BP_Door_Internal` | Meshes `Door_Left`, `Door_Right`; a `Collision Box` with *begin overlap* and *end overlap* events; one timeline with tracks *Position Left* and *Position Right*, played forward and in reverse; `isOpen`; a sound (`Audio/Doors/244491416_nw_prev_01`) | The leaves slide apart when she enters a box around the doorway, and back when she leaves it. No interaction: the UE door has no panel |
+| `BP_Engineering_Window` | Meshes `Lab_Window_Left`, `Lab_Window_Right`; a `ToggleWindow` event; a timeline with *Position Left*, *Position Right* and *Light Intensity*; a rect light; `isOpen`; the same sound | Two sliding halves, toggled from outside; a light fades in as it opens |
+| `BP_Lever_Panel` | Meshes `Lever_Panel`, `Lever`; the `BPI_Interact` interface; a timeline with *Position Y* and *Position Z*; `isOn`, `IsAnimating`; calls `ToggleWindow` | Using it slides the lever to its other position and toggles the window; presses are ignored while it moves |
 
 ### Not worth porting
 

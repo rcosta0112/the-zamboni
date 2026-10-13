@@ -4,10 +4,12 @@
 // target on screen names the action, with the button of the last device used (owner, 2026-10-12;
 // the highlight that came first is off by default).
 // Targets come from the ship file's tags: `interact: "open"` (doors), `interact: "use"` with
-// `controls: "<object name>"` (the keypads by the side door). A door that a keypad controls isn't
-// offered itself (the side door, the cargo ramp). Doors that open together are one target (the
-// roof hatch's two parts).
-// Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1)
+// `controls: "<object name>"` (the keypads by the side door, the bulkhead doors' panels, the
+// engineering window's lever). A door that a device controls isn't offered itself (the side door,
+// the cargo ramp, the bulkhead doors, the window). Doors that open together are one target (the
+// roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
+// Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1),
+// doc/plans/features/bulkhead-doors.md
 
 import * as THREE from 'three/webgpu';
 import type { Door } from './doors';
@@ -29,31 +31,12 @@ export interface Interactable {
 }
 
 /**
- * Doors that open and close together, as one target: each is tagged `opensWith: "<object name>"`
- * in the ship file (the roof hatch's two parts).
+ * The ship's interactables: its doors, and the devices that control something (`controls`): the
+ * keypads of the ramp and the side door, the bulkhead doors' panels, the engineering window's lever.
  */
-function doorGroups(doors: Door[]): Door[][] {
-  const groups: Door[][] = [];
-  const grouped = new Set<Door>();
-  for (const door of doors) {
-    const other = door.object.userData.opensWith as string | undefined;
-    if (!other || grouped.has(door)) continue;
-    const partner = doors.find((d) => d !== door && named(d.object, other));
-    if (!partner) {
-      console.warn(`[01-walk] "${door.name}" opens with "${other}", which isn't a door`);
-      continue;
-    }
-    const group = [door, partner].sort((x, y) => x.name.localeCompare(y.name));
-    for (const d of group) grouped.add(d);
-    groups.push(group);
-  }
-  return groups;
-}
-
-/** The ship's interactables: its doors and the keypads that control the ramp and the side door. */
 export function shipInteractables(ship: THREE.Object3D, doors: Door[]): Interactable[] {
   const list: Interactable[] = [];
-  // The keypads first: a door with a keypad is used from the keypad only.
+  // The devices first: a door with a keypad, a panel or a lever is used from there only.
   const withKeypad = new Set<Door>();
   ship.traverse((o) => {
     const target = o.userData.controls as string | undefined;
@@ -67,11 +50,38 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[]): Interact
       console.warn(`[01-walk] "${o.name}" controls "${target}", which isn't a door`);
       return;
     }
-    withKeypad.add(door);
-    list.push({ name: o.name, objects: [o], verb: () => (door.open ? 'Close door' : 'Open door'), act: () => door.toggle() });
+    // What it moves: the door with everything that opens with it (a bulkhead door's two leaves),
+    // and the device's own handle (the lever), which goes to its other position with it.
+    const group = door.group;
+    const handles = doors.filter((d) => d.device === o);
+    for (const d of [...group, ...handles]) withKeypad.add(d);
+    const what = o.userData.device === 'lever' ? 'window' : 'door';
+    // A door that opens by itself: the panel shuts it and keeps it shut; used again, the door is
+    // automatic again (owner, 2026-10-13). With the automatic opening off, the panel just toggles.
+    const automatic = () => door.auto && settings.autoDoors;
+    list.push({
+      name: o.name,
+      objects: [o, ...handles.map((h) => h.object)],
+      verb: () => ((automatic() ? !door.shut : door.open) ? `Close ${what}` : `Open ${what}`),
+      act: () => {
+        // A lever isn't used while it's moving (as in the UE prototype).
+        if ([...group, ...handles].some((d) => d.moving) && handles.length > 0) return;
+        if (automatic()) {
+          const shut = !door.shut;
+          for (const d of group) d.shut = shut;
+        } else {
+          const open = !door.open;
+          for (const d of group) {
+            d.open = open;
+            d.shut = false;
+          }
+        }
+        for (const h of handles) h.open = door.open;
+      },
+    });
   });
   const grouped = new Set<Door>();
-  for (const all of doorGroups(doors)) {
+  for (const all of new Set(doors.filter((d) => d.group.length > 1).map((d) => d.group))) {
     const group = all.filter((d) => !withKeypad.has(d));
     if (group.length === 0) continue;
     for (const door of group) grouped.add(door);

@@ -13,7 +13,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { makeCuttable } from './cutaway';
-import { advance, createDoors, type Door, type Pusher } from './doors';
+import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
 import { named } from './names';
 import { newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
@@ -297,6 +297,7 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
 export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pusher): void {
   ship.collider.visible = settings.showColliders;
   ship.glassShadowCaster.castShadow = !settings.sunThroughGlass;
+  if (pusher) updateAutoDoors(ship.doors, pusher.feet(), settings.zamboniHeight);
   for (const door of ship.doors) door.update(dt, force, pusher);
   const target = settings.cargoRampOpen ? 1 : 0;
   if (!force && ship.rampAmount === target) {

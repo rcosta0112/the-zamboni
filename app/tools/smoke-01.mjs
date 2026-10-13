@@ -183,6 +183,8 @@ async function checks() {
     key('KeyW', true);
     const attached = await until(() => ladders.state.is === 'on', 2000);
     const off = attached && (await until(() => ladders.state.is === 'off', 8000));
+    // Where the ladder leaves her (pushing on, she walks to the cockpit bulkhead, beside its doorway).
+    const left = character.position.clone();
     // The player keeps pushing for a moment: she must stay off the ladder, on the floor above.
     let stayedOff = off;
     for (let i = 0; i < 10; i++) {
@@ -191,7 +193,7 @@ async function checks() {
     }
     key('KeyW', false);
     await wait(250);
-    return { attached, off, stayedOff, y: character.position.y, grounded: character.grounded };
+    return { attached, off, stayedOff, left, y: character.position.y, grounded: character.grounded };
   };
   let good = 0;
   const problems = [];
@@ -201,9 +203,9 @@ async function checks() {
     const ok = r.attached && r.stayedOff && r.grounded && Math.abs(r.y - ladder.top.y) < 0.15;
     if (ok) good++;
     else problems.push(`climb ${i}: attached ${r.attached}, off ${r.off}, stayed off ${r.stayedOff}, y ${r.y.toFixed(2)} (top ${ladder.top.y.toFixed(2)})`);
-    if (ok && !exit) exit = character.position.clone();
+    if (ok && !exit) exit = r.left;
   }
-  report(good === 10, 'the ladder is climbed and left at the top, 10 times in a row', good === 10 ? `still pushing, she ends at ${fmt(exit)}` : problems.join('; '));
+  report(good === 10, 'the ladder is climbed and left at the top, 10 times in a row', good === 10 ? `it leaves her at ${fmt(exit)}` : problems.join('; '));
   if (exit) {
     // Where she's left at the top, she can walk: at least three of the four ways.
     const moved = [];
@@ -222,8 +224,15 @@ async function checks() {
     report(moved.filter((m) => parseFloat(m.split(' ')[1]) > 0.3).length >= 3 && !moved.some((m) => m.includes('BACK')), 'she can walk away from where the ladder leaves her', moved.join(', '));
 
     // Down: walking into the opening from the floor above, she falls through; nothing attaches her.
-    put(exit);
-    view.yaw = yawToward(ladder.top.x - exit.x, ladder.top.z - exit.z);
+    // (From beside the ladder, toward the wall it faces: the first such spot with floor and room for
+    // her. Walking in from where the ladder leaves her, she comes down on the ladder's own top end,
+    // 1.2 m above the cargo floor, two times in three: not fixed.)
+    const beside = new T.Vector3(ladder.face.z, 0, -ladder.face.x);
+    const above = [1, -1]
+      .map((s) => ladder.top.clone().addScaledVector(beside, s * 0.9).addScaledVector(ladder.face, 0.25))
+      .find((p) => physics.ray(p.clone().setY(p.y + 0.4), DOWN, 0.6, true) && physics.fits(p.clone().setY(p.y + 0.03))) ?? exit;
+    put(above);
+    view.yaw = yawToward(ladder.top.x - above.x, ladder.top.z - above.z);
     await wait(250);
     let attachedAbove = false;
     key('KeyW', true);
@@ -271,12 +280,17 @@ async function checks() {
     under.y -= 0.5 + (floor ? floor.distance : 0);
     put(under);
     view.pitch = 1.2;
+    // With that reach the cockpit door's panel is a candidate too, and nearer the screen centre
+    // (the camera can't look up): nothing else is offered meanwhile.
+    const others = items.filter((i) => i !== hatch[0]).map((i) => [i, i.available]);
+    for (const [i] of others) i.available = () => false;
     const aimed = await until(() => interaction.target === hatch[0], 1500);
     const shown = prompt.textContent;
     await tap('KeyE');
     const opened = await until(() => top.amount === 1 && bottom.amount === 1, 3000);
     await tap('KeyE');
     const closed = await until(() => top.amount === 0 && bottom.amount === 0, 3000);
+    for (const [i, available] of others) i.available = available;
     settings.interactReach = keep.reach;
     settings.interactMaxAngleDeg = keep.angle;
     report(aimed && opened && closed, 'one press moves both parts of the roof hatch', `target "${hatch[0].name}", prompt "${shown}"; both open: ${opened}; both closed again: ${closed}`);
@@ -407,7 +421,135 @@ async function checks() {
   const downInside = await until(() => Math.abs(worldLight() - settings.worldIndoors) < 0.01, 8000);
   report(fullOutside && downInside, 'the world light is turned down inside the ship', `full outside: ${fullOutside}; inside at ${worldLight().toFixed(2)} of it (setting ${settings.worldIndoors})`);
 
+  // --- Pass 4: bulkhead doors, their panels, the engineering window and its lever (6, 7, 8) -----
+  /** Stand her beside an item, on whichever side it can be used from, looking at it; true once it's the target. */
+  const aimFromAnySide = async (item) => {
+    const centre = boxOf(item).getCenter(new T.Vector3());
+    for (const [dx, dz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const feet = centre.clone().add(new T.Vector3(dx, 0, dz).multiplyScalar(0.55));
+      const floor = physics.ray(feet, DOWN, 3, true);
+      if (!floor) continue;
+      feet.y -= floor.distance;
+      put(feet);
+      view.yaw = yawToward(-dx, -dz);
+      for (let pitch = 0; pitch <= 1.0; pitch += 0.1) {
+        view.pitch = pitch;
+        await wait(120);
+        if (interaction.target === item) return true;
+      }
+    }
+    return false;
+  };
+  const settled = (doors, amount) => doors.every((d) => d.amount === amount);
+  const bulkheadDoors = [...new Set(ship.doors.filter((d) => d.auto).map((d) => d.group))];
+  report(bulkheadDoors.length === 2 && bulkheadDoors.every((g) => g.length === 2), 'two bulkhead doors, two leaves each', bulkheadDoors.map((g) => g.map((d) => d.name).join(' + ')).join('; '));
+  for (const leaves of bulkheadDoors) {
+    const label = leaves[0].name.replace(/_/g, ' ');
+    const zone = leaves[0].zone;
+    const centre = zone.getCenter(new T.Vector3());
+    // Across the bulkhead: the thin way of the closed door.
+    const across = zone.max.x - zone.min.x < zone.max.z - zone.min.z ? new T.Vector3(1, 0, 0) : new T.Vector3(0, 0, 1);
+    const side = (p) => (p.x - centre.x) * across.x + (p.z - centre.z) * across.z;
+    const stand = (distance) => {
+      const p = centre.clone().addScaledVector(across, distance).setY(zone.min.y + 0.6);
+      const floor = physics.ray(p, DOWN, 3, true);
+      p.y -= floor ? floor.distance : 0.6;
+      return p;
+    };
+    const far = settings.autoDoorDistance + 1;
+    // Through: far enough past it for it to close (the cockpit is about 2 m long past its door).
+    const past = settings.autoDoorDistance + 0.4;
+    // Far from it, it's closed; walking up, it opens; she goes through; behind her, it closes.
+    // (From one side, then the other if furniture stands where she'd start.)
+    let walked = { ok: false, detail: '' };
+    for (const way of [1, -1]) {
+      put(stand(-way * far));
+      view.yaw = yawToward(way * across.x, way * across.z);
+      view.pitch = 0.15;
+      // Facing the door first: turning round as she sets off, she swings wide and misses the doorway.
+      await tap('KeyW');
+      await wait(300);
+      put(stand(-way * far));
+      const closedFar = await until(() => settled(leaves, 0), 3000);
+      let opened = false;
+      key('KeyW', true);
+      const start = performance.now();
+      // Steering at a point on the door's centre line, well past it (starting on the pallet in the
+      // cargo hold, she comes off it to one side).
+      const aim = centre.clone().addScaledVector(across, way * 6);
+      while (performance.now() - start < 9000 && way * side(character.position) < past) {
+        view.yaw = yawToward(aim.x - character.position.x, aim.z - character.position.z);
+        if (settled(leaves, 1)) opened = true;
+        await wait(30);
+      }
+      key('KeyW', false);
+      const through = way * side(character.position) >= past;
+      const closedBehind = await until(() => settled(leaves, 0), 3000);
+      walked = { ok: closedFar && opened && through && closedBehind, detail: `closed from afar: ${closedFar}; opened: ${opened}; through: ${through} (${(way * side(character.position)).toFixed(2)} m past it); closed behind: ${closedBehind}${through ? '' : `; she's at ${fmt(character.position)}, door centre ${fmt(centre)}, leaves ${leaves.map((d) => `${d.amount.toFixed(2)}${d.blocked ? ' waiting for her' : ''}`).join(' / ')}`}` };
+      if (walked.ok) break;
+    }
+    report(walked.ok, `${label}: opens as she walks up, she goes through, it closes behind her`, walked.detail);
+
+    const panels = items.filter((i) => i.objects[0].userData.device === 'panel' && leaves.some((d) => d.name === i.objects[0].userData.controls || d.object.userData.name === i.objects[0].userData.controls));
+    report(panels.length === 2, `${label}: a panel on each side`, panels.map((p) => p.name).join(', '));
+    for (const [n, panel] of panels.entries()) {
+      const name = panel.name.replace(/_/g, ' ');
+      if (!(await aimFromAnySide(panel))) {
+        report(false, `${name} can be aimed at`, `target: ${interaction.target?.name ?? 'none'}`);
+        continue;
+      }
+      const wasOpen = await until(() => settled(leaves, 1), 3000);
+      const shown = prompt.textContent;
+      const from = side(character.position);
+      await tap('KeyE');
+      const shut = await until(() => settled(leaves, 0), 3000);
+      await wait(200);
+      const shownShut = prompt.textContent;
+      let blocked = true;
+      if (n === 0) {
+        // Shut, it stays shut with her in front of it, and she can't walk through.
+        put(stand(Math.sign(from) * 0.8));
+        view.yaw = yawToward(-Math.sign(from) * across.x, -Math.sign(from) * across.z);
+        await wait(300);
+        key('KeyW', true);
+        await wait(1500);
+        key('KeyW', false);
+        blocked = Math.sign(side(character.position)) === Math.sign(from) && settled(leaves, 0);
+        await aimFromAnySide(panel);
+      }
+      await tap('KeyE');
+      const again = await until(() => settled(leaves, 1), 3000);
+      report(wasOpen && shut && blocked && again, `${name}: shuts the door and keeps it shut; used again, it opens`, `open with her at it: ${wasOpen}; prompt "${shown}" → shut: ${shut}${n === 0 ? `; she can't walk through: ${blocked}` : ''}; prompt "${shownShut}" → open: ${again}`);
+    }
+  }
+
+  const lever = items.find((i) => i.objects[0].userData.device === 'lever');
+  const halves = ship.doors.filter((d) => d.slide && !d.auto && !d.device);
+  const handle = ship.doors.find((d) => d.device);
+  if (!lever || !handle || halves.length !== 2 || !(await aimFromAnySide(lever))) {
+    report(false, 'the window lever can be aimed at', `lever: ${lever?.name ?? 'none'}; handle: ${handle?.name ?? 'none'}; window halves: ${halves.length}; target: ${interaction.target?.name ?? 'none'}`);
+  } else {
+    const place = () => handle.hinge.getWorldPosition(new T.Vector3());
+    const gap = () => Math.abs(new T.Box3().setFromObject(halves[0].hinge).getCenter(new T.Vector3()).x - new T.Box3().setFromObject(halves[1].hinge).getCenter(new T.Vector3()).x);
+    const at = place();
+    const closedGap = gap();
+    const shown = prompt.textContent;
+    await tap('KeyE');
+    const opened = await until(() => settled([...halves, handle], 1), 3000);
+    const moved = place().distanceTo(at) / shipScale;
+    const openGap = gap();
+    await wait(200);
+    const shownOpen = prompt.textContent;
+    await tap('KeyE');
+    const closed = await until(() => settled([...halves, handle], 0), 3000);
+    report(opened && closed && Math.abs(moved - 0.06) < 0.005 && openGap > closedGap * 2.5, 'the lever opens and closes the window, and slides', `prompt "${shown}" → open: ${opened}; the halves' centres ${closedGap.toFixed(2)} → ${openGap.toFixed(2)} m apart; the lever moved ${moved.toFixed(3)} (Blender units); prompt "${shownOpen}" → closed: ${closed}`);
+  }
+  const offeredDoors = items.filter((i) => i.objects.some((o) => ship.doors.some((d) => d.object === o && (d.slide || d.device))) && !i.objects[0].userData.controls);
+  report(offeredDoors.length === 0, 'the bulkhead doors, the window and the lever are not targets themselves', offeredDoors.map((i) => i.name).join(', '));
+
   // --- Every door, with her out of the way -----------------------------------------------------
+  // (The bulkhead doors would follow her: their automatic opening is off for this check.)
+  settings.autoDoors = false;
   put(new T.Vector3(0, 0.05, 0));
   await wait(300);
   const before = ship.doors.map((d) => d.open);
@@ -415,6 +557,7 @@ async function checks() {
   const there = await until(() => ship.doors.every((d) => d.amount === (d.open ? 1 : 0)), 4000);
   for (const [i, d] of ship.doors.entries()) d.open = before[i];
   const back = await until(() => ship.doors.every((d) => d.amount === (d.open ? 1 : 0)), 4000);
+  settings.autoDoors = true;
   report(there && back, `all ${ship.doors.length} doors open and close with her out of the way`, ship.doors.filter((d) => d.amount !== (d.open ? 1 : 0)).map((d) => d.name).join(', '));
 
   return failed;

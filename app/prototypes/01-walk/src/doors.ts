@@ -5,10 +5,15 @@
 // cargo ramp) and `startOpen` (the trapdoor, for now). The hinge is at the recorded `hinge` point.
 // A moving door pushes her out of its way, sideways, through her character controller (so never into
 // a wall). If she can't be pushed (pinned, on a ladder, or it would have to lift her), it stops and
-// waits until she's clear. Plans: doc/plans/features/interaction-doors.md,
-// doc/plans/features/interaction-clearance.md
+// waits until she's clear.
+// Sliding doors (`door: {slide, auto}`): the bulkhead doors' two leaves, the engineering window's two
+// halves and the lever beside it move along a vector instead of turning. The bulkhead doors (`auto`)
+// open when she's near and close when she leaves, unless they were shut from a panel.
+// Plans: doc/plans/features/interaction-doors.md, doc/plans/features/interaction-clearance.md,
+// doc/plans/features/bulkhead-doors.md
 
 import * as THREE from 'three/webgpu';
+import { named } from './names';
 import { prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
 import { settings } from './settings';
@@ -19,6 +24,8 @@ export interface Pusher {
   push: (by: THREE.Vector3) => void;
   /** On a ladder: she can't be pushed. */
   climbing: () => boolean;
+  /** Where she stands (world). */
+  feet: () => THREE.Vector3;
 }
 
 /** Pushed this far clear of the door (m). */
@@ -77,6 +84,19 @@ export class Door {
   readonly units: CutUnit[] = [];
   /** A door that's a ramp when fully open: the walkable slope then replaces its collider. */
   walkway: { setEnabled: (on: boolean) => void } | null = null;
+  /** A sliding door: how far and which way it moves to open (the ship's space). Not set: it turns. */
+  slide: THREE.Vector3 | null = null;
+  /** Opens when she's near, closes when she leaves (the bulkhead doors). */
+  auto = false;
+  /** An automatic door shut from a panel: it stays shut until a panel is used again. */
+  shut = false;
+  /** The doors that open with it (`opensWith`), itself included. */
+  group: Door[] = [this];
+  /** Around the whole door, closed (world): how near she is to it. */
+  readonly zone = new THREE.Box3();
+  /** The panel or lever it's the handle of (its parent in the file): it follows what that controls. */
+  device: THREE.Object3D | null = null;
+  private home = new THREE.Vector3();
 
   constructor(
     readonly name: string,
@@ -103,9 +123,13 @@ export class Door {
       this.blocked = false;
       return;
     }
-    const step = dt / settings.doorSeconds;
+    const step = dt / (this.slide ? settings.slideSeconds : settings.doorSeconds);
     const next = force ? target : target > this.amount ? Math.min(target, this.amount + step) : Math.max(target, this.amount - step);
-    if (force || !this.collider || !pusher) {
+    // A sliding door that's opening moves along its own face, away from the doorway: it has nothing
+    // to push. (Running at it, she touched the leaves before they were open and was pushed aside,
+    // against the edge of the doorway.)
+    const opening = this.slide !== null && next > this.amount;
+    if (force || !this.collider || !pusher || opening) {
       this.amount = next;
       this.pose();
     } else {
@@ -124,10 +148,45 @@ export class Door {
     for (const unit of this.units) prepareRaycasts(unit);
   }
 
+  /** Call once, closed: it slides from where it is now. */
+  slides(by: THREE.Vector3): void {
+    this.slide = by;
+    this.home.copy(this.hinge.position);
+  }
+
+  /** Still on its way to open or closed. */
+  get moving(): boolean {
+    return this.amount !== (this.open ? 1 : 0);
+  }
+
   private pose(): void {
     const t = this.amount;
-    this.hinge.quaternion.setFromAxisAngle(this.axis, this.openAngle * t * t * (3 - 2 * t));
+    const eased = t * t * (3 - 2 * t);
+    if (this.slide) this.hinge.position.copy(this.home).addScaledVector(this.slide, eased);
+    else this.hinge.quaternion.setFromAxisAngle(this.axis, this.openAngle * eased);
     this.hinge.updateMatrixWorld(true);
+  }
+}
+
+/** An automatic door closes when she's this much further away than where it opens (m): no flutter at the edge. */
+const AUTO_CLOSE_MARGIN = 0.3;
+
+/**
+ * One fixed step, before the doors move: the automatic doors (the bulkhead doors) open while she's
+ * near, on their deck, and close when she leaves; one shut from a panel stays shut. With the
+ * automatic opening off (tuning panel), the panels alone open and close them.
+ * @param feet where she stands (world)
+ */
+export function updateAutoDoors(doors: Door[], feet: THREE.Vector3, height: number): void {
+  if (!settings.autoDoors) return;
+  for (const door of doors) {
+    if (!door.auto) continue;
+    const zone = door.zone;
+    const onDeck = feet.y + height > zone.min.y && feet.y < zone.max.y;
+    const dx = Math.max(zone.min.x - feet.x, 0, feet.x - zone.max.x);
+    const dz = Math.max(zone.min.z - feet.z, 0, feet.z - zone.max.z);
+    const reach = settings.autoDoorDistance + (door.open ? AUTO_CLOSE_MARGIN : 0);
+    door.open = !door.shut && onDeck && Math.hypot(dx, dz) <= reach;
   }
 }
 
@@ -140,9 +199,19 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
   ship.traverse((o) => {
     if (o.userData.door) tagged.push(o);
   });
-  return tagged.map((object) => {
-    const data = object.userData.door as { axis: [number, number, number]; angle: number; toGround: boolean; startOpen?: boolean };
+  const doors = tagged.map((object) => {
+    const data = object.userData.door as { axis: [number, number, number]; angle: number; toGround: boolean; startOpen?: boolean; slide?: [number, number, number]; auto?: boolean };
+    // A lever on its panel is the panel's handle (below, it's attached to a pivot of its own).
+    const device = object.parent && object.parent.userData.interact === 'use' ? object.parent : null;
     const hinge = hingeAt(ship, object);
+    if (data.slide) {
+      // A handle doesn't collide: it's a few centimetres on the wall.
+      const door = new Door(object.name, object, hinge, new THREE.Vector3(0, 1, 0), 0, device ? null : physics.addMovingConvex(hinge));
+      door.slides(new THREE.Vector3(...data.slide));
+      door.auto = data.auto === true;
+      door.device = device;
+      return door;
+    }
     const axis = new THREE.Vector3(...data.axis).normalize();
     const openAngle = data.toGround ? angleToGround(hinge, axis, data.angle) : data.angle;
     const walkway = data.toGround ? physics.addStaticTriangles(...walkwayTriangles(hinge, axis, physics)) : null;
@@ -152,8 +221,22 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
     const door = new Door(object.name, object, hinge, axis, openAngle, collider);
     door.walkway = walkway;
     door.open = data.startOpen === true; // posed by the ship's first (forced) update
+    door.device = device;
     return door;
   });
+  // Doors that open together (`opensWith`: the roof hatch's two parts, a bulkhead door's two leaves).
+  for (const door of doors) {
+    const other = door.object.userData.opensWith as string | undefined;
+    if (!other) continue;
+    const partner = doors.find((d) => d !== door && named(d.object, other));
+    if (!partner) console.warn(`[01-walk] "${door.name}" opens with "${other}", which isn't a door`);
+    else if (partner.group.includes(door)) door.group = partner.group;
+    else door.group = [door, partner].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  // They're closed here: the bounds of each whole door, for how near she is.
+  const part = new THREE.Box3();
+  for (const door of doors) for (const d of door.group) door.zone.union(part.setFromObject(d.hinge));
+  return doors;
 }
 
 /** Steepest the stand-in slope may be (her controller climbs up to 45°). */

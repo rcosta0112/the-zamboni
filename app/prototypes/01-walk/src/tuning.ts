@@ -81,6 +81,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre (°)');
   interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight (0 = off)');
   interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');
+  interact.add(settings, 'slideSeconds', 0.1, 3, 0.05).name('sliding door time (s)');
+  interact.add(settings, 'autoDoors').name('bulkhead doors open by themselves');
+  interact.add(settings, 'autoDoorDistance', 0.5, 4, 0.05).name('...when she is within (m)');
   interact.add(settings, 'doorsPush').name('doors push her');
   interact.add(settings, 'climbSpeed', 0.3, 4, 0.05).name('climb speed (m/s)');
 
@@ -135,6 +138,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
     )
     .name('Copy values');
 
+  // Everything starts collapsed: the folders, and the panel itself.
+  for (const folder of gui.foldersRecursive()) folder.close();
   gui.close();
   return gui;
 }

@@ -120,6 +120,7 @@ async function start(): Promise<void> {
       character.position.copy(physics.feet);
     },
     climbing: () => ladders?.climbing ?? false,
+    feet: () => character.position,
   };
 
   let last = performance.now();

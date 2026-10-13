@@ -1,6 +1,6 @@
 # Plan: the backlog, in six passes
 
-**Status:** *in progress*: approved 2026-10-12 (order and answers below); passes 1 and 2 built and approved by the owner on 2026-10-12; pass 3 built the same day (A, plus C and a tint in place of B: see the decision log), for the owner to judge. Before pass 1: an audit of the project and documentation structure (owner, 2026-10-12). Covers every item in [`backlog.md`](backlog.md) (1–23). All of it is in prototype 01, like the ship so far.
+**Status:** *in progress*: approved 2026-10-12 (order and answers below); passes 1 and 2 built and approved by the owner on 2026-10-12; pass 3 built the same day (A, plus C and a tint in place of B: see the decision log), for the owner to judge; pass 4 built 2026-10-13 from its own plan, owner play-test pending. Before pass 1: an audit of the project and documentation structure (owner, 2026-10-12). Covers every item in [`backlog.md`](backlog.md) (1–23). All of it is in prototype 01, like the ship so far.
 
 ## Decided (owner, 2026-10-12)
 
@@ -100,7 +100,7 @@ The interior is lit by the room lights and the blue world light; the sun doesn't
 
 ## Pass 4: bulkhead doors and the engineering window (6, 7, 8): own plan
 
-To be planned once the UE logic can be read. What's known now:
+**Its plan: [`features/bulkhead-doors.md`](features/bulkhead-doors.md)** (approved and built 2026-10-13). What was known before it:
 
 - **Behaviour (owner, 2026-10-12):** the window opens the same way as a bulkhead door; its control is a lever that turns to its other position when used. The Blueprints are there if this isn't enough.
 - **One point left for that plan:** what the panel button does to a door that also opens by itself (proposed: it overrides: a door shut from its panel stays shut until a panel is used again; opened from its panel, it stays open).

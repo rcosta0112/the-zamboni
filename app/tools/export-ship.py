@@ -30,6 +30,10 @@ It does what is derived from the scene:
 - Doors (``doorAxis``, ``doorAngle``, ``doorToGround``, ``doorStartOpen``; closed in the file) are
   written with one ``door`` property: the hinge axis (glTF axes, in the ship's space), the open
   angle (radians), ``toGround`` and ``startOpen``.
+- Sliding doors (``doorSlide``, ``doorDistance``, ``doorAuto``; closed in the file): the bulkhead
+  doors, the engineering window, the lever. Written as ``door: {slide, auto}``: the way and the
+  distance it slides to open, as one vector (glTF axes, in the ship's space), and whether it opens
+  when she's near.
 - Each moving part's pivot (its origin) is recorded as ``hinge`` (glTF axes): compression moves
   node origins, so the game builds hinges from this. (Not ``pivot``: three.js r186's GLTFLoader
   reads a ``pivot`` extra on a node with children as its own pivot pattern and consumes it.)
@@ -60,7 +64,7 @@ GAME_COLLECTION = 'Game'
 # with a collider; smaller ones are merged per room and don't collide.
 BIG = 0.25
 # Tags that only this script reads: not written to the exported file.
-EXPORT_ONLY = ['part', 'collider', 'moving', 'doorAxis', 'doorAngle', 'doorToGround', 'doorStartOpen', 'lightRoom', 'lightColor', 'lightEnergy']
+EXPORT_ONLY = ['part', 'collider', 'moving', 'doorAxis', 'doorAngle', 'doorToGround', 'doorStartOpen', 'doorSlide', 'doorDistance', 'doorAuto', 'lightRoom', 'lightColor', 'lightEnergy']
 AXES = {'X': 0, 'Y': 1, 'Z': 2}
 
 parser = argparse.ArgumentParser()
@@ -86,7 +90,7 @@ in_scene = list(bpy.context.view_layer.objects)
 objects = [ob for ob in in_scene if ob.get('part')]
 if not objects:
     sys.exit('No object is tagged "part": this script exports the reference file (The Zamboni 1.19.blend or later).')
-doors = [ob for ob in objects if 'doorAxis' in ob]
+doors = [ob for ob in objects if 'doorAxis' in ob or 'doorSlide' in ob]
 # What hangs on a door moves with it (the poster on a locker door).
 door_children = [c for door in doors for c in door.children_recursive if c not in objects]
 moving = doors + door_children + [ob for ob in objects if ob.get('moving')]
@@ -104,6 +108,11 @@ for ob in moving:
     ob['hinge'] = [x, z, -y]
 
 for ob in doors:
+    if 'doorSlide' in ob:
+        # Sliding along the object's own axis = sliding along this vector in the ship.
+        a = (ob.matrix_world.to_3x3().normalized() @ Vector([1.0 if i == AXES[ob['doorSlide']] else 0.0 for i in range(3)])).normalized() * ob['doorDistance']
+        ob['door'] = {'slide': [a.x, a.z, -a.y], 'auto': bool(ob.get('doorAuto', False))}
+        continue
     # Turning the object about its own axis = turning about this axis in the ship (scale doesn't
     # change the direction; the rotations here are single-axis or a half-turn about Z).
     parent = ob.parent.matrix_world.to_3x3().normalized() if ob.parent else Matrix.Identity(3)
