@@ -22,6 +22,8 @@ import { settings } from './settings';
 
 const SHIP_URL = '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
+/** The ladder whose collision is switched off while she's above it (ladders.ts). */
+const LADDER = 'Ladder Cargo Bay';
 const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 
@@ -39,6 +41,8 @@ export interface Ship {
   rampAmount: number;
   /** Stopped against her: waiting until she's clear. */
   rampWaiting: boolean;
+  /** Each ladder's own collider, by the ladder's name (null: it's part of the ship's). */
+  ladderColliders: Record<string, { setEnabled: (on: boolean) => void } | null>;
   /** While moving or closed: a convex collider that follows the ramp. */
   rampCollider: MovingCollider;
   /** When fully open: a smooth walkable slope from the ground to the cargo floor. */
@@ -117,7 +121,15 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
 
   scene.add(object);
   object.updateMatrixWorld(true);
-  physics.addStaticMesh(col);
+  // The ladder's triangles become a collider of their own, which ladders.ts switches off while she's
+  // above its foot. (Found by its bounds, until the export leaves it out of the ship's collider.)
+  const ladderColliders: Record<string, { setEnabled: (on: boolean) => void } | null> = {};
+  let ladderBox: THREE.Box3 | undefined;
+  object.traverse((o) => {
+    if (named(o, LADDER)) ladderBox = new THREE.Box3().setFromObject(o).expandByScalar(0.02);
+  });
+  ladderColliders[LADDER] = physics.addStaticMesh(col, ladderBox);
+  if (!ladderColliders[LADDER]) console.warn(`[01-walk] no collision triangles found for "${LADDER}": it can't be switched off`);
 
   // Inside the ship = within the hull's bounds (both decks), from just below the cargo floor up.
   // (The hull is roughly box-shaped; a proper trigger-volume system comes later.)
@@ -152,7 +164,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   const rampClosedAngle = closedAngle(rampDoor);
   const rampOpenAngle = findRampOpenAngle(rampNode, rampClosedAngle);
   console.info(`[01-walk] cargo ramp: closed at ${THREE.MathUtils.radToDeg(rampClosedAngle).toFixed(1)}°, open at ${THREE.MathUtils.radToDeg(rampOpenAngle).toFixed(1)}° (0° = as in the file)`);
-  const rampWalkway = physics.addStaticTriangles(...walkwayTriangles(object, rampNode, cargoFloor));
+  const rampWalkway = physics.addStaticTriangles(...walkwayTriangles(object, rampNode, cargoFloor, physics));
   rampNode.rotation.x = 0;
   rampNode.updateWorldMatrix(true, true);
   const rampCollider = physics.addMovingConvex(rampNode);
@@ -169,6 +181,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     rampWaiting: false,
     rampCollider,
     rampWalkway,
+    ladderColliders,
     interior,
     upperFloorY,
     cutUnits,
@@ -305,8 +318,13 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   const target = settings.cargoRampOpen ? 1 : 0;
   if (!force && ship.rampAmount === target) {
     ship.rampWaiting = false;
+    settings.cargoRampByKeypad = null;
     return;
   }
+  // Moved from its keypad, she's inside the ship and can't be under it: it doesn't stop for her
+  // (owner, 2026-10-14: touching it on its way down stopped it, and she was stuck between it and
+  // the pallet). Moved any other way (the tuning panel, later from outside), it stops as doors do.
+  const unstoppable = settings.cargoRampByKeypad === settings.cargoRampOpen;
   const step = dt / RAMP_SECONDS;
   const next = force ? target : target > ship.rampAmount ? Math.min(target, ship.rampAmount + step) : Math.max(target, ship.rampAmount - step);
   const pose = (t: number) => {
@@ -317,7 +335,7 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   if (force || !pusher) {
     pose(next);
   } else {
-    const moved = advance(ship.rampCollider, pose, ship.rampAmount, next, pusher, ship.rampWaiting);
+    const moved = advance(ship.rampCollider, pose, ship.rampAmount, next, pusher, ship.rampWaiting, unstoppable);
     ship.rampWaiting = moved.waiting;
   }
   ship.rampCollider.sync();
@@ -385,40 +403,79 @@ function isInside(o: THREE.Object3D, ancestor: THREE.Object3D): boolean {
 }
 
 /**
- * The walkable slope for the open ramp, in world space: from the ramp's far edge on the ground up
- * to the rear edge of the cargo floor, as wide as the ramp. Worked out in the ship's own space
- * (the ramp is at its open angle when this is called).
+ * The walkable slope for the open ramp, in world space, as wide as the ramp (which is at its open
+ * angle when this is called): it follows what's seen, from the cargo floor down the bevel at its
+ * rear edge, across the slot at the ramp's hinge and down the ramp, then on to the ground past the
+ * lip at the ramp's far end. (Until 2026-10-13 it was one flat slope from the floor's edge to the
+ * ramp's end: up to 0.3 m above the ramp near the top, so she floated, and it met the floor with a
+ * step up across the slot, where she stuck walking out.)
  */
-function walkwayTriangles(ship: THREE.Object3D, ramp: THREE.Object3D, floor: THREE.Object3D): [Float32Array, Uint32Array] {
+function walkwayTriangles(ship: THREE.Object3D, ramp: THREE.Object3D, floor: THREE.Object3D, physics: Physics): [Float32Array, Uint32Array] {
   ship.updateMatrixWorld(true);
-  const toShip = new THREE.Matrix4().copy(ship.matrixWorld).invert();
-  const boxInShip = (o: THREE.Object3D) => {
-    const box = new THREE.Box3();
-    const v = new THREE.Vector3();
-    o.traverse((c) => {
-      const mesh = c as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      const pos = mesh.geometry.getAttribute('position');
-      for (let i = 0; i < pos.count; i++) box.expandByPoint(v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).applyMatrix4(toShip));
-    });
-    return box;
-  };
-  const r = boxInShip(ramp); // open: lies outside the back of the ship (more negative z)
-  const f = boxInShip(floor);
-  const x0 = r.min.x;
-  const x1 = r.max.x;
+  const r = new THREE.Box3().setFromObject(ramp); // open: lies outside the back of the ship
+  const f = new THREE.Box3().setFromObject(floor);
   const top = f.max.y; // cargo floor surface
-  const edge = f.min.z; // its rear edge
-  const foot = r.min.z; // the ramp's far end, on the ground
-  const corners = [
-    new THREE.Vector3(x0, 0, foot),
-    new THREE.Vector3(x1, 0, foot),
-    new THREE.Vector3(x1, top, edge),
-    new THREE.Vector3(x0, top, edge),
-  ].map((p) => p.applyMatrix4(ship.matrixWorld));
-  const vertices = new Float32Array(corners.flatMap((p) => [p.x, p.y, p.z]));
-  return [vertices, new Uint32Array([0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2])]; // both faces
+  // Outward: from the floor's rear edge toward the ramp's far end (along world z).
+  const out = Math.sign(r.getCenter(new THREE.Vector3()).z - f.getCenter(new THREE.Vector3()).z) || 1;
+  const edge = out > 0 ? f.max.z : f.min.z;
+  const far = out > 0 ? r.max.z : r.min.z;
+  // What's seen (the ramp, the floor) and what collides, from above, near each side of the ramp (its
+  // middle has a window): the higher of them, every WALKWAY_STEP from a little inside the floor's edge.
+  const ray = new THREE.Raycaster();
+  const down = new THREE.Vector3(0, -1, 0);
+  const from = new THREE.Vector3();
+  const heightAt = (z: number) => {
+    let h = 0;
+    for (const share of [0.15, 0.85]) {
+      from.set(THREE.MathUtils.lerp(r.min.x, r.max.x, share), top + 0.5, z);
+      ray.set(from, down);
+      ray.far = top + 0.5;
+      for (const hit of ray.intersectObjects([ramp, floor], true)) h = Math.max(h, hit.point.y);
+      const solid = physics.ray(from, down, top + 0.4, true);
+      if (solid) h = Math.max(h, from.y - solid.distance);
+    }
+    return Math.min(h, top);
+  };
+  const start = edge - out * WALKWAY_INSIDE;
+  const count = Math.max(2, Math.ceil(Math.abs(far - start) / WALKWAY_STEP));
+  let zs = Array.from({ length: count + 1 }, (_, n) => start + ((far - start) * n) / count);
+  let hs = zs.map(heightAt);
+  hs[0] = top;
+  // The ramp's end: the last point with something under it.
+  let last = count;
+  while (last > 2 && hs[last]! < 0.03) last--;
+  zs = zs.slice(0, last + 1);
+  hs = hs.slice(0, last + 1);
+  // Going out it only goes down: a dip (the slot at the ramp's hinge) is bridged at the height of
+  // what comes after it, and a bump (the lip at the ramp's far end) is taken off.
+  for (let n = hs.length - 2; n >= 0; n--) hs[n] = Math.max(hs[n]!, hs[n + 1]!);
+  for (let n = 1; n < hs.length; n++) hs[n] = Math.min(hs[n]!, hs[n - 1]!);
+  // Nowhere steeper than WALKWAY_SLOPE: where the floor ends above the ramp's top (a riser 0.2 m
+  // high, which she couldn't walk up), the walkway comes down to the ramp over a longer stretch.
+  for (let n = 1; n < hs.length; n++) hs[n] = Math.max(hs[n]!, hs[n - 1]! - Math.abs(zs[n]! - zs[n - 1]!) * WALKWAY_SLOPE);
+  // Past the ramp's end, on down to the ground at the ramp's own slope (its end is a lip).
+  const a = Math.floor(last * 0.4);
+  const b = Math.floor(last * 0.8);
+  const slope = Math.max(0.2, (hs[a]! - hs[b]!) / Math.abs(zs[b]! - zs[a]!));
+  const end = hs[last]!;
+  zs.push(zs[last]! + (out * end) / slope);
+  hs.push(0);
+  console.info(`[01-walk] cargo ramp walkway: ${zs.length} points from ${hs[0]!.toFixed(2)} m at z ${zs[0]!.toFixed(2)} to the ground at z ${zs[zs.length - 1]!.toFixed(2)}; at the ramp's end (z ${zs[last]!.toFixed(2)}) ${end.toFixed(2)} m`);
+  const vertices = new Float32Array(zs.flatMap((z, n) => [r.min.x, hs[n]!, z, r.max.x, hs[n]!, z]));
+  const indices: number[] = [];
+  for (let n = 0; n < zs.length - 1; n++) {
+    const [p, q, s, t] = [n * 2, n * 2 + 1, n * 2 + 3, n * 2 + 2];
+    indices.push(p, q, s, p, s, t, p, s, q, p, t, s); // both faces
+  }
+  return [vertices, new Uint32Array(indices)];
 }
+
+/** The walkway starts this far inside the cargo floor's rear edge (m): over the bevel there. */
+const WALKWAY_INSIDE = 0.7;
+/** The walkway's steepest fall, as height over length (about 27°; the ramp itself is about 21°). */
+const WALKWAY_SLOPE = 0.5;
+/** A point of the walkway's profile every this far (m). */
+const WALKWAY_STEP = 0.1;
 
 /**
  * A pivot at the moving part's recorded `hinge` (ship space, from the export), with the part

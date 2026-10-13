@@ -10,8 +10,9 @@
 | `settings.ts` | Every tunable value and its starting point | `settings` |
 | `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
 | `input.ts` | Actions from gamepad and keyboard: move, look, jump, interact, last device used | `Input.poll`, `consume*` |
-| `character.ts` | Her movement, jump and gravity; placing her on a ladder | `Character.update`, `setClimbing`, `moveDirection` |
-| `physics.ts` | Rapier: ground, static colliders, her capsule and controller, moving colliders (doors), rays | `Physics.move`, `addMovingConvex`, `ray`, `castRay`, `fits` |
+| `character.ts` | Her movement (indoors: the way the stick points), jump (lower indoors) and gravity; placing her on a ladder; floating off a ladder's top | `Character.update`, `jump`, `floating`, `setClimbing`, `moveDirection` |
+| `physics.ts` | Rapier: ground, static colliders (a part of a mesh can be its own, switchable), boxes, her capsule and controller, moving colliders (doors), rays | `Physics.move`, `addStaticMesh`, `addStaticBox`, `addMovingConvex`, `ray`, `castRay`, `fits`, `overFloor` |
+| `colliders.ts` | The collision boxes in front of the ship's own shapes (crew quarters' walls, sledge, chests, window slope), until they're in the ship file | `BOXES`, `createCollisionBoxes` |
 | `camera.ts` | Orbit camera: yaw, pitch, the fixed indoor and outdoor distances, follow, collision outside the ship | `FollowCamera.update` |
 | `ship.ts` | Loading the ship and its collider; "inside"; decks; see-through units and their tags; **the cargo ramp** (its closed and open angles); hinges; the merged shadow caster | `loadShip`, `updateShip`, `closedAngle`, `groupCutUnits`, `hingeAt` |
 | `doors.ts` | Hinged and sliding doors; the bulkhead doors opening when she's near; doors that open together (`group`); a moving part pushing her (also used by the ramp); the side door's walkable slope; when and where each door's sound plays, and the motor of a door that's a ramp | `Door.update`, `updateAutoDoors`, `advance`, `createDoors`, `createDoorSounds`, `motorSound` |
@@ -19,7 +20,7 @@
 | `audio.ts`, `cues.json` | Sound: cues by id (the data: file or variations, bus, volume, speed, falloff, which level it follows), buses, decoded and streamed sounds, sounds placed in the world, turning the sound on, stopping with the pause, the ship's noise, a cue that repeats and fades (the start screen's music) and how a streamed loop repeats | `GameAudio.play`, `stop`, `setLoop`, `setPaused`, `update`, `StreamLoop` |
 | `footsteps.ts` | Her footsteps: when a foot comes down in the walk/run cycle, which surface, landings | `Footsteps.update` |
 | `boombox.ts` | The boombox: its ring of steps, the cassette sound then the track, the shake | `Boombox.use`, `update` |
-| `ladders.ts` | Finding ladders; attaching at the foot, climbing up, stepping off at the top, letting go | `shipLadders`, `Ladders.update`, `findExit` |
+| `ladders.ts` | Finding ladders; attaching at the foot, climbing up and down, held at the top, leaving it (the float), jump; when the ladder collides | `shipLadders`, `Ladders.update`, `updateColliders` |
 | `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
 | `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
 | `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |

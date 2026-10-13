@@ -41,6 +41,8 @@ Copied on 2026-10-08 from `The Zamboni.archive` (the newest versions only). The 
 
 **Collision:** simplified `*_col` meshes, boxes or heightfields, exported with the model they belong to and counted in its download budget.
 
+> **[Agent note]** **Collision boxes waiting to go into the ship file (2026-10-13).** Ten boxes stand in front of the ship's own shapes where she caught on them: the crew quarters' walls and furniture, the sledge, the chests and their lamp, the slope up to the engineering window. They're in the game's code for now (`app/prototypes/01-walk/src/colliders.ts`, world coordinates), to be approved by the owner; then they become `*_col` objects in the `Game` collection and the file goes. **A face she can walk along stands 0.08 m proud of the furthest thing behind it:** her controller also touches what is a few centimetres behind a face, and the end of a closed cupboard door there stopped her dead. Unlike `*_col` pieces, these boxes don't hide what's behind them from the reach test (`castRay` passes through them): in the ship file they'd need the same, or the things behind them (the galley's doors, the boombox) stop being usable. See [`plans/features/movement-and-ladder.md`](../plans/features/movement-and-ladder.md), *As built*.
+
 **Cutscenes:** animated in Blender as a single timeline per cutscene (camera + characters + ship), exported as glTF animations. See [`README.md`](README.md#cutscenes).
 
 ## The ship's reference file

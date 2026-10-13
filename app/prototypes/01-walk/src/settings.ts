@@ -12,9 +12,15 @@ export const settings = {
   deceleration: 120,
   // Seconds to turn toward the movement direction (Part 1: 0.2).
   turnSmoothTime: 0.2,
+  // Inside the ship she moves the way the stick points at once, and her body turns after (owner,
+  // 2026-10-13: she set off in an arc and caught on things). Off: she moves the way she faces.
+  indoorDirectMove: true,
 
   // Jump. Part 1's jump was switched off, so these are new starting points.
   jumpHeight: 1.0,
+  // Inside the ship: at 1.0 her head reached the ceilings. 0.6 gets her onto the cargo hold's chests
+  // (0.5 m) and not onto the sledge.
+  indoorJumpHeight: 0.6,
   gravity: 20,
 
   // Camera
@@ -73,6 +79,7 @@ export const settings = {
   showGrid: false, // faint 1 m / 10 m grid for judging speed
   showColliders: false, // the ship's collision mesh as a wireframe
   cargoRampOpen: true, // the Zamboni's cargo ramp, down to the ground (the way in: starts open)
+  cargoRampByKeypad: null as boolean | null, // not for tuning: what the keypad last asked of the ramp, until it gets there
 
   // Interaction: point (the screen centre) at something within her reach and press E / Circle.
   interactReach: 1.0, // m, from her chest to the object's bounds
@@ -81,13 +88,19 @@ export const settings = {
   doorSeconds: 0.6, // to open or close a door
   slideSeconds: 0.3, // the same for a sliding door (bulkhead doors, the engineering window, its lever)
   leverDelay: 0.6, // the window starts this long after its lever is used (s): the lever is heard first
-  autoDoors: true, // the bulkhead doors open when she's near (off: only from their panels)
+  // The bulkhead doors open when she's near (off: only from their panels). Off for now (owner,
+  // 2026-10-13); the code stays, and the scripted check turns it on for itself.
+  autoDoors: false,
   // m, from her to the closed door: nearer than this, it opens. With the slide time, it must be open
   // before she gets there at a run (3.5 m/s indoors): at 0.6 s she ran into the leaves. Not much
   // further either: at 2 m the cockpit's door stays open for most of the cockpit.
   autoDoorDistance: 1.5,
   doorsPush: true, // a moving door pushes her out of its way (off: it just stops against her)
   climbSpeed: 1.2, // m/s along a ladder
+  ladderFloat: 0.6, // s she floats after leaving a ladder at its top, to walk onto the floor (0.44 m away)
+  // The collision boxes of colliders.ts (the crew quarters' walls, the sledge, the chests, the
+  // window's slope): off, she collides with the ship's own shapes only, to compare.
+  collisionBoxes: true,
 
   // See-through hull (inside the ship) and camera collision (outside)
   seeThrough: true,

@@ -36,6 +36,8 @@ async function checks() {
   }
   const T = w.__THREE;
   const settings = w.__settings;
+  // Off in the game for now (owner, 2026-10-13); the code is kept, so it's still checked here.
+  settings.autoDoors = true;
   const character = w.__character;
   const physics = w.__physics;
   const view = w.__view;
@@ -171,95 +173,108 @@ async function checks() {
     report(false, 'the side door keypad can be aimed at', `target: ${interaction.target?.name ?? 'none'}`);
   }
 
-  // --- Ladders (4, 5) --------------------------------------------------------------------------
+  // --- The ladder (4, 5, 31): up and down, held at the top, off it by the player's own push -------
   const ladder = ladders.list[0];
   const foot = ladder.bottom.clone().addScaledVector(ladder.face, -0.45);
-  const climb = async () => {
+  const keys = (down, ...codes) => codes.forEach((c) => key(c, down));
+  /** From the floor at its foot, up to this share of the way (1: the top), still pushing. */
+  const climbTo = async (share) => {
+    keys(false, 'KeyW', 'KeyA', 'KeyS', 'KeyD');
     put(foot);
     view.yaw = yawToward(ladder.face.x, ladder.face.z);
     view.pitch = 0.3;
-    await wait(200);
+    await wait(300);
     key('KeyW', true);
-    const attached = await until(() => ladders.state.is === 'on', 2000);
-    const off = attached && (await until(() => ladders.state.is === 'off', 8000));
-    // Where the ladder leaves her (pushing on, she walks to the cockpit bulkhead, beside its doorway).
-    const left = character.position.clone();
-    // The player keeps pushing for a moment: she must stay off the ladder, on the floor above.
-    let stayedOff = off;
-    for (let i = 0; i < 10; i++) {
-      await wait(50);
-      if (ladders.state.is !== 'off') stayedOff = false;
-    }
-    key('KeyW', false);
-    await wait(250);
-    return { attached, off, stayedOff, left, y: character.position.y, grounded: character.grounded };
+    return until(() => ladders.state.is === 'on' && ladders.state.s >= share, 6000);
   };
-  let good = 0;
-  const problems = [];
-  let exit = null;
-  for (let i = 1; i <= 10; i++) {
-    const r = await climb();
-    const ok = r.attached && r.stayedOff && r.grounded && Math.abs(r.y - ladder.top.y) < 0.15;
-    if (ok) good++;
-    else problems.push(`climb ${i}: attached ${r.attached}, off ${r.off}, stayed off ${r.stayedOff}, y ${r.y.toFixed(2)} (top ${ladder.top.y.toFixed(2)})`);
-    if (ok && !exit) exit = r.left;
-  }
-  report(good === 10, 'the ladder is climbed and left at the top, 10 times in a row', good === 10 ? `it leaves her at ${fmt(exit)}` : problems.join('; '));
-  if (exit) {
-    // Where she's left at the top, she can walk: at least three of the four ways.
-    const moved = [];
-    for (const code of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
-      put(exit);
-      view.yaw = yawToward(ladder.face.x, ladder.face.z);
-      await wait(250);
-      key(code, true);
-      await wait(500);
-      key(code, false);
-      await wait(150);
-      const d = Math.hypot(character.position.x - exit.x, character.position.z - exit.z);
-      moved.push(`${code.slice(3)} ${d.toFixed(2)} m${ladders.state.is === 'off' ? '' : ' (BACK ON THE LADDER)'}`);
-      await until(() => ladders.state.is === 'off', 3000);
-    }
-    report(moved.filter((m) => parseFloat(m.split(' ')[1]) > 0.3).length >= 3 && !moved.some((m) => m.includes('BACK')), 'she can walk away from where the ladder leaves her', moved.join(', '));
+  const offLadder = () => until(() => ladders.state.is === 'off' && character.grounded && character.floating === 0, 3000);
+  const onDeck = () => character.grounded && Math.abs(character.position.y - ladder.top.y) < 0.15;
+  const onCargoFloor = () => character.grounded && Math.abs(character.position.y - ladder.bottom.y) < 0.15;
+  {
+    // Held at the top for as long as she pushes toward the ladder, or doesn't push.
+    const up = await climbTo(1);
+    await wait(800);
+    const pushing = ladders.state.is === 'on' && ladders.state.s === 1 && Math.abs(character.position.y - ladder.top.y) < 0.02;
+    key('KeyW', false);
+    await wait(500);
+    report(up && pushing && ladders.state.is === 'on', 'the ladder is climbed, and she is held at its top', `climbed: ${up}; held while pushing: ${pushing}; held at rest: ${ladders.state.is === 'on'}; at ${fmt(character.position)}`);
 
-    // Down: walking into the opening from the floor above, she falls through; nothing attaches her.
-    // (From beside the ladder, toward the wall it faces: the first such spot with floor and room for
-    // her. Walking in from where the ladder leaves her, she comes down on the ladder's own top end,
-    // 1.2 m above the cargo floor, two times in three: not fixed.)
-    const beside = new T.Vector3(ladder.face.z, 0, -ladder.face.x);
-    const above = [1, -1]
-      .map((s) => ladder.top.clone().addScaledVector(beside, s * 0.9).addScaledVector(ladder.face, 0.25))
-      .find((p) => physics.ray(p.clone().setY(p.y + 0.4), DOWN, 0.6, true) && physics.fits(p.clone().setY(p.y + 0.03))) ?? exit;
-    put(above);
-    view.yaw = yawToward(ladder.top.x - above.x, ladder.top.z - above.z);
-    await wait(250);
-    let attachedAbove = false;
+    // Off the top by her own push: back and to the side there is floor, 10 times in a row each.
+    for (const [name, code] of [['to the side', 'KeyA'], ['back', 'KeyS']]) {
+      const problems = [];
+      for (let i = 1; i <= 10; i++) {
+        await climbTo(1);
+        key('KeyW', false);
+        await wait(150);
+        key(code, true);
+        await wait(700);
+        key(code, false);
+        await offLadder();
+        if (!onDeck() || ladders.state.colliding[0]) problems.push(`${i}: at ${fmt(character.position)}, ladder collides ${ladders.state.colliding[0]}`);
+      }
+      report(problems.length === 0, `pushing ${name} at the top, she floats onto the floor above, 10 times in a row`, problems.join('; ') || `ends at ${fmt(character.position)}; the ladder doesn't collide while she's up there`);
+    }
+
+    // From the floor above (behind the opening, where pushing back left her) into the opening: she
+    // drops to the cargo floor, past the ladder.
     key('KeyW', true);
+    let attachedAbove = false;
+    let lowestStop = Infinity;
     const start = performance.now();
-    while (performance.now() - start < 4000 && !(character.grounded && character.position.y < ladder.bottom.y + 0.3)) {
+    while (performance.now() - start < 4000 && !onCargoFloor()) {
       if (ladders.state.is !== 'off' && character.position.y > ladder.bottom.y + 0.5) attachedAbove = true;
+      if (character.grounded && character.position.y < ladder.top.y - 0.3) lowestStop = Math.min(lowestStop, character.position.y);
       await wait(30);
     }
     key('KeyW', false);
     await wait(300);
-    report(!attachedAbove && character.grounded && Math.abs(character.position.y - ladder.bottom.y) < 0.3, 'she drops through the open trapdoor', `lands at ${fmt(character.position)} (cargo floor ${ladder.bottom.y.toFixed(2)}); attached on the way: ${attachedAbove}`);
+    report(!attachedAbove && onCargoFloor(), 'she drops through the open trapdoor, without landing on the ladder', `lands at ${fmt(character.position)} (cargo floor ${ladder.bottom.y.toFixed(2)}); attached on the way: ${attachedAbove}${lowestStop < Infinity && lowestStop > ladder.bottom.y + 0.3 ? `; STOOD at ${lowestStop.toFixed(2)} on the way` : ''}`);
+    key('KeyS', true);
+    await wait(700);
+    key('KeyS', false);
+    const back = await until(() => ladders.state.colliding[0], 1000);
+    report(back, 'the ladder collides again once she is clear of it on the cargo floor', `at ${fmt(character.position)}`);
 
-    // Letting go part-way: pushing away, and jump.
-    for (const [how, code] of [['pushing away', 'KeyS'], ['jump', 'Space']]) {
-      put(foot);
-      view.yaw = yawToward(ladder.face.x, ladder.face.z);
-      await wait(200);
-      key('KeyW', true);
-      await until(() => ladders.state.is === 'on' && ladders.state.s > 0.4, 4000);
-      const height = character.position.y;
-      if (code === 'KeyS') key('KeyW', false);
-      key(code, true);
-      const landed = await until(() => ladders.state.is === 'off' && character.grounded && character.position.y < ladder.bottom.y + 0.3, 3000);
-      key(code, false);
-      key('KeyW', false);
-      await wait(250);
-      report(landed, `${how} lets go of the ladder: she drops`, `from ${height.toFixed(2)} m to ${character.position.y.toFixed(2)} m`);
+    // Part of the way up, pushing away climbs down, and at the foot walks her off.
+    await climbTo(0.5);
+    key('KeyW', false);
+    const height = character.position.y;
+    key('KeyS', true);
+    let fell = false;
+    let last = height;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 5000 && ladders.state.is === 'on') {
+      if (last - character.position.y > 0.1) fell = true; // faster than climbing
+      last = character.position.y;
+      await wait(30);
     }
+    await wait(400);
+    key('KeyS', false);
+    const walked = Math.hypot(character.position.x - ladder.bottom.x, character.position.z - ladder.bottom.z);
+    report(!fell && ladders.state.is === 'off' && onCargoFloor() && walked > 0.3, 'pushing away climbs down the ladder, and walks her off at its foot', `from ${height.toFixed(2)} m; dropped: ${fell}; ends ${walked.toFixed(2)} m from its foot at ${fmt(character.position)}`);
+
+    // Jump is a jump: part of the way up she falls back down; near the top, pushing back, she lands above.
+    await climbTo(0.5);
+    key('KeyW', false);
+    const from = character.position.y;
+    await tap('Space');
+    let peak = from;
+    const t1 = performance.now();
+    while (performance.now() - t1 < 1500) {
+      peak = Math.max(peak, character.position.y);
+      await wait(16);
+    }
+    report(peak - from > settings.indoorJumpHeight * 0.7 && ladders.state.is === 'off' && onCargoFloor(), 'jump part of the way up the ladder: she jumps, and falls to the cargo floor', `rose ${(peak - from).toFixed(2)} m from ${from.toFixed(2)}; ends at ${fmt(character.position)}`);
+    await climbTo(0.85);
+    key('KeyW', false);
+    key('Space', true);
+    key('KeyS', true);
+    await wait(80);
+    key('Space', false);
+    await wait(800);
+    key('KeyS', false);
+    await offLadder();
+    report(onDeck(), 'jump near the top of the ladder, pushing back: she lands on the floor above', `ends at ${fmt(character.position)}`);
   }
 
   // --- The roof hatch (22) ---------------------------------------------------------------------
@@ -800,11 +815,14 @@ async function checks() {
     view.yaw = yawToward(ladder.face.x, ladder.face.z);
     await wait(300);
     key('KeyW', true);
-    await until(() => ladders.state.is !== 'on' && count('sfx_ladder_grab') > grabs, 8000);
+    await until(() => ladders.state.is === 'on' && ladders.state.s === 1, 8000);
     key('KeyW', false);
     await wait(800);
     const expected = 1 + Math.floor((ladder.top.y - ladder.bottom.y) / 0.35);
     report(count('sfx_ladder_grab') - grabs === expected, 'the ladder: a sound taking hold, then every 0.35 m climbed', `${count('sfx_ladder_grab') - grabs} for ${(ladder.top.y - ladder.bottom.y).toFixed(2)} m (expected ${expected})`);
+    // She's held at the top: off it (a jump) before she's put elsewhere, or the ladder keeps her.
+    await tap('Space');
+    await until(() => ladders.state.is === 'off', 1000);
     put(away);
     await wait(300);
   }
@@ -842,11 +860,14 @@ async function checks() {
   await wait(300);
   const before = ship.doors.map((d) => d.open);
   for (const d of ship.doors) d.open = !d.open;
+  const late = () => ship.doors.filter((d) => d.amount !== (d.open ? 1 : 0)).map((d) => `${d.name} at ${d.amount.toFixed(2)}${d.blocked ? ' (waiting for her)' : ''}`).join(', ');
   const there = await until(() => ship.doors.every((d) => d.amount === (d.open ? 1 : 0)), 4000);
+  const lateThere = late();
   for (const [i, d] of ship.doors.entries()) d.open = before[i];
   const back = await until(() => ship.doors.every((d) => d.amount === (d.open ? 1 : 0)), 4000);
+  const lateBack = late();
   settings.autoDoors = true;
-  report(there && back, `all ${ship.doors.length} doors open and close with her out of the way`, ship.doors.filter((d) => d.amount !== (d.open ? 1 : 0)).map((d) => d.name).join(', '));
+  report(there && back, `all ${ship.doors.length} doors open and close with her out of the way`, `not there after 4 s: ${lateThere || 'none'}; not back after 4 s: ${lateBack || 'none'}; she's at ${fmt(character.position)}`);
 
   return failed;
 }

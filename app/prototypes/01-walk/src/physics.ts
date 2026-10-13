@@ -5,8 +5,15 @@
 import RAPIER from '@dimforge/rapier3d-compat';
 import * as THREE from 'three/webgpu';
 
-/** Gap the character controller keeps between the capsule and what it touches (m). */
-const OFFSET = 0.02;
+/**
+ * Gap the character controller keeps between the capsule and what it touches (m). 0.02 until
+ * 2026-10-13: under a tenth of the capsule's radius, she caught on things more easily.
+ */
+const OFFSET = 0.03;
+/** The same, for what has to leave her room to move (a door that stops against her): doors.ts. */
+export const CONTACT_GAP = OFFSET;
+/** Walking, she's kept on ground that falls away under her by up to this much a step (m). */
+const SNAP = 0.15;
 /** Steepest surface the character can stand on and walk up. */
 const MAX_SLOPE = THREE.MathUtils.degToRad(45);
 
@@ -42,6 +49,8 @@ export class Physics {
   private capsule: RAPIER.Collider;
   private ground: RAPIER.Collider;
   private size: CapsuleSize;
+  /** Colliders that `castRay` passes through (the collision boxes). */
+  private unseen = new Set<number>();
   /** Movement actually allowed by the last move() call. */
   readonly moved = new THREE.Vector3();
   /** Where the character's feet are: the capsule's bottom, less the controller's contact gap. */
@@ -68,6 +77,10 @@ export class Physics {
     this.controller.enableAutostep(0.3, 0.2, false);
     this.controller.setMaxSlopeClimbAngle(MAX_SLOPE);
     this.controller.setMinSlopeSlideAngle(THREE.MathUtils.degToRad(30));
+    // Going down a slope (the ramps) she's kept on it, instead of leaving it at every step and
+    // falling back onto it. (With a kinematic body this let her sink through the ground after a
+    // long frame; the capsule is a collider alone now.)
+    this.controller.enableSnapToGround(SNAP);
   }
 
   static async create(size: CapsuleSize, feet: THREE.Vector3): Promise<Physics> {
@@ -75,8 +88,12 @@ export class Physics {
     return new Physics(size, feet);
   }
 
-  /** A static triangle-mesh collider from a mesh, in its current world position. */
-  addStaticMesh(mesh: THREE.Mesh): void {
+  /**
+   * A static triangle-mesh collider from a mesh, in its current world position.
+   * @param apart triangles wholly inside this box (world) become a collider of their own, which is
+   * returned: it can be switched off (the ladder, until the export leaves it out of the ship's collider)
+   */
+  addStaticMesh(mesh: THREE.Mesh, apart?: THREE.Box3): { setEnabled: (on: boolean) => void } | null {
     mesh.updateWorldMatrix(true, false);
     const geometry = mesh.geometry;
     const position = geometry.getAttribute('position');
@@ -88,8 +105,25 @@ export class Physics {
     }
     const index = geometry.getIndex();
     const indices = index ? new Uint32Array(index.array) : Uint32Array.from({ length: position.count }, (_, i) => i);
-    this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, indices));
+    let rest = indices;
+    let own: { setEnabled: (on: boolean) => void } | null = null;
+    if (apart) {
+      const inside = (i: number) => apart.containsPoint(v.set(vertices[i * 3]!, vertices[i * 3 + 1]!, vertices[i * 3 + 2]!));
+      const kept: number[] = [];
+      const split: number[] = [];
+      for (let t = 0; t < indices.length; t += 3) {
+        const [a, b, c] = [indices[t]!, indices[t + 1]!, indices[t + 2]!];
+        (inside(a) && inside(b) && inside(c) ? split : kept).push(a, b, c);
+      }
+      if (split.length > 0) {
+        rest = new Uint32Array(kept);
+        const collider = this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, new Uint32Array(split)));
+        own = { setEnabled: (on) => collider.setEnabled(on) };
+      }
+    }
+    this.world.createCollider(RAPIER.ColliderDesc.trimesh(vertices, rest));
     this.world.step(); // updates the scene queries, so rays see it now (measurements at load)
+    return own;
   }
 
   /**
@@ -148,11 +182,31 @@ export class Physics {
     return { sync, setEnabled: (on) => collider.setEnabled(on), overlapsCharacter, contact, under };
   }
 
-  /** A static box collider, axis-aligned in world space (the crew, for now). */
-  addStaticBox(box: THREE.Box3): void {
+  /**
+   * A static box collider, axis-aligned in world space (the crew; the collision boxes); can be
+   * switched on and off.
+   * @param solid false: it stops her, but `castRay` passes through it (a collision box stands in
+   * front of things she can still see and use)
+   */
+  addStaticBox(box: THREE.Box3, solid = true): { setEnabled: (on: boolean) => void } {
     const c = box.getCenter(new THREE.Vector3());
     const s = box.getSize(new THREE.Vector3());
-    this.world.createCollider(RAPIER.ColliderDesc.cuboid(s.x / 2, s.y / 2, s.z / 2).setTranslation(c.x, c.y, c.z));
+    const collider = this.world.createCollider(RAPIER.ColliderDesc.cuboid(s.x / 2, s.y / 2, s.z / 2).setTranslation(c.x, c.y, c.z));
+    if (!solid) this.unseen.add(collider.handle);
+    return { setEnabled: (on) => collider.setEnabled(on) };
+  }
+
+  /**
+   * A static collider with a convex outline seen from above (`outline`: x, z pairs, world) from
+   * `bottom` to `top`: a box with a corner cut off. `solid` as for `addStaticBox`.
+   */
+  addStaticPrism(outline: [number, number][], bottom: number, top: number, solid = true): { setEnabled: (on: boolean) => void } {
+    const points = new Float32Array(outline.flatMap(([x, z]) => [x, bottom, z, x, top, z]));
+    const desc = RAPIER.ColliderDesc.convexHull(points);
+    if (!desc) throw new Error("Couldn't build a convex hull for a collision box");
+    const collider = this.world.createCollider(desc);
+    if (!solid) this.unseen.add(collider.handle);
+    return { setEnabled: (on) => collider.setEnabled(on) };
   }
 
   /** A static triangle-mesh collider from world-space vertices; can be switched on and off. */
@@ -164,7 +218,7 @@ export class Physics {
 
   /**
    * Distance from `from` toward `to` to the first collider in the way, or null if the way is
-   * clear. Used for camera collision, so it ignores the character's own capsule and the ground
+   * clear. Used for camera collision and for what she can reach, so it ignores the collision boxes, the character's own capsule and the ground
    * (the camera is kept above the ground separately; hitting it when looking up pulled the camera
    * into her head).
    */
@@ -174,7 +228,7 @@ export class Physics {
     if (length < 1e-4) return null;
     dir.divideScalar(length);
     const ray = new RAPIER.Ray({ x: from.x, y: from.y, z: from.z }, { x: dir.x, y: dir.y, z: dir.z });
-    const hit = this.world.castRay(ray, length, true, undefined, undefined, this.capsule, undefined, (c) => c !== this.ground);
+    const hit = this.world.castRay(ray, length, true, undefined, undefined, this.capsule, undefined, (c) => c !== this.ground && !this.unseen.has(c.handle));
     return hit ? hit.timeOfImpact : null;
   }
 
@@ -232,6 +286,14 @@ export class Physics {
     const reach = this.size.halfHeight + this.size.radius + OFFSET + 0.12;
     const ray = new RAPIER.Ray({ x: c.x, y: c.y, z: c.z }, { x: 0, y: -1, z: 0 });
     const hit = this.world.castRayAndGetNormal(ray, reach, true, undefined, undefined, this.capsule);
+    return hit !== null && hit.normal.y >= Math.cos(MAX_SLOPE);
+  }
+
+  /** True if there's walkable floor under her feet, within a step's height (floating off a ladder's top). */
+  overFloor(): boolean {
+    const c = this.capsule.translation();
+    const ray = new RAPIER.Ray({ x: c.x, y: c.y, z: c.z }, { x: 0, y: -1, z: 0 });
+    const hit = this.world.castRayAndGetNormal(ray, this.size.halfHeight + this.size.radius + OFFSET + 0.25, true, undefined, undefined, this.capsule);
     return hit !== null && hit.normal.y >= Math.cos(MAX_SLOPE);
   }
 

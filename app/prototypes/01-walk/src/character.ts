@@ -27,6 +27,10 @@ export class Character {
   private prevPosition = new THREE.Vector3();
   private prevFacing = 0;
   private turnVelocity = 0;
+  /** The way she moves (horizontal, unit) when it isn't the way she faces: the stick's, indoors. */
+  private heading = new THREE.Vector3(0, 0, -1);
+  /** Seconds left of floating (no gravity) after leaving a ladder at its top; ends on the floor. */
+  floating = 0;
 
   constructor() {
     const material = new THREE.MeshStandardNodeMaterial({ color: 0xe8743b, roughness: 0.6 });
@@ -86,6 +90,7 @@ export class Character {
 
     if (amount > 0.01) {
       const { x: dirX, z: dirZ } = moveDirection(input, cameraYaw, direction);
+      this.heading.set(dirX, 0, dirZ).normalize();
       const target = Math.atan2(-dirX, -dirZ);
       [this.facing, this.turnVelocity] = smoothDampAngle(
         this.facing,
@@ -108,16 +113,19 @@ export class Character {
     }
 
     // Jump (the same button will fly when the backpack is worn; not in this prototype).
-    if (input.consumeJump() && this.grounded) {
-      this.verticalVelocity = Math.sqrt(2 * settings.gravity * settings.jumpHeight);
-      this.grounded = false;
-    }
-    this.verticalVelocity -= settings.gravity * dt;
+    if (input.consumeJump() && (this.grounded || this.floating > 0)) this.jump();
+    if (this.floating > 0) {
+      // Just off the top of a ladder, over the opening: she stays level until she's over floor.
+      this.floating = Math.max(0, this.floating - dt);
+      this.verticalVelocity = 0;
+    } else this.verticalVelocity -= settings.gravity * dt;
 
+    // Indoors she moves the way the stick points, and turns after; outdoors, the way she faces.
+    const direct = indoors && settings.indoorDirectMove;
     const desired = new THREE.Vector3(
-      -Math.sin(this.facing) * this.speed * dt,
+      (direct ? this.heading.x : -Math.sin(this.facing)) * this.speed * dt,
       this.verticalVelocity * dt,
-      -Math.cos(this.facing) * this.speed * dt,
+      (direct ? this.heading.z : -Math.cos(this.facing)) * this.speed * dt,
     );
 
     if (physics) {
@@ -125,7 +133,9 @@ export class Character {
       physics.move(desired);
       // Feet from where the capsule actually is (not accumulated moves), so they sit on the ground.
       this.position.copy(physics.feet);
-      this.grounded = physics.grounded;
+      if (this.floating > 0 && physics.overFloor()) this.floating = 0;
+      // Floating, she's shown standing (as on the ladder), not falling.
+      this.grounded = physics.grounded || this.floating > 0;
       if (this.grounded && this.verticalVelocity < 0) this.verticalVelocity = 0;
       // Head hit something on the way up.
       if (!this.grounded && this.verticalVelocity > 0 && physics.moved.y < desired.y * 0.5) this.verticalVelocity = 0;
@@ -144,6 +154,13 @@ export class Character {
     }
   }
 
+  /** Leaves the ground (or a ladder): the jump's height is lower inside the ship. */
+  jump(): void {
+    this.verticalVelocity = Math.sqrt(2 * settings.gravity * (this.indoors ? settings.indoorJumpHeight : settings.jumpHeight));
+    this.grounded = false;
+    this.floating = 0;
+  }
+
   /**
    * On a ladder: placed directly (no physics move, no gravity), facing `facing`. Shown standing:
    * there's no climbing animation yet.
@@ -157,6 +174,7 @@ export class Character {
     this.speed = 0;
     this.movedSpeed = 0;
     this.verticalVelocity = 0;
+    this.floating = 0;
     this.grounded = true;
     physics?.teleport(feet);
   }

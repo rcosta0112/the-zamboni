@@ -9,8 +9,9 @@ Point at something and press a button to use it, as in the UE prototype. In this
 | Action | Gamepad | Keyboard |
 |---|---|---|
 | Use the target | **B / Circle** | **E** |
-| Climb a ladder | Walk into its foot; push toward it to climb. She steps off at the top by herself | Same (W A S D) |
-| Let go of a ladder (she drops) | Push away from it, or A (jump) | Same, or Space |
+| Climb a ladder | Walk into its foot; push toward it to climb, away from it to climb down | Same (W A S D) |
+| Leave a ladder at the top | Push any way but toward it: she floats for a moment, and walks | Same |
+| Jump off a ladder | A (jump): a jump as anywhere else | Space |
 | Go down | Walk into the open trapdoor: she falls through | Same |
 
 The prompt shows the button of the last device used (◯ or E).
@@ -49,7 +50,10 @@ The prompt shows the button of the last device used (◯ or E).
 - Each press toggles; the door eases (smoothstep) over 0.6 s (tunable).
 - **Collision:** every door has a convex collider that follows it (the fridge and cupboard doors too, since 2026-10-09).
 - **A moving door pushes her out of its way** (owner, 2026-10-09; plan: [`../plans/features/interaction-clearance.md`](../plans/features/interaction-clearance.md)). Each fixed step, after her own movement, if the door's next position overlaps her capsule she's moved out along the contact normal, **sideways only**, through her character controller (so walls and furniture stop her; she's never placed inside anything). She slides, with no animation. The cargo ramp does the same.
-  - **It stops instead** when she can't be cleared (pinned against furniture), when she's on a ladder, or when it would have to lift her (a hatch or the ramp rising under her; the side door and ramp closing while she's on them). A stopped door **backs off until there's 3 cm between them** (left touching her, wedged against furniture on her other side, Rapier's controller wouldn't let her move at all) and **waits** until she's 5 cm clear of its next position, instead of following her.
+  - **It stops instead** when she can't be cleared (pinned against furniture), when she's on a ladder, or when it would have to lift her (a hatch or the ramp rising under her; the side door and ramp closing while she's on them). A stopped door **backs off until there's 7 cm between them** (left touching her, wedged against furniture on her other side, Rapier's controller wouldn't let her move at all) and **waits** until she's 10 cm clear of its next position, instead of following her.
+  - **The cargo ramp, moved from its keypad, doesn't stop for her** (owner, 2026-10-14): she's inside then, and can't be under it. It still pushes her sideways where it can. Touching it on its way down had stopped it and left her stuck between it and the pallet. Moved any other way (the tuning panel's checkbox; from outside, when that exists) it stops as above: she can be under it. (`cargoRampByKeypad` in `settings.ts`, `unstoppable` in `advance`.)
+  - **A door keeps her 6 cm clear of itself as it moves**, not just out of its way (2026-10-14; 3, 5 and 2 cm before). Nearer than her controller's contact gap (3 cm), the controller counts her as touching the door and won't move her at all, not even away from it: an opened cupboard or locker door left her stuck beside it.
+  - **The trapdoor, shut, is a fixed lid** (`lid` in `doors.ts`): standing on a moving part's collider she could hardly move. Any hinged door that lies flat when shut gets one (the roof hatch's parts too).
   - **No door is offered while she's standing on it** (the closed trapdoor: owner, the camera angles don't work there anyway).
   - Tuning panel: *doors push her* (off: they only stop, as before).
 - The bulkhead doors and the engineering window slide: see *Sliding doors* below.
@@ -75,6 +79,7 @@ Built 2026-10-13 (owner's backlog of 2026-10-12, items 6 to 8; until then the bu
 - **Panels** (`Door Panel - Cockpit`, `- Crew Quarters`, `- Engineering`, `- Cargo Hold`: one on each side of each bulkhead). **A panel shuts its door and keeps it shut** (owner, 2026-10-13): *Close door* shuts it, whoever is near; *Open door*, from either panel, makes it automatic again, and since she's standing at it, it opens. A door can't be held open.
 - **The lever** is one target with its panel: *Open window* / *Close window*. It isn't used while it or the window is moving (as in the UE prototype). **The lever moves first; the window starts, with its sound, 0.6 s after the lever is used** (*window after its lever*, tuning panel): together, the window's sound covered the lever's (owner, 2026-10-13; first 0.3 s, then doubled).
 - **Time:** 0.3 s, a setting of its own (*sliding door time*). *Bulkhead doors open by themselves* (tuning panel) can be turned off: the panels then just open and close them.
+  > **[Agent note]** **It is off for now** (owner, 2026-10-13: "disable the proximity trigger on the doors for now"): `autoDoors: false` in `settings.ts`. The bulkhead doors start shut and open and close from their panels only. The code is kept, and the scripted check turns the setting on for itself, so everything above about doors opening by themselves describes what comes back when it's turned on again.
 - **Collision:** each leaf and each window half has a convex collider that follows it; the lever has none. A leaf closing on her pushes her sideways or stops and waits, as any door does. **An opening leaf pushes nothing:** it moves along its own face, away from the doorway (running at a door, she touched the leaves before they were open and was pushed aside, against the edge of the doorway).
 - **See-through:** a closed bulkhead door hides her from a camera in the next room, as its bulkhead does: she shows only through the leaf's glass strip. See *Open questions*.
 - **Sound** (2026-10-13, backlog pass 4.5): when a bulkhead door or the window **starts to move**, opening or closing, `sfx_door_slide` plays from the middle of the doorway, from 0.1 s into the file (as UE does). One sound per door, not per leaf, at 0.64 of the file's level (owner, 2026-10-13: lowered by 20%, then by 20% again). The other doors and the devices have sounds of their own since: see *Sounds*.
@@ -113,15 +118,17 @@ Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)).
 
 No button: walking into a ladder is enough (owner).
 
-**Ladders go up only** (owner, 2026-10-12). The way down is the opening: she falls through it.
+**Up and down, and nothing moves her off it** (owner, 2026-10-13; from 2026-10-12 until then ladders went up only, and she stepped off at the top by herself).
 
-- **From the bottom:** walking toward a ladder's foot (within 0.5 m, pushing toward it) attaches her. Pushing toward the ladder climbs (camera-relative, like walking). With the stick at rest she stays where she is.
-- **At the top she steps off by herself** onto the floor above, whatever the stick says: of the spots around the top with floor and room for her, the one with the most open floor around it. A ladder with no floor at the top just stops there.
-- **Letting go:** pushing away from the ladder, or jump. She drops. (At the foot, pushing away just walks her off.)
-- **From the floor above: nothing attaches her.** Walking into the opening, she falls through it to the floor below.
+- **From the bottom:** walking toward a ladder's foot (within 0.5 m, pushing toward it) attaches her. **Toward the ladder climbs, away from it climbs down** (camera-relative, like walking). With the stick at rest she stays where she is. At the foot, pushing away walks her off.
+- **At the top she's held** for as long as the stick is toward the ladder or at rest. (Let go on arrival, the stick she's still holding would walk her at the wall the ladder stands on.)
+- **Leaving the top:** the first push any other way (more than 75° from the ladder's direction), back included, lets go. **She floats for 0.6 s** (*float off the ladder top*, tuning panel): no gravity, walking as anywhere else, collisions on. The float ends as soon as there's floor under her; if the time runs out over the opening, she falls. At the cargo bay ladder the floor is 0.44 m behind her and to her left; to her right there's none she can stand on (the wall is too close), so that way she falls back down.
+- **From the top there's no climbing back down:** back is the floor behind her. Below the top, away is down.
+- **Jump is a jump** (the indoor height), from wherever she is on the ladder: part of the way up she falls to the floor below; near the top, pushing back, she lands on the floor above.
+- **From the floor above: nothing attaches her.** Walking into the opening, she falls through it to the floor below. **The ladder doesn't collide while she's more than 1 m above its foot** (upstairs, or falling past it), so she doesn't land on it; it collides again once she stands on the floor below, clear of it. Dropping in while pushing toward it, she can land where it stands and overlap it until she steps away.
 - **Blocked above:** a ray from her head stops her under a closed hatch. She can open it from the ladder (it's in reach).
-- After leaving a ladder (stepping off, letting go) she doesn't attach again until the stick is let go too (so holding the stick doesn't loop her back on).
-- While climbing she's placed directly, without collisions, and shown standing: **no climbing animation yet**.
+- After leaving a ladder she doesn't attach again until the stick is let go too (so holding the stick doesn't loop her back on).
+- While climbing she's placed directly, without collisions, and shown standing: **no climbing animation yet**. The ladder's mesh stops 0.55 m below the floor above: she climbs the last part on nothing.
 
 | Ladder | Where | Top |
 |---|---|---|
@@ -131,7 +138,7 @@ The rungs on the cockpit bulkhead by the galley (`Ladder Crew Quarters`) were re
 
 Ladders are found from their bounds at load: she stands on the more open side, the bottom is the floor under it, the top is the lowest floor found beside its top end that's reachable straight up (measured with the doors left out).
 
-> **[Agent note]** **"Stuck at the top" (fixed 2026-10-12).** The first version stepped her off toward where the stick pointed, which while climbing is toward the ladder. At the cargo bay ladder that spot is a corner between the cargo bulkhead and the open trapdoor: forward and left are walls, and right or back walked her into the 0.7 m zone that attached her to the top of the ladder and took her down again. Both halves are gone: she's put on the most open floor, and nothing attaches her from above.
+> **[Agent note]** **The ladder's collider** is cut out of the ship's at load, by the ladder's bounds (`addStaticMesh` in `physics.ts`), so it can be switched off. At the next export, `collider: "none"` on `Ladder Cargo Bay` and a collider made from its own mesh would replace that.
 
 ## Data
 

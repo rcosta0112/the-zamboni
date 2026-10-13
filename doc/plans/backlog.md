@@ -8,7 +8,7 @@
 | 2 | The cargo ramp keypad, moved away from the side door's in the file: re-export | 2 | Built (re-exported 2026-10-12 from the owner's updated 1.19: `Door Panel - Cargo Ramp`, moved toward the ramp) |
 | 3 | The side door: no interaction of its own; it opens only from its keypad | 1 | Built |
 | 4 | Bug: the ladder gets stuck at the top | 1 | Built |
-| 5 | Ladders go up only; going down, she jumps down the hatch | 1 | Built |
+| 5 | Ladders go up only; going down, she jumps down the hatch | 1 | Built; **replaced by 31** (2026-10-13) |
 | 6 | Bulkhead doors (`Door Cockpit`/`2`, `Door Engineering`/`2`): open and close when she gets close; a panel on each side opens or closes them | 4 | Built ([`features/bulkhead-doors.md`](features/bulkhead-doors.md)) |
 | 7 | The engineering window opens like a bulkhead door, from a lever next to it | 4 | Built ([`features/bulkhead-doors.md`](features/bulkhead-doors.md)) |
 | 8 | 6 and 7 as in the UE prototype (`BP_Door_Internal`, `BP_Engineering_Window`, `BP_Lever_Panel`) | 4 | Built ([`features/bulkhead-doors.md`](features/bulkhead-doors.md)) |
@@ -32,6 +32,9 @@
 | 26 | Subtle placeholder sounds for every interaction where it makes sense; footsteps in the snow and in the ship (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/interaction-sounds.md`](features/interaction-sounds.md), *As built*): footsteps cut from Part 1's loops, the rest made by a script; **the owner's to listen to** |
 | 27 | The sound pauses with the game; the gamepad's Start / Options pauses (owner, 2026-10-13) | – | Built 2026-10-13 |
 | 28 | A start screen from the Figma mockup: a progress bar until everything is loaded, then the start button (states as in Eigodojo, the Zamboni mockup's colours), a click sound, Part 1's soundtrack (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/start-screen.md`](features/start-screen.md), *As built*; what exists: [`design/start-screen.md`](../design/start-screen.md)): **the owner's to look at and listen to** |
+| 29 | The bulkhead doors' proximity trigger off for now; the code kept (owner, 2026-10-13) | – | Built 2026-10-13: `autoDoors: false`; the panels open and close them |
+| 30 | Movement inside the ship: she gets stuck in lots of places; improve the collision (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/movement-and-ladder.md`](features/movement-and-ladder.md), *As built*): she moves the way the stick points indoors, a lower indoor jump, ten collision boxes in the code. **The owner's to play; the boxes go into the ship file once approved** |
+| 31 | The ladder: up walking forwards, down walking backwards; free once she clears the deck; off after she walks away and while she's upstairs (owner, 2026-10-13). Reverses item 5 | – | Built 2026-10-13 ([`features/movement-and-ladder.md`](features/movement-and-ladder.md), *As built*; what exists: [`features/interaction.md`](../features/interaction.md#ladders)). **The owner's to play** |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 

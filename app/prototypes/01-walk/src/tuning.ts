@@ -26,9 +26,12 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   move.add(settings, 'acceleration', 1, 60, 0.5).name('acceleration (m/s²)');
   move.add(settings, 'deceleration', 5, 200, 1).name('deceleration (m/s²)');
   move.add(settings, 'turnSmoothTime', 0.02, 0.6, 0.01).name('turn smoothing (s)');
+  move.add(settings, 'indoorDirectMove').name('indoors: moves the way the stick points');
+  move.add(settings, 'collisionBoxes').name('collision boxes (shown with colliders)');
 
   const jump = gui.addFolder('Jump');
   jump.add(settings, 'jumpHeight', 0.2, 3, 0.05).name('height (m)');
+  jump.add(settings, 'indoorJumpHeight', 0.2, 3, 0.05).name('height indoors (m)');
   jump.add(settings, 'gravity', 5, 50, 0.5).name('gravity (m/s²)');
 
   const cam = gui.addFolder('Camera');
@@ -87,6 +90,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   interact.add(settings, 'autoDoorDistance', 0.5, 4, 0.05).name('...when she is within (m)');
   interact.add(settings, 'doorsPush').name('doors push her');
   interact.add(settings, 'climbSpeed', 0.3, 4, 0.05).name('climb speed (m/s)');
+  interact.add(settings, 'ladderFloat', 0, 2, 0.05).name('float off the ladder top (s)');
 
   const lights = gui.addFolder('Room lights');
   lights.add(settings, 'roomLights', ['nearest 4', 'all']).name('on');

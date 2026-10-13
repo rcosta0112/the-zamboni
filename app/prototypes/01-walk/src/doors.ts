@@ -16,7 +16,7 @@ import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
 import { named } from './names';
 import { prepareRaycasts, type CutUnit } from './visibility';
-import type { MovingCollider, Physics } from './physics';
+import { CONTACT_GAP, type MovingCollider, type Physics } from './physics';
 import { settings } from './settings';
 
 /** What a moving door can do to her. */
@@ -29,25 +29,32 @@ export interface Pusher {
   feet: () => THREE.Vector3;
 }
 
-/** Pushed this far clear of the door (m). */
-const PUSH_MARGIN = 0.02;
+/**
+ * Pushed this far clear of the door (m): more than her controller's contact gap. Within the gap the
+ * controller counts her as touching the door and won't move her at all, not even away from it (with
+ * the gap at 0.03 and this still at 0.02, an opened locker door left her stuck: owner, 2026-10-14).
+ */
+const PUSH_MARGIN = CONTACT_GAP + 0.03;
 /** A door that stopped against her waits until she's this far clear of its next position (m). */
-const RESUME_GAP = 0.05;
+const RESUME_GAP = CONTACT_GAP + 0.07;
 /** A contact normal steeper than this would lift her: the door stops instead. */
 const LIFTS = 0.5;
 /**
  * A door that stops against her backs off until there's this much room (m): left touching her (within
  * her controller's contact gap), wedged against furniture on the other side, she couldn't move at all.
  */
-const STOP_GAP = 0.03;
+const STOP_GAP = CONTACT_GAP + 0.04;
 
 /**
  * Moves a part (a door, the ramp) from `from` to `to` (0..1), pushing her out of its way. Returns
  * where it got to, and whether it's now waiting for her to move.
+ * @param unstoppable it still pushes her where it can, but never stops or waits for her (the cargo
+ *   ramp moved from its keypad)
  */
-export function advance(collider: MovingCollider, pose: (t: number) => void, from: number, to: number, pusher: Pusher, waiting: boolean): { amount: number; waiting: boolean } {
+export function advance(collider: MovingCollider, pose: (t: number) => void, from: number, to: number, pusher: Pusher, waiting: boolean, unstoppable = false): { amount: number; waiting: boolean } {
   pose(to);
   const stop = () => {
+    if (unstoppable) return { amount: to, waiting: false }; // posed at `to` above, and left there
     // Back off (toward where it came from) until it's clear of her by STOP_GAP.
     const back = Math.sign(from - to) || -1;
     let t = from;
@@ -63,17 +70,19 @@ export function advance(collider: MovingCollider, pose: (t: number) => void, fro
     const c = collider.contact(RESUME_GAP);
     if (c && c.depth > -RESUME_GAP) return stop();
   }
+  // She's kept PUSH_MARGIN clear of it, not just out of it: a door that came to rest nearer than her
+  // controller's contact gap, without ever overlapping her, left her unable to move.
+  const near = (c: { depth: number } | null): c is { depth: number; normal: THREE.Vector3 } => c !== null && c.depth > -PUSH_MARGIN + 0.002;
   for (let i = 0; i < 3; i++) {
-    const c = collider.contact(0);
-    if (!c || c.depth <= 0.002) return { amount: to, waiting: false };
+    const c = collider.contact(PUSH_MARGIN);
+    if (!near(c)) return { amount: to, waiting: false };
     const sideways = new THREE.Vector3(c.normal.x, 0, c.normal.z);
     const length = sideways.length();
     if (!settings.doorsPush || pusher.climbing() || c.normal.y > LIFTS || length < 0.3) return stop();
-    // Sideways only, far enough to clear the overlap along the normal.
-    pusher.push(sideways.divideScalar(length).multiplyScalar(c.depth / length + PUSH_MARGIN));
+    // Sideways only, far enough to clear the overlap, and the margin, along the normal.
+    pusher.push(sideways.divideScalar(length).multiplyScalar((c.depth + PUSH_MARGIN) / length));
   }
-  const c = collider.contact(0);
-  return c && c.depth > 0.002 ? stop() : { amount: to, waiting: false };
+  return near(collider.contact(PUSH_MARGIN)) ? stop() : { amount: to, waiting: false };
 }
 
 export class Door {
@@ -85,6 +94,12 @@ export class Door {
   readonly units: CutUnit[] = [];
   /** A door that's a ramp when fully open: the walkable slope then replaces its collider. */
   walkway: { setEnabled: (on: boolean) => void } | null = null;
+  /**
+   * A hatch she walks over when it's shut (the trapdoor): a fixed lid then replaces its collider.
+   * Standing on a moving part's collider, her controller hardly moves her (she stuck on the closed
+   * trapdoor: owner, 2026-10-14); on a fixed one she walks as on the floor.
+   */
+  lid: { setEnabled: (on: boolean) => void } | null = null;
   /** A sliding door: how far and which way it moves to open (the ship's space). Not set: it turns. */
   slide: THREE.Vector3 | null = null;
   /** Opens when she's near, closes when she leaves (the bulkhead doors). */
@@ -158,6 +173,11 @@ export class Door {
       this.walkway.setEnabled(open);
       this.collider?.setEnabled(!open);
     }
+    if (this.lid) {
+      const shut = this.amount === 0;
+      this.lid.setEnabled(shut);
+      this.collider?.setEnabled(!shut);
+    }
     for (const unit of this.units) prepareRaycasts(unit);
   }
 
@@ -185,6 +205,9 @@ export class Door {
     this.hinge.updateMatrixWorld(true);
   }
 }
+
+/** A hinged door that lies flatter than this when shut (m) is a hatch in a floor: it gets a lid. */
+const LID_THICK = 0.4;
 
 /** An automatic door closes when she's this much further away than where it opens (m): no flutter at the edge. */
 const AUTO_CLOSE_MARGIN = 0.3;
@@ -238,6 +261,13 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
     const collider = physics.addMovingConvex(hinge);
     const door = new Door(object.name, object, hinge, axis, openAngle, collider);
     door.walkway = walkway;
+    // A hatch lying in a floor (it's shut here): its top as a fixed lid. Off until the door's first
+    // update, so nothing that measures the ship with the doors left out sees it.
+    const shut = new THREE.Box3().setFromObject(hinge);
+    if (!walkway && Math.abs(axis.y) < 0.7 && shut.max.y - shut.min.y < LID_THICK) {
+      door.lid = physics.addStaticBox(shut);
+      door.lid.setEnabled(false);
+    }
     door.open = data.startOpen === true; // posed by the ship's first (forced) update
     door.device = device;
     return door;

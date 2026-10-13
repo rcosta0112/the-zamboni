@@ -70,6 +70,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
         verb: () => (settings.cargoRampOpen ? 'Close ramp' : 'Open ramp'),
         act: () => {
           settings.cargoRampOpen = !settings.cargoRampOpen;
+          settings.cargoRampByKeypad = settings.cargoRampOpen; // from inside: it won't stop for her (ship.ts)
           sound(settings.cargoRampOpen ? 'sfx_panel_open' : 'sfx_panel_close', o);
         },
       });
