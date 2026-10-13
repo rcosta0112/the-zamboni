@@ -117,6 +117,20 @@ export const settings = {
   roomLightIntensity: 1.6, // per light (three's units; ≈ a 20 W Blender light: 20 / 4π)
   roomLightRange: 6, // m, where a light's reach ends
 
+  // Sound (placeholders from the UE prototype; the levels are the owner's to set)
+  soundMute: false,
+  volumeMaster: 1,
+  volumeMusic: 1,
+  volumeAmbience: 1,
+  volumeSfx: 1,
+  shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
+  shipNoiseA: 0.5, // the level of each of its two sounds (a: the long flight recording; b: the landing)
+  shipNoiseB: 0.5,
+  shipNoiseOutdoors: 0.4, // its level outside the ship, as a share of inside
+  boomboxFullWithin: 1.5, // m from the listener (the camera): at full volume within this...
+  boomboxGoneAt: 12, // ...and silent from here. A guess: UE's values aren't readable
+  boomboxVibration: 1, // how much it shakes while a track plays (0 = still)
+
   // Rendering
   maxPixelRatio: 2, // below 1 renders fewer pixels than the screen has (down to 0.1)
   pixelated: true, // stretch a low-resolution render with hard, square pixels instead of smoothing it

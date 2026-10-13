@@ -20,7 +20,7 @@ cd app
 npm run smoke
 ```
 
-Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, the bulkhead doors (walking through each, shutting each from both panels), the window from its lever, every door, console errors. About three minutes. It uses the dev server on port 5201 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
+Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, the bulkhead doors (walking through each, shutting each from both panels), the window from its lever, the sounds (the door sound once per door each way, the boombox round its ring, the ship's noise and where it repeats: what plays and when, not what it sounds like), every door, console errors. About three and a half minutes. It uses the dev server on port 5201 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
 
 ## Controls
 
@@ -30,6 +30,7 @@ Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per ch
 | Camera | Right stick | Mouse (click the view to capture it; Esc releases) |
 | Jump | A | Space |
 | Interact (open, close, use the target) | B / Circle | E |
+| The boombox (crew quarters shelf) | B / Circle: *Play*, *Next track* (three times), *Turn off* | E |
 | Go through a bulkhead door | Walk up to it: it opens by itself and closes behind her. The panel beside it shuts it and keeps it shut | Same |
 | Climb a ladder (up only) | Walk into its foot; push toward it to climb; she steps off at the top by herself. Pushing away or A lets go (she drops) | Same; Space lets go |
 | Go down a deck | Walk into the open trapdoor (she falls through) | Same |
@@ -124,6 +125,16 @@ npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-c
 - **Props** (2026-10-09): everything else in the ship file's rooms (books, mugs, jars, test tubes, the chess set, crates, jetpacks, keyboards, the `KEEP CLEAR` stencil…). Big ones (≥ ~0.4 m) are separate objects with colliders; small ones are merged into one object per room collection (`Props Galley`, `Props Shelf`…). Props don't cast shadows. Props in the cockpit are always visible.
 - **Room lights:** point lights at 7 markers from the ship file: two each in the cargo bay, engineering and crew quarters (positions of the file's lights there), one new one in the cockpit (it has none in the file). The **4 nearest her** are on (the budget), moving and fading as she walks; tuning panel → *Room lights*: *all* (all 7; rebuilds every shader once), brightness, range. Flagged and not imported: `Area.004`, `Area.005`, `Area.006`, `Area.008`, `Area.009` (crew quarters ceiling panels, 1–2 W), `Area.010` (dim blue fill), `Area.011` (the laptop's glow), `Area.012` (3 W, crew quarters), `Area.014` (20 W side light, crew quarters).
 - **The crew** (`app/assets/test/zamboni-crew.glb`, from [`app/tools/export-ship-crew.py`](../../tools/export-ship-crew.py)): Dr. Kaufman on the crew quarters couch with her idle loop (13.4 s); both Adam bodies and Dr. Ogawa in the cockpit, static poses. Never cut by the see-through hull; a box collider each.
+
+## Sound
+
+Since 2026-10-13 (backlog pass 4.5): the UE prototype's eight sounds, **all placeholders** (`app/assets/test/audio/`, with [`SOURCES.md`](../../assets/test/audio/SOURCES.md)). What exists and how: [`doc/architecture/audio.md`](../../../doc/architecture/audio.md#what-exists-prototype-01-2026-10-13).
+
+- **The sound is off until a key, a click or (if the browser counts it) a gamepad button.**
+- **Sliding doors:** one sound per door when it starts to move. **The boombox:** see *Controls*; it shakes while a track plays, and gets quieter with distance from the camera.
+- **The ship's noise:** tuning panel → *Sound* → *ship flying* (off at the start: the ship stands on the ground). Two sounds loop together, with a level each (*flight sound*, *landing sound*) to find the mix; quieter outside the ship.
+- **Tuning panel → *Sound*:** mute, a volume for everything, music, ambience and effects; the boombox's falloff and vibration.
+- **To make the game files again:** `node tools/encode-audio.mjs` in `app/` (needs ffmpeg and the masters in `resources/audio/ue-prototype/`).
 
 ## See-through hull and camera collision
 

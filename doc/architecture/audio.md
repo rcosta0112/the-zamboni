@@ -36,6 +36,21 @@
 - **Triggers:** devices and the player controller play their own sounds; dialogue and story beats trigger music and sounds through Ink tags (e.g. `# music: travel_theme`); cutscenes have sound events in their event track.
 - **Footsteps** pick a sound set from the surface under the character (as in Part 1), with random variations.
 
+## What exists (prototype 01, 2026-10-13)
+
+> **[Agent note]** The first audio step: backlog pass 4.5, the UE prototype's sounds ([plan](../plans/features/audio-from-ue.md)). It turns three of the proposals above into things that exist (the file format, cues as data, mix buses). The rest of this page is still a proposal.
+
+- **Files:** AAC in `.m4a`, named as proposed, in **`app/assets/test/audio/`** (not `app/assets/audio/`: every file is a placeholder, so a test asset). Made from the masters in `resources/audio/ue-prototype/` by [`app/tools/encode-audio.mjs`](../../app/tools/encode-audio.mjs) (ffmpeg): 22 kHz as the masters are, 64 kbit/s stereo for the music, 48 kbit/s mono for the rest. The masters are 22 kHz and mostly 8-bit: "48 kHz, 24-bit" isn't met.
+- **No license register yet** (owner, 2026-10-13: licensing isn't raised until a production-ready build). [`SOURCES.md`](../../app/assets/test/audio/SOURCES.md) beside the files lists each one's master and what's known of its author: the register will be made from it.
+- **Cues are data:** [`cues.json`](../../app/prototypes/01-walk/src/cues.json) maps a cue id to its file, bus, volume, where in the file it starts, whether it's streamed, and its falloff if it's in the world. Code plays `sfx_door_slide`, never a path. A cue can be several files that sound together (`layers`: the ship's noise, until its two sounds are mixed into one file).
+- **Buses:** master → music, ambience, sfx, as gain nodes. A volume for each and a mute in the tuning panel (*Sound*). No ui or dialogue bus yet: nothing plays on them.
+- **Decoded or streamed:** short sounds are decoded at load and kept. Music and the ship's noise are streamed (an `<audio>` element fed into the graph) and fetched when first played, so they cost nothing at load.
+- **In the world:** Three's `PositionalAudio`, with one listener on the camera. Falloff is a straight line from full (within `full` m) to nothing (at `gone` m). No low-pass behind a closed door.
+- **Loops (the "to verify" above):** not from the file's ends. A streamed loop is two copies of the file played in turn, the end of one fading into the start of the other (`crossfade`, 2 s). An `<audio>` element's own loop leaves a gap, and AAC's padding would too. Checked in Chrome by level, not by ear; not in Firefox or Safari.
+- **Starting the sound:** the audio context is resumed on the first key, click or gamepad button. One-shots asked for before that are dropped; the ship's noise follows its switch, so it starts once the sound is on. Whether a gamepad button alone counts for the browser isn't known yet.
+- **Triggers so far:** the sliding doors, the boombox ([`interaction.md`](../features/interaction.md#the-boombox)) and a *ship flying* switch in the tuning panel. No Ink tags, footsteps or UI sounds.
+- **Code:** [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) in prototype 01 (promote on second use).
+
 ## Open questions
 
 - **Music:** who makes it, and in what style? Is there a soundtrack, or is music mostly in-world (boombox, radio)?

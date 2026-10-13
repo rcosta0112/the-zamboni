@@ -77,7 +77,19 @@ Built 2026-10-13 (owner's backlog of 2026-10-12, items 6 to 8; until then the bu
 - **Time:** 0.3 s, a setting of its own (*sliding door time*). *Bulkhead doors open by themselves* (tuning panel) can be turned off: the panels then just open and close them.
 - **Collision:** each leaf and each window half has a convex collider that follows it; the lever has none. A leaf closing on her pushes her sideways or stops and waits, as any door does. **An opening leaf pushes nothing:** it moves along its own face, away from the doorway (running at a door, she touched the leaves before they were open and was pushed aside, against the edge of the doorway).
 - **See-through:** a closed bulkhead door hides her from a camera in the next room, as its bulkhead does: she shows only through the leaf's glass strip. See *Open questions*.
-- **Not built:** sounds (UE plays one for the doors and the window); the light UE fades in with the window, and the daylight in engineering from the ramp (lighting is set aside, owner 2026-10-13).
+- **Sound** (2026-10-13, backlog pass 4.5): when a bulkhead door or the window **starts to move**, opening or closing, `sfx_door_slide` plays from the middle of the doorway, from 0.1 s into the file (as UE does). One sound per door, not per leaf. The hinged doors, the panels and the lever are silent, as in UE.
+- **Not built:** the light UE fades in with the window, and the daylight in engineering from the ramp (lighting is set aside, owner 2026-10-13).
+
+## The boombox
+
+Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)). `Boombox.001`, on the crew quarters shelf, plays the UE prototype's four tracks.
+
+- **One action, no *Stop*** (owner, 2026-10-13: no interaction in the game has more than one option). Each use moves it one step round a ring: **track 1 → 2 → 3 → 4 → off → track 1**. The prompt names the step it will take: *Play* when it's off, *Next track* while one of the first three is on, *Turn off* on the fourth.
+- **Every use plays the cassette sound first**; the track starts, from 0.1 s, when that ends. Using it stops the track that's on at once. Used again before the cassette sound ends, only the last use counts.
+- **A track that ends by itself goes on to the next**, with no cassette sound; the fourth ends in *off*.
+- **It shakes while a track plays**: a small random move and turn each frame (*boombox: vibration*, tuning panel; 0 = still). As in UE.
+- **The sound comes from the boombox** and falls off with distance, in a straight line: full within 1.5 m, silent at 12 m (*boombox: full within*, *silent at*). A guess: UE's values aren't readable. The distance is to the camera, not to her. A closed door doesn't muffle it.
+- **Not from UE:** the ring's *off* step (UE's `Stop` is most likely "stop and move to the next track"); what UE's `Random Integer` feeds isn't known, so nothing here is random but the shake.
 
 ## Ladders
 
@@ -112,11 +124,11 @@ From the ship file's custom properties (glTF extras). Since 2026-10-12 they're s
 - `interact: "use"`, `device: "panel"`, `controls: "<object name>"` on the keypads and the bulkhead doors' panels; `device: "lever"` on the window's lever panel. `controls` names one door: everything that opens with it moves too.
 - **A device's child that's tagged as a door is its handle** (the lever on its panel): it goes to its other position with what the device controls.
 - `opensWith: "<object name>"` on doors that open together (the roof hatch's parts, a bulkhead door's leaves, the window's halves).
-- Ladders are listed by name in the code for now.
+- Ladders are listed by name in the code for now. So is the boombox (`UNTAGGED` in `interaction.ts`), until the next export tags it `interact: "use"`, `device: "boombox"`.
 
 ## Code
 
-In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place, highlight), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
+In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place, highlight), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
 
 ## Open questions
 

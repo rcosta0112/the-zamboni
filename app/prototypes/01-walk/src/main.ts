@@ -2,6 +2,8 @@
 // Plan: doc/plans/prototypes/01-walk.md
 
 import * as THREE from 'three/webgpu';
+import { GameAudio } from './audio';
+import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
 import { Character } from './character';
 import { Input } from './input';
@@ -9,8 +11,8 @@ import { loadModels } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
-import type { Pusher } from './doors';
-import { Interaction, shipInteractables } from './interaction';
+import { createDoorSounds, type Pusher } from './doors';
+import { findDevice, Interaction, shipInteractables } from './interaction';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
@@ -51,6 +53,8 @@ async function start(): Promise<void> {
   let roomLights: RoomLights | null = null;
   let interaction: Interaction | null = null;
   let ladders: Ladders | null = null;
+  let boombox: Boombox | null = null;
+  let doorSounds: (() => void) | null = null;
   loadModels()
     .then(({ models, zamboniFileHeight }) => {
       character.setModels(models);
@@ -76,16 +80,21 @@ async function start(): Promise<void> {
       await renderer.compileAsync(scene, view.camera);
       for (const o of culled) o.frustumCulled = true;
       console.info(`[01-walk] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
-      interaction = new Interaction(shipInteractables(s.object, s.doors), physics, document.querySelector<HTMLElement>('#prompt')!);
+      const box = findDevice(s.object, 'boombox');
+      if (box) boombox = new Boombox(box, audio);
+      else console.warn('[01-walk] the ship has no boombox');
+      doorSounds = createDoorSounds(s.object, s.doors, (at) => audio.play('sfx_door_slide', at));
+      interaction = new Interaction(shipInteractables(s.object, s.doors, boombox ? [boombox.interactable] : []), physics, document.querySelector<HTMLElement>('#prompt')!);
       ladders = new Ladders(shipLadders(s.object, physics));
       ship = s;
     })
     .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err));
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
+  const audio = new GameAudio(view.camera);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __audio: audio, __boombox: () => boombox });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
@@ -141,6 +150,9 @@ async function start(): Promise<void> {
     last = now;
 
     input.poll();
+    // Sound: a gamepad button turns it on, as a key or a click does (if the browser counts it).
+    if (input.padPressed) audio.unlock();
+    audio.update(dt, indoorLight);
     if (paused && input.padPressed) setPaused(false);
     if (paused) {
       // Nothing moves; the frame is still drawn (the tuning panel works while paused).
@@ -165,6 +177,8 @@ async function start(): Promise<void> {
       steps++;
     }
     if (steps === MAX_STEPS) accumulator = 0;
+    doorSounds?.();
+    boombox?.update();
 
     character.render(accumulator / STEP);
     character.animate(dt);

@@ -38,6 +38,7 @@ Get through the owner's backlog in an order that avoids doing things twice, with
 | **2** | The reference `.blend`, then one re-export with the file fixes | 1, 2, 12, 18, 19, 20 | Yes | No (this one) |
 | **3** | Lighting: warm sunlight in the crew quarters and cockpit | 10 | Maybe (light markers) | No (this one) |
 | **4** | Bulkhead doors and the engineering window | 6, 7, 8 | Yes | Yes |
+| **4.5** | Audio from the UE prototype: the files and the events that play them (added by the owner, 2026-10-13) | 24 | No | Yes ([`features/audio-from-ue.md`](features/audio-from-ue.md)) |
 | **5** | See-through, fifth pass | 11, 13, 14, 15 | Maybe (tags) | Yes (a *fifth pass* section in [`see-through-rules.md`](features/see-through-rules.md)) |
 | **6** | Jetpack | 21 | No | No (this one) |
 
@@ -107,6 +108,10 @@ The interior is lit by the room lights and the blue world light; the sun doesn't
 - **New in the code:** doors that **slide** instead of swinging; a **proximity trigger**; a door with two panels; a switch with its own moving part. All of it from tags.
 - **New in the file:** the four doors become moving parts with colliders (today they have none); panels on both sides of each bulkhead (the file has a hidden `Door Panel` that isn't exported: to look at); the window and its switch.
 - **See-through:** the doors are dividers and "bulkheads always visible" covers them; to be checked with doors that move.
+
+## Pass 4.5: audio from the UE prototype (24): own plan
+
+Added by the owner on 2026-10-13: "copy the audio files and audio events from the prototype". This brings sounds into scope (*Goal and scope* above listed them as out). **Its plan: [`features/audio-from-ue.md`](features/audio-from-ue.md)** (approved and **built** 2026-10-13), built on the inventory in [`ue-prototype.md`](../reference/ue-prototype.md#audio-read-2026-10-13) and the owner's answers of the same day. [`audio.md`](../architecture/audio.md) is still *open for discussion*: this pass is the "first audio step" it leaves several checks to.
 
 ## Pass 5: see-through, fifth pass (11, 13, 14, 15): own plan
 

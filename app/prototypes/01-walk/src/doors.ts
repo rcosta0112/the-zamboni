@@ -239,6 +239,31 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
   return doors;
 }
 
+/**
+ * The sliding doors' sound: one place per door (the middle of the closed door, not each leaf), for
+ * the bulkhead doors and the engineering window. Returns what to call each frame: `play` is called
+ * with that place when a door starts to move, opening or closing (as in the UE prototype).
+ */
+export function createDoorSounds(ship: THREE.Object3D, doors: Door[], play: (at: THREE.Object3D) => void): () => void {
+  const groups = [...new Set(doors.filter((d) => d.slide && !d.device).map((d) => d.group))];
+  const places = groups.map((group) => {
+    const first = group[0]!;
+    const at = new THREE.Object3D();
+    at.name = `${first.name} sound`;
+    ship.add(at);
+    ship.worldToLocal(first.zone.getCenter(at.position));
+    at.updateMatrixWorld(true);
+    return { first, at, open: first.open };
+  });
+  return () => {
+    for (const place of places) {
+      if (place.first.open === place.open) continue;
+      place.open = place.first.open;
+      play(place.at);
+    }
+  };
+}
+
 /** Steepest the stand-in slope may be (her controller climbs up to 45°). */
 const WALKWAY_SLOPE = THREE.MathUtils.degToRad(42);
 

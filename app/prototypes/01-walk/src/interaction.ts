@@ -8,8 +8,9 @@
 // engineering window's lever). A door that a device controls isn't offered itself (the side door,
 // the cargo ramp, the bulkhead doors, the window). Doors that open together are one target (the
 // roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
+// Other devices (the boombox) make their own target and are handed in (`others`).
 // Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1),
-// doc/plans/features/bulkhead-doors.md
+// doc/plans/features/bulkhead-doors.md, doc/plans/features/audio-from-ue.md
 
 import * as THREE from 'three/webgpu';
 import type { Door } from './doors';
@@ -31,11 +32,28 @@ export interface Interactable {
 }
 
 /**
+ * Devices that aren't tagged in the ship file yet, by their Blender name: a name check, until the
+ * next export tags them `interact: "use"` and `device` (doc/architecture/asset-pipeline.md).
+ */
+const UNTAGGED: Record<string, string> = { boombox: 'Boombox.001' };
+
+/** The object tagged `device: "<device>"` in the ship file (or listed in UNTAGGED). */
+export function findDevice(ship: THREE.Object3D, device: string): THREE.Object3D | null {
+  let found: THREE.Object3D | null = null;
+  const name = UNTAGGED[device];
+  ship.traverse((o) => {
+    if (!found && (o.userData.device === device || (name !== undefined && named(o, name)))) found = o;
+  });
+  return found;
+}
+
+/**
  * The ship's interactables: its doors, and the devices that control something (`controls`): the
  * keypads of the ramp and the side door, the bulkhead doors' panels, the engineering window's lever.
+ * @param others targets that are made elsewhere (the boombox)
  */
-export function shipInteractables(ship: THREE.Object3D, doors: Door[]): Interactable[] {
-  const list: Interactable[] = [];
+export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: Interactable[] = []): Interactable[] {
+  const list: Interactable[] = [...others];
   // The devices first: a door with a keypad, a panel or a lever is used from there only.
   const withKeypad = new Set<Door>();
   ship.traverse((o) => {

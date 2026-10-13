@@ -92,6 +92,20 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   lights.add(settings, 'roomLightIntensity', 0, 20, 0.1).name('brightness');
   lights.add(settings, 'roomLightRange', 1, 20, 0.5).name('range (m)');
 
+  const sound = gui.addFolder('Sound');
+  sound.add(settings, 'soundMute').name('mute');
+  sound.add(settings, 'volumeMaster', 0, 1, 0.01).name('volume: everything');
+  sound.add(settings, 'volumeMusic', 0, 1, 0.01).name('volume: music');
+  sound.add(settings, 'volumeAmbience', 0, 1, 0.01).name('volume: ambience');
+  sound.add(settings, 'volumeSfx', 0, 1, 0.01).name('volume: effects');
+  sound.add(settings, 'shipFlying').name('ship flying (its noise)').listen();
+  sound.add(settings, 'shipNoiseA', 0, 1, 0.01).name('ship noise: flight sound');
+  sound.add(settings, 'shipNoiseB', 0, 1, 0.01).name('ship noise: landing sound');
+  sound.add(settings, 'shipNoiseOutdoors', 0, 1, 0.05).name('ship noise outside the ship');
+  sound.add(settings, 'boomboxFullWithin', 0.5, 10, 0.1).name('boombox: full within (m)');
+  sound.add(settings, 'boomboxGoneAt', 2, 40, 0.5).name('boombox: silent at (m)');
+  sound.add(settings, 'boomboxVibration', 0, 5, 0.1).name('boombox: vibration');
+
   const cut = gui.addFolder('See-through hull');
   cut.add(settings, 'seeThrough').name('on (inside the ship)');
   cut.add(settings, 'cutRadius', 0.2, 4, 0.05).name('radius (m)');

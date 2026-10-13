@@ -547,6 +547,151 @@ async function checks() {
   const offeredDoors = items.filter((i) => i.objects.some((o) => ship.doors.some((d) => d.object === o && (d.slide || d.device))) && !i.objects[0].userData.controls);
   report(offeredDoors.length === 0, 'the bulkhead doors, the window and the lever are not targets themselves', offeredDoors.map((i) => i.name).join(', '));
 
+  // --- Pass 4.5: sound (24). What plays and when; not what it sounds like. ----------------------
+  const audio = w.__audio;
+  const boombox = w.__boombox?.();
+  const count = (cue) => audio.started[cue] ?? 0;
+  report(audio.context.state === 'running', 'the sound is on', `audio context: ${audio.context.state}`);
+  {
+    // One door sound for a bulkhead door's two leaves, when it opens and again when it closes.
+    const leaves = bulkheadDoors[0];
+    const zone = leaves[0].zone;
+    const centre = zone.getCenter(new T.Vector3());
+    const across = zone.max.x - zone.min.x < zone.max.z - zone.min.z ? new T.Vector3(1, 0, 0) : new T.Vector3(0, 0, 1);
+    const stand = (distance) => {
+      const p = centre.clone().addScaledVector(across, distance).setY(zone.min.y + 0.6);
+      const floor = physics.ray(p, DOWN, 3, true);
+      p.y -= floor ? floor.distance : 0.6;
+      return p;
+    };
+    let result = '';
+    let ok = false;
+    for (const way of [1, -1]) {
+      put(stand(way * (settings.autoDoorDistance + 1)));
+      await until(() => settled(leaves, 0), 3000);
+      await wait(100);
+      const before = count('sfx_door_slide');
+      put(stand(way * 0.9));
+      const opened = await until(() => settled(leaves, 1), 3000);
+      const onOpening = count('sfx_door_slide') - before;
+      const heard = audio.playing().includes('sfx_door_slide');
+      put(stand(way * (settings.autoDoorDistance + 1)));
+      const closed = await until(() => settled(leaves, 0), 3000);
+      await wait(100);
+      const onClosing = count('sfx_door_slide') - before - onOpening;
+      ok = opened && closed && onOpening === 1 && onClosing === 1 && heard;
+      result = `opening: ${onOpening} started (sounding: ${heard}); closing: ${onClosing} started`;
+      if (ok) break;
+    }
+    report(ok, 'a bulkhead door plays the door sound once as it opens and once as it closes', result);
+  }
+  if (lever && (await aimFromAnySide(lever))) {
+    const before = count('sfx_door_slide');
+    await tap('KeyE');
+    await until(() => settled([...halves, handle], 1), 3000);
+    const onOpening = count('sfx_door_slide') - before;
+    await tap('KeyE');
+    await until(() => settled([...halves, handle], 0), 3000);
+    const onClosing = count('sfx_door_slide') - before - onOpening;
+    report(onOpening === 1 && onClosing === 1, 'the engineering window plays the door sound once each way', `opening: ${onOpening}, closing: ${onClosing}`);
+  } else {
+    report(false, 'the engineering window plays the door sound once each way', 'the lever could not be aimed at');
+  }
+
+  const boxItem = boombox ? items.find((i) => i === boombox.interactable) : null;
+  if (!boombox || !boxItem || !(await aimFromAnySide(boxItem))) {
+    report(false, 'the boombox can be aimed at', boombox ? `target: ${interaction.target?.name ?? 'none'}` : 'no boombox in the ship');
+  } else {
+    const trackVoice = (n) => [...audio.voices].find(([k]) => k.startsWith(`mus_boombox_0${n}@`))?.[1];
+    const prompts = [prompt.textContent];
+    const cassettes = count('sfx_boombox_cassette');
+    await tap('KeyE');
+    const cassette = count('sfx_boombox_cassette') - cassettes === 1 && boombox.track === 0;
+    const first = await until(() => boombox.track === 1, 5000);
+    await wait(100);
+    prompts.push(prompt.textContent);
+    report(cassette && first && boombox.step === 1, 'using the boombox plays the cassette sound, then track 1', `cassette first: ${cassette}; then sounding: track ${boombox.track}; prompts "${prompts.join('" → "')}"`);
+    // It shakes while a track plays, and comes from the boombox.
+    const places = new Set();
+    for (let i = 0; i < 6; i++) {
+      places.add(boombox.object.position.toArray().map((v) => v.toFixed(5)).join());
+      await wait(50);
+    }
+    const voice = trackVoice(1);
+    report(places.size > 2 && voice?.positional?.parent === boombox.object, 'it shakes while a track plays; the sound is at the boombox', `${places.size} places in 6 looks; falls off from ${voice?.positional?.getRefDistance()} to ${voice?.positional?.getMaxDistance()} m`);
+    // A track that ends by itself goes on to the next.
+    const element = voice?.element;
+    if (element) element.currentTime = element.duration - 0.4;
+    const went = await until(() => boombox.track === 2 && boombox.step === 2, 5000);
+    report(went, 'a track that ends goes on to the next', `step ${boombox.step}, sounding: track ${boombox.track}`);
+    // The ring: used again, 3, then 4 ("Turn off"), then off ("Play").
+    await tap('KeyE');
+    const stopped = boombox.track === 0;
+    const third = await until(() => boombox.track === 3, 5000);
+    await tap('KeyE');
+    const fourth = await until(() => boombox.track === 4, 5000);
+    await wait(100);
+    const last = prompt.textContent;
+    const fromFourth = trackVoice(4)?.element;
+    if (fromFourth) fromFourth.currentTime = fromFourth.duration - 0.4;
+    const endsOff = await until(() => boombox.step === 0 && boombox.track === 0, 5000);
+    await tap('KeyE');
+    await until(() => boombox.track === 1, 5000);
+    await tap('KeyE');
+    await tap('KeyE');
+    await tap('KeyE');
+    await until(() => boombox.track === 4, 5000);
+    await tap('KeyE');
+    await wait(2500);
+    const off = boombox.step === 0 && boombox.track === 0 && !audio.playing().some((c) => c.startsWith('mus_'));
+    await wait(100);
+    const still = boombox.object.position.equals(boombox.home);
+    report(stopped && third && fourth && endsOff && off && still, 'the boombox steps round its ring: 1, 2, 3, 4, off', `a use stops the track at once: ${stopped}; 3: ${third}; 4: ${fourth}, prompt "${last}"; the fourth ends in off: ${endsOff}; used on the fourth, off: ${off}, prompt "${prompt.textContent}"; still again: ${still}`);
+  }
+
+  // The ship's noise: both sounds together while it's flying; each repeats with no silence (in this
+  // browser: the level around the point where one copy of the file hands over to the other).
+  settings.shipFlying = true;
+  const flying = await until(() => audio.noise?.length === 2 && audio.noise.every((n) => n.playing), 5000);
+  report(flying && audio.playing().includes('amb_ship_noise'), 'ship flying: both noise sounds play', `${audio.noise?.filter((n) => n.playing).length ?? 0} of ${audio.noise?.length ?? 0} playing`);
+  if (flying) {
+    await until(() => audio.noise.every((n) => n.elements[n.active].duration > 0 && n.elements[n.active].currentTime > 0.5), 8000);
+    const seams = [];
+    let seamless = true;
+    const taps = audio.noise.map((n) => {
+      const analyser = audio.context.createAnalyser();
+      analyser.fftSize = 2048;
+      n.out.connect(analyser);
+      const active = n.active;
+      const e = n.elements[active];
+      e.currentTime = e.duration - 3.5;
+      return { n, analyser, active, levels: [] };
+    });
+    const data = new Float32Array(2048);
+    const start = performance.now();
+    while (performance.now() - start < 6500) {
+      for (const t of taps) {
+        t.analyser.getFloatTimeDomainData(data);
+        t.levels.push(Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length));
+      }
+      await wait(25);
+    }
+    for (const [i, t] of taps.entries()) {
+      // The first second is the seek settling.
+      const levels = t.levels.slice(40);
+      const mean = levels.reduce((a, b) => a + b, 0) / levels.length;
+      const quietest = Math.min(...levels);
+      const handedOver = t.n.active !== t.active && t.n.elements[t.n.active].currentTime < 6;
+      if (!(handedOver && mean > 0 && quietest > mean * 0.25)) seamless = false;
+      seams.push(`${i === 0 ? 'a' : 'b'}: handed over ${handedOver}, quietest ${(quietest / mean * 100).toFixed(0)}% of the mean level`);
+      t.n.out.disconnect(t.analyser);
+    }
+    report(seamless, 'the ship noise repeats with no silence where it starts again', seams.join('; '));
+  }
+  settings.shipFlying = false;
+  const landed = await until(() => !audio.playing().includes('amb_ship_noise'), 4000);
+  report(landed, 'ship not flying: the noise fades out and stops');
+
   // --- Every door, with her out of the way -----------------------------------------------------
   // (The bulkhead doors would follow her: their automatic opening is off for this check.)
   settings.autoDoors = false;
@@ -647,11 +792,21 @@ async function main() {
     await send('Page.enable');
     await send('Page.navigate', { url: URL_01 });
     await new Promise((r) => setTimeout(r, 1500));
+    // Sound: off until the player does something. A real key press (the page's own simulated keys
+    // don't count for the browser, nor does Shift by itself) turns it on: Q, which the game doesn't use.
+    const audioState = async () => (await send('Runtime.evaluate', { expression: 'window.__audio?.context.state ?? "no audio"', returnByValue: true })).result.result.value;
+    for (let i = 0; i < 40 && (await audioState()) === 'no audio'; i++) await new Promise((r) => setTimeout(r, 250));
+    const audioBefore = await audioState();
+    for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81, text: type === 'keyDown' ? 'q' : undefined });
+    await new Promise((r) => setTimeout(r, 300));
+    const audioAfter = await audioState();
+    console.log(`${audioBefore === 'suspended' && audioAfter === 'running' ? 'PASS' : 'FAIL'}  the sound is off until a key is pressed, then on: ${audioBefore} → ${audioAfter}`);
+    const failed0 = audioBefore === 'suspended' && audioAfter === 'running' ? 0 : 1;
     const result = await send('Runtime.evaluate', { expression: `(${checks.toString()})()`, awaitPromise: true, returnByValue: true });
     if (result.result.exceptionDetails) {
       console.log(`FAIL  the checks ran to the end: ${result.result.exceptionDetails.exception?.description ?? result.result.exceptionDetails.text}`);
     } else {
-      failed = result.result.result.value;
+      failed = result.result.result.value + failed0;
     }
     console.log(`${errors.length === 0 ? 'PASS' : 'FAIL'}  no errors in the browser console${errors.length ? `: ${errors.slice(0, 5).join(' | ')}` : ''}`);
     if (errors.length) failed++;

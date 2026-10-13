@@ -8,6 +8,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-13 | Placeholder audio; licensing put off | scope | The UE prototype's sounds are in the game as placeholders; licensing isn't raised until a production-ready build |
+| 2026-10-13 | First audio code: AAC, cues as data, three buses | tech | In prototype 01: `.m4a`, a cue file, master → music / ambience / sfx, streamed music, loops by crossfade |
 | 2026-10-12 | Lighting inside the ship | look | Sun through the glass, the world's blue light at half strength indoors, warm-tinted lights in the rooms with windows, sky reflections on metal |
 | 2026-10-12 | Single-sided materials in the ship | pipeline | Backface culling on in the ship file; the game draws what the file says, with a switch back; no measurable saving |
 | 2026-10-12 | The ship's reference file | pipeline | `The Zamboni 1.19.blend` is the scene as in the game; tags are custom properties in the file, not lists in the export script |
@@ -31,6 +33,30 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-13] — Placeholder audio; licensing put off (scope)
+
+**Context:** The owner asked for the UE prototype's audio files and events in the game (backlog pass 4.5). Four of the eight files are commercial music (Anamanaguchi, 2NRO8OT), the rest are downloads of unknown terms, and prototype 01 is deployed. [`audio.md`](architecture/audio.md) proposes that nothing ships without an entry in a license register.
+
+**Decision (owner):** every file is a placeholder. Licensing isn't raised again until a production-ready build; then the owner is reminded of everything that's unlicensed.
+
+**Alternatives considered:** leaving the music out of the deployed build; replacing the tracks now.
+
+**Rationale:** the owner's call: the prototype is for judging the game, and the sounds will be replaced.
+
+**Status:** in force. The list the reminder will be made from: [`app/assets/test/audio/SOURCES.md`](../app/assets/test/audio/SOURCES.md). The files are in `app/assets/test/`, as test assets.
+
+## [2026-10-13] — First audio code: AAC, cues as data, three buses (tech)
+
+**Context:** Backlog pass 4.5 is the first audio step. [`audio.md`](architecture/audio.md) is a proposal, still open for discussion.
+
+**Decision (agent, in the plan the owner approved: [`plans/features/audio-from-ue.md`](plans/features/audio-from-ue.md)):** follow the proposal where it can be followed. AAC in `.m4a`; cue ids in a data file; buses master → music, ambience, sfx; Three's `PositionalAudio` for sounds in the world; music and long ambiences streamed, short sounds decoded. The code stays in prototype 01 (`audio.ts`) until something else needs it. Added while building: **a streamed loop repeats by crossfading two copies of its file**, not from the file's ends.
+
+**Alternatives considered:** decoding the 7-minute loop (about 40 MB of memory, loops exactly); cutting it to a 60 s loop by ear (the agent can't hear); an `<audio>` element's own loop (a gap where it starts again); a sound library such as Howler (nothing needed it yet).
+
+**Rationale:** the smallest thing that plays the eight sounds and tests the proposal's open points. The crossfade makes the seam independent of the browser and of AAC's padding, and the two files aren't loops anyway.
+
+**Status:** built; **the proposal itself is still open**. Loops checked in Chrome only, by level. Not known: whether a gamepad button alone turns the sound on.
 
 ## [2026-10-12] — Lighting inside the ship (look)
 
