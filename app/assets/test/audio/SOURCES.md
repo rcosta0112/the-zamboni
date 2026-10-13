@@ -29,4 +29,13 @@ Made by [`app/tools/make-placeholder-sounds.mjs`](../../../tools/make-placeholde
 | `sfx_step_ship_01.m4a` … `_04.m4a` (the landings in the ship play the same files, lower) | Four single steps cut from `freesound_community-metal-footsteps-14727.mp3` in `resources/audio/` (added by the owner, 2026-10-13; before it: Part 1's `Run Rock.mp3`, which sounded like gravel, then steps made by the script) | Not known (the name looks like a Pixabay download from its Freesound community account, id 14727) | Not checked |
 | `sfx_step_snow_01.m4a` … `_04.m4a` (the landings on snow play the same files, lower) | Four single steps cut from `Run Grass.mp3` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`) | Not known | Not known: where Part 1's file came from isn't recorded |
 
+## The start screen (2026-10-13)
+
+Plan: [`doc/plans/features/start-screen.md`](../../../../doc/plans/features/start-screen.md). **Placeholders too.**
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `mus_part1_theme.m4a` | `Background Music.wav` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`; 2 min 17 s, 44.1 kHz, 24-bit stereo), whole, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 128 kbit/s stereo | Not known | Not known: where Part 1's file came from isn't recorded |
+| `ui_click.m4a` | Made by [`make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs) from a tone and noise: no master, the recipe is in the script | The project | Nothing to license |
+
 The boombox's tracks are numbered in the order of the inventory's table. **Not confirmed against the Blueprint:** the order of its track list isn't readable from the `.uasset`.

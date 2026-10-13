@@ -1,7 +1,46 @@
 /*
  * Design tokens: colour, type, spacing, motion.
- * Placeholder until the design system exists in Figma (doc/design/); values will be
- * exported from Figma variables rather than written by hand.
+ * Written by hand from the start screen's mockup (Figma, "The Zamboni", Desktop - 4): the file has
+ * one variable so far (White). Once the design system exists in Figma (doc/design/), these values
+ * are exported from its variables instead.
+ *
+ * Sizes in the components are in --ui-unit: one pixel of the mockup. A screen that scales with the
+ * window sets it (the start screen does); left alone it's 1px.
  */
+@font-face {
+  font-family: 'Afacad';
+  src: url('/ui/fonts/Afacad-latin.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Digital Desolation Plus';
+  src: url('/ui/fonts/DigitalDesolationPlus.otf') format('opentype');
+  font-weight: 400;
+  font-display: block;
+}
+
 :root {
+  --ui-unit: 1px;
+
+  /* Colour */
+  --color-white: #ffffff;
+  --color-sky: #3db3dd; /* the start screen's background image, flat: shown until the image is there */
+  --color-sky-deep: #26a3ca; /* the glow behind the title */
+  --color-fill-hover: rgb(255 255 255 / 0.14); /* a control under the pointer, or the one a gamepad is on */
+  --color-fill-active: rgb(255 255 255 / 0.26); /* a control pressed; the filled part of a progress bar */
+
+  /* Type */
+  --font-title: 'Digital Desolation Plus', sans-serif;
+  --font-text: 'Afacad', sans-serif;
+
+  /* Shape */
+  --radius-control: calc(8.393 * var(--ui-unit));
+  --line: max(1px, var(--ui-unit)); /* outlines: never thinner than a pixel */
+  --control-depth: calc(2.05 * var(--ui-unit)); /* how far a button's body stands above its base */
+
+  /* Motion */
+  --time-press: 60ms;
+  --time-fade: 300ms;
 }

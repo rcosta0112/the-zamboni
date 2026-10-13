@@ -13,16 +13,16 @@
 | (imported by both) | [`bake_materials.py`](bake_materials.py) | Bakes to images what the glTF exporter can't follow in a material (ramps, mixes, procedural textures before the colour, glow or alpha); prints `NODES:` lines | Its header; [decision log](../../doc/decision-log.md), 2026-10-13 |
 | `blender -b … --python tools/export-crew-character.py` | [`export-crew-character.py`](export-crew-character.py) | One character from a crew `.blend` (the player's model, `green-parka.glb`) | Its header; [prototype 01 plan](../../doc/plans/prototypes/01-walk.md) |
 | `blender -b --python tools/export-part1-character.py` | [`export-part1-character.py`](export-part1-character.py) | Part 1's Dr. Green from its FBX, with her animations (`part1-dr-green.glb`) | Its header; [prototype 01 plan](../../doc/plans/prototypes/01-walk.md) |
-| `node tools/encode-audio.mjs` | [`encode-audio.mjs`](encode-audio.mjs) | The audio masters → `assets/test/audio/` (AAC, with ffmpeg) | [Audio](../../doc/architecture/audio.md); `assets/test/audio/SOURCES.md` |
-| `node tools/make-placeholder-sounds.mjs` | [`make-placeholder-sounds.mjs`](make-placeholder-sounds.mjs) | The interactions' placeholder sounds, made from tones and noise (the recipe is in the script), and single footsteps cut out of Part 1's two running loops; into `assets/test/audio/`. `--steps` lists every step found | Its header; [plan](../../doc/plans/features/interaction-sounds.md) |
+| `node tools/encode-audio.mjs` | [`encode-audio.mjs`](encode-audio.mjs) | The audio masters → `assets/test/audio/` (AAC, with ffmpeg); Part 1's soundtrack from Part 1's project. `--only <name>` encodes one file | [Audio](../../doc/architecture/audio.md); `assets/test/audio/SOURCES.md` |
+| `node tools/make-placeholder-sounds.mjs` | [`make-placeholder-sounds.mjs`](make-placeholder-sounds.mjs) | The interactions' placeholder sounds, made from tones and noise (the recipe is in the script), and single footsteps cut out of Part 1's two running loops; into `assets/test/audio/`. `--steps` lists every step found. Also the start button's click (`ui_click`). `--only <name>` makes one of the made sounds and leaves the rest alone | Its header; [plan](../../doc/plans/features/interaction-sounds.md) |
 
 ## Checking
 
 | Command | Script | Does | Described in |
 |---|---|---|---|
 | `npm run smoke` | [`smoke-01.mjs`](smoke-01.mjs) | The whole scripted check of prototype 01 in headless Chrome: a `PASS` / `FAIL` line per check, about three and a half minutes. **Once, at the end of a session's changes** | [Prototype 01's README](../prototypes/01-walk/README.md#scripted-check) |
-| `npm run probe -- <file.js>` | [`probe-01.mjs`](probe-01.mjs) | One question to the running prototype (about 20 s): runs the file's code in the page and prints what it returns; `--shot <out.png>` saves a screenshot. It presses a key first: the game starts on it, with its sound. For looking at one thing after a change, and for trying a check out before it goes into the smoke script | Its header |
-| (used by both) | [`browser.mjs`](browser.mjs) | Starts headless Chrome and talks to it | Its header |
+| `npm run probe -- <file.js>` | [`probe-01.mjs`](probe-01.mjs) | One question to the running prototype (about 20 s): runs the file's code in the page and prints what it returns; `--shot <out.png>` saves a screenshot. It presses a key first (the sound comes on), then uses the start screen's button once it's there; `--stay` leaves the start screen up. For looking at one thing after a change, and for trying a check out before it goes into the smoke script | Its header |
+| (used by both) | [`browser.mjs`](browser.mjs) | Starts headless Chrome and talks to it; uses the start screen's button (`useStartButton`) | Its header |
 | `node tools/compare-glb.mjs <before> <after>` | [`compare-glb.mjs`](compare-glb.mjs) | What differs between two `.glb` files, object by object. Run by the export commands. It counts only a node's own mesh: a door with something hanging on it shows 0 triangles | Its header |
 
 ## Records

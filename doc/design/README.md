@@ -1,6 +1,6 @@
 # Design
 
-**Status:** *set up 2026-10-08*. No design work yet.
+**Status:** *set up 2026-10-08*. First screen built 2026-10-13: [the start screen](start-screen.md), with the first tokens and two components in the code version.
 
 All interface design for The Zamboni: the brand, the game screen, the game's interfaces, and the interfaces of in-game devices. Everything is built on one **design system**, documented in full in Figma, with a matching **code version** that the game uses.
 
@@ -44,4 +44,4 @@ Added to this folder as the work happens: brand, tokens, components, the in-game
 
 - ~~Which UI framework the code version uses~~ **Decided 2026-10-08: Svelte 5** ([`../architecture/stack.md`](../architecture/stack.md)).
 - How in-world screens (PCs, ship displays) are shown in 3D: see [`../architecture/README.md`](../architecture/README.md) once decided.
-- Do Figma files for The Zamboni already exist?
+- ~~Do Figma files for The Zamboni already exist?~~ **Yes** (2026-10-13): [The Zamboni](https://www.figma.com/design/3x6wVCPPBUmzOp6IucXxsh/The-Zamboni), with the start screen's mockup. It has one variable (`White`) and no components yet.

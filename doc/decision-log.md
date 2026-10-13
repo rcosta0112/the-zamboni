@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-13 | The start screen: the design system's first code, the fonts in the repo | design | The start screen is Svelte, on tokens and two components in `packages/ui`; both fonts are files in the repo; Part 1's soundtrack plays on that screen only |
 | 2026-10-13 | Materials made with nodes are baked by the export | pipeline | What the glTF exporter can't follow (ramps, mixes, procedural textures before the colour, glow or alpha) is baked to an image by the export scripts; the blend file keeps its nodes |
 | 2026-10-13 | Placeholder audio; licensing put off | scope | The UE prototype's sounds are in the game as placeholders; licensing isn't raised until a production-ready build |
 | 2026-10-13 | First audio code: AAC, cues as data, three buses | tech | In prototype 01: `.m4a`, a cue file, master → music / ambience / sfx, streamed music, loops by crossfade |
@@ -32,6 +33,23 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-13] — The start screen: the design system's first code, the fonts in the repo (design)
+
+**Context:** The owner asked for a start screen from a Figma mockup, with the button's states taken from Eigodojo's design system ([plan](plans/features/start-screen.md)). Until then prototype 01's overlays were plain HTML and CSS, `packages/ui` was empty, and the Zamboni's Figma file has one variable and no components. The mockup uses two fonts that weren't in the repo.
+
+**Decision (owner, 2026-10-13, from the plan's options):**
+1. **The button and the progress bar are Svelte components in `packages/ui`**, on tokens in `tokens.css`; the screen itself is a Svelte component in prototype 01. Svelte is now part of prototype 01's build, and its `check` is `svelte-check`.
+2. **The title's font, Digital Desolation Plus, is a file in the repo** (`app/assets/ui/fonts/`), and the title is text. Afacad's file is in the repo too, not fetched from Google.
+3. **Part 1's soundtrack plays on the start screen only**, and stops when the game starts.
+
+**Alternatives considered:** plain HTML and CSS in prototype 01, redone when the design system starts; the title exported from Figma as an SVG, so no font file ships; the soundtrack through the game, fading while the boombox plays.
+
+**Rationale:** 1 is what [`stack.md`](architecture/stack.md) and [`design/README.md`](design/README.md) already say; the start screen is where it begins. 2 and 3 are the owner's calls. The agent pointed out with 2 that the font file is public with the game, so its licence has to allow web embedding: the owner's to know.
+
+**Status:** built. The tokens are written by hand from the mockup until the Figma file has variables. The assets are in `app/assets/ui/`, as production assets (they're the design); the two sounds are placeholders in `app/assets/test/audio/`. What exists: [`design/start-screen.md`](design/start-screen.md).
 
 ---
 

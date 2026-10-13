@@ -32,6 +32,26 @@ export async function answers(url) {
 }
 
 /**
+ * Prototype 01's start screen: wait for its button (it's there once everything is loaded), then use
+ * it with Enter, as a player would. A real key, sent through DevTools: the page's own simulated
+ * keys don't turn the sound on. False if the button never came or the game didn't begin.
+ */
+export async function useStartButton(send, timeout = 90000) {
+  const state = async () => (await send('Runtime.evaluate', { expression: 'window.__start?.() ?? null', returnByValue: true })).result.result.value;
+  const until = async (test, ms) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (test(await state())) return true;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return false;
+  };
+  if (!(await until((s) => s?.ready, timeout))) return false;
+  for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: type === 'keyDown' ? '\r' : undefined });
+  return until((s) => s?.begun, 3000);
+}
+
+/**
  * Start Chrome with one blank page. `onEvent` gets every DevTools event (console calls,
  * exceptions). Returns `send(method, params)` and `close()`.
  */

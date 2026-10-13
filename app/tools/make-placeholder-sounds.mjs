@@ -12,8 +12,10 @@
 // - The lever: the first of the two sounds in the owner's
 //   `freesound_community-lever-action-cocking-2-39680.mp3` (resources/audio/), with the silence
 //   around it cut off (TRIMMED).
+// - The start button's click (`ui_click`), made from a tone and noise like the first kind.
+// `--only <name>` makes one of the first kind and leaves the other files alone.
 // Nothing here was listened to by the agent. Each file's source is in SOURCES.md beside the files.
-// Plan: doc/plans/features/interaction-sounds.md. Names: doc/architecture/audio.md.
+// Plans: doc/plans/features/interaction-sounds.md, start-screen.md. Names: doc/architecture/audio.md.
 
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, statSync } from 'node:fs';
@@ -50,7 +52,11 @@ const MADE = [
   ['sfx_ramp_stop', 0.7, `${noise(0)}*${hit(0, 8)}*0.3+sin(2*PI*70*t)*${hit(0, 22)}*0.7`, 'highpass=f=40,lowpass=f=3500'],
   // A hand on a rung: a light tap on metal, which rings for a moment.
   ...[[520, 1370], [560, 1290], [495, 1450]].map(([a, b], i) => [`sfx_ladder_grab_0${i + 1}`, 0.2, `${noise(0)}*${hit(0, 220)}*0.4+sin(2*PI*${a}*t)*${hit(0, 45)}*0.3+sin(2*PI*${b}*t)*${hit(0, 70)}*0.15`, 'highpass=f=200,lowpass=f=2600']),
+  // The start button: a short, soft tick with a little body under it.
+  ['ui_click', 0.12, `${noise(0)}*${hit(0, 320)}*0.3+sin(2*PI*1100*t)*${hit(0, 110)}*0.35+sin(2*PI*550*t)*${hit(0, 70)}*0.25`, 'highpass=f=250,lowpass=f=4500'],
 ];
+const onlyAt = process.argv.indexOf('--only');
+const ONLY = onlyAt >= 0 ? process.argv[onlyAt + 1] : null;
 
 // [game file, the recording, what "loud" is measured against in it: the share of its 5 ms pieces
 // that are quieter (1 = its loudest moment; lower for a recording with a few stray bangs far
@@ -115,6 +121,7 @@ function findSteps(file, loud) {
 mkdirSync(OUT, { recursive: true });
 let failed = 0;
 for (const [name, seconds, expression, filters] of MADE) {
+  if (ONLY && name !== ONLY) continue;
   // A short fade at both ends: no click where the sound starts or is cut off.
   const fade = `afade=t=in:d=0.003,afade=t=out:st=${(seconds - 0.03).toFixed(3)}:d=0.03`;
   const run = ffmpeg(['-f', 'lavfi', '-i', `aevalsrc=exprs='${expression}':d=${seconds}:s=${RATE}`, '-af', `${filters},${fade}`, ...encode, join(OUT, `${name}.m4a`)]);
@@ -123,7 +130,7 @@ for (const [name, seconds, expression, filters] of MADE) {
     failed++;
   } else report(name, 'made here');
 }
-for (const [name, file, from, to] of TRIMMED) {
+for (const [name, file, from, to] of ONLY ? [] : TRIMMED) {
   const length = to - from;
   const filters = `afade=t=in:d=0.003,afade=t=out:st=${(length - 0.02).toFixed(3)}:d=0.02`;
   const run = ffmpeg(['-ss', String(from), '-t', length.toFixed(3), '-i', file, '-vn', '-af', filters, ...encode, join(OUT, `${name}.m4a`)]);
@@ -132,7 +139,7 @@ for (const [name, file, from, to] of TRIMMED) {
     failed++;
   } else report(name, `${basename(file)}, ${from} to ${to} s`);
 }
-for (const [name, file, loud] of CUT) {
+for (const [name, file, loud] of ONLY ? [] : CUT) {
   const from = basename(file);
   let steps;
   try {

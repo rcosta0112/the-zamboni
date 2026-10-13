@@ -7,6 +7,7 @@
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { downloads } from './loading';
 import { retargetClips } from './retarget';
 import { settings } from './settings';
 
@@ -131,9 +132,10 @@ export class AnimatedModel {
  * Also returns the Zamboni Dr. Green's height in the Blender file's units, so other models from
  * the same files (the ship) can be scaled to match.
  */
-export async function loadModels(): Promise<{ models: Record<ModelId, AnimatedModel>; zamboniFileHeight: number }> {
+export async function loadModels(onProgress: (share: number) => void = () => undefined): Promise<{ models: Record<ModelId, AnimatedModel>; zamboniFileHeight: number }> {
   const loader = new GLTFLoader();
-  const [part1, zamboni] = await Promise.all([loader.loadAsync(PART1_URL), loader.loadAsync(ZAMBONI_URL)]);
+  const [a, b] = downloads(2, onProgress);
+  const [part1, zamboni] = await Promise.all([loader.loadAsync(PART1_URL, a), loader.loadAsync(ZAMBONI_URL, b)]);
 
   const zamboniHeight = new THREE.Box3().setFromObject(zamboni.scene).getSize(new THREE.Vector3()).y;
   const zamboniClips = retargetClips(part1.scene, zamboni.scene, part1.animations, {

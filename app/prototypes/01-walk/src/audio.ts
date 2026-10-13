@@ -1,6 +1,6 @@
 // Sound. Code plays a cue by its id (cues.json: file, bus, volume, where in the file it starts, its
 // falloff if it's in the world); never a file path. One listener on the camera. Buses are gain
-// nodes: master → music, ambience, sfx (volumes in the tuning panel). Short sounds are decoded at
+// nodes: master → music, ambience, sfx, ui (volumes in the tuning panel). Short sounds are decoded at
 // load and kept; streamed ones (the music, the ship's noise) are an <audio> element fed into the
 // graph, fetched when first played. A sound played "at" an object goes through Three's
 // PositionalAudio: it falls off in a straight line from full (within `full` m) to nothing (`gone`).
@@ -10,9 +10,10 @@
 // of it. The interactions' sounds and the footsteps each have a level of their own (`group`).
 // Browsers keep sound off until the player does something: the context is resumed on the first key,
 // click or gamepad button. One-shots asked for before that are dropped; the ship's noise follows
-// its switch, so it starts once the sound is on.
+// its switch, so it starts once the sound is on; so does a cue that repeats (`setLoop`: the start
+// screen's music).
 // The files are placeholders (app/assets/test/audio/, SOURCES.md there).
-// Plans: doc/plans/features/audio-from-ue.md, interaction-sounds.md. Proposal they follow:
+// Plans: doc/plans/features/audio-from-ue.md, interaction-sounds.md, start-screen.md. Proposal they follow:
 // doc/architecture/audio.md
 
 import * as THREE from 'three/webgpu';
@@ -21,7 +22,7 @@ import { settings } from './settings';
 
 const BASE = '/test/audio/';
 
-type Bus = 'music' | 'ambience' | 'sfx';
+type Bus = 'music' | 'ambience' | 'sfx' | 'ui';
 
 interface Cue {
   file?: string;
@@ -77,6 +78,11 @@ export class GameAudio {
   private voices = new Map<string, Voice>();
   private noise: StreamLoop[] | null = null;
   private noiseAmount = 0;
+  /** Streamed cues that repeat, each faded in and out (`setLoop`). */
+  private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number }>();
+  /** Decoded sounds: how many there are, and how many have arrived (or failed). */
+  private toLoad = 0;
+  private settled = 0;
   /** The player has done something the browser accepts for turning the sound on. */
   private unlocked = false;
   private paused = false;
@@ -92,23 +98,51 @@ export class GameAudio {
       gain.connect(this.listener.getInput());
       return gain;
     };
-    this.buses = { music: bus(), ambience: bus(), sfx: bus() };
+    this.buses = { music: bus(), ambience: bus(), sfx: bus(), ui: bus() };
     const files = Object.values(cues).flatMap((cue: Cue) => (cue.stream ? [] : [...(cue.files ?? []), ...(cue.file ? [cue.file] : [])]));
-    for (const file of new Set(files)) {
+    const unique = new Set(files);
+    this.toLoad = unique.size;
+    for (const file of unique) {
       fetch(BASE + file)
         .then((response) => response.arrayBuffer())
         .then((data) => context.decodeAudioData(data))
         .then((buffer) => this.buffers.set(file, buffer))
-        .catch((err: unknown) => console.warn(`[01-walk] sound "${file}" not loaded:`, err));
+        .catch((err: unknown) => console.warn(`[01-walk] sound "${file}" not loaded:`, err))
+        .finally(() => this.settled++);
     }
     window.addEventListener('keydown', () => this.unlock());
     window.addEventListener('pointerdown', () => this.unlock());
   }
 
-  /** Turn the sound on: call from something the player did (a key, a click, a gamepad button). */
-  unlock(): void {
+  /** The share of the decoded sounds that are ready to play (0..1): for the start screen's bar. */
+  get loadedShare(): number {
+    return this.toLoad === 0 ? 1 : this.settled / this.toLoad;
+  }
+
+  /**
+   * Turn the sound on: call from something the player did (a key, a click, a gamepad button).
+   * @returns once it's on (or the browser refused)
+   */
+  unlock(): Promise<void> {
     this.unlocked = true;
-    if (!this.paused && this.context.state === 'suspended') void this.context.resume().catch(() => undefined);
+    if (this.paused || this.context.state !== 'suspended') return Promise.resolve();
+    return this.context.resume().catch(() => undefined);
+  }
+
+  /**
+   * A streamed cue that repeats (the start screen's music): on or off, fading over `fade` s. It
+   * sounds only once the sound is on, and starts from its beginning each time it comes back.
+   */
+  setLoop(id: CueId, on: boolean, fade = 1): void {
+    const cue: Cue = cues[id];
+    let loop = this.loops.get(id);
+    if (!loop) {
+      if (!on || !cue.file) return;
+      loop = { stream: new StreamLoop(this.context, BASE + cue.file, this.buses[cue.bus as Bus], cue.crossfade ?? 2), amount: 0, on, fade };
+      this.loops.set(id, loop);
+    }
+    loop.on = on;
+    loop.fade = fade;
   }
 
   /**
@@ -119,7 +153,8 @@ export class GameAudio {
     if (on === this.paused) return;
     this.paused = on;
     if (on) {
-      const elements = [...this.voices.values()].map((v) => v.element).concat(this.noise?.flatMap((n) => n.elements) ?? []);
+      const loops = [...this.loops.values()].flatMap((l) => l.stream.elements);
+      const elements = [...this.voices.values()].map((v) => v.element).concat(this.noise?.flatMap((n) => n.elements) ?? [], loops);
       this.held = elements.filter((e): e is HTMLAudioElement => e !== null && !e.paused && !e.ended);
       for (const element of this.held) element.pause();
       if (this.context.state === 'running') void this.context.suspend().catch(() => undefined);
@@ -217,11 +252,12 @@ export class GameAudio {
   playing(): string[] {
     const list = [...this.voices].filter(([, v]) => v.playing).map(([k]) => k.split('@')[0]!);
     if (this.noise?.some((n) => n.playing)) list.push('amb_ship_noise');
+    for (const [id, loop] of this.loops) if (loop.stream.playing) list.push(id);
     return list;
   }
 
   /**
-   * Per frame: the volumes from the tuning panel, and the ship's noise.
+   * Per frame: the volumes from the tuning panel, the cues that repeat, and the ship's noise.
    * @param indoors 0..1, eased: she's inside the ship
    */
   update(dt: number, indoors: number): void {
@@ -231,10 +267,24 @@ export class GameAudio {
     this.buses.music.gain.setTargetAtTime(settings.volumeMusic, now, 0.02);
     this.buses.ambience.gain.setTargetAtTime(settings.volumeAmbience, now, 0.02);
     this.buses.sfx.gain.setTargetAtTime(settings.volumeSfx, now, 0.02);
+    this.buses.ui.gain.setTargetAtTime(settings.volumeUi, now, 0.02);
+    const running = this.context.state === 'running';
+
+    for (const [id, loop] of this.loops) {
+      const target = loop.on && running ? 1 : 0;
+      // The first frame's dt can be below zero (the frame's time is from before the loop was set up).
+      const step = loop.fade > 0 ? Math.max(0, dt) / loop.fade : 1;
+      loop.amount = loop.amount < target ? Math.min(target, loop.amount + step) : Math.max(target, loop.amount - step);
+      if (loop.amount === 0 && target === 0) {
+        loop.stream.stop();
+        continue;
+      }
+      if (loop.stream.start()) this.started[id] = (this.started[id] ?? 0) + 1;
+      loop.stream.update((cues[id].volume ?? 1) * loop.amount);
+    }
 
     // The ship's noise: its two files loop together while the ship is flying, each at its own level
     // (the owner's mix, until they're one file), quieter outside the ship.
-    const running = this.context.state === 'running';
     const target = settings.shipFlying && running ? 1 : 0;
     const step = dt / NOISE_FADE;
     this.noiseAmount = this.noiseAmount < target ? Math.min(target, this.noiseAmount + step) : Math.max(target, this.noiseAmount - step);
@@ -335,10 +385,12 @@ class StreamLoop {
     return this.on && this.elements.some((e) => !e.paused);
   }
 
-  start(): void {
-    if (this.on) return;
+  /** @returns true if it wasn't on: it starts from the file's beginning */
+  start(): boolean {
+    if (this.on) return false;
     this.on = true;
     this.begin(this.elements[this.active]);
+    return true;
   }
 
   stop(): void {

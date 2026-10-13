@@ -99,6 +99,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   sound.add(settings, 'volumeMusic', 0, 1, 0.01).name('volume: music');
   sound.add(settings, 'volumeAmbience', 0, 1, 0.01).name('volume: ambience');
   sound.add(settings, 'volumeSfx', 0, 1, 0.01).name('volume: effects');
+  sound.add(settings, 'volumeUi', 0, 1, 0.01).name('volume: interface');
   sound.add(settings, 'volumeInteraction', 0, 3, 0.05).name('interaction sounds');
   sound.add(settings, 'volumeSteps', 0, 3, 0.05).name('footsteps');
   sound.add(settings, 'shipFlying').name('ship flying (its noise)').listen();

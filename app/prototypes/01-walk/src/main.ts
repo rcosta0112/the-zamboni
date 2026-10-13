@@ -2,6 +2,8 @@
 // Plan: doc/plans/prototypes/01-walk.md
 
 import * as THREE from 'three/webgpu';
+import { mount, unmount } from 'svelte';
+import '@zamboni/ui/tokens.css';
 import { GameAudio } from './audio';
 import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
@@ -16,8 +18,10 @@ import { Footsteps } from './footsteps';
 import { findDevice, Interaction, shipInteractables } from './interaction';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
+import { LoadProgress } from './loading';
 import { loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
+import StartScreen from './StartScreen.svelte';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
 import { updateVisibility } from './visibility';
@@ -26,9 +30,21 @@ import { createWorld, updateWorld } from './world';
 const STEP = 1 / 60; // fixed simulation step
 const TONE_MAPPING = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
 const MAX_STEPS = 5; // per frame, so a long pause doesn't spiral
+/** The start screen's music dies away over this long once the button is used (s). */
+const THEME_FADE = 1.5;
+/** The start screen is taken away this long after the button is used (ms): its own fade is 600. */
+const SCREEN_LEAVES = 700;
+/** The start button comes after this many frames in a row made in under a tenth of a second... */
+const WARM_FRAMES = 5;
+/** ...or this long after the load (s), on a machine where no frame is that quick. */
+const WARM_LIMIT = 6;
 
 async function start(): Promise<void> {
   const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
+  // The start screen first: it covers the view while everything below loads, with a bar for it.
+  const startScreen = mount(StartScreen, { target: document.querySelector<HTMLElement>('#start')!, props: { onstart: (byPointer: boolean) => begin(byPointer) } });
+  const loading = new LoadProgress((share) => startScreen.setProgress(share));
+
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true;
   await renderer.init();
@@ -46,6 +62,7 @@ async function start(): Promise<void> {
   // Physics: a capsule the size of the character (Part 1 height), and the ground.
   const radius = 0.28;
   const physics = await Physics.create({ radius, halfHeight: settings.zamboniHeight / 2 - radius }, character.position);
+  loading.set('physics', 1);
 
   // Character models, then the ship at the same scale; the capsule stays if they fail to load.
 
@@ -56,16 +73,20 @@ async function start(): Promise<void> {
   let ladders: Ladders | null = null;
   let boombox: Boombox | null = null;
   let doorSounds: (() => void) | null = null;
-  loadModels()
+  let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
+  loadModels((share) => loading.set('models', share))
     .then(({ models, zamboniFileHeight }) => {
+      loading.set('models', 1);
       character.setModels(models);
-      return loadShip(scene, physics, settings.zamboniHeight / zamboniFileHeight);
+      return loadShip(scene, physics, settings.zamboniHeight / zamboniFileHeight, (share) => loading.set('ship', share));
     })
     .then(async (s) => {
       // The crew placed in the ship, and the room lights, before the shaders are built.
       // The ship's shadow comes from one merged mesh that only the sun's shadow camera sees.
       world.sun.shadow.camera.layers.enable(SHADOW_LAYER);
-      crew = await loadCrew(s.object, physics);
+      loading.set('ship', 1);
+      crew = await loadCrew(s.object, physics, (share) => loading.set('crew', share));
+      loading.set('crew', 1);
       const markers = findLightMarkers(s.object);
       roomLights = new RoomLights(scene, markers);
       roomLights.update(character.position, 0);
@@ -78,6 +99,7 @@ async function start(): Promise<void> {
         o.frustumCulled = false;
       });
       const start = performance.now();
+      loading.creep('shaders', 4);
       await renderer.compileAsync(scene, view.camera);
       for (const o of culled) o.frustumCulled = true;
       console.info(`[01-walk] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
@@ -96,17 +118,22 @@ async function start(): Promise<void> {
       ladders = new Ladders(shipLadders(s.object, physics));
       ship = s;
     })
-    .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err));
+    .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err))
+    .finally(() => (loaded = true));
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
   const audio = new GameAudio(view.camera);
+  // The start screen's music: heard there if the browser lets sound play before the player has done
+  // anything (it does for a site they've played sound on before), or once they press or click something.
+  audio.setLoop('mus_part1_theme', true, 0.5);
   const footsteps = new Footsteps((id, level) => audio.play(id, undefined, undefined, level));
   let rungs = 0; // hands on the ladder's rungs so far
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __audio: audio, __boombox: () => boombox, __footsteps: footsteps });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __audio: audio, __boombox: () => boombox, __footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
+  gui.hide(); // until the start screen is gone: it would lie over it
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
 
   const stats = new Stats(document.querySelector<HTMLElement>('#stats')!, backend);
@@ -147,28 +174,35 @@ async function start(): Promise<void> {
 
   // Paused while the mouse is released (Esc, or the browser taking it back), or by the gamepad's
   // Start / Options. Clicking the view captures the mouse again and resumes; so does any gamepad
-  // button. The sound stops with the game.
-  // The game starts paused, on "Press any button": browsers keep the sound off until a button, a
-  // key or a click (moving a stick doesn't count), so without it a player with a gamepad walked off
-  // in silence. Any key starts it too.
+  // button. The sound stops with the game. Not before the game has begun: the start screen is up.
   const pausedEl = document.querySelector<HTMLElement>('#paused')!;
-  let paused = true;
-  let begun = false;
+  let paused = false;
   const setPaused = (on: boolean) => {
+    if (!begun) return;
     paused = on;
     pausedEl.hidden = !on;
     audio.setPaused(on);
-    if (!on && !begun) {
-      begun = true;
-      pausedEl.querySelector('span')!.textContent = 'Paused';
-      pausedEl.querySelector('small')!.textContent = 'click to resume, or press any gamepad button';
-    }
   };
-  setPaused(true);
   document.addEventListener('pointerlockchange', () => setPaused(document.pointerLockElement !== canvas));
-  window.addEventListener('keydown', () => {
-    if (!begun) setPaused(false);
-  });
+
+  // The game begins when the start screen's button is used, which is also what turns the sound on:
+  // browsers keep it off until a button, a key or a click (moving a stick doesn't count). The button
+  // is there once everything is loaded.
+  let ready = false;
+  let begun = false;
+  let warmTime = 0; // s of frames made since the load ended
+  let smooth = 0; // how many of them in a row were quick
+  function begin(byPointer: boolean): void {
+    if (begun) return;
+    begun = true;
+    // The click waits for the sound to be on: this may be the first thing the player has done.
+    void audio.unlock().then(() => audio.play('ui_click'));
+    audio.setLoop('mus_part1_theme', false, THEME_FADE);
+    // A click captures the mouse, as clicking the view does.
+    if (byPointer) void Promise.resolve(canvas.requestPointerLock()).catch(() => undefined);
+    gui.show();
+    setTimeout(() => void unmount(startScreen), SCREEN_LEAVES);
+  }
 
   renderer.setAnimationLoop((now: number) => {
     const dt = Math.min(0.25, (now - last) / 1000);
@@ -176,9 +210,33 @@ async function start(): Promise<void> {
 
     input.poll();
     // Sound: a gamepad button turns it on, as a key or a click does (if the browser counts it).
-    if (input.padPressed) audio.unlock();
+    if (input.padPressed) void audio.unlock();
     audio.update(dt, indoorLight);
-    if (paused && input.padPressed) setPaused(false);
+    if (!begun) {
+      // The start screen covers the view, and nothing is simulated.
+      loading.update();
+      loading.set('sounds', audio.loadedShare);
+      if (input.padPressed) startScreen.press();
+      // What was pressed to start isn't a jump or a use.
+      input.consumeJump();
+      input.consumeInteract();
+      if (!loaded || audio.loadedShare < 1) {
+        input.consumeLook(dt);
+        return;
+      }
+      // Loaded: from here the frames are made as in the game, under the screen. The first ones
+      // stall for a couple of seconds (the see-through shaders are built when they're first used),
+      // and the button waits until that's over, so the game moves as soon as it's pressed.
+      if (!ready) {
+        warmTime += dt;
+        smooth = warmTime > dt && dt < 0.1 ? smooth + 1 : 0;
+        if (smooth >= WARM_FRAMES || warmTime > WARM_LIMIT) {
+          ready = true;
+          loading.finish();
+          startScreen.setReady();
+        }
+      }
+    } else if (paused && input.padPressed) setPaused(false);
     else if (input.pausePressed) {
       // Releasing the mouse pauses by itself; without it captured (a gamepad alone), pause here.
       if (document.pointerLockElement === canvas) document.exitPointerLock();
@@ -194,7 +252,7 @@ async function start(): Promise<void> {
       return;
     }
 
-    accumulator += dt;
+    if (begun) accumulator += dt;
     let steps = 0;
     while (accumulator >= STEP && steps < MAX_STEPS) {
       // Indoors: the same "inside" test as the see-through hull, on the simulated position.

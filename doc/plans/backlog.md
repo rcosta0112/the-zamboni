@@ -31,6 +31,7 @@
 | 25 | The displays look gray and washed out: emission made by nodes isn't exported as Blender shows it (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/display-materials.md`](features/display-materials.md)): the export bakes them; ship and crew re-exported |
 | 26 | Subtle placeholder sounds for every interaction where it makes sense; footsteps in the snow and in the ship (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/interaction-sounds.md`](features/interaction-sounds.md), *As built*): footsteps cut from Part 1's loops, the rest made by a script; **the owner's to listen to** |
 | 27 | The sound pauses with the game; the gamepad's Start / Options pauses (owner, 2026-10-13) | – | Built 2026-10-13 |
+| 28 | A start screen from the Figma mockup: a progress bar until everything is loaded, then the start button (states as in Eigodojo, the Zamboni mockup's colours), a click sound, Part 1's soundtrack (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/start-screen.md`](features/start-screen.md), *As built*; what exists: [`design/start-screen.md`](../design/start-screen.md)): **the owner's to look at and listen to** |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 

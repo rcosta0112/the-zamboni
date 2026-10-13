@@ -4,7 +4,9 @@
 
 | File | Owns | Start at |
 |---|---|---|
-| `main.ts` | Start-up and load order; the fixed 60 Hz step; the frame loop (who is called, in what order); dev hooks on `window` | `start` |
+| `main.ts` | Start-up and load order; when the start button comes and what using it does; the fixed 60 Hz step; the frame loop (who is called, in what order); dev hooks on `window` | `start`, `begin` |
+| `StartScreen.svelte` | The start screen: the mockup's layout, the bar then the button, which keys use it | `press`, `setProgress`, `setReady` |
+| `loading.ts` | What the start screen's bar measures: the load's parts and their shares | `LoadProgress`, `downloads` |
 | `settings.ts` | Every tunable value and its starting point | `settings` |
 | `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
 | `input.ts` | Actions from gamepad and keyboard: move, look, jump, interact, last device used | `Input.poll`, `consume*` |
@@ -14,7 +16,7 @@
 | `ship.ts` | Loading the ship and its collider; "inside"; decks; see-through units and their tags; **the cargo ramp** (its closed and open angles); hinges; the merged shadow caster | `loadShip`, `updateShip`, `closedAngle`, `groupCutUnits`, `hingeAt` |
 | `doors.ts` | Hinged and sliding doors; the bulkhead doors opening when she's near; doors that open together (`group`); a moving part pushing her (also used by the ramp); the side door's walkable slope; when and where each door's sound plays, and the motor of a door that's a ramp | `Door.update`, `updateAutoDoors`, `advance`, `createDoors`, `createDoorSounds`, `motorSound` |
 | `interaction.ts` | What can be used (not doors with a keypad, a panel or a lever; doors that open together are one target); what a keypad, a panel and the lever do; devices found by tag, or by name until they're tagged (`UNTAGGED`); picking the target; the prompt next to it; the highlight | `shipInteractables`, `findDevice`, `Interaction.update`, `placePrompt` |
-| `audio.ts`, `cues.json` | Sound: cues by id (the data: file or variations, bus, volume, speed, falloff, which level it follows), buses, decoded and streamed sounds, sounds placed in the world, turning the sound on, stopping with the pause, the ship's noise and how a streamed loop repeats | `GameAudio.play`, `stop`, `setPaused`, `update`, `StreamLoop` |
+| `audio.ts`, `cues.json` | Sound: cues by id (the data: file or variations, bus, volume, speed, falloff, which level it follows), buses, decoded and streamed sounds, sounds placed in the world, turning the sound on, stopping with the pause, the ship's noise, a cue that repeats and fades (the start screen's music) and how a streamed loop repeats | `GameAudio.play`, `stop`, `setLoop`, `setPaused`, `update`, `StreamLoop` |
 | `footsteps.ts` | Her footsteps: when a foot comes down in the walk/run cycle, which surface, landings | `Footsteps.update` |
 | `boombox.ts` | The boombox: its ring of steps, the cassette sound then the track, the shake | `Boombox.use`, `update` |
 | `ladders.ts` | Finding ladders; attaching at the foot, climbing up, stepping off at the top, letting go | `shipLadders`, `Ladders.update`, `findExit` |
@@ -26,6 +28,6 @@
 | `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; retargeting Part 1's animations | `loadModels`, `AnimatedModel.update` |
 | `names.ts`, `stats.ts` | Blender names as GLTFLoader gives them; the frame-time readout | `named` |
 
-Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/tools/README.md`](../../tools/README.md).
+Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. The button, the progress bar and the tokens (colours, fonts) are in [`app/packages/ui`](../../packages/ui/README.md); the screen's images and fonts in `app/assets/ui/`. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/tools/README.md`](../../tools/README.md).
 
-Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the ladder's sound → her animation, footsteps → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.
+Until the start button is used, nothing is simulated: the frame stops after the sound while loading, then is made in full under the start screen. Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the ladder's sound → her animation, footsteps → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.

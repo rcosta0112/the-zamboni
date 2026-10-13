@@ -8,7 +8,7 @@
 
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { answers, findChrome, openBrowser } from './browser.mjs';
+import { answers, findChrome, openBrowser, useStartButton } from './browser.mjs';
 
 const URL_01 = 'http://localhost:5201/';
 const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '../prototypes/01-walk');
@@ -894,7 +894,27 @@ async function main() {
     await new Promise((r) => setTimeout(r, 300));
     const audioAfter = await audioState();
     console.log(`${audioBefore === 'suspended' && audioAfter === 'running' ? 'PASS' : 'FAIL'}  the sound is off until a key is pressed, then on: ${audioBefore} → ${audioAfter}`);
-    const failed0 = audioBefore === 'suspended' && audioAfter === 'running' ? 0 : 1;
+    let failed0 = audioBefore === 'suspended' && audioAfter === 'running' ? 0 : 1;
+    // The start screen: a bar and no button while it loads; then the button, which starts the game
+    // with a click sound and sends the screen's music away.
+    const page = async (expression) => (await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result.result.value;
+    const line = (ok, name, detail) => {
+      console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}: ${detail}`);
+      if (!ok) failed0++;
+    };
+    const controls = '({ bar: Boolean(document.querySelector("#start [role=progressbar]")), button: Boolean(document.querySelector("#start button")), ...window.__start() })';
+    const before = await page(controls);
+    if (before.ready) console.log('NOT CHECKED  the start screen while it loads (everything was loaded before it could be looked at)');
+    else line(before.bar && !before.button, 'the start screen shows a bar and no button while it loads', `bar ${before.bar}, button ${before.button}, ${Math.round(before.share * 100)} % loaded`);
+    const began = await useStartButton(send);
+    // Looked at just after Enter: the button is still there (the screen takes 0.7 s to go).
+    const at = await page(controls);
+    line(began && at.button, 'once loaded, the button is there and Enter starts the game', `ready ${at.ready}, begun ${at.begun}, button ${at.button}`);
+    await new Promise((r) => setTimeout(r, 2500));
+    const after = await page('({ screen: document.querySelector("#start").childElementCount, click: window.__audio.started.ui_click ?? 0, theme: window.__audio.started.mus_part1_theme ?? 0, playing: window.__audio.playing() })');
+    line(after.screen === 0, 'the start screen is gone after the button is used', `${after.screen} elements left`);
+    line(after.click === 1, 'the button makes its click once', `ui_click started ${after.click} times`);
+    line(after.theme === 1 && !after.playing.includes('mus_part1_theme'), 'the music plays on the start screen (the sound was on) and has stopped 2.5 s after the button', `started ${after.theme} times; playing now: ${after.playing.join(', ') || 'nothing'}`);
     const result = await send('Runtime.evaluate', { expression: `(${checks.toString()})()`, awaitPromise: true, returnByValue: true });
     if (result.result.exceptionDetails) {
       console.log(`FAIL  the checks ran to the end: ${result.result.exceptionDetails.exception?.description ?? result.result.exceptionDetails.text}`);

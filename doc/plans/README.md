@@ -34,6 +34,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [Audio from the UE prototype (backlog pass 4.5)](features/audio-from-ue.md) | Prototype 01 | Built 2026-10-13; the owner's to listen to |
 | [The displays' materials (what glows, exported as Blender shows it)](features/display-materials.md) | Prototype 01 | Built 2026-10-13; the owner's to look at |
 | [Placeholder sounds for the interactions, and footsteps](features/interaction-sounds.md) | Prototype 01 | Built 2026-10-13; the owner's to listen to |
+| [The start screen (progress bar, start button, click, Part 1's soundtrack)](features/start-screen.md) | Prototype 01 | Built 2026-10-13; the owner's to look at and listen to |
 
 ## Plan format
 

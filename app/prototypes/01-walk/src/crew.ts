@@ -8,6 +8,7 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { downloads } from './loading';
 import type { Physics } from './physics';
 
 const CREW_URL = '/test/zamboni-crew.glb';
@@ -20,8 +21,8 @@ export interface Crew {
 }
 
 /** Loads the crew under the ship's object (same transform and scale as the ship). */
-export async function loadCrew(shipObject: THREE.Object3D, physics: Physics): Promise<Crew> {
-  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(CREW_URL);
+export async function loadCrew(shipObject: THREE.Object3D, physics: Physics, onProgress: (share: number) => void = () => undefined): Promise<Crew> {
+  const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(CREW_URL, downloads(1, onProgress)[0]);
   const object = gltf.scene;
   shipObject.add(object);
   object.traverse((o) => {

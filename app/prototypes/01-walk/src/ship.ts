@@ -14,6 +14,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { makeCuttable } from './cutaway';
 import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
+import { downloads } from './loading';
 import { named } from './names';
 import { newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
@@ -65,10 +66,12 @@ export const SHADOW_LAYER = 1;
 
 /**
  * @param scale the same scale as the characters (ship and crew share units in the Blender files)
+ * @param onProgress the share of the two files that has been downloaded
  */
-export async function loadShip(scene: THREE.Scene, physics: Physics, scale: number): Promise<Ship> {
+export async function loadShip(scene: THREE.Scene, physics: Physics, scale: number, onProgress: (share: number) => void = () => undefined): Promise<Ship> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const [gltf, colGltf] = await Promise.all([loader.loadAsync(SHIP_URL), loader.loadAsync(COLLIDER_URL)]);
+  const [a, b] = downloads(2, onProgress);
+  const [gltf, colGltf] = await Promise.all([loader.loadAsync(SHIP_URL, a), loader.loadAsync(COLLIDER_URL, b)]);
   const object = gltf.scene;
 
   // Landed ahead of the player, back toward them, so the open cargo ramp faces the start.

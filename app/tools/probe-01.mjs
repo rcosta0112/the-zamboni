@@ -1,21 +1,22 @@
 // One question to the running prototype 01, instead of the whole scripted check (in app/):
 //
-//     node tools/probe-01.mjs <file.js> [--shot <out.png>]
+//     node tools/probe-01.mjs <file.js> [--shot <out.png>] [--stay]
 //     npm run probe -- <file.js>
 //
 // The file is the body of an async function run in the page once the ship is loaded; what it
 // returns is printed as JSON. It has `w` (window, with the dev hooks of main.ts: `__ship()`,
 // `__settings`, `__character`…), `T` (three), `ship`, `wait(ms)` and `until(test, ms)`. With
 // `--shot`, a screenshot of the page is saved after it has run. A key is pressed first (Q, which the
-// game doesn't use): the game starts on it, and the browser keeps the sound off until then. Console
-// errors are printed.
+// game doesn't use): the browser keeps the sound off until then. Then the start screen's button is
+// used, once it's there; with `--stay` it isn't, and the file runs with the start screen up.
+// Console errors are printed.
 // Uses the dev server already on port 5201, or starts one. For trying a check out before it goes
 // into smoke-01.mjs, and for looking at one thing after a change.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { answers, findChrome, openBrowser } from './browser.mjs';
+import { answers, findChrome, openBrowser, useStartButton } from './browser.mjs';
 
 const URL_01 = 'http://localhost:5201/';
 const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '../prototypes/01-walk');
@@ -25,8 +26,10 @@ const shotAt = args.indexOf('--shot');
 const shot = shotAt >= 0 ? args.splice(shotAt, 2)[1] : null;
 const soundAt = args.indexOf('--sound'); // from before the key was always pressed
 if (soundAt >= 0) args.splice(soundAt, 1);
+const stayAt = args.indexOf('--stay');
+if (stayAt >= 0) args.splice(stayAt, 1);
 if (!args[0]) {
-  console.error('probe: node tools/probe-01.mjs <file.js> [--shot <out.png>]');
+  console.error('probe: node tools/probe-01.mjs <file.js> [--shot <out.png>] [--stay]');
   process.exit(2);
 }
 const body = readFileSync(args[0], 'utf8');
@@ -60,6 +63,7 @@ try {
     await new Promise((r) => setTimeout(r, 250));
   }
   for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81, text: type === 'keyDown' ? 'q' : undefined });
+  if (stayAt < 0 && !(await useStartButton(send))) throw new Error('the start button never came, or the game did not begin');
   const expression = `(async () => {
     const w = window;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));

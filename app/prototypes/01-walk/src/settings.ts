@@ -124,6 +124,7 @@ export const settings = {
   volumeMusic: 1,
   volumeAmbience: 1,
   volumeSfx: 1,
+  volumeUi: 1, // the interface's sounds (the start button's click)
   volumeInteraction: 1, // the placeholder sounds of doors, panels, the lever, the ramp and the ladder, as a set
   volumeSteps: 1, // her footsteps and landings
   shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
