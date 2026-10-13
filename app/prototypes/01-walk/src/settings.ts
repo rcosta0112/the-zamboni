@@ -80,6 +80,7 @@ export const settings = {
   highlight: 0, // the target's lift toward white (0 = no highlight: the prompt sits at the target instead)
   doorSeconds: 0.6, // to open or close a door
   slideSeconds: 0.3, // the same for a sliding door (bulkhead doors, the engineering window, its lever)
+  leverDelay: 0.6, // the window starts this long after its lever is used (s): the lever is heard first
   autoDoors: true, // the bulkhead doors open when she's near (off: only from their panels)
   // m, from her to the closed door: nearer than this, it opens. With the slide time, it must be open
   // before she gets there at a run (3.5 m/s indoors): at 0.6 s she ran into the leaves. Not much
@@ -123,6 +124,8 @@ export const settings = {
   volumeMusic: 1,
   volumeAmbience: 1,
   volumeSfx: 1,
+  volumeInteraction: 1, // the placeholder sounds of doors, panels, the lever, the ramp and the ladder, as a set
+  volumeSteps: 1, // her footsteps and landings
   shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
   shipNoiseA: 0.5, // the level of each of its two sounds (a: the long flight recording; b: the landing)
   shipNoiseB: 0.5,

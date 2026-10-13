@@ -57,6 +57,11 @@ export class Character {
     for (const m of Object.values(models)) this.root.add(m.object);
   }
 
+  /** Where the shown model's walk/run cycle is, 0..1; null with no model shown. */
+  get cycle(): number | null {
+    return (settings.showModel ? this.models[settings.characterModel] : undefined)?.cycle ?? null;
+  }
+
   /** Per rendered frame: which model is visible, and its animation. */
   animate(dt: number): void {
     const current = settings.showModel ? this.models[settings.characterModel] : undefined;

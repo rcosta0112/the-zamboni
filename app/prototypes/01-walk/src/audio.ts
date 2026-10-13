@@ -4,12 +4,16 @@
 // load and kept; streamed ones (the music, the ship's noise) are an <audio> element fed into the
 // graph, fetched when first played. A sound played "at" an object goes through Three's
 // PositionalAudio: it falls off in a straight line from full (within `full` m) to nothing (`gone`).
-// One voice per cue and place: playing it again starts it again.
+// One voice per cue and place: playing it again starts it again, unless the cue's sounds may
+// overlap (footsteps). A cue can have variations (`files`: one is picked, never the same twice
+// running), a playback speed (`rate`: the hatches are the latches, lower) and a small random spread
+// of it. The interactions' sounds and the footsteps each have a level of their own (`group`).
 // Browsers keep sound off until the player does something: the context is resumed on the first key,
 // click or gamepad button. One-shots asked for before that are dropped; the ship's noise follows
 // its switch, so it starts once the sound is on.
-// The files are placeholders from the UE prototype (app/assets/test/audio/, SOURCES.md there).
-// Plan: doc/plans/features/audio-from-ue.md. Proposal it follows: doc/architecture/audio.md
+// The files are placeholders (app/assets/test/audio/, SOURCES.md there).
+// Plans: doc/plans/features/audio-from-ue.md, interaction-sounds.md. Proposal they follow:
+// doc/architecture/audio.md
 
 import * as THREE from 'three/webgpu';
 import cueData from './cues.json';
@@ -21,6 +25,8 @@ type Bus = 'music' | 'ambience' | 'sfx';
 
 interface Cue {
   file?: string;
+  /** Variations: one is played, never the same twice running. */
+  files?: string[];
   /** Several files that play together as one sound (the ship's noise). */
   layers?: string[];
   bus: string;
@@ -32,6 +38,16 @@ interface Cue {
   /** A streamed loop repeats by fading its end into its start over this long (s). */
   crossfade?: number;
   falloff?: { full: number; gone: number };
+  /** Playback speed (1: as recorded; lower is slower and deeper). */
+  rate?: number;
+  /** Each time it plays, its speed is off by up to this share, at random. */
+  spread?: number;
+  /** Playing it again doesn't cut off the one still sounding. */
+  overlap?: boolean;
+  /** It fades in over this long (s). */
+  fadeIn?: number;
+  /** Which level in the tuning panel it follows, besides its bus. */
+  group?: string;
 }
 
 export type CueId = keyof typeof cueData;
@@ -44,6 +60,8 @@ interface Voice {
   element: HTMLAudioElement | null;
   source: AudioBufferSourceNode | null;
   playing: boolean;
+  /** The variation played last. */
+  last: string | null;
 }
 
 /** The ship's noise fades in and out over this long (s). */
@@ -59,6 +77,11 @@ export class GameAudio {
   private voices = new Map<string, Voice>();
   private noise: StreamLoop[] | null = null;
   private noiseAmount = 0;
+  /** The player has done something the browser accepts for turning the sound on. */
+  private unlocked = false;
+  private paused = false;
+  /** The streamed sounds that were playing when the game was paused. */
+  private held: HTMLAudioElement[] = [];
 
   constructor(camera: THREE.Camera) {
     camera.add(this.listener);
@@ -70,9 +93,8 @@ export class GameAudio {
       return gain;
     };
     this.buses = { music: bus(), ambience: bus(), sfx: bus() };
-    for (const cue of Object.values(cues)) {
-      if (cue.stream || !cue.file) continue;
-      const file = cue.file;
+    const files = Object.values(cues).flatMap((cue: Cue) => (cue.stream ? [] : [...(cue.files ?? []), ...(cue.file ? [cue.file] : [])]));
+    for (const file of new Set(files)) {
       fetch(BASE + file)
         .then((response) => response.arrayBuffer())
         .then((data) => context.decodeAudioData(data))
@@ -85,23 +107,56 @@ export class GameAudio {
 
   /** Turn the sound on: call from something the player did (a key, a click, a gamepad button). */
   unlock(): void {
-    if (this.context.state === 'suspended') void this.context.resume().catch(() => undefined);
+    this.unlocked = true;
+    if (!this.paused && this.context.state === 'suspended') void this.context.resume().catch(() => undefined);
+  }
+
+  /**
+   * The game is paused: every sound stops where it is, and goes on from there afterwards. The
+   * context is suspended (decoded sounds stop with it); streamed ones are paused themselves.
+   */
+  setPaused(on: boolean): void {
+    if (on === this.paused) return;
+    this.paused = on;
+    if (on) {
+      const elements = [...this.voices.values()].map((v) => v.element).concat(this.noise?.flatMap((n) => n.elements) ?? []);
+      this.held = elements.filter((e): e is HTMLAudioElement => e !== null && !e.paused && !e.ended);
+      for (const element of this.held) element.pause();
+      if (this.context.state === 'running') void this.context.suspend().catch(() => undefined);
+    } else {
+      if (this.unlocked) void this.context.resume().catch(() => undefined);
+      for (const element of this.held) void element.play().catch(() => undefined);
+      this.held = [];
+    }
   }
 
   /**
    * Start a cue, from the beginning if it's already playing there.
    * @param at the object it comes from (not given: heard the same everywhere)
    * @param onEnded when it reaches its end by itself (not when stopped or started again)
+   * @param level how loud this time, as a share of the cue's volume
    * @returns false if it was dropped: the sound isn't on yet, or the file isn't loaded
    */
-  play(id: CueId, at?: THREE.Object3D, onEnded?: () => void): boolean {
-    const cue = cues[id];
-    if (this.context.state !== 'running' || !cue.file) return false;
-    const buffer = cue.stream ? null : this.buffers.get(cue.file);
-    if (!cue.stream && !buffer) return false;
+  play(id: CueId, at?: THREE.Object3D, onEnded?: () => void, level = 1): boolean {
+    const cue: Cue = cues[id];
+    if (this.paused || this.context.state !== 'running') return false;
     const voice = this.voice(id, cue, at);
-    this.halt(voice);
-    voice.out.gain.value = cue.volume ?? 1;
+    const others = cue.files?.filter((f) => f !== voice.last) ?? [];
+    const file = others.length > 0 ? others[Math.floor(Math.random() * others.length)]! : (cue.files?.[0] ?? cue.file);
+    if (!file) return false;
+    const buffer = cue.stream ? null : this.buffers.get(file);
+    if (!cue.stream && !buffer) return false;
+    voice.last = file;
+    if (!cue.overlap) this.halt(voice);
+    const now = this.context.currentTime;
+    const volume = (cue.volume ?? 1) * level * (cue.group === 'interaction' ? settings.volumeInteraction : cue.group === 'steps' ? settings.volumeSteps : 1);
+    voice.out.gain.cancelScheduledValues(now);
+    if (cue.fadeIn) {
+      voice.out.gain.setValueAtTime(0, now);
+      voice.out.gain.linearRampToValueAtTime(volume, now + cue.fadeIn);
+    } else {
+      voice.out.gain.setValueAtTime(volume, now);
+    }
     const ended = () => {
       voice.playing = false;
       onEnded?.();
@@ -109,12 +164,17 @@ export class GameAudio {
     if (buffer) {
       const source = this.context.createBufferSource();
       source.buffer = buffer;
+      source.playbackRate.value = (cue.rate ?? 1) * (1 + (Math.random() * 2 - 1) * (cue.spread ?? 0));
       source.connect(voice.out);
-      source.onended = ended;
+      source.onended = () => {
+        source.disconnect();
+        // An earlier one of an overlapping cue ending doesn't end the cue.
+        if (voice.source === source) ended();
+      };
       source.start(0, cue.offset ?? 0);
       voice.source = source;
     } else {
-      const element = (voice.element ??= this.element(cue.file, voice.out));
+      const element = (voice.element ??= this.element(file, voice.out));
       element.currentTime = cue.offset ?? 0;
       element.onended = ended;
       void element.play().catch(() => (voice.playing = false));
@@ -124,9 +184,21 @@ export class GameAudio {
     return true;
   }
 
-  stop(id: CueId, at?: THREE.Object3D): void {
+  /** @param fade it dies away over this long (s) instead of stopping dead (decoded sounds only) */
+  stop(id: CueId, at?: THREE.Object3D, fade = 0): void {
     const voice = this.voices.get(key(id, at));
-    if (voice) this.halt(voice);
+    if (!voice) return;
+    if (fade > 0 && voice.source) {
+      const now = this.context.currentTime;
+      voice.out.gain.cancelScheduledValues(now);
+      voice.out.gain.setTargetAtTime(0, now, fade / 4);
+      voice.source.onended = null;
+      voice.source.stop(now + fade);
+      voice.source = null;
+      voice.playing = false;
+    } else {
+      this.halt(voice);
+    }
   }
 
   isPlaying(id: CueId, at?: THREE.Object3D): boolean {
@@ -153,6 +225,7 @@ export class GameAudio {
    * @param indoors 0..1, eased: she's inside the ship
    */
   update(dt: number, indoors: number): void {
+    if (this.paused) return;
     const now = this.context.currentTime;
     this.listener.gain.gain.setTargetAtTime(settings.soundMute ? 0 : settings.volumeMaster, now, 0.02);
     this.buses.music.gain.setTargetAtTime(settings.volumeMusic, now, 0.02);
@@ -201,7 +274,7 @@ export class GameAudio {
     } else {
       out.connect(bus);
     }
-    voice = { out, positional, element: null, source: null, playing: false };
+    voice = { out, positional, element: null, source: null, playing: false, last: null };
     this.voices.set(k, voice);
     return voice;
   }
@@ -236,7 +309,7 @@ const key = (id: CueId, at?: THREE.Object3D) => `${id}@${at?.uuid ?? ''}`;
  * elements play the same file in turn, the end of one fading into the start of the other.
  */
 class StreamLoop {
-  private elements: [HTMLAudioElement, HTMLAudioElement];
+  readonly elements: [HTMLAudioElement, HTMLAudioElement];
   private gains: [GainNode, GainNode];
   private out: GainNode;
   private active: 0 | 1 = 0;

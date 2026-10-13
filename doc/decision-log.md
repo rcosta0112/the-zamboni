@@ -63,6 +63,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** in force. The list the reminder will be made from: [`app/assets/test/audio/SOURCES.md`](../app/assets/test/audio/SOURCES.md). The files are in `app/assets/test/`, as test assets.
 
+*Update 2026-10-13:* placeholder sounds for every interaction, and footsteps (owner; [plan](plans/features/interaction-sounds.md)). **The footsteps are cut from Big Moon Tiny Moon's two running loops; everything else is made by a script from tones and noise** (owner: "check the Big moon tiny moon project… Try generating the others"), so there's nothing to license for those. Not taken: downloads from free libraries, picked unheard. Part 1's two files have no recorded source: they're on the list. Later the same day: the ship's steps come from a recording of steps on metal the owner added (`resources/audio/freesound_community-metal-footsteps-14727.mp3`), not from Part 1's rock loop (it sounded like gravel); on the list too.
+
 ## [2026-10-13] — First audio code: AAC, cues as data, three buses (tech)
 
 **Context:** Backlog pass 4.5 is the first audio step. [`audio.md`](architecture/audio.md) is a proposal, still open for discussion.

@@ -6,7 +6,9 @@
 // The file is the body of an async function run in the page once the ship is loaded; what it
 // returns is printed as JSON. It has `w` (window, with the dev hooks of main.ts: `__ship()`,
 // `__settings`, `__character`…), `T` (three), `ship`, `wait(ms)` and `until(test, ms)`. With
-// `--shot`, a screenshot of the page is saved after it has run. Console errors are printed.
+// `--shot`, a screenshot of the page is saved after it has run. A key is pressed first (Q, which the
+// game doesn't use): the game starts on it, and the browser keeps the sound off until then. Console
+// errors are printed.
 // Uses the dev server already on port 5201, or starts one. For trying a check out before it goes
 // into smoke-01.mjs, and for looking at one thing after a change.
 
@@ -21,6 +23,8 @@ const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '../prototype
 const args = process.argv.slice(2);
 const shotAt = args.indexOf('--shot');
 const shot = shotAt >= 0 ? args.splice(shotAt, 2)[1] : null;
+const soundAt = args.indexOf('--sound'); // from before the key was always pressed
+if (soundAt >= 0) args.splice(soundAt, 1);
 if (!args[0]) {
   console.error('probe: node tools/probe-01.mjs <file.js> [--shot <out.png>]');
   process.exit(2);
@@ -50,6 +54,12 @@ try {
   await send('Page.enable');
   await send('Page.navigate', { url: URL_01 });
   await new Promise((r) => setTimeout(r, 1500));
+  for (let i = 0; i < 80; i++) {
+    const ready = await send('Runtime.evaluate', { expression: 'Boolean(window.__audio)', returnByValue: true });
+    if (ready.result.result.value) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81, text: type === 'keyDown' ? 'q' : undefined });
   const expression = `(async () => {
     const w = window;
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));

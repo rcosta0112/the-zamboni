@@ -691,6 +691,124 @@ async function checks() {
   const landed = await until(() => !audio.playing().includes('amb_ship_noise'), 4000);
   report(landed, 'ship not flying: the noise fades out and stops');
 
+  // --- The interactions' sounds and the footsteps (26). Which cue starts at which event. ----------
+  {
+    const NEW = ['sfx_latch_open', 'sfx_latch_close', 'sfx_hatch_open', 'sfx_hatch_close', 'sfx_panel_open', 'sfx_panel_close', 'sfx_lever', 'sfx_ramp_move', 'sfx_ramp_stop', 'sfx_ladder_grab', 'sfx_step_snow', 'sfx_step_ship', 'sfx_land_snow', 'sfx_land_ship'];
+    const snap = () => Object.fromEntries(NEW.map((c) => [c, count(c)]));
+    /** What started since, as "cue ×n, cue ×n" in the order of NEW. */
+    const since = (before) => NEW.filter((c) => count(c) !== before[c]).map((c) => `${c} ×${count(c) - before[c]}`).join(', ') || 'nothing';
+    const away = new T.Vector3(inside.x + 25, 0.05, inside.z); // on the snow, clear of every door
+    const still = (doors) => doors.every((d) => !d.moving);
+    /** Use a target twice (by its action, not by aiming); what started each time. */
+    const twice = async (item, doors) => {
+      const heard = [];
+      for (let i = 0; i < 2; i++) {
+        const before = snap();
+        item.act();
+        await wait(100);
+        const motor = audio.playing().includes('sfx_ramp_move');
+        await until(() => still(doors) && ship.rampAmount === (settings.cargoRampOpen ? 1 : 0), 6000);
+        await wait(400);
+        heard.push({ started: since(before), motor, motorAfter: audio.playing().includes('sfx_ramp_move') });
+      }
+      return heard;
+    };
+    const both = (heard, a, b) => [heard[0].started, heard[1].started].sort().join(' | ') === [a, b].sort().join(' | ');
+    const said = (heard) => heard.map((h) => h.started).join(' | ');
+
+    put(away);
+    await wait(600);
+    const quiet = snap();
+    await wait(1000);
+    report(since(quiet) === 'nothing', 'standing still, no step sounds', since(quiet));
+
+    const locker = await twice(items.find((i) => i.name === 'Locker_Door001'), [door('Locker_Door001')]);
+    report(both(locker, 'sfx_latch_open ×1', 'sfx_latch_close ×1'), 'a locker: a latch sound as it opens, another once closed', said(locker));
+    const trap = await twice(items.find((i) => i.name === 'Hatch002'), [door('Hatch002')]);
+    report(both(trap, 'sfx_hatch_open ×1', 'sfx_hatch_close ×1'), 'the trapdoor: the hatch sounds', said(trap));
+    const roof = await twice(items.find((i) => i.objects.includes(top.object)), [top, bottom]);
+    report(both(roof, 'sfx_hatch_open ×1', 'sfx_hatch_close ×1'), 'the roof hatch: one sound for its two parts', said(roof));
+    for (const [pad, name] of [[sidePad, 'the side door'], [rampPad, 'the cargo ramp']]) {
+      const heard = await twice(pad, [side]);
+      const tones = both(heard.map((h) => ({ started: h.started.split(', ')[0] })), 'sfx_panel_open ×1', 'sfx_panel_close ×1');
+      const motor = heard.every((h) => h.started.endsWith('sfx_ramp_move ×1, sfx_ramp_stop ×1') && h.motor && !h.motorAfter);
+      report(tones && motor, `${name}: its keypad's two tones, the motor while it moves, the stop when it's there`, `${said(heard)}; motor sounding while moving: ${heard.map((h) => h.motor)}, after: ${heard.map((h) => h.motorAfter)}`);
+    }
+    if (lever) {
+      const heard = await twice(lever, [...halves, handle]);
+      report(heard.every((h) => h.started === 'sfx_lever ×1'), 'the lever: its clunk each way, and no tones', said(heard));
+    }
+    const panel = items.find((i) => i.objects[0].userData.device === 'panel' && bulkheadDoors.some((leaves) => leaves.some((d) => d.object.name === String(i.objects[0].userData.controls).replace(/ /g, '_'))));
+    if (panel) {
+      const heard = await twice(panel, []);
+      report(heard[0].started === 'sfx_panel_close ×1' && heard[1].started === 'sfx_panel_open ×1', "a bulkhead door's panel: down for close, up for open", said(heard));
+    } else {
+      report(false, "a bulkhead door's panel: down for close, up for open", 'no panel found');
+    }
+
+    // Footsteps: snow outside, faster at a run than at a walk; a landing after a jump.
+    const steps = async (dx, dz, ms, slow) => {
+      view.yaw = yawToward(dx, dz);
+      view.pitch = 0.15;
+      await wait(300);
+      if (slow) key('ShiftLeft', true);
+      key('KeyW', true);
+      await wait(600);
+      const before = snap();
+      await wait(ms);
+      const got = { snow: count('sfx_step_snow') - before.sfx_step_snow, ship: count('sfx_step_ship') - before.sfx_step_ship };
+      key('KeyW', false);
+      if (slow) key('ShiftLeft', false);
+      await wait(500);
+      return got;
+    };
+    put(away);
+    const running = await steps(1, 0, 3000, false);
+    const walking = await steps(1, 0, 3000, true);
+    report(running.snow >= 5 && running.snow > walking.snow && walking.snow >= 2 && running.ship + walking.ship === 0, 'steps in the snow outside, more of them at a run', `3 s at a run: ${running.snow}; at a walk: ${walking.snow}; ship steps: ${running.ship + walking.ship}`);
+    const jump = snap();
+    await tap('Space');
+    await wait(1500);
+    report(since(jump) === 'sfx_land_snow ×1', 'a jump ends in a landing sound', since(jump));
+    // From the start position up the open cargo ramp: the ship's floor from the ramp on.
+    settings.cargoRampOpen = true;
+    await until(() => ship.rampAmount === 1, 4000);
+    await wait(500);
+    put(new T.Vector3(0, 0.05, 0));
+    view.yaw = yawToward(inside.x, inside.z);
+    view.pitch = 0.15;
+    await wait(400);
+    // Her height at the moment each step plays (looked at afterwards, she has moved on).
+    const heights = { sfx_step_snow: [], sfx_step_ship: [] };
+    const play = audio.play;
+    audio.play = (id, ...rest) => {
+      heights[id]?.push(character.position.y);
+      return play.call(audio, id, ...rest);
+    };
+    const from = character.position.clone();
+    key('KeyW', true);
+    await until(() => heights.sfx_step_ship.length >= 2, 10000);
+    key('KeyW', false);
+    await wait(300);
+    audio.play = play;
+    const reached = `she went ${character.position.distanceTo(from).toFixed(1)} m, to ${fmt(character.position)}`;
+    const wrong = heights.sfx_step_snow.filter((y) => y > 0.15).length + heights.sfx_step_ship.filter((y) => y < 0.15).length;
+    report(heights.sfx_step_snow.length > 0 && heights.sfx_step_ship.length > 0 && wrong === 0, 'walking up the ramp: snow steps on the ground, ship steps from the ramp on', `${heights.sfx_step_snow.length} snow, ${heights.sfx_step_ship.length} ship (the lowest at ${Math.min(...heights.sfx_step_ship).toFixed(2)} m); on the wrong surface: ${wrong}; ${reached}`);
+    // The ladder: a hand on a rung when she takes hold, and as she climbs.
+    const grabs = count('sfx_ladder_grab');
+    put(ladder.bottom.clone().addScaledVector(ladder.face, -0.6));
+    view.yaw = yawToward(ladder.face.x, ladder.face.z);
+    await wait(300);
+    key('KeyW', true);
+    await until(() => ladders.state.is !== 'on' && count('sfx_ladder_grab') > grabs, 8000);
+    key('KeyW', false);
+    await wait(800);
+    const expected = 1 + Math.floor((ladder.top.y - ladder.bottom.y) / 0.35);
+    report(count('sfx_ladder_grab') - grabs === expected, 'the ladder: a sound taking hold, then every 0.35 m climbed', `${count('sfx_ladder_grab') - grabs} for ${(ladder.top.y - ladder.bottom.y).toFixed(2)} m (expected ${expected})`);
+    put(away);
+    await wait(300);
+  }
+
   // What hangs on a locker door (the polaroid, the poster) swings with it.
   for (const [doorName, hanging] of [['Locker Door.003', 'Polaroid'], ['Locker Door.001', 'Gojira poster']]) {
     // Names as the loader gives them ("Locker_Door003"): compared without spaces, dots or underscores.

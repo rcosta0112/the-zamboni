@@ -73,12 +73,30 @@ Built 2026-10-13 (owner's backlog of 2026-10-12, items 6 to 8; until then the bu
 - **Closed, the two leaves fit into each other:** their meeting edges are S-shaped, so their bounds overlap by 0.11 (Blender units). The leaves are scaled 1.02 across and up so they reach into the doorway's frame: at their modelled size a line of light showed between door and frame (owner, 2026-10-13). Done by [`app/tools/fit-bulkhead-doors.py`](../../app/tools/fit-bulkhead-doors.py): see [`asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
 - **Near** (owner, 2026-10-13): she's on the door's deck and within **1.5 m** of the closed door, measured on the floor to the door's bounds (*...when she is within*, tuning panel). The distance and the slide time go together: the door has to be open before she reaches it at a run (3.5 m/s indoors). At 0.6 s she ran into the leaves, was pushed aside by them and ended against the bulkhead. A longer distance isn't the fix: at 2 m the cockpit's door stays open for most of the cockpit. It closes when she's 0.3 m further away than that, so it doesn't flutter at the edge. Only she opens doors: the crew don't walk yet.
 - **Panels** (`Door Panel - Cockpit`, `- Crew Quarters`, `- Engineering`, `- Cargo Hold`: one on each side of each bulkhead). **A panel shuts its door and keeps it shut** (owner, 2026-10-13): *Close door* shuts it, whoever is near; *Open door*, from either panel, makes it automatic again, and since she's standing at it, it opens. A door can't be held open.
-- **The lever** is one target with its panel: *Open window* / *Close window*. It isn't used while it or the window is moving (as in the UE prototype).
+- **The lever** is one target with its panel: *Open window* / *Close window*. It isn't used while it or the window is moving (as in the UE prototype). **The lever moves first; the window starts, with its sound, 0.6 s after the lever is used** (*window after its lever*, tuning panel): together, the window's sound covered the lever's (owner, 2026-10-13; first 0.3 s, then doubled).
 - **Time:** 0.3 s, a setting of its own (*sliding door time*). *Bulkhead doors open by themselves* (tuning panel) can be turned off: the panels then just open and close them.
 - **Collision:** each leaf and each window half has a convex collider that follows it; the lever has none. A leaf closing on her pushes her sideways or stops and waits, as any door does. **An opening leaf pushes nothing:** it moves along its own face, away from the doorway (running at a door, she touched the leaves before they were open and was pushed aside, against the edge of the doorway).
 - **See-through:** a closed bulkhead door hides her from a camera in the next room, as its bulkhead does: she shows only through the leaf's glass strip. See *Open questions*.
-- **Sound** (2026-10-13, backlog pass 4.5): when a bulkhead door or the window **starts to move**, opening or closing, `sfx_door_slide` plays from the middle of the doorway, from 0.1 s into the file (as UE does). One sound per door, not per leaf. The hinged doors, the panels and the lever are silent, as in UE.
+- **Sound** (2026-10-13, backlog pass 4.5): when a bulkhead door or the window **starts to move**, opening or closing, `sfx_door_slide` plays from the middle of the doorway, from 0.1 s into the file (as UE does). One sound per door, not per leaf, at 0.8 of the file's level (owner, 2026-10-13: lowered by 20%). The other doors and the devices have sounds of their own since: see *Sounds*.
 - **Not built:** the light UE fades in with the window, and the daylight in engineering from the ramp (lighting is set aside, owner 2026-10-13).
+
+## Sounds
+
+Built 2026-10-13 ([plan](../plans/features/interaction-sounds.md)). **Placeholders, and subtle on purpose** (owner): short, with no bright part, at about a third of the bulkhead doors' level, full within 1 m and silent at 8 m (the ramp and side door: 2 m and 14 m). *Interaction sounds* in the tuning panel (*Sound*) scales the whole set. UE had none of these.
+
+| What | Sound | When |
+|---|---|---|
+| Lockers, fridge doors, the galley cupboard | A soft click; a dull knock | It starts to open; it reaches closed |
+| The trapdoor, the roof hatch (one sound for its two parts) | The same two, lower and a little louder | The same |
+| The keypads (cargo ramp, side door), the bulkhead doors' panels | **Two tones** (owner): rising for open, falling for close | When used |
+| The lever | A lever being thrown (a recording the owner chose); no tones | When used (not while it or the window is moving: it isn't used then). **The window starts 0.6 s later** |
+| The cargo ramp, the side door | **An electric motor over the hiss of hydraulics** (owner), not loud; then the press letting its pressure go, and a thud | While it moves; when it reaches open or closed |
+| The ladder | A light tap on metal (three variations) | She takes hold; then every 0.35 m climbed |
+
+- A door that stops against her and waits: the motor stops with it and starts again; the small doors make their closing sound only once closed.
+- Which sound a hinged door gets comes from what's already known of it, not a new tag: it opens down to the ground (a motor), its hinge stands upright (a latch) or lies flat (a hatch).
+- **Her footsteps** aren't an interaction: see [prototype 01's README](../../app/prototypes/01-walk/README.md#sound) and [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13).
+- **Not built:** a sound when a target comes into reach (owner, 2026-10-13: no).
 
 ## The boombox
 
@@ -128,7 +146,7 @@ From the ship file's custom properties (glTF extras). Since 2026-10-12 they're s
 
 ## Code
 
-In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place, highlight), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
+In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place, highlight), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/tools/make-placeholder-sounds.mjs`](../../app/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
 
 ## Open questions
 

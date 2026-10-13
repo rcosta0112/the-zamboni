@@ -15,4 +15,18 @@ Made by [`app/tools/encode-audio.mjs`](../../../tools/encode-audio.mjs) from the
 | `amb_ship_noise_a_loop.m4a` | `plane_cessna152_flight-52790_01.wav` (mono, 16-bit; taken out of the UE asset) | Not known | Not known (the name looks like a Pixabay download, id 52790) | Not checked |
 | `amb_ship_noise_b_loop.m4a` | `plane-landing-23118_01.wav` (mono, 16-bit; taken out of the UE asset) | Not known | Not known (the name looks like a Pixabay download, id 23118) | Not checked |
 
+## The interactions and the footsteps (2026-10-13)
+
+Made by [`app/tools/make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs). Plan: [`doc/plans/features/interaction-sounds.md`](../../../../doc/plans/features/interaction-sounds.md). **Placeholders too.**
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `sfx_latch_open.m4a`, `sfx_latch_close.m4a` (the hatches play the same files, lower) | Made by the script from tones and noise: no master, the recipe is in the script | The project | Nothing to license |
+| `sfx_panel_open.m4a`, `sfx_panel_close.m4a` | The same | The project | Nothing to license |
+| `sfx_lever.m4a` | The first of the two sounds in `freesound_community-lever-action-cocking-2-39680.mp3` in `resources/audio/` (added by the owner, 2026-10-13), 0.355 to 0.565 s of it: the silence around it is cut off | Not known (the name looks like a Pixabay download from its Freesound community account, id 39680) | Not checked |
+| `sfx_ramp_move.m4a`, `sfx_ramp_stop.m4a` | The same | The project | Nothing to license |
+| `sfx_ladder_grab_01.m4a` … `_03.m4a` | The same | The project | Nothing to license |
+| `sfx_step_ship_01.m4a` … `_04.m4a` (the landings in the ship play the same files, lower) | Four single steps cut from `freesound_community-metal-footsteps-14727.mp3` in `resources/audio/` (added by the owner, 2026-10-13; before it: Part 1's `Run Rock.mp3`, which sounded like gravel, then steps made by the script) | Not known (the name looks like a Pixabay download from its Freesound community account, id 14727) | Not checked |
+| `sfx_step_snow_01.m4a` … `_04.m4a` (the landings on snow play the same files, lower) | Four single steps cut from `Run Grass.mp3` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`) | Not known | Not known: where Part 1's file came from isn't recorded |
+
 The boombox's tracks are numbered in the order of the inventory's table. **Not confirmed against the Blueprint:** the order of its track list isn't readable from the `.uasset`.

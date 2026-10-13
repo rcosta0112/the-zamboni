@@ -9,6 +9,7 @@ export type Device = 'gamepad' | 'keyboard';
 const PAD_A = 0;
 const PAD_B = 1; // Circle on a PlayStation controller
 const PAD_VIEW = 8;
+const PAD_START = 9; // Options on a PlayStation controller
 
 export class Input {
   /** Movement on the ground plane: x = right, y = forward, length 0..1. */
@@ -18,6 +19,8 @@ export class Input {
   lastDevice: Device = 'keyboard';
   /** A gamepad button went down this frame. */
   padPressed = false;
+  /** The gamepad's pause button (Start / Options) went down this frame. */
+  pausePressed = false;
 
   private keys = new Set<string>();
   private mouseDX = 0;
@@ -62,6 +65,7 @@ export class Input {
     this.padLook.x = 0;
     this.padLook.y = 0;
     this.padPressed = false;
+    this.pausePressed = false;
 
     if (pad) {
       const [lx, ly] = deadZone(pad.axes[0] ?? 0, pad.axes[1] ?? 0, settings.stickDeadZone);
@@ -77,6 +81,7 @@ export class Input {
       if (justPressed(PAD_A)) this.jumpLatched = true;
       if (justPressed(PAD_B)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
+      this.pausePressed = justPressed(PAD_START);
 
       if (lx || ly || rx || ry || pressed.some(Boolean)) this.lastDevice = 'gamepad';
       this.padButtons = pressed;

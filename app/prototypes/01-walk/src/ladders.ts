@@ -102,6 +102,9 @@ export class Ladders {
   private step: Step | null = null;
   /** After leaving a ladder, she doesn't attach again until the stick is let go. */
   private waitForRelease = false;
+  /** Counts up each time a hand lands on a rung: taking hold, then every RUNG m climbed (for the sound). */
+  rungs = 0;
+  private sinceRung = 0;
   private dir = new THREE.Vector3();
   private feet = new THREE.Vector3();
 
@@ -146,6 +149,8 @@ export class Ladders {
         // At the foot, walking into it. (Never from the floor above: she falls through the opening.)
         if (Math.abs(feet.y - ladder.bottom.y) < 0.3 && horizontal(feet, ladder.bottom) < 0.5 && dir.dot(ladder.face) > 0.5) {
           this.on = { ladder, s: 0 };
+          this.rungs++;
+          this.sinceRung = 0;
           character.setClimbing(ladder.bottom, facingOf(ladder.face), physics);
           return true;
         }
@@ -172,7 +177,13 @@ export class Ladders {
       head.y += settings.zamboniHeight - 0.05;
       if (physics.ray(head, line.clone().normalize(), ds * length + 0.08)) ds = 0;
     }
+    const before = on.s;
     on.s = THREE.MathUtils.clamp(on.s + ds, 0, 1);
+    this.sinceRung += (on.s - before) * length;
+    if (this.sinceRung >= RUNG) {
+      this.sinceRung -= RUNG;
+      this.rungs++;
+    }
     this.feet.lerpVectors(ladder.bottom, ladder.top, on.s);
     character.setClimbing(this.feet, facingOf(ladder.face), physics);
 
@@ -187,6 +198,9 @@ export class Ladders {
     return true;
   }
 }
+
+/** How far apart her hands land while climbing (m). */
+const RUNG = 0.35;
 
 const AROUND = Array.from({ length: 16 }, (_, i) => new THREE.Vector3(Math.cos((i / 16) * Math.PI * 2), 0, Math.sin((i / 16) * Math.PI * 2)));
 

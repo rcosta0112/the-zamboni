@@ -42,7 +42,9 @@ Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per ch
 
 **Indoor speeds:** inside the ship (the same test as the see-through hull: her chest inside the ship's interior box) she uses the *indoor walk speed* and *indoor run speed* sliders (Movement folder) instead of the outdoor ones. Starting values: walk 1.5 m/s, run 3.5 m/s; the owner is tuning them. The walk/run animation blend follows whichever pair is in use. Going in at a full run, she drops to the indoor speed almost instantly (the normal deceleration).
 
-**Pause:** the game pauses when the mouse is released (Esc, or the browser taking it back). Click the view to capture it again and resume, or press any gamepad button. The tuning panel still works while paused.
+**Start:** the game opens paused on *Press any button* (owner's report, 2026-10-13: with a gamepad, her steps were silent until a jump). A gamepad button, a key or a click starts it. Browsers keep the sound off until one of those, and moving a stick isn't one.
+
+**Pause:** the game pauses when the mouse is released (Esc, or the browser taking it back), or with the gamepad's Start (Options on a PlayStation controller). Click the view to capture the mouse again and resume, or press any gamepad button. The sound stops with the game and goes on from where it was. The tuning panel still works while paused.
 
 The **Copy values** button in the tuning panel copies all settings as JSON.
 
@@ -128,11 +130,13 @@ The steps it runs are in [`app/tools/export.mjs`](../../tools/export.mjs); every
 
 Since 2026-10-13 (backlog pass 4.5): the UE prototype's eight sounds, **all placeholders** (`app/assets/test/audio/`, with [`SOURCES.md`](../../assets/test/audio/SOURCES.md)). What exists and how: [`doc/architecture/audio.md`](../../../doc/architecture/audio.md#what-exists-prototype-01-2026-10-13).
 
-- **The sound is off until a key, a click or (if the browser counts it) a gamepad button.**
+- **The sound is off until a key, a click or a gamepad button** (a stick doesn't count): the game starts on *Press any button* for that.
 - **Sliding doors:** one sound per door when it starts to move. **The boombox:** see *Controls*; it shakes while a track plays, and gets quieter with distance from the camera.
 - **The ship's noise:** tuning panel → *Sound* → *ship flying* (off at the start: the ship stands on the ground). Two sounds loop together, with a level each (*flight sound*, *landing sound*) to find the mix; quieter outside the ship.
-- **Tuning panel → *Sound*:** mute, a volume for everything, music, ambience and effects; the boombox's falloff and vibration.
-- **To make the game files again:** `node tools/encode-audio.mjs` in `app/` (needs ffmpeg and the masters in `resources/audio/ue-prototype/`).
+- **The interactions** (since 2026-10-13, [plan](../../../doc/plans/features/interaction-sounds.md)): a latch for lockers, the fridge and the cupboard; the same, lower, for the trapdoor and the roof hatch; two tones for the keypads and the bulkhead doors' panels (up for open, down for close); the lever (a recording), with the window starting once the lever has moved; an electric motor over a hydraulic hiss while the side door or the cargo ramp moves, and the press letting go when it stops; a tap for each hand on the ladder. All quiet; made by a script, the lever apart.
+- **Footsteps:** one step per footfall of the walk/run animation, quieter at a walk; snow outside, the ship's floor inside and on its ramps; a heavier step when she lands. **Inside the ship the steps come as often as outside** (owner, 2026-10-13), though she moves at half the speed there and her feet at half the pace: they don't follow her feet indoors. Both sets are single steps cut from recordings: Part 1's running loop on grass for the snow, the owner's metal footsteps file (`resources/audio/`) for the ship.
+- **Tuning panel → *Sound*:** mute, a volume for everything, music, ambience and effects; *interaction sounds* and *footsteps* (a level for each set, up to 3×); the boombox's falloff and vibration.
+- **To make the game files again:** `node tools/encode-audio.mjs` in `app/` (needs ffmpeg and the masters in `resources/audio/ue-prototype/`); `node tools/make-placeholder-sounds.mjs` for the interactions and the footsteps (needs ffmpeg, Part 1's Unity project and `resources/audio/`).
 
 ## See-through hull and camera collision
 

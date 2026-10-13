@@ -27,8 +27,10 @@
 | 21 | The jetpack, as in Big Moon Tiny Moon; no visuals; allowed anywhere for now | 6 | To do |
 | 22 | The top hatch: one interaction opens or closes both parts | 1 | Built |
 | 23 | The control prompt moves next to the object pointed at, instead of the colour highlight | 1 | Built |
-| 24 | The audio files and audio events of the UE prototype, copied to the game (owner, 2026-10-13) | 4.5 | Built 2026-10-13 ([`features/audio-from-ue.md`](features/audio-from-ue.md), *As built*): door sound, boombox, the ship's noise; **the owner's to listen to** (levels, falloff, the mix, the loops, a gamepad alone) |
+| 24 | The audio files and audio events of the UE prototype, copied to the game (owner, 2026-10-13) | 4.5 | Built 2026-10-13 ([`features/audio-from-ue.md`](features/audio-from-ue.md), *As built*): door sound, boombox, the ship's noise. Played by the owner, 2026-10-13: good |
 | 25 | The displays look gray and washed out: emission made by nodes isn't exported as Blender shows it (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/display-materials.md`](features/display-materials.md)): the export bakes them; ship and crew re-exported |
+| 26 | Subtle placeholder sounds for every interaction where it makes sense; footsteps in the snow and in the ship (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/interaction-sounds.md`](features/interaction-sounds.md), *As built*): footsteps cut from Part 1's loops, the rest made by a script; **the owner's to listen to** |
+| 27 | The sound pauses with the game; the gamepad's Start / Options pauses (owner, 2026-10-13) | – | Built 2026-10-13 |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 

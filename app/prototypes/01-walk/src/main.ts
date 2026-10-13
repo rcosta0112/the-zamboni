@@ -11,7 +11,8 @@ import { loadModels } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
-import { createDoorSounds, type Pusher } from './doors';
+import { createDoorSounds, motorSound, type Pusher } from './doors';
+import { Footsteps } from './footsteps';
 import { findDevice, Interaction, shipInteractables } from './interaction';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
@@ -83,8 +84,15 @@ async function start(): Promise<void> {
       const box = findDevice(s.object, 'boombox');
       if (box) boombox = new Boombox(box, audio);
       else console.warn('[01-walk] the ship has no boombox');
-      doorSounds = createDoorSounds(s.object, s.doors, (at) => audio.play('sfx_door_slide', at));
-      interaction = new Interaction(shipInteractables(s.object, s.doors, boombox ? [boombox.interactable] : []), physics, document.querySelector<HTMLElement>('#prompt')!);
+      // The doors' sounds, and the cargo ramp's motor (the ramp isn't a door in the code).
+      const doors = createDoorSounds(s.object, s.doors, audio);
+      const rampTarget = () => (settings.cargoRampOpen ? 1 : 0);
+      const ramp = motorSound(audio, s.ramp, () => s.rampAmount !== rampTarget() && !s.rampWaiting, () => s.rampAmount === rampTarget());
+      doorSounds = () => {
+        doors();
+        ramp();
+      };
+      interaction = new Interaction(shipInteractables(s.object, s.doors, boombox ? [boombox.interactable] : [], (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
       ladders = new Ladders(shipLadders(s.object, physics));
       ship = s;
     })
@@ -92,9 +100,11 @@ async function start(): Promise<void> {
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);
   const audio = new GameAudio(view.camera);
+  const footsteps = new Footsteps((id, level) => audio.play(id, undefined, undefined, level));
+  let rungs = 0; // hands on the ladder's rungs so far
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __audio: audio, __boombox: () => boombox });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __audio: audio, __boombox: () => boombox, __footsteps: footsteps });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
@@ -135,15 +145,30 @@ async function start(): Promise<void> {
   let last = performance.now();
   let accumulator = 0;
 
-  // Paused while the mouse is released (Esc, or the browser taking it back). Clicking the view
-  // captures it again and resumes; so does any gamepad button.
+  // Paused while the mouse is released (Esc, or the browser taking it back), or by the gamepad's
+  // Start / Options. Clicking the view captures the mouse again and resumes; so does any gamepad
+  // button. The sound stops with the game.
+  // The game starts paused, on "Press any button": browsers keep the sound off until a button, a
+  // key or a click (moving a stick doesn't count), so without it a player with a gamepad walked off
+  // in silence. Any key starts it too.
   const pausedEl = document.querySelector<HTMLElement>('#paused')!;
-  let paused = false;
+  let paused = true;
+  let begun = false;
   const setPaused = (on: boolean) => {
     paused = on;
     pausedEl.hidden = !on;
+    audio.setPaused(on);
+    if (!on && !begun) {
+      begun = true;
+      pausedEl.querySelector('span')!.textContent = 'Paused';
+      pausedEl.querySelector('small')!.textContent = 'click to resume, or press any gamepad button';
+    }
   };
+  setPaused(true);
   document.addEventListener('pointerlockchange', () => setPaused(document.pointerLockElement !== canvas));
+  window.addEventListener('keydown', () => {
+    if (!begun) setPaused(false);
+  });
 
   renderer.setAnimationLoop((now: number) => {
     const dt = Math.min(0.25, (now - last) / 1000);
@@ -154,6 +179,11 @@ async function start(): Promise<void> {
     if (input.padPressed) audio.unlock();
     audio.update(dt, indoorLight);
     if (paused && input.padPressed) setPaused(false);
+    else if (input.pausePressed) {
+      // Releasing the mouse pauses by itself; without it captured (a gamepad alone), pause here.
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
+      else setPaused(true);
+    }
     if (paused) {
       // Nothing moves; the frame is still drawn (the tuning panel works while paused).
       accumulator = 0;
@@ -179,12 +209,18 @@ async function start(): Promise<void> {
     if (steps === MAX_STEPS) accumulator = 0;
     doorSounds?.();
     boombox?.update();
+    if (ladders && ladders.rungs !== rungs) {
+      rungs = ladders.rungs;
+      audio.play('sfx_ladder_grab');
+    }
 
     character.render(accumulator / STEP);
     character.animate(dt);
     // Inside the ship: the hull is cut and the camera doesn't collide. Outside: camera collision.
     chest.copy(character.root.position).y += settings.cutTargetHeight;
     const inside = ship !== null && ship.interior.containsPoint(chest);
+    // Above the ground she's on the ship (its ramps, before she's "inside"): the ground is flat for now.
+    footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
     view.update(dt, input, character.root.position, inside);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
@@ -244,7 +280,7 @@ function easeTo(value: number, target: number, step: number): number {
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · A jump · B/◯ interact · View: tuning\n' +
+    'Gamepad: left stick move · right stick camera · A jump · B/◯ interact · Start/Options pause · View: tuning\n' +
     'Keyboard: click to capture mouse · WASD move · Shift walk · Space jump · E interact · Y invert · ` tuning\n' +
     'Ladders: walk into the foot; push toward the ladder to climb; push away or jump to let go';
 }

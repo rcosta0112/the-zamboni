@@ -10,9 +10,10 @@
 // halves and the lever beside it move along a vector instead of turning. The bulkhead doors (`auto`)
 // open when she's near and close when she leaves, unless they were shut from a panel.
 // Plans: doc/plans/features/interaction-doors.md, doc/plans/features/interaction-clearance.md,
-// doc/plans/features/bulkhead-doors.md
+// doc/plans/features/bulkhead-doors.md, doc/plans/features/interaction-sounds.md (their sounds)
 
 import * as THREE from 'three/webgpu';
+import type { CueId } from './audio';
 import { named } from './names';
 import { prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
@@ -96,6 +97,13 @@ export class Door {
   readonly zone = new THREE.Box3();
   /** The panel or lever it's the handle of (its parent in the file): it follows what that controls. */
   device: THREE.Object3D | null = null;
+  /**
+   * What moves first (the window waits for its lever: the lever's sound was covered by the
+   * window's, owner 2026-10-13). This starts `leverDelay` seconds after it was asked to move.
+   */
+  waitsFor: Door[] = [];
+  /** How long ago it was asked to move (s); 0 at rest. */
+  private asked = 0;
   private home = new THREE.Vector3();
 
   constructor(
@@ -121,6 +129,11 @@ export class Door {
     const target = this.open ? 1 : 0;
     if (!force && this.amount === target) {
       this.blocked = false;
+      this.asked = 0;
+      return;
+    }
+    if (!force && this.held) {
+      this.asked += dt;
       return;
     }
     const step = dt / (this.slide ? settings.slideSeconds : settings.doorSeconds);
@@ -157,6 +170,11 @@ export class Door {
   /** Still on its way to open or closed. */
   get moving(): boolean {
     return this.amount !== (this.open ? 1 : 0);
+  }
+
+  /** Asked to move and not started yet: what moves first has its time. */
+  get held(): boolean {
+    return this.waitsFor.length > 0 && this.moving && this.asked < settings.leverDelay;
   }
 
   private pose(): void {
@@ -239,28 +257,77 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
   return doors;
 }
 
+/** What the door sounds need of the audio (`GameAudio`). */
+export interface DoorAudio {
+  play(id: CueId, at?: THREE.Object3D): boolean;
+  stop(id: CueId, at?: THREE.Object3D, fade?: number): void;
+}
+
+/** The motor of a door that's a ramp dies away over this long when it stops (s). */
+const MOTOR_FADE = 0.2;
+
 /**
- * The sliding doors' sound: one place per door (the middle of the closed door, not each leaf), for
- * the bulkhead doors and the engineering window. Returns what to call each frame: `play` is called
- * with that place when a door starts to move, opening or closing (as in the UE prototype).
+ * A motor's sound for something that opens down to the ground (the side door, the cargo ramp): it
+ * runs while the thing moves, and the stop is heard when it gets there. Stopped against her and
+ * waiting, the motor is off and there's no stop sound. Returns what to call each frame.
+ * @param moving on its way and not waiting
+ * @param arrived at open or closed
  */
-export function createDoorSounds(ship: THREE.Object3D, doors: Door[], play: (at: THREE.Object3D) => void): () => void {
-  const groups = [...new Set(doors.filter((d) => d.slide && !d.device).map((d) => d.group))];
-  const places = groups.map((group) => {
+export function motorSound(audio: DoorAudio, at: THREE.Object3D, moving: () => boolean, arrived: () => boolean): () => void {
+  let was = false;
+  return () => {
+    const now = moving();
+    if (now === was) return;
+    was = now;
+    if (now) audio.play('sfx_ramp_move', at);
+    else {
+      audio.stop('sfx_ramp_move', at, MOTOR_FADE);
+      if (arrived()) audio.play('sfx_ramp_stop', at);
+    }
+  };
+}
+
+/**
+ * The doors' sounds: one place per door (the middle of the closed door, not each leaf or part).
+ * Returns what to call each frame.
+ * - A sliding door (the bulkhead doors, the engineering window): `sfx_door_slide` when it starts to
+ *   move, opening or closing (as in the UE prototype).
+ * - A door that opens down to the ground (the side door): a motor, see `motorSound`.
+ * - The other hinged doors: one sound when it starts to open, one when it reaches closed. A hinge
+ *   that stands upright is a small door's (lockers, the fridge, the cupboard: a latch); one that
+ *   lies flat is a hatch's (the trapdoor, the roof hatch: the same sounds, lower).
+ */
+export function createDoorSounds(ship: THREE.Object3D, doors: Door[], audio: DoorAudio): () => void {
+  const groups = [...new Set(doors.filter((d) => !d.device).map((d) => d.group))];
+  const updates = groups.map((group) => {
     const first = group[0]!;
     const at = new THREE.Object3D();
     at.name = `${first.name} sound`;
     ship.add(at);
     ship.worldToLocal(first.zone.getCenter(at.position));
     at.updateMatrixWorld(true);
-    return { first, at, open: first.open };
+    let open = first.open;
+    if (first.slide) {
+      return () => {
+        // When it starts to move: after its lever, if it has one.
+        if (first.open === open || first.held) return;
+        open = first.open;
+        audio.play('sfx_door_slide', at);
+      };
+    }
+    if (first.walkway) return motorSound(audio, at, () => first.moving && !first.blocked, () => !first.moving);
+    const hatch = Math.abs(first.axis.y) < 0.7;
+    let closed = first.amount === 0;
+    return () => {
+      if (first.open && !open) audio.play(hatch ? 'sfx_hatch_open' : 'sfx_latch_open', at);
+      open = first.open;
+      const now = first.amount === 0;
+      if (now && !closed) audio.play(hatch ? 'sfx_hatch_close' : 'sfx_latch_close', at);
+      closed = now;
+    };
   });
   return () => {
-    for (const place of places) {
-      if (place.first.open === place.open) continue;
-      place.open = place.first.open;
-      play(place.at);
-    }
+    for (const update of updates) update();
   };
 }
 

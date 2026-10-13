@@ -25,6 +25,10 @@ export class AnimatedModel {
   private clips: Clips;
   /** Position in the walk/run cycle, 0..1, shared so both cycles stay on the same step. */
   private phase = 0;
+  /** Where the walk/run cycle is, 0..1 (for the footsteps). */
+  get cycle(): number {
+    return this.phase;
+  }
   private wasGrounded = true;
   /** Speed the animation is showing (m/s), eased toward the character's real speed. */
   private animSpeed = 0;

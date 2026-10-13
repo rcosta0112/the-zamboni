@@ -10,9 +10,11 @@
 // roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
 // Other devices (the boombox) make their own target and are handed in (`others`).
 // Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1),
-// doc/plans/features/bulkhead-doors.md, doc/plans/features/audio-from-ue.md
+// doc/plans/features/bulkhead-doors.md, doc/plans/features/audio-from-ue.md,
+// doc/plans/features/interaction-sounds.md (the panels' two tones, the lever's clunk)
 
 import * as THREE from 'three/webgpu';
+import type { CueId } from './audio';
 import type { Door } from './doors';
 import type { Device } from './input';
 import { named } from './names';
@@ -51,8 +53,10 @@ export function findDevice(ship: THREE.Object3D, device: string): THREE.Object3D
  * The ship's interactables: its doors, and the devices that control something (`controls`): the
  * keypads of the ramp and the side door, the bulkhead doors' panels, the engineering window's lever.
  * @param others targets that are made elsewhere (the boombox)
+ * @param sound plays a device's own sound, at the device: a panel's two tones (up for open, down
+ *   for close), the lever's clunk
  */
-export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: Interactable[] = []): Interactable[] {
+export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: Interactable[] = [], sound: (id: CueId, at: THREE.Object3D) => void = () => undefined): Interactable[] {
   const list: Interactable[] = [...others];
   // The devices first: a door with a keypad, a panel or a lever is used from there only.
   const withKeypad = new Set<Door>();
@@ -60,7 +64,15 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     const target = o.userData.controls as string | undefined;
     if (o.userData.interact !== 'use' || !target) return;
     if (target === 'Door Cargo') {
-      list.push({ name: o.name, objects: [o], verb: () => (settings.cargoRampOpen ? 'Close ramp' : 'Open ramp'), act: () => (settings.cargoRampOpen = !settings.cargoRampOpen) });
+      list.push({
+        name: o.name,
+        objects: [o],
+        verb: () => (settings.cargoRampOpen ? 'Close ramp' : 'Open ramp'),
+        act: () => {
+          settings.cargoRampOpen = !settings.cargoRampOpen;
+          sound(settings.cargoRampOpen ? 'sfx_panel_open' : 'sfx_panel_close', o);
+        },
+      });
       return;
     }
     const door = doors.find((d) => named(d.object, target));
@@ -73,6 +85,8 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     const group = door.group;
     const handles = doors.filter((d) => d.device === o);
     for (const d of [...group, ...handles]) withKeypad.add(d);
+    // The handle moves first, then what it controls.
+    for (const d of group) d.waitsFor = handles;
     const what = o.userData.device === 'lever' ? 'window' : 'door';
     // A door that opens by itself: the panel shuts it and keeps it shut; used again, the door is
     // automatic again (owner, 2026-10-13). With the automatic opening off, the panel just toggles.
@@ -84,17 +98,21 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
       act: () => {
         // A lever isn't used while it's moving (as in the UE prototype).
         if ([...group, ...handles].some((d) => d.moving) && handles.length > 0) return;
+        let opens: boolean;
         if (automatic()) {
           const shut = !door.shut;
           for (const d of group) d.shut = shut;
+          opens = !shut;
         } else {
           const open = !door.open;
           for (const d of group) {
             d.open = open;
             d.shut = false;
           }
+          opens = open;
         }
         for (const h of handles) h.open = door.open;
+        sound(o.userData.device === 'lever' ? 'sfx_lever' : opens ? 'sfx_panel_open' : 'sfx_panel_close', o);
       },
     });
   });

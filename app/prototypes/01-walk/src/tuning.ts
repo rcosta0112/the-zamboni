@@ -82,6 +82,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight (0 = off)');
   interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');
   interact.add(settings, 'slideSeconds', 0.1, 3, 0.05).name('sliding door time (s)');
+  interact.add(settings, 'leverDelay', 0, 2, 0.05).name('window after its lever (s)');
   interact.add(settings, 'autoDoors').name('bulkhead doors open by themselves');
   interact.add(settings, 'autoDoorDistance', 0.5, 4, 0.05).name('...when she is within (m)');
   interact.add(settings, 'doorsPush').name('doors push her');
@@ -98,6 +99,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   sound.add(settings, 'volumeMusic', 0, 1, 0.01).name('volume: music');
   sound.add(settings, 'volumeAmbience', 0, 1, 0.01).name('volume: ambience');
   sound.add(settings, 'volumeSfx', 0, 1, 0.01).name('volume: effects');
+  sound.add(settings, 'volumeInteraction', 0, 3, 0.05).name('interaction sounds');
+  sound.add(settings, 'volumeSteps', 0, 3, 0.05).name('footsteps');
   sound.add(settings, 'shipFlying').name('ship flying (its noise)').listen();
   sound.add(settings, 'shipNoiseA', 0, 1, 0.01).name('ship noise: flight sound');
   sound.add(settings, 'shipNoiseB', 0, 1, 0.01).name('ship noise: landing sound');
