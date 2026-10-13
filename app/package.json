@@ -13,7 +13,10 @@
     "dev:01": "npm run dev -w prototypes/01-walk",
     "check": "npm run check --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "smoke": "node tools/smoke-01.mjs"
+    "smoke": "node tools/smoke-01.mjs",
+    "probe": "node tools/probe-01.mjs",
+    "export:ship": "node tools/export.mjs ship",
+    "export:crew": "node tools/export.mjs crew"
   },
   "devDependencies": {
     "@gltf-transform/cli": "4.5.1",

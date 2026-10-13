@@ -10,7 +10,7 @@ app/
   tsconfig.base.json   shared TypeScript settings (strict)
   assets/              assets shared by every prototype (served at the site root)
     test/              test-only assets (e.g. Part 1's Dr. Green); not for the game
-  tools/               scripts run outside the browser (Blender export scripts, the scripted check)
+  tools/               scripts run outside the browser (exports, the scripted check): see tools/README.md
   packages/
     ui/                @zamboni/ui: the design system's code version (Svelte 5); empty for now
   prototypes/

@@ -17,3 +17,9 @@ dist/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Python bytecode (the Blender export scripts import bake_materials.py)
+__pycache__/
+
+# Raw exports, baked images and Blender logs (npm run export:ship / export:crew)
+/app/.export/

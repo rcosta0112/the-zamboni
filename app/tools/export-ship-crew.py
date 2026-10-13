@@ -1,14 +1,17 @@
 """Export the crew placed in the Zamboni: Dr. Kaufman sitting with her animation, and the other
 characters in the scene as static poses.
 
-Run with Blender from the command line. The .blend is opened read-only: nothing is saved back.
+Normally run by ``npm run export:crew`` (app/tools/export.mjs), which does all of the below and
+prints what changed. By hand: with Blender from the command line. The .blend is opened read-only:
+nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/export-ship-crew.py -- \
+    blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship-crew.py -- \
         --out <raw>/zamboni-crew.glb
 
-then compress (Meshopt) into app/assets, from app/:
+then cap the textures at 512 px and compress (Meshopt) into app/assets, from app/:
 
-    npx gltf-transform meshopt <raw>/zamboni-crew.glb assets/test/zamboni-crew.glb
+    npx gltf-transform resize <raw>/zamboni-crew.glb <raw>/zamboni-crew-512.glb --width 512 --height 512
+    npx gltf-transform meshopt <raw>/zamboni-crew-512.glb assets/test/zamboni-crew.glb
 
 - Placed as in the file, in the ship's space (same axes and units as export-ship.py), so the game
   puts this file under the ship.
@@ -26,12 +29,18 @@ then compress (Meshopt) into app/assets, from app/:
   as Dr. Green's copy.
 - Every exported object carries a ``character`` custom property (the character's name).
 - Reports every double-sided material ("PERF:"), as the pipeline requires.
+- Materials made by nodes the glTF exporter can't follow are baked to images (bake_materials.py)
+  and reported ("NODES:").
 """
 
 import argparse
+import os
 import sys
 
 import bpy
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bake_materials import bake_node_materials
 
 ANIMATED = {'Dr. Kaufman': ('Dr. Kaufman.002', ['Dr. KaufmanMesh.003', 'Mug.003'])}
 STATIC = {
@@ -152,6 +161,9 @@ materials = {s.material for ob in selection for s in ob.material_slots if s.mate
 for mat in sorted(materials, key=lambda m: m.name):
     if not mat.use_backface_culling:
         print(f'PERF: material {mat.name!r} is double-sided (backface culling off in Blender)')
+
+# Dr. Kaufman's stripes are a wave texture: baked to an image (bake_materials.py).
+bake_node_materials(selection, os.path.join(os.path.dirname(os.path.abspath(args.out)), 'baked'))
 
 bpy.ops.object.select_all(action='DESELECT')
 for ob in selection:

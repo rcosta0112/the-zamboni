@@ -28,6 +28,7 @@
 | 22 | The top hatch: one interaction opens or closes both parts | 1 | Built |
 | 23 | The control prompt moves next to the object pointed at, instead of the colour highlight | 1 | Built |
 | 24 | The audio files and audio events of the UE prototype, copied to the game (owner, 2026-10-13) | 4.5 | Built 2026-10-13 ([`features/audio-from-ue.md`](features/audio-from-ue.md), *As built*): door sound, boombox, the ship's noise; **the owner's to listen to** (levels, falloff, the mix, the loops, a gamepad alone) |
+| 25 | The displays look gray and washed out: emission made by nodes isn't exported as Blender shows it (owner, 2026-10-13) | – | Built 2026-10-13 ([`features/display-materials.md`](features/display-materials.md)): the export bakes them; ship and crew re-exported |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 
@@ -65,3 +66,4 @@ add controls to the panel so I can tell you the exact values.
 Added 2026-10-13:
 
 - let's add another pass (call it 4.5). I would like to copy the audio files and audio events from the prototype. List everyhing you find before we start
+- look at the textures for the displays. They look gray and washed out. You can still see the texture, but looks like the material is not setup correctly.

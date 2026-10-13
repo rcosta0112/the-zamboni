@@ -3,13 +3,12 @@
 // No dependencies: Chrome's DevTools protocol over Node's own WebSocket (Node 22), Vite's own API
 // for the dev server (it uses the one already running on port 5201 if there is one). The checks
 // run inside the page, through the dev hooks on `window` (main.ts) and simulated keys.
-// Chrome is found in its usual places; set CHROME_PATH to use another. No gamepad: keyboard only.
+// Chrome is started by browser.mjs (set CHROME_PATH to use another). No gamepad: keyboard only.
+// To try one check out, or look at one thing: probe-01.mjs.
 
-import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { answers, findChrome, openBrowser } from './browser.mjs';
 
 const URL_01 = 'http://localhost:5201/';
 const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '../prototypes/01-walk');
@@ -692,6 +691,32 @@ async function checks() {
   const landed = await until(() => !audio.playing().includes('amb_ship_noise'), 4000);
   report(landed, 'ship not flying: the noise fades out and stops');
 
+  // What hangs on a locker door (the polaroid, the poster) swings with it.
+  for (const [doorName, hanging] of [['Locker Door.003', 'Polaroid'], ['Locker Door.001', 'Gojira poster']]) {
+    // Names as the loader gives them ("Locker_Door003"): compared without spaces, dots or underscores.
+    const plain = (name) => name.replace(/[ ._]/g, '');
+    const locker = ship.doors.find((d) => plain(d.name) === plain(doorName));
+    let thing = null;
+    ship.object.traverse((o) => {
+      if (plain(o.name) === plain(hanging)) thing = o;
+    });
+    if (!locker || !thing) {
+      report(false, `${hanging} hangs on ${doorName}`, `door: ${!!locker}, ${hanging}: ${!!thing}`);
+      continue;
+    }
+    const where = () => {
+      ship.object.updateMatrixWorld(true);
+      return new T.Box3().setFromObject(thing).getCenter(new T.Vector3());
+    };
+    const shut = where();
+    locker.toggle();
+    const opened = await until(() => locker.amount === 1, 3000);
+    const swung = where().distanceTo(shut);
+    locker.toggle();
+    const closed = await until(() => locker.amount === 0, 3000);
+    report(opened && closed && swung > 0.1 && where().distanceTo(shut) < 0.001, `${hanging} swings with ${doorName}`, `moved ${swung.toFixed(2)} m while open`);
+  }
+
   // --- Every door, with her out of the way -----------------------------------------------------
   // (The bulkhead doors would follow her: their automatic opening is off for this check.)
   settings.autoDoors = false;
@@ -711,29 +736,6 @@ async function checks() {
 // ---------------------------------------------------------------------------------------------
 // Running it.
 // ---------------------------------------------------------------------------------------------
-function findChrome() {
-  const candidates = [
-    process.env.CHROME_PATH,
-    'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-    `${process.env.LOCALAPPDATA ?? ''}/Google/Chrome/Application/chrome.exe`,
-    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-  ];
-  return candidates.find((p) => p && existsSync(p));
-}
-
-async function answers(url) {
-  try {
-    return (await fetch(url, { signal: AbortSignal.timeout(1500) })).ok;
-  } catch {
-    return false;
-  }
-}
-
 async function main() {
   const chromePath = findChrome();
   if (!chromePath) {
@@ -746,33 +748,11 @@ async function main() {
     server = await createServer({ root: PROTOTYPE, logLevel: 'error' });
     await server.listen();
   }
-  const profile = mkdtempSync(join(tmpdir(), 'zamboni-smoke-'));
-  const chrome = spawn(chromePath, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1280,720', '--enable-unsafe-webgpu', '--no-first-run', '--mute-audio', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
   let failed = 1;
   const errors = [];
+  let browser = null;
   try {
-    const browserUrl = await new Promise((done, fail) => {
-      let text = '';
-      chrome.stderr.on('data', (chunk) => {
-        text += chunk;
-        const found = /DevTools listening on (ws:\/\/\S+)/.exec(text);
-        if (found) done(found[1]);
-      });
-      chrome.on('exit', () => fail(new Error('Chrome closed before it could be reached')));
-      setTimeout(() => fail(new Error('Chrome did not start within 20 s')), 20000);
-    });
-    const port = new URL(browserUrl).port;
-    const pages = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
-    const socket = new WebSocket(pages.find((p) => p.type === 'page').webSocketDebuggerUrl);
-    await new Promise((done, fail) => {
-      socket.onopen = done;
-      socket.onerror = () => fail(new Error("couldn't connect to Chrome"));
-    });
-    let nextId = 0;
-    const waiting = new Map();
-    socket.onmessage = (message) => {
-      const msg = JSON.parse(message.data);
-      if (msg.id !== undefined) return waiting.get(msg.id)?.(msg);
+    browser = await openBrowser(chromePath, (msg) => {
       if (msg.method === 'Runtime.consoleAPICalled') {
         const text = msg.params.args.map((a) => a.value ?? a.description ?? '').join(' ');
         if (text.startsWith('[smoke] ')) console.log(text.slice(8));
@@ -781,13 +761,8 @@ async function main() {
       } else if (msg.method === 'Runtime.exceptionThrown') {
         errors.push(msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text);
       }
-    };
-    const send = (method, params = {}) =>
-      new Promise((done) => {
-        const id = ++nextId;
-        waiting.set(id, done);
-        socket.send(JSON.stringify({ id, method, params }));
-      });
+    });
+    const { send } = browser;
     await send('Runtime.enable');
     await send('Page.enable');
     await send('Page.navigate', { url: URL_01 });
@@ -811,18 +786,11 @@ async function main() {
     console.log(`${errors.length === 0 ? 'PASS' : 'FAIL'}  no errors in the browser console${errors.length ? `: ${errors.slice(0, 5).join(' | ')}` : ''}`);
     if (errors.length) failed++;
     console.log('NOT CHECKED  gamepad (no controller in a headless browser)');
-    socket.close();
   } catch (err) {
     console.error(`smoke: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    chrome.kill();
+    await browser?.close();
     await server?.close();
-    await new Promise((r) => setTimeout(r, 500));
-    try {
-      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
-    } catch {
-      /* Chrome still holds a file: the folder is in the system's temp directory */
-    }
   }
   console.log(failed === 0 ? '\nsmoke: all checks passed' : `\nsmoke: ${failed} failed`);
   return failed === 0 ? 0 : 1;

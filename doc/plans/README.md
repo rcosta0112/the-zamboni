@@ -32,6 +32,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [The backlog, in six passes](backlog-passes.md) | Prototype 01 | In progress: passes 1 and 2 done, pass 3 built (lighting open again, set aside); pass 4 built; pass 5 next (own plan) |
 | [Bulkhead doors and the engineering window (backlog pass 4)](features/bulkhead-doors.md) | Prototype 01 | Built; owner play-test pending |
 | [Audio from the UE prototype (backlog pass 4.5)](features/audio-from-ue.md) | Prototype 01 | Built 2026-10-13; the owner's to listen to |
+| [The displays' materials (what glows, exported as Blender shows it)](features/display-materials.md) | Prototype 01 | Built 2026-10-13; the owner's to look at |
 
 ## Plan format
 

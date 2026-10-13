@@ -17,7 +17,8 @@ npm run dev:01     # → http://localhost:5201
 
 ```sh
 cd app
-npm run smoke
+npm run smoke                # everything, about three and a half minutes
+npm run probe -- <file.js>   # one question (about 20 s): see tools/probe-01.mjs
 ```
 
 Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, the bulkhead doors (walking through each, shutting each from both panels), the window from its lever, the sounds (the door sound once per door each way, the boombox round its ring, the ship's noise and where it repeats: what plays and when, not what it sounds like), every door, console errors. About three and a half minutes. It uses the dev server on port 5201 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
@@ -83,17 +84,14 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 
 ## The ship and collisions
 
-**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (3.3 MB) and its collider `zamboni-ship-col.glb` (160 KB), exported from the reference file `resources/models/The Zamboni 1.19.blend` (see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md#the-ships-reference-file)) with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
+**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (3.7 MB) and its collider `zamboni-ship-col.glb` (160 KB), exported from the reference file `resources/models/The Zamboni 1.19.blend` (see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md#the-ships-reference-file)) with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
 
 ```sh
-blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship.py -- \
-  --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 cd app
-npx gltf-transform resize <raw>/zamboni-ship.glb <raw>/zamboni-ship-512.glb --width 512 --height 512
-npx gltf-transform dedup <raw>/zamboni-ship-512.glb <raw>/zamboni-ship-dedup.glb
-npx gltf-transform meshopt <raw>/zamboni-ship-dedup.glb assets/test/zamboni-ship.glb
-npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
+npm run export:ship   # Blender export, textures capped at 512 px, dedup, Meshopt; prints what changed
 ```
+
+The steps it runs are in [`app/tools/export.mjs`](../../tools/export.mjs); every tool is listed in [`app/tools/README.md`](../../tools/README.md).
 
 - **What's in it (77 objects):** the exterior (hull, windshield, engine pods, landing gear, side door, top hatch, lab windows, the cargo ramp) and the **large interior elements**: floors, bulkheads, walls and ceilings, consoles and dashboards, interior doors, ceiling lights; crew quarters (bunks, couch, table, galley, stove, lockers, ladder); cockpit (seats, dials, monitors); engineering (benches, cabinets, 3D printer, power supplies, the Contraption); cargo bay (sledge, pallet, locker, head, jetpack racks, ladder). Collections excluded from the view layer in the file are included for the export only. **Small props** (mugs, books, chests, computers…) are left for a later step.
 - **Size:** 10 MB uncompressed (the Contraption alone is 21,500 triangles) → 1.53 MB with Meshopt; three.js decodes it with its `MeshoptDecoder`.

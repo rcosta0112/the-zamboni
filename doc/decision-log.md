@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-13 | Materials made with nodes are baked by the export | pipeline | What the glTF exporter can't follow (ramps, mixes, procedural textures before the colour, glow or alpha) is baked to an image by the export scripts; the blend file keeps its nodes |
 | 2026-10-13 | Placeholder audio; licensing put off | scope | The UE prototype's sounds are in the game as placeholders; licensing isn't raised until a production-ready build |
 | 2026-10-13 | First audio code: AAC, cues as data, three buses | tech | In prototype 01: `.m4a`, a cue file, master → music / ambience / sfx, streamed music, loops by crossfade |
 | 2026-10-12 | Lighting inside the ship | look | Sun through the glass, the world's blue light at half strength indoors, warm-tinted lights in the rooms with windows, sky reflections on metal |
@@ -31,6 +32,22 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-13] — Materials made with nodes are baked by the export (pipeline)
+
+**Context:** The owner found the displays gray and washed out in the game (the map table in the cockpit). The glTF exporter only understands an image plugged straight into the Principled BSDF. With nodes in between (colour ramps, a mix, a Voronoi grid) it wrote the image upstream untouched, or a plain value. Nine of the ship's materials and one of the crew's were affected.
+
+**Decision:** The export scripts bake them ([`app/tools/bake_materials.py`](../app/tools/bake_materials.py), used by `export-ship.py` and `export-ship-crew.py`): base colour, emission (with its strength when that's made by nodes too) and alpha are rendered to a 1024 px image (Cycles, Emit) and plugged straight in, in memory. The blend file isn't changed. A material placed by its UVs is baked on the whole UV space; one placed another way (a texture node with nothing in *Vector*) is baked on one object and reused on the others: the one named by the material's `bakeOn` custom property, or else the one with the largest surface in that material. Every case is printed as a `NODES:` line. Roughness, metallic and anything that depends on the view are reported, not baked.
+
+**Alternatives considered:**
+- **The owner bakes them in Blender.** No export code, but by hand, again at every change, and the procedural version has to be kept somewhere.
+- **Rebuilt as shaders in the game (TSL).** Sharp at any distance and can move; each material written by hand and kept alike in two places. Kept in mind for screens that animate.
+
+**Rationale:** owner's call (2026-10-13), on the agent's recommendation: the materials stay procedural and editable, and every export picks up changes. Unlike double-sided materials (fixed in Blender, 2026-10-12), nothing here is wrong in the file: it's the exporter that can't read it.
+
+**Status:** Decided, built. See [`architecture/asset-pipeline.md`](architecture/asset-pipeline.md#before-the-next-export).
 
 ---
 

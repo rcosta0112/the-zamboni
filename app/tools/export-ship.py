@@ -1,6 +1,8 @@
 """Export the Zamboni from its reference file: the ship, its props and room lights, plus a collision mesh.
 
-Run with Blender from the command line. The .blend is opened read-only: nothing is saved back.
+Normally run by ``npm run export:ship`` (app/tools/export.mjs), which does all of the below and
+prints what changed. By hand: with Blender from the command line. The .blend is opened read-only:
+nothing is saved back.
 
     blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship.py -- \
         --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
@@ -44,15 +46,22 @@ It does what is derived from the scene:
   the boxes under the hull). A decimated collider closed openings (the cargo door), so it isn't
   decimated.
 - Reports every double-sided material ("PERF:"), as the pipeline requires; nothing is forced.
+- Materials whose colour, glow or alpha is made by nodes the glTF exporter can't follow are baked
+  to images (bake_materials.py), written to a ``baked`` folder next to ``--out``; each is reported
+  ("NODES:").
 """
 
 import argparse
 import math
+import os
 import sys
 
 import bmesh
 import bpy
 from mathutils import Matrix, Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from bake_materials import bake_node_materials
 
 # The ship's collections: everything under this one, included in the view layer and not tagged
 # ``export: false``, is looked through for props.
@@ -314,8 +323,12 @@ def export(selection, path, **options):
     )
 
 
+# What the exporter can't follow in a material (a colour ramp before the emission, a procedural
+# texture) is baked to an image first: see bake_materials.py.
+baked_materials = bake_node_materials(objects + props, os.path.join(os.path.dirname(os.path.abspath(args.out)), 'baked'), candidates=in_scene)
+
 export(objects + props + markers, args.out, export_extras=True)
 # The collider: positions only (no normals, UVs or materials).
 export([collider], args.collider_out, export_normals=False, export_texcoords=False, export_materials='NONE')
 print('EXPORTED', args.out, args.collider_out)
-print(f'objects: {len(objects)}, props: {prop_count["big"]} big, {prop_count["small"]} small merged into {len(props) - len(big_props)} objects, lights: {len(markers)}, collision pieces: {len(col_objects)}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')
+print(f'objects: {len(objects)}, props: {prop_count["big"]} big, {prop_count["small"]} small merged into {len(props) - len(big_props)} objects, lights: {len(markers)}, collision pieces: {len(col_objects)}, baked materials: {baked_materials}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')

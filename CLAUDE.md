@@ -11,7 +11,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 ## Picking the work up
 
 1. **Read `doc/steps/current.md` first.** It says what's in progress, what's next, what's waiting on the owner and which files are involved. **Rewrite it at the end of every session** (60 lines at most; not a log).
-2. Open other docs and source files only when the task needs them. For code, start from the **code map**, `app/prototypes/01-walk/CODE-MAP.md`; for decisions, from the **index** at the top of `doc/decision-log.md`.
+2. Open other docs and source files only when the task needs them. For code, start from the **code map**, `app/prototypes/01-walk/CODE-MAP.md`; for export and check scripts, from `app/tools/README.md`; for decisions, from the **index** at the top of `doc/decision-log.md`.
 3. Open items are tracked in `doc/plans/backlog.md`, one line each: keep each item's status current.
 
 ## Rules from the owner
@@ -24,6 +24,12 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 5. **Story levers:** the owner controls the story and script. When a story/script change could relieve a performance or loading problem, flag it as an option (never apply it yourself).
 6. **Record decisions** in `doc/decision-log.md`: Context → Decision → Alternatives → Rationale → Status. Add dated *Update* notes instead of rewriting entries.
 7. **Commit only when the owner asks.**
+
+## Keeping the work cheap (owner, 2026-10-13)
+
+1. **Small edits to the ship file are the owner's.** The owner makes them in Blender and runs `npm run export:ship`; the agent comes in only if the summary shows something unexpected. When the agent does export, it uses that command too, never the steps one by one.
+2. **Small fixes are light.** A change of one object or one value needs no plan (an exception to rule 4), no record script and no new scripted check unless the owner asks: one line in the doc that describes the thing, and `doc/steps/current.md`.
+3. **Check narrowly while working, fully once.** One thing: `npm run probe -- <file.js>` (about 20 s). The whole scripted check (`npm run smoke`, three and a half minutes): once, at the end of a session's changes. Try a new check out with the probe before adding it to the smoke script.
 
 ## Naming in the game world
 
@@ -53,6 +59,10 @@ npm install          # once
 npm run dev:01       # prototype 01 → http://localhost:5201
 npm run check        # type-check every workspace
 npm run build        # build every workspace
+npm run smoke        # the whole scripted check of prototype 01
+npm run probe -- f.js  # one question to the running prototype
+npm run export:ship  # the ship: Blender → compressed game files, with a summary
+npm run export:crew  # the same for the crew placed in the ship
 ```
 
 ## Checking your work

@@ -18,7 +18,7 @@
 //   it has in the ship file, so through a cut you see what's behind it, not the surface's back.
 
 import * as THREE from 'three/webgpu';
-import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, texture, uniform, vec3 } from 'three/tsl';
+import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, texture, uniform, vec3, vec4 } from 'three/tsl';
 
 /** Shared by every cuttable material; updated each frame by updateCutaway(). */
 const u = {
@@ -157,7 +157,9 @@ export function makeCuttable(mesh: THREE.Mesh): void {
     material.shadowSide = THREE.BackSide;
     const cutSurface = select(u.ownColour.greaterThan(0.5), materialColor.rgb.mul(u.shade), u.backColor.rgb);
     const lifted = mix(materialColor.rgb, vec3(1, 1, 1), highlight.mul(u.highlight));
-    material.colorNode = select(frontFacing, mix(lifted, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
+    const surface = select(frontFacing, mix(lifted, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
+    // A colour node without alpha is opaque: keep the alpha of the colour texture (the scanner's ray).
+    material.colorNode = source.transparent && source.map ? vec4(surface, texture(source.map).a) : surface;
     material.maskNode = keep;
     // Not glass: it's see-through, and in the ship file it's fully metallic too.
     if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections);
