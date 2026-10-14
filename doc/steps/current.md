@@ -4,13 +4,14 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, tenth session (everything is committed).*
+*Updated 2026-10-14, eleventh session (everything is committed).*
 
 ## Now
 
 - **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5, 6 and items 25–38 built; pass 3 (lighting) set aside. Gravity still open (Part 1: 6 m/s², ours 20; the auto-parachute's braking follows it).
 - **39, the jetpack with momentum, built this session** ([plan](../plans/features/jetpack-hover-and-flight.md), approved with the agent's recommendations; [`interaction.md`](../features/interaction.md#flying); decision log). As in Asteroids: slow she hovers (R2 sets her height, the stick drifts her up to 1.5 m/s), from 4 m/s she flies (thrust where the stick points, forward where the camera looks, top speed 20); R2 let go at speed she glides, then falls; jet off on the ground at speed she skids. Space and a digital R2 = R2 held fully. Replaces pass 6b's R2 rule and Part 1's flight rule. `character.ts`: `jet`, `letGo`, `coast`, `moveBy`; eleven new settings, three removed. Eight smoke checks; smoke all passed. **Done** (owner: "no issues").
   - Raised, no change asked: flight follows the camera's usual 8° downward pitch (a slow dive to 1 m; option: count it as level); taking off with R2 full she climbs about 2.5 m.
+- **40, the wind, built this session** (no plan: small; [`audio.md`](../architecture/audio.md)): `wind.ts`, cue `amb_wind`: `Wind-Mark_DiAngelo-1940285615.mp3` from the Islands project (third file tried), trimmed to 1–26.5 s (its fades), streamed, crossfaded over 3 s. Full outside **and on the ramp** (inside = in from the ramp's hinge); 0.08 inside; in the cargo bay up to 0.4 by the open area of the ramp (8.8 m²) and side door (1.5 m²). Probed: ramp 1, cargo with ramp 0.38, door 0.20, both 0.40, closed / upstairs 0.08; the loop hands over. **The owner's to hear.**
 - **Items 32–38 are still the owner's to play** (the rack, the ladder delay, the auto-parachute, the keypad ramp, the shadow range). Item 35 narrows the owner's rule "the keypad ramp doesn't stop for her": flagged in [`interaction.md`](../features/interaction.md).
 - **Next: pass 5** (see-through: items 11, 13, 14, 15): plan drafted, *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions).
 - **Tuning-panel switches that compare against decided things** (raised 2026-10-14, the owner's call): *collision boxes* and *indoors: moves the way the stick points* (both approved in item 30; the first's comment names a `colliders.ts` that's gone); *bulkheads cut as a whole* (probably moot with *bulkheads always visible*: for pass 5).
@@ -45,7 +46,7 @@
 - **Screenshots from a script:** wait 2 s after moving her before capturing. The indoor camera is 3.5 m behind her: in a small room it's behind the bulkhead (set `cameraDistanceIndoors` lower for the shot).
 - **In the Bash tool, heredocs with apostrophes fail:** write the script to the scratchpad with the Write tool, then run it.
 - **A dev server may already be running on 5201** (the owner's): the smoke script uses it, and `npm run dev:01` then fails (port taken). **After `vite.config.ts` or a dependency changes it restarts by itself**; if the page is blank, restart it by hand.
-- **Dev hooks** on `window` in dev builds: `__settings`, `__character`, `__physics`, `__ship()`, `__view`, `__scene`, `__world`, `__interaction()`, `__ladders()`, `__boxes()` (`count`), `__audio` (`started`, `playing()`), `__boombox()`, `__rack()`, `__exhaust` (`shown`), `__start()` (`ready`, `begun`, `share`), `__THREE`.
+- **Dev hooks** on `window` in dev builds: `__settings`, `__character`, `__physics`, `__ship()`, `__view`, `__scene`, `__world`, `__interaction()`, `__ladders()`, `__boxes()` (`count`), `__audio` (`started`, `playing()`), `__boombox()`, `__rack()`, `__exhaust` (`shown`), `__wind` (`level`), `__start()` (`ready`, `begun`, `share`), `__THREE`.
 - **No gamepad in the test browser.** Headless Chrome is capped at 60 fps unless it gets `--disable-frame-rate-limit --disable-gpu-vsync`. **Sound in a check:** a key sent through DevTools (`Input.dispatchKeyEvent`, not Shift) turns it on. **The start screen in a check:** the probe and the smoke script press Q, wait for the button and press Enter (`useStartButton` in `browser.mjs`); `--stay` leaves the screen up and the file runs **before the button is there** (wait on `__start().ready`). The load takes about 18 s. **A gamepad in a check:** replace `navigator.getGamepads` with a made-up pad.
 - **Before any export:** read *Before the next export* in [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
 

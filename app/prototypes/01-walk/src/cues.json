@@ -24,5 +24,6 @@
   "sfx_jetpack_loop": { "file": "sfx_jetpack_loop.m4a", "bus": "sfx", "volume": 1.26, "loop": true },
   "ui_click": { "file": "ui_click.m4a", "bus": "ui", "volume": 0.5 },
   "mus_part1_theme": { "file": "mus_part1_theme.m4a", "bus": "music", "volume": 0.7, "stream": true, "loop": true, "crossfade": 2 },
-  "amb_ship_noise": { "layers": ["amb_ship_noise_a_loop.m4a", "amb_ship_noise_b_loop.m4a"], "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 2 }
+  "amb_wind": { "file": "amb_wind_loop.m4a", "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 3 },
+  "amb_ship_noise":{ "layers": ["amb_ship_noise_a_loop.m4a", "amb_ship_noise_b_loop.m4a"], "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 2 }
 }

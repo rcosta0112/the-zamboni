@@ -28,10 +28,14 @@ const FILES = [
   ['amb_ship_noise_b_loop', 'plane-landing-23118_01', '48k', 1],
 ];
 // [game file, the master's whole path, bit rate, channels]: masters that aren't in resources/.
-// Part 1's soundtrack is 44.1 kHz and keeps it; so does its jetpack's sound (it loops).
+// Part 1's soundtrack is 44.1 kHz and keeps it; so does its jetpack's sound (it loops). The wind is
+// from the Islands project (44.1 kHz, kept): it fades in and out, so only the part between is kept
+// ([from, to] in s), and the game crossfades its end into its start.
+const ISLANDS = process.env.ISLANDS_AUDIO ?? 'C:/Users/31658/Projects/Islands-29a650/Assets/Audio';
 const ELSEWHERE = [
   ['mus_part1_theme', join(PART1, 'Background Music.wav'), '128k', 2],
   ['sfx_jetpack_loop', join(PART1, 'Thrusters.mp3'), '64k', 2],
+  ['amb_wind_loop', join(ISLANDS, 'Wind-Mark_DiAngelo-1940285615.mp3'), '64k', 2, undefined, [1, 26.5]],
 ];
 const onlyAt = process.argv.indexOf('--only');
 const ONLY = onlyAt >= 0 ? process.argv[onlyAt + 1] : null;
@@ -43,7 +47,7 @@ const found = FILES.map(([name, from, bitrate, channels]) => {
   const master = masters.find((f) => f.startsWith(from) && f.toLowerCase().endsWith('.wav'));
   return [name, master ? join(MASTERS, master) : null, bitrate, channels, `${from}*.wav`];
 });
-for (const [name, path, bitrate, channels, wanted] of [...found, ...ELSEWHERE]) {
+for (const [name, path, bitrate, channels, wanted, trim] of [...found, ...ELSEWHERE]) {
   if (ONLY && name !== ONLY) continue;
   if (!path || !existsSync(path)) {
     console.error(`MISSING  ${wanted ?? path} (for ${name})`);
@@ -53,7 +57,8 @@ for (const [name, path, bitrate, channels, wanted] of [...found, ...ELSEWHERE]) 
   const master = basename(path);
   const out = join(OUT, `${name}.m4a`);
   // -movflags +faststart: the index first, so a streamed file starts playing before it's all here.
-  const run = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', path, '-vn', '-ac', String(channels), '-c:a', 'aac', '-b:a', bitrate, '-movflags', '+faststart', out], { stdio: ['ignore', 'inherit', 'inherit'] });
+  const cut = trim ? ['-ss', String(trim[0]), '-to', String(trim[1])] : [];
+  const run = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', path, ...cut, '-vn', '-ac', String(channels), '-c:a', 'aac', '-b:a', bitrate, '-movflags', '+faststart', out], { stdio: ['ignore', 'inherit', 'inherit'] });
   if (run.status !== 0) {
     console.error(`FAILED   ${name}`);
     failed++;

@@ -45,4 +45,10 @@ Plan: [`doc/plans/features/start-screen.md`](../../../../doc/plans/features/star
 |---|---|---|---|
 | `sfx_jetpack_loop.m4a` | `Thrusters.mp3` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`; 9.5 s, 44.1 kHz stereo; peaks at -4.5 dB), whole, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 64 kbit/s stereo. Part 1 looped it at volume 0.75 with Unity's *normalize* on (peak to 0 dB): the cue's volume, 1.26, is the two together | Not known | Not known: where Part 1's file came from isn't recorded |
 
+## The wind (2026-10-14)
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `amb_wind_loop.m4a` | `Wind-Mark_DiAngelo-1940285615.mp3` in the owner's Islands project (`Islands-29a650/Assets/Audio/`; 29.6 s, 44.1 kHz stereo, 256 kbit/s; no author in its tags), 1 to 26.5 s of it (its fade-in and fade-out cut off), by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 64 kbit/s stereo. Not a clean loop: crossfaded in the game. (Before it, the same day: UE's starter content's `Starter_Wind05.wav`, under the Unreal Engine EULA; then klankbeeld's `412031__klankbeeld__coast-…wav`, Freesound) | Mark DiAngelo, by the file's name | Not known: where the Islands project got it isn't recorded (the name looks like a SoundBible download) |
+
 The boombox's tracks are numbered in the order of the inventory's table. **Not confirmed against the Blueprint:** the order of its track list isn't readable from the `.uasset`.

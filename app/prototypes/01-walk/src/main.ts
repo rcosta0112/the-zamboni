@@ -27,6 +27,7 @@ import StartScreen from './StartScreen.svelte';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
 import { updateVisibility } from './visibility';
+import { Wind } from './wind';
 import { createWorld, updateWorld } from './world';
 
 const STEP = 1 / 60; // fixed simulation step
@@ -124,6 +125,7 @@ async function start(): Promise<void> {
       ladders = new Ladders(shipLadders(s.object, physics, s.ladderColliders));
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
       addCollisionBoxes(s, physics);
+      wind.setShip(s);
       ship = s;
     })
     .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err))
@@ -137,10 +139,11 @@ async function start(): Promise<void> {
   const footsteps = new Footsteps((id, level) => audio.play(id, undefined, undefined, level));
   let rungs = 0; // hands on the ladder's rungs so far
   let jetSounding = false; // the jetpack's sound is on
+  const wind = new Wind(audio);
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share }) });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
   gui.hide(); // until the start screen is gone: it would lie over it
@@ -306,6 +309,8 @@ async function start(): Promise<void> {
     const inside = ship !== null && ship.interior.containsPoint(chest);
     // Above the ground she's on the ship (its ramps, before she's "inside"): the ground is flat for now.
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
+    // Not under the start screen: its music is heard there.
+    if (begun) wind.update(dt, chest, ship);
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
     // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
     view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);

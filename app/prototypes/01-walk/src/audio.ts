@@ -80,7 +80,7 @@ export class GameAudio {
   private noise: StreamLoop[] | null = null;
   private noiseAmount = 0;
   /** Streamed cues that repeat, each faded in and out (`setLoop`). */
-  private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number }>();
+  private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number; level: number }>();
   /** Decoded sounds: how many there are, and how many have arrived (or failed). */
   private toLoad = 0;
   private settled = 0;
@@ -131,19 +131,21 @@ export class GameAudio {
   }
 
   /**
-   * A streamed cue that repeats (the start screen's music): on or off, fading over `fade` s. It
-   * sounds only once the sound is on, and starts from its beginning each time it comes back.
+   * A streamed cue that repeats (the start screen's music, the wind): on or off, fading over `fade`
+   * s. It sounds only once the sound is on, and starts from its beginning each time it comes back.
+   * @param level how loud, as a share of the cue's volume (eased; it can change every frame)
    */
-  setLoop(id: CueId, on: boolean, fade = 1): void {
+  setLoop(id: CueId, on: boolean, fade = 1, level = 1): void {
     const cue: Cue = cues[id];
     let loop = this.loops.get(id);
     if (!loop) {
       if (!on || !cue.file) return;
-      loop = { stream: new StreamLoop(this.context, BASE + cue.file, this.buses[cue.bus as Bus], cue.crossfade ?? 2), amount: 0, on, fade };
+      loop = { stream: new StreamLoop(this.context, BASE + cue.file, this.buses[cue.bus as Bus], cue.crossfade ?? 2), amount: 0, on, fade, level };
       this.loops.set(id, loop);
     }
     loop.on = on;
     loop.fade = fade;
+    loop.level = level;
   }
 
   /**
@@ -296,7 +298,7 @@ export class GameAudio {
         continue;
       }
       if (loop.stream.start()) this.started[id] = (this.started[id] ?? 0) + 1;
-      loop.stream.update((cues[id].volume ?? 1) * loop.amount);
+      loop.stream.update((cues[id].volume ?? 1) * loop.amount * loop.level);
     }
 
     // The ship's noise: its two files loop together while the ship is flying, each at its own level
