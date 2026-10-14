@@ -38,6 +38,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [Moving through the ship, and the ladder both ways](features/movement-and-ladder.md) | Prototype 01 | Built 2026-10-13; the owner's to play, then the boxes go into the ship file |
 | [Taking a jetpack from the rack (Dr. Green's model from the ship file)](features/dr-green-jetpack-model.md) | Prototype 01 | Built 2026-10-14; the owner's to play |
 | [The auto-parachute: the jetpack slows a long fall (item 34)](features/auto-parachute.md) | Prototype 01 | Built 2026-10-14; the owner's to play |
+| [The jetpack's exhaust glow, as in Part 1 (item 38)](features/jetpack-glow.md) | Prototype 01 | Done 2026-10-14 |
 
 ## Plan format
 

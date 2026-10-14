@@ -20,6 +20,7 @@
 | `footsteps.ts` | Her footsteps: when a foot comes down in the walk/run cycle, which surface, landings | `Footsteps.update` |
 | `boombox.ts` | The boombox: its ring of steps, the cassette sound then the track, the shake | `Boombox.use`, `update` |
 | `jetpack.ts` | The jetpack rack: its jetpacks (by tag), *Take* / *Put back*, which one is gone; follows `settings.wearingJetpack` | `JetpackRack`, `update` |
+| `exhaust.ts` | The jetpack's exhaust glow: a sprite per nozzle (halo painted in, TSL), where the nozzles are, following R2, the flicker | `Exhaust.update` |
 | `ladders.ts` | Finding ladders; attaching at the foot, climbing up and down, held at the top, leaving it (the float), jump; when the ladder collides | `shipLadders`, `Ladders.update`, `updateColliders` |
 | `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
 | `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
@@ -31,4 +32,4 @@
 
 Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. The button, the progress bar and the tokens (colours, fonts) are in [`app/packages/ui`](../../packages/ui/README.md); the screen's images and fonts in `app/assets/ui/`. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/tools/README.md`](../../tools/README.md).
 
-Until the start button is used, nothing is simulated: the frame stops after the sound while loading, then is made in full under the start screen. Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the jetpack rack, the ladder's sound → her animation, footsteps → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.
+Until the start button is used, nothing is simulated: the frame stops after the sound while loading, then is made in full under the start screen. Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the jetpack rack, the ladder's sound → her animation, footsteps → camera → the jetpack's glow → see-through rules → see-through shader values → interaction → world, crew, lights → render.

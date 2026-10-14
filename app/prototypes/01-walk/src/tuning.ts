@@ -60,6 +60,18 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   fly.add(settings, 'jetSoundLowLevel', 0, 1, 0.01).name('jet sound: level at R2 bottom');
   fly.add(settings, 'jetSoundLowRate', 0.5, 1, 0.01).name('jet sound: pitch at R2 bottom');
   fly.add(settings, 'jetSoundHighRate', 1, 1.5, 0.01).name('jet sound: pitch at R2 top');
+  fly.add(settings, 'exhaustGlow').name('exhaust glow');
+  fly.add(settings, 'exhaustSize', 0.01, 0.3, 0.005).name('glow: size (share of screen)');
+  fly.add(settings, 'exhaustCore', 0.05, 1, 0.01).name('glow: white core (share)');
+  fly.addColor(settings, 'exhaustCoreColor').name('glow: core colour');
+  fly.addColor(settings, 'exhaustHaloColor').name('glow: halo colour');
+  fly.add(settings, 'exhaustHalo', 0, 3, 0.05).name('glow: halo brightness');
+  fly.add(settings, 'exhaustLowLevel', 0, 1, 0.01).name('glow: at R2 bottom (follows jet sound switch)');
+  fly.add(settings, 'exhaustFlicker', 0, 0.6, 0.01).name('glow: flicker (share)');
+  fly.add(settings, 'exhaustFlickerRate', 1, 60, 1).name('glow: flicker rate (/s)');
+  fly.add(settings, 'exhaustShake', 0, 0.03, 0.001).name('glow: shake (m)');
+  fly.add(settings, 'exhaustOut', 0, 0.2, 0.005).name('glow: out of the nozzle (m)');
+  fly.add(settings, 'exhaustTowardCamera', 0, 0.3, 0.01).name('glow: toward the camera (m)');
 
   const cam = gui.addFolder('Camera');
   cam.add(settings, 'cameraDistanceIndoors', 1, 12, 0.1).name('distance indoors (m)');

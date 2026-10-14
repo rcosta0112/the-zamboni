@@ -98,7 +98,8 @@ export class AnimatedModel {
 
   // Wearing a jetpack (the Zamboni model; Part 1's has its own, always on): hers shows, her little
   // backpack hides, and the hood's shape key moves it out of the jetpack's way.
-  private jetpack: THREE.Object3D | null = null;
+  /** The jetpack group (on the `Body` bone), shown only while she wears it; the exhaust glow's nozzles are in it. */
+  jetpack: THREE.Object3D | null = null;
   private backpack: THREE.Object3D | null = null;
   private hood: { mesh: THREE.Mesh; index: number }[] = [];
 

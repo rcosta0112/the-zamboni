@@ -4,7 +4,7 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, eighth session (everything is committed).*
+*Updated 2026-10-14, ninth session (everything is committed).*
 
 ## Now
 
@@ -15,7 +15,8 @@
   - **36, built** (owner: follow the recommendations): the sun's shadow covers 25 m indoors, 50 m outdoors, eased (`shadowRangeIndoors` / `shadowRangeOutdoors`); the ship's shadow is seen to about 43 m. Cascades when an outdoor site is built.
   - **37, done:** `Jetpack.003` on the rack's upper shelf (the agent saved the ship file; copy `… (before fourth jetpack, 2026-10-14).blend`); `export:ship` run, one difference; smoke expects 4.
   - **34, the auto-parachute, built** ([plan](../plans/features/auto-parachute.md), approved: the agent's recommendations; [`interaction.md`](../features/interaction.md#the-auto-parachute); decision log). After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking; made twice as long by the owner (`parachuteBurst` 0.5 s on the minimum fall: fires about 2.85 m up; 4.1 m for 8, 16 m for 30) and she lands at 2 m/s; flying clip and jet sound. `Character.parachute`, `parachuting`; a smoke check. **The owner's to play.** Gravity still open (20 against Part 1's 6): the braking follows it.
-- **Next:** pass 5 (below), unless the owner's play-test of items 32–37 says otherwise.
+- **38, the jetpack's exhaust glow, done** (owner) ([plan](../plans/features/jetpack-glow.md), approved; [`interaction.md`](../features/interaction.md#the-exhaust-glow); decision log). `exhaust.ts`: a sprite per nozzle, halo painted in (no bloom), follows R2 like the jet sound, flickers. The owner: "works perfectly"; moved below and behind the jetpack at their request (`exhaustOut` 0.14, down and back; checked in a side view; smoke not rerun after the move).
+- **Next:** pass 5 (below), unless the owner's play-test of items 32–38 says otherwise.
 - `export:crew` not run since its collection name came back.
 - **Then pass 5** (see-through: items 11, 13, 14, 15): plan drafted, *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions).
 
@@ -27,6 +28,8 @@
 - **Lighting:** reference images and the lights in the blend file. The export reads marker objects (`lightRoom`, `lightColor`, `lightEnergy`); the game ignores `lightEnergy` and has four on at once. Pass 4 asks for daylight in engineering from the ramp, a light for the open window. **Pass 3, still to judge:** *sun through glass*, *metal reflections* (0.5). **Camera distances:** 3.5 m indoors, 4.5 m outdoors are placeholders.
 
 ## Found, not fixed
+
+- **Smoke, once in two runs (2026-10-14):** *the ramp closes from its keypad* failed (it didn't move in 4 s) and E then took a jetpack from the rack instead. Likely: she ends the walk-in at y 0.88, on the ramp's walkway, and since item 35 the ramp waits until she's off. Passed on the rerun.
 
 - **Dropping through the trapdoor's opening while pushing toward the ladder**, she lands where the ladder stands (it doesn't collide until she's clear of it) and overlaps it until she steps away. **Closed doors with colliders of their own** (the cargo hold's lockers) will stop her as the galley's did, wherever she slides along their wall: only the crew quarters have boxes.
 - `Tape.003` is in both exported files as a stray object; the front thrusters' collision mesh may lack geometry-nodes instances.
@@ -46,7 +49,7 @@
 - **Screenshots from a script:** wait 2 s after moving her before capturing. The indoor camera is 3.5 m behind her: in a small room it's behind the bulkhead (set `cameraDistanceIndoors` lower for the shot).
 - **In the Bash tool, heredocs with apostrophes fail:** write the script to the scratchpad with the Write tool, then run it.
 - **A dev server may already be running on 5201** (the owner's): the smoke script uses it, and `npm run dev:01` then fails (port taken). **After `vite.config.ts` or a dependency changes it restarts by itself**; if the page is blank, restart it by hand.
-- **Dev hooks** on `window` in dev builds: `__settings`, `__character`, `__physics`, `__ship()`, `__view`, `__scene`, `__world`, `__interaction()`, `__ladders()`, `__boxes()` (`count`), `__audio` (`started`, `playing()`), `__boombox()`, `__rack()`, `__start()` (`ready`, `begun`, `share`), `__THREE`.
+- **Dev hooks** on `window` in dev builds: `__settings`, `__character`, `__physics`, `__ship()`, `__view`, `__scene`, `__world`, `__interaction()`, `__ladders()`, `__boxes()` (`count`), `__audio` (`started`, `playing()`), `__boombox()`, `__rack()`, `__exhaust` (`shown`), `__start()` (`ready`, `begun`, `share`), `__THREE`.
 - **No gamepad in the test browser.** Headless Chrome is capped at 60 fps unless it gets `--disable-frame-rate-limit --disable-gpu-vsync`. **Sound in a check:** a key sent through DevTools (`Input.dispatchKeyEvent`, not Shift) turns it on. **The start screen in a check:** the probe and the smoke script press Q, wait for the button and press Enter (`useStartButton` in `browser.mjs`); `--stay` leaves the screen up and the file runs **before the button is there** (wait on `__start().ready`). The load takes about 18 s. **A gamepad in a check:** replace `navigator.getGamepads` with a made-up pad.
 - **Before any export:** read *Before the next export* in [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
 

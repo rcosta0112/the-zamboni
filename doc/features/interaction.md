@@ -134,7 +134,16 @@ Built 2026-10-14 (item 34; [plan](../plans/features/auto-parachute.md)). **After
 - **How long, and where it fires** (owner, 2026-10-14: twice as long as first built): on a fall of the minimum it brakes for 0.5 s (*burst on the lowest fall*), and the braking is the same for every fall, so a longer fall fires higher and for longer. Measured from start to landing: 5.6 m fires at about 2.85 m, 0.42 s; 8 m at 4.1 m, 0.5 s; 30 m at 16 m, about 1 s. (First built, it fired at her height, 1.23 m, on the minimum fall: 0.22, 0.25 and 0.45 s.) Firing at one height every time would stop a high fall dead.
 - **Only with a jetpack on** (it's the jetpack's), and never inside the ship (no fall there is 5.5 m).
 - **While it fires:** the flying clip and the jetpack's sound play; she steers as she falls; holding Fly is ordinary flying.
-- **Tuning panel** (*Jetpack*): on/off, the lowest fall, the landing speed, the burst on the lowest fall. The braking follows from those and gravity. No jet particles yet (the jetpack has none).
+- **Tuning panel** (*Jetpack*): on/off, the lowest fall, the landing speed, the burst on the lowest fall. The braking follows from those and gravity. The exhaust glow shows while it fires.
+
+### The exhaust glow
+
+Built 2026-10-14 (item 38; [plan](../plans/features/jetpack-glow.md)). **Part 1's glow at the jetpack's two nozzles while she flies or the auto-parachute fires** (owner): a white core with a cyan halo, matched to the owner's video of Part 1 (`Big Moon Tiny Moon 2021-12-25 19-52-10.mp4`).
+- **How Part 1 made it, and why it's different here:** a tiny cyan particle made into a ball of light by the camera's bloom. The game has no bloom, so the halo is painted into the sprite (`exhaust.ts`): one camera-facing, additive sprite per nozzle, the two overlapping. If bloom comes later, the halo can be turned down.
+- **Where:** below the jetpack and behind it (owner, 2026-10-14, from a screenshot): from the middle of each nozzle ring (`Jetpack_Mesh002`, the jetpack's bottom back edge), 14 cm down and back at 45° in the jetpack's space (about 10 cm of each), and 6 cm toward the camera. It follows the jetpack as she moves. Children of the jetpack named `JetpackExhaust…` in the ship file would replace the rings as the starting point.
+- **Size:** constant on screen, 12 % of its height per sprite at full (as Part 1's renderer kept its particle's size on screen).
+- **With an analog R2** (and *jet sound follows R2* on): size and brightness follow the trigger squared, as the sound's level does, down to 35 % at the bottom. On its own it **flickers** (a new size up to 15 % either way, 30 times a second) and **shakes** (up to 4 mm).
+- **Tuning panel** (*Jetpack*, *glow: …*): on/off, size, white core, both colours, halo brightness, the R2 bottom, flicker, flicker rate, shake, the two offsets.
 
 ## Ladders
 

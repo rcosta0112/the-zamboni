@@ -436,6 +436,7 @@ async function checks() {
     await wait(1500);
     const rose = character.position.y - ground;
     const soundFlying = jet();
+    const glowFlying = w.__exhaust.shown;
     // Up to the rise speed at the jetpack's acceleration, then steady.
     const rise = settings.flySpeed * settings.flyRiseShare;
     const expected = rise * (1.5 - rise / (2 * settings.flyAcceleration));
@@ -443,6 +444,8 @@ async function checks() {
     const fell = await until(() => character.grounded && !character.flying, 6000);
     report(character.flying === false && rose > expected * 0.8 && fell, 'the jetpack: held, she rises; let go, she falls back', `rose ${rose.toFixed(2)} m in 1.5 s (about ${expected.toFixed(2)} expected); back on the ground: ${fell}`);
     report(soundFlying && !jet(), 'the jetpack\'s sound plays while she flies, and stops', `while flying: ${soundFlying}; after: ${jet()}`);
+    const glowGone = await until(() => !w.__exhaust.shown, 1000); // it fades out over about 0.1 s
+    report(glowFlying && glowGone, 'the jetpack\'s exhaust glow shows while she flies, and goes', `while flying: ${glowFlying}; gone after landing: ${glowGone}`);
     // From the ground, stick forward with the camera looking down at her: she flies, not skims.
     view.yaw = yawToward(1, 0);
     view.pitch = 0.3;

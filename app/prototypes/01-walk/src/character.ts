@@ -82,6 +82,12 @@ export class Character {
     return (settings.showModel ? this.models[settings.characterModel] : undefined)?.cycle ?? null;
   }
 
+  /** The shown model's jetpack while it's on her back; null otherwise. */
+  get jetpack(): THREE.Object3D | null {
+    const jetpack = (settings.showModel ? this.models[settings.characterModel] : undefined)?.jetpack ?? null;
+    return jetpack?.visible ? jetpack : null;
+  }
+
   /** Per rendered frame: which model is visible, and its animation. */
   animate(dt: number): void {
     const current = settings.showModel ? this.models[settings.characterModel] : undefined;

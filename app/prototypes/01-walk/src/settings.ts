@@ -74,6 +74,23 @@ export const settings = {
   jetSoundLowLevel: 0.08,
   jetSoundLowRate: 0.75,
   jetSoundHighRate: 1.15,
+  // The exhaust glow (item 38): Part 1's, from the owner's video (2026-12-25 capture): a white core
+  // and a cyan halo, together about 10 % of the screen's height. One sprite per nozzle, overlapping;
+  // its size is a share of the screen's height. With an analog R2 (and jetSoundFollowsTrigger) it
+  // follows the trigger squared down to exhaustLowLevel, size and brightness, as the sound's level.
+  // Flicker: a new size this many times a second, up to this share either way; shake: up to this far (m).
+  exhaustGlow: true,
+  exhaustSize: 0.12,
+  exhaustCore: 0.4, // the white core's radius, share of the sprite's
+  exhaustCoreColor: '#ffffff',
+  exhaustHaloColor: '#3fe6dc',
+  exhaustHalo: 1.6,
+  exhaustLowLevel: 0.35,
+  exhaustFlicker: 0.15,
+  exhaustFlickerRate: 30,
+  exhaustShake: 0.004,
+  exhaustOut: 0.14, // m, from the nozzles down and back: below the jetpack, behind it (owner, 2026-10-14)
+  exhaustTowardCamera: 0.06, // m, so the jetpack's surface doesn't cut through it
 
   // Camera
   // Fixed distances, no zoom (owner, 2026-10-12): the camera eases from one to the other when she

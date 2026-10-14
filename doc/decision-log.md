@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-14 | The jetpack's exhaust glow: the halo painted in, no bloom | look | Part 1's glow (a particle made big by bloom) as one additive sprite per nozzle with the halo drawn into it; bloom stays for later |
 | 2026-10-14 | The auto-parachute: the jetpack slows a long fall | feature | After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking (0.5 s and about 2.85 m up on the minimum fall since the update; longer and higher for longer falls); she lands at 2 m/s |
 | 2026-10-14 | The jetpack is taken from the rack; the player's model comes from the ship file | feature | She takes a jetpack from the cargo hold's rack and puts it back there; she flies only while wearing one, and can jump with it; her model is exported from the ship file's `Player` collection at the crew file's scale |
 | 2026-10-14 | The start button is the template for every game UI button | design | `Button.svelte` in `packages/ui`, as drawn in the mockup's *Start Button*: new buttons use it, not a copy |
@@ -38,6 +39,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-14] — The jetpack's exhaust glow: the halo painted in, no bloom (look)
+
+**Context:** the owner asked for Part 1's jetpack glow (item 38). In Part 1 it was a tiny cyan particle at the nozzle (0.05 s life, about one alive at a time, at least 3 % of the screen) that the camera's bloom turned into a white-hot ball with a cyan halo, about 10 % of the screen's height in the owner's video. The game has no bloom yet (planned in `architecture/stack.md`, off on the low tier).
+**Decision (owner, the agent's recommendation):** one camera-facing additive sprite per nozzle (the jetpack has two), with the white core and the cyan halo drawn in its shader; a constant size on screen; it follows an analog R2 as the jet sound does and flickers on its own (owner).
+**Alternatives considered:** Part 1's particle plus real bloom (a full-screen pass every frame, and it changes every glowing display in the ship: belongs with the lighting work); a particle system (Part 1 had about one particle alive).
+**Rationale:** one draw, no new pass, and it looks the same on every quality tier. When bloom comes, the painted halo can be turned down.
+**Status:** Built 2026-10-14 ([`features/interaction.md`](features/interaction.md#the-exhaust-glow); plan: [`plans/features/jetpack-glow.md`](plans/features/jetpack-glow.md)). The owner's to look at.
 
 ## [2026-10-14] — The auto-parachute: the jetpack slows a long fall (feature)
 
