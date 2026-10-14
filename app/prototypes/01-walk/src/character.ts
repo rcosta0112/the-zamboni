@@ -4,6 +4,7 @@
 // The jetpack, as in Part 1: while it's held there's no gravity; with the stick pushed she flies
 // where the camera points (up and down included), at rest she rises straight up. Letting go, she
 // falls. No visuals, sound or animation yet. Plan: doc/plans/backlog-passes.md (pass 6).
+// After a long fall, the jetpack she wears fires by itself near the ground (the auto-parachute).
 
 import * as THREE from 'three/webgpu';
 import { settings } from './settings';
@@ -42,6 +43,10 @@ export class Character {
   flyTrigger: number | null = null;
   /** Flying by R2, in the hover band (its edges widen once she's in it). */
   hovering = false;
+  /** The auto-parachute is firing: the jetpack slows a long fall near the ground. */
+  parachuting = false;
+  /** The top of the current fall: where she last stood, climbed or flew (world y). */
+  private fallTop = 0;
 
   constructor() {
     const material = new THREE.MeshStandardNodeMaterial({ color: 0xe8743b, roughness: 0.6 });
@@ -82,7 +87,7 @@ export class Character {
     const current = settings.showModel ? this.models[settings.characterModel] : undefined;
     this.capsule.visible = !current;
     for (const m of Object.values(this.models)) m.object.visible = m === current;
-    current?.update(dt, this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed(), this.flying);
+    current?.update(dt, this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed(), this.flying || this.parachuting);
   }
 
   /**
@@ -95,6 +100,9 @@ export class Character {
     this.indoors = indoors;
     this.prevPosition.copy(this.position);
     this.prevFacing = this.facing;
+    // A fall starts where she stood (or climbed: a ladder leaves her grounded) or let go of the jetpack.
+    if (this.grounded || this.flying) this.fallTop = this.position.y;
+    else this.fallTop = Math.max(this.fallTop, this.position.y);
 
     const mx = input.move.x;
     const my = input.move.y;
@@ -106,6 +114,7 @@ export class Character {
     const takesOff = !byTrigger || !this.grounded || input.flyTrigger! > settings.hoverHigh;
     // Only with a jetpack on (taken from the rack); jumping doesn't need one.
     if (input.flyHeld && takesOff && settings.wearingJetpack) {
+      this.parachuting = false;
       this.fly(dt, input, cameraYaw, cameraPitch, amount, physics);
       return;
     }
@@ -150,6 +159,7 @@ export class Character {
       this.floating = Math.max(0, this.floating - dt);
       this.verticalVelocity = 0;
     } else this.verticalVelocity -= settings.gravity * dt;
+    this.parachute(dt, physics);
 
     // Indoors she moves the way the stick points, and turns after; outdoors, the way she faces.
     const direct = indoors && settings.indoorDirectMove;
@@ -315,6 +325,40 @@ export class Character {
   }
 
   /**
+   * The auto-parachute (owner, 2026-10-14), one fixed step while she falls: after a fall of at least
+   * `parachuteMinDrop`, wearing a jetpack, it fires when the ground is near enough to slow her to
+   * `parachuteLandingSpeed` at a fixed braking, and keeps firing down to the ground. That braking is
+   * what makes a fall of exactly the minimum drop fire for `parachuteBurst` seconds, so a longer fall
+   * fires higher rather than stopping harder. Each step it brakes exactly as much as is left to do
+   * over the distance left, so she lands at the landing speed.
+   */
+  private parachute(dt: number, physics: Physics | null): void {
+    const landing = settings.parachuteLandingSpeed;
+    if (!settings.parachute || !settings.wearingJetpack || !physics || this.grounded || this.floating > 0 || this.verticalVelocity >= -landing) {
+      this.parachuting = false;
+      return;
+    }
+    const from = lift.copy(this.position);
+    from.y += 0.05;
+    const hit = physics.ray(from, DOWN, PARACHUTE_LOOK);
+    if (!hit) {
+      this.parachuting = false;
+      return;
+    }
+    const height = Math.max(0.01, hit.distance - 0.05);
+    const v = -this.verticalVelocity;
+    if (!this.parachuting) {
+      if (this.fallTop - (this.position.y - height) < settings.parachuteMinDrop) return;
+      if (height > (v * v - landing * landing) / (2 * parachuteBraking())) return;
+      this.parachuting = true;
+    }
+    // Done a little above the ground: in fixed steps the braking lags, and aiming at the ground itself
+    // landed her at about twice the landing speed.
+    const brake = (v * v - landing * landing) / (2 * Math.max(0.01, height - PARACHUTE_DONE_ABOVE));
+    this.verticalVelocity = Math.min(-landing, this.verticalVelocity + brake * dt);
+  }
+
+  /**
    * On a ladder: placed directly (no physics move, no gravity), facing `facing`. Shown standing:
    * there's no climbing animation yet.
    */
@@ -351,6 +395,24 @@ const direction = new THREE.Vector3();
 const flyStep = new THREE.Vector3();
 const lift = new THREE.Vector3();
 const DOWN = new THREE.Vector3(0, -1, 0);
+/** How far down the auto-parachute looks for the ground (m). */
+const PARACHUTE_LOOK = 200;
+/** The auto-parachute is down to the landing speed this far above the ground (m). */
+const PARACHUTE_DONE_ABOVE = 0.15;
+
+/**
+ * The auto-parachute's braking (m/s²): on a fall of exactly `parachuteMinDrop` from rest, it fires
+ * for `parachuteBurst` seconds. Braking evenly from v to the landing speed vl over t seconds covers
+ * (v + vl) / 2 × t metres, and v² = 2g × (the drop − that), which gives v; the braking is (v − vl) / t.
+ */
+function parachuteBraking(): number {
+  const g = settings.gravity;
+  const t = settings.parachuteBurst;
+  const vl = settings.parachuteLandingSpeed;
+  const b = g * t;
+  const v = (-b + Math.sqrt(b * b - 4 * (b * vl - 2 * g * settings.parachuteMinDrop))) / 2;
+  return Math.max(1, (v - vl) / t);
+}
 /** Near the ground, a flight is tilted up by at least this much (vertical share of its direction). */
 const LIFT = 0.5;
 

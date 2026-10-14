@@ -1,5 +1,5 @@
 // Ladders, without a button (owner, 2026-10-09), up and down (owner, 2026-10-13; up only before):
-// walking into a ladder's foot attaches her to it; pushing toward the ladder climbs, pushing away
+// walking into a ladder's foot for half a second attaches her to it; pushing toward the ladder climbs, pushing away
 // climbs down, and at the foot walks her off. At the top she's held for as long as the stick is
 // toward the ladder or at rest; the first push any other way lets go, and she floats for a moment
 // (`ladderFloat`) so she can walk onto the floor beside the opening: nothing moves her there (owner:
@@ -104,6 +104,8 @@ export class Ladders {
   private on: { ladder: Ladder; s: number } | null = null;
   /** After leaving a ladder, she doesn't attach again until the stick is let go. */
   private waitForRelease = false;
+  /** How long she's been walking into a ladder's foot (s). */
+  private pushing = 0;
   /** Counts up each time a hand lands on a rung: taking hold, then every RUNG m climbed (for the sound). */
   rungs = 0;
   private sinceRung = 0;
@@ -131,12 +133,19 @@ export class Ladders {
 
     if (!this.on) {
       if (amount < 0.2) this.waitForRelease = false;
-      if (this.waitForRelease || !character.grounded || input.flyHeld || amount < 0.3) return false;
+      if (this.waitForRelease || !character.grounded || input.flyHeld || amount < 0.3) {
+        this.pushing = 0;
+        return false;
+      }
       const feet = character.position;
       for (const ladder of this.list) {
         if (!ladder.available()) continue;
-        // At the foot, walking into it. (Never from the floor above: she falls through the opening.)
+        // At the foot, walking into it for a moment, so walking past doesn't attach her (owner,
+        // 2026-10-14). (Never from the floor above: she falls through the opening.)
         if (Math.abs(feet.y - ladder.bottom.y) < 0.3 && horizontal(feet, ladder.bottom) < 0.5 && dir.dot(ladder.face) > 0.5) {
+          this.pushing += dt;
+          if (this.pushing < ATTACH_DELAY) return false;
+          this.pushing = 0;
           this.on = { ladder, s: 0 };
           this.rungs++;
           this.sinceRung = 0;
@@ -144,6 +153,7 @@ export class Ladders {
           return true;
         }
       }
+      this.pushing = 0;
       return false;
     }
 
@@ -222,6 +232,9 @@ export class Ladders {
     }
   }
 }
+
+/** How long she walks into a ladder's foot before she takes hold of it (s). */
+const ATTACH_DELAY = 0.5;
 
 /** At the top, a push less toward the ladder than this (the cosine of its angle to it) lets go. */
 const LEAVES_TOP = 0.25;

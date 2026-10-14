@@ -4,25 +4,24 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, seventh session (everything is committed).*
+*Updated 2026-10-14, eighth session (everything is committed).*
 
 ## Now
 
-- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5 and items 25–31 approved; pass 3 (lighting) set aside; passes 6 and 6b (the jetpack, 21) built, **the owner's to play with the real controller** (open: Part 1's gravity was 6 m/s², ours 20).
-- **Item 32, the jetpack rack, built this session** ([plan](../plans/features/dr-green-jetpack-model.md); what exists: [`../features/interaction.md`](../features/interaction.md#the-jetpack-rack); [decision log](../decision-log.md)). E at a rack jetpack takes it (hidden there; hers shows, little backpack hides, hood shape key on); she flies only while wearing one; E on the empty spot puts it back. Jumping with it is allowed (`scope.md` fixed). *Wearing a jetpack* in the tuning panel; `__rack()` hook; two placeholder sounds. **The owner's to play.**
-  - **The ship file was saved by the agent** (owner's go-ahead): collections `Player` (Dr. Green) and `Crew` (placed crew, back from `Crew.003`), `Ship` included again, shape key `jetpack`, rack jetpacks tagged. Copy: `… (before jetpack rack, 2026-10-14).blend`.
-  - **Exports:** `npm run export:player` (new: the player from `Player`, shape keys kept, scale 0.826, ship's size unchanged: 1.4856); `export:ship` keeps props tagged `interact` separate. Both run; `export:crew` not run this session (its collection name is back).
-- **Next session, owner's notes (2026-10-14), items 33–36:**
-  - **33:** a ~0.5 s delay before she gets on the ladder, so walking past doesn't attach her (`ladders.ts`). Small fix: no plan.
-  - **34:** an auto-parachute. Ask the owner what it is (when it opens, looks, with or without the jetpack) before a plan.
-  - **35:** she can walk through the cargo ramp while it's closing. Reproduce first.
-  - **37:** the rack should hold four jetpacks; the file has three (the upper shelf's other spot is empty). Add a fourth, tagged like the others, then `export:ship`. (Owner's small edit in Blender, or the agent's with the go-ahead.)
-  - **36:** see the ship's shadow from further away: what it costs, and other large objects. Today one sun shadow map, 4096 px over `shadowRange` 25 m around her. Measure before changing anything; answer the question first.
+- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5 and items 25–31 approved; pass 3 (lighting) set aside; passes 6 and 6b (the jetpack, 21) and item 32 (the jetpack rack) built, **the owner's to play with the real controller** (open: Part 1's gravity was 6 m/s², ours 20).
+- **This session (owner's notes of 2026-10-14):**
+  - **33, built:** she takes hold of a ladder after 0.5 s of walking into its foot (`ATTACH_DELAY`, `ladders.ts`). The owner's to try.
+  - **35, fixed:** closed from the keypad, the ramp (which never stops for her) passed through her while she stood on it, and she walked out through it. Now it stops when it would lift her (`stop(lifts)` in `advance`, `doors.ts`) and waits until she's off it. **This narrows the owner's rule** "the keypad ramp doesn't stop for her": flagged in [`interaction.md`](../features/interaction.md), with the other way (carry her off it into the bay). The owner's call.
+  - **36, built** (owner: follow the recommendations): the sun's shadow covers 25 m indoors, 50 m outdoors, eased (`shadowRangeIndoors` / `shadowRangeOutdoors`); the ship's shadow is seen to about 43 m. Cascades when an outdoor site is built.
+  - **37, done:** `Jetpack.003` on the rack's upper shelf (the agent saved the ship file; copy `… (before fourth jetpack, 2026-10-14).blend`); `export:ship` run, one difference; smoke expects 4.
+  - **34, the auto-parachute, built** ([plan](../plans/features/auto-parachute.md), approved: the agent's recommendations; [`interaction.md`](../features/interaction.md#the-auto-parachute); decision log). After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking; made twice as long by the owner (`parachuteBurst` 0.5 s on the minimum fall: fires about 2.85 m up; 4.1 m for 8, 16 m for 30) and she lands at 2 m/s; flying clip and jet sound. `Character.parachute`, `parachuting`; a smoke check. **The owner's to play.** Gravity still open (20 against Part 1's 6): the braking follows it.
+- **Next:** pass 5 (below), unless the owner's play-test of items 32–37 says otherwise.
+- `export:crew` not run since its collection name came back.
 - **Then pass 5** (see-through: items 11, 13, 14, 15): plan drafted, *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions).
 
 ## Waiting on the owner
 
-- **To look at:** 1.19 in Blender (the boxes in `Game Collision`, the renamed collections); then the copies `… (before collision boxes, 2026-10-14).blend` and `… (before jetpack rack, 2026-10-14).blend` can go.
+- **To look at:** 1.19 in Blender (the boxes in `Game Collision`, the renamed collections, `Jetpack.003`); then the copies `… (before collision boxes / jetpack rack / fourth jetpack, 2026-10-14).blend` can go.
 - **The start screen, still open:** the font file is public with the game, so its licence has to allow web embedding. Not checked: a gamepad, Firefox, Safari, a phone (the button is 61 px wide upright).
 - **Not said, so still open:** whether the ship noise's repeat is heard. Loops in Firefox and Safari: not tested.
 - **Lighting:** reference images and the lights in the blend file. The export reads marker objects (`lightRoom`, `lightColor`, `lightEnergy`); the game ignores `lightEnergy` and has four on at once. Pass 4 asks for daylight in engineering from the ramp, a light for the open window. **Pass 3, still to judge:** *sun through glass*, *metal reflections* (0.5). **Camera distances:** 3.5 m indoors, 4.5 m outdoors are placeholders.

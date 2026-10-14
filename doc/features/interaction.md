@@ -52,6 +52,8 @@ The prompt shows the button of the last device used (◯ or E).
 - **A moving door pushes her out of its way** (owner, 2026-10-09; plan: [`../plans/features/interaction-clearance.md`](../plans/features/interaction-clearance.md)). Each fixed step, after her own movement, if the door's next position overlaps her capsule she's moved out along the contact normal, **sideways only**, through her character controller (so walls and furniture stop her; she's never placed inside anything). She slides, with no animation. The cargo ramp does the same.
   - **It stops instead** when she can't be cleared (pinned against furniture), when she's on a ladder, or when it would have to lift her (a hatch or the ramp rising under her; the side door and ramp closing while she's on them). A stopped door **backs off until there's 7 cm between them** (left touching her, wedged against furniture on her other side, Rapier's controller wouldn't let her move at all) and **waits** until she's 10 cm clear of its next position, instead of following her.
   - **The cargo ramp, moved from its keypad, doesn't stop for her** (owner, 2026-10-14): she's inside then, and can't be under it. It still pushes her sideways where it can. Touching it on its way down had stopped it and left her stuck between it and the pallet. Moved any other way (the tuning panel's checkbox; from outside, when that exists) it stops as above: she can be under it. (`cargoRampByKeypad` in `settings.ts`, `unstoppable` in `advance`.)
+    - **But it stops if it would lift her** (2026-10-14, item 35): she can step onto it after using the keypad. Passing through her, it left her inside its collider, and she walked out through the closed ramp. Now it stops and waits, as for any door, until she's off it (either way); then it closes. Pinned sideways, it still doesn't stop.
+    > **[Agent note]** The other way would be to keep it going and slide her off it into the bay. That needs a push of its own (the sideways push sent her 2.4 m outward when it gave way): not done. The owner's call.
   - **A door keeps her 6 cm clear of itself as it moves**, not just out of its way (2026-10-14; 3, 5 and 2 cm before). Nearer than her controller's contact gap (3 cm), the controller counts her as touching the door and won't move her at all, not even away from it: an opened cupboard or locker door left her stuck beside it.
   - **The trapdoor, shut, is a fixed lid** (`lid` in `doors.ts`): standing on a moving part's collider she could hardly move. Any hinged door that lies flat when shut gets one (the roof hatch's parts too).
   - **No door is offered while she's standing on it** (the closed trapdoor: owner, the camera angles don't work there anyway).
@@ -117,7 +119,7 @@ Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)).
 
 ## The jetpack rack
 
-Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)). On the cargo hold's wall: two shelves (`Jetpack Rack`, `Jetpack Rack.001`) and three jetpacks with straps (`Jetpack.001`, `.002`, `.004`).
+Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)). On the cargo hold's wall: two shelves (`Jetpack Rack`, `Jetpack Rack.001`) and four jetpacks with straps (`Jetpack.001`, `.002` below, `.003`, `.004` above; `.003` added by the agent on 2026-10-14, item 37: a copy of `.004`, its mesh and tags shared).
 
 - **Pointing at one, *Take jetpack*:** it disappears from the rack and she wears one. Hers (`Jetpack`, no straps) shows on her back, her little backpack (`Backpack.002`) hides, and the hood's shape key `jetpack` is on, so the hood clears it. **She can fly only while she wears one** (Space / R2). Jumping (C / Cross) works with or without it.
 - **While she wears one, only the empty spot is offered, *Put back jetpack*:** it reappears there and everything goes back (owner, 2026-10-14: taken off at the rack only).
@@ -125,13 +127,22 @@ Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)).
 - *Wearing a jetpack* in the tuning panel (*Jetpack*) moves the same state; the rack follows it (switched on, the first jetpack goes). She starts without one.
 - On Part 1's model (tuning panel) nothing shows or hides: its jetpack is part of the model. The flying rule is the same.
 
+### The auto-parachute
+
+Built 2026-10-14 (item 34; [plan](../plans/features/auto-parachute.md)). **After a fall of 5.5 m or more** (a bit under the ship's 6.5 m), **the jetpack she wears fires by itself near the ground** and she lands at 2 m/s (owner).
+- **What counts as a fall:** measured from where it started (where she last stood or climbed, or let go of the jetpack) to the ground under her now, so dropping off a ledge onto lower ground counts too.
+- **How long, and where it fires** (owner, 2026-10-14: twice as long as first built): on a fall of the minimum it brakes for 0.5 s (*burst on the lowest fall*), and the braking is the same for every fall, so a longer fall fires higher and for longer. Measured from start to landing: 5.6 m fires at about 2.85 m, 0.42 s; 8 m at 4.1 m, 0.5 s; 30 m at 16 m, about 1 s. (First built, it fired at her height, 1.23 m, on the minimum fall: 0.22, 0.25 and 0.45 s.) Firing at one height every time would stop a high fall dead.
+- **Only with a jetpack on** (it's the jetpack's), and never inside the ship (no fall there is 5.5 m).
+- **While it fires:** the flying clip and the jetpack's sound play; she steers as she falls; holding Fly is ordinary flying.
+- **Tuning panel** (*Jetpack*): on/off, the lowest fall, the landing speed, the burst on the lowest fall. The braking follows from those and gravity. No jet particles yet (the jetpack has none).
+
 ## Ladders
 
 No button: walking into a ladder is enough (owner).
 
 **Up and down, and nothing moves her off it** (owner, 2026-10-13; from 2026-10-12 until then ladders went up only, and she stepped off at the top by herself).
 
-- **From the bottom:** walking toward a ladder's foot (within 0.5 m, pushing toward it) attaches her. **Toward the ladder climbs, away from it climbs down** (camera-relative, like walking). With the stick at rest she stays where she is. At the foot, pushing away walks her off.
+- **From the bottom:** walking toward a ladder's foot (within 0.5 m, pushing toward it) **for half a second** attaches her, so walking past doesn't (owner, 2026-10-14). **Toward the ladder climbs, away from it climbs down** (camera-relative, like walking). With the stick at rest she stays where she is. At the foot, pushing away walks her off.
 - **At the top she's held** for as long as the stick is toward the ladder or at rest. (Let go on arrival, the stick she's still holding would walk her at the wall the ladder stands on.)
 - **Leaving the top:** the first push any other way (more than 75° from the ladder's direction), back included, lets go. **She floats for 0.6 s** (*float off the ladder top*, tuning panel): no gravity, walking as anywhere else, collisions on. The float ends as soon as there's floor under her; if the time runs out over the opening, she falls. At the cargo bay ladder the floor is 0.44 m behind her and to her left; to her right there's none she can stand on (the wall is too close), so that way she falls back down.
 - **From the top there's no climbing back down:** back is the floor behind her. Below the top, away is down.

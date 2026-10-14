@@ -280,9 +280,10 @@ async function start(): Promise<void> {
       rungs = ladders.rungs;
       audio.play('sfx_ladder_grab');
     }
-    // The jetpack's sound loops while she flies (Part 1's, which stopped dead; a short fade here).
-    if (character.flying !== jetSounding) {
-      jetSounding = character.flying;
+    // The jetpack's sound loops while she flies or the auto-parachute fires (Part 1's, which stopped
+    // dead; a short fade here).
+    if ((character.flying || character.parachuting) !== jetSounding) {
+      jetSounding = character.flying || character.parachuting;
       if (jetSounding) audio.play('sfx_jetpack_loop');
       else audio.stop('sfx_jetpack_loop', undefined, 0.1);
     }

@@ -10,7 +10,7 @@
 | `settings.ts` | Every tunable value and its starting point | `settings` |
 | `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
 | `input.ts` | Actions from gamepad and keyboard: move, look, jump, interact, last device used | `Input.poll`, `consume*` |
-| `character.ts` | Her movement (indoors: the way the stick points), jump (lower indoors) and gravity; flying (only while she wears a jetpack); placing her on a ladder; floating off a ladder's top | `Character.update`, `jump`, `floating`, `setClimbing`, `moveDirection` |
+| `character.ts` | Her movement (indoors: the way the stick points), jump (lower indoors) and gravity; flying (only while she wears a jetpack); the auto-parachute (the jetpack slowing a long fall); placing her on a ladder; floating off a ladder's top | `Character.update`, `jump`, `floating`, `setClimbing`, `moveDirection` |
 | `physics.ts` | Rapier: ground, static colliders (a part of a mesh can be its own, switchable), boxes, convex ones (the collision boxes, which rays pass through), her capsule and controller, moving colliders (doors), rays | `Physics.move`, `addStaticMesh`, `addStaticBox`, `addStaticConvex`, `addMovingConvex`, `ray`, `castRay`, `fits`, `overFloor` |
 | `camera.ts` | Orbit camera: yaw, pitch, the fixed indoor and outdoor distances, follow, collision outside the ship | `FollowCamera.update` |
 | `ship.ts` | Loading the ship, its collider and the collision boxes (the collider file's other meshes); "inside"; decks; see-through units and their tags; **the cargo ramp** (its closed and open angles); hinges; the merged shadow caster | `loadShip`, `addCollisionBoxes`, `updateShip`, `closedAngle`, `groupCutUnits`, `hingeAt` |

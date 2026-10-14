@@ -388,12 +388,43 @@ async function checks() {
     await tap('KeyE');
     await wait(200);
     const returned = !settings.wearingJetpack && rack.slots.every((s) => s.visible) && !model.jetpack.visible && model.backpack.visible && !hood();
-    report(rack.slots.length === 3 && !flewWithout && offered === 'Take jetpack' && worn && flewWith && back === 'Put back jetpack' && returned, 'the jetpack rack: take one, fly, put it back',
+    report(rack.slots.length === 4 && !flewWithout && offered === 'Take jetpack' && worn && flewWith && back === 'Put back jetpack' && returned, 'the jetpack rack: take one, fly, put it back',
       `${rack.slots.length} on the rack; flies without: ${flewWithout}; "${offered}" â†’ worn (hidden on the rack, hers on, little backpack off, hood up): ${worn}; flies: ${flewWith}; "${back}" â†’ back: ${returned}`);
   }
 
   // --- Pass 6: the jetpack (21). Held Space: rise; let go: fall; the hull stops her; onto the roof -
   settings.wearingJetpack = true; // flying needs one on (item 32); the rack follows
+  {
+    // The auto-parachute (34): after a fall of 5.5 m or more it fires near the ground, and she lands
+    // at its landing speed; not after a shorter fall, nor without a jetpack.
+    const spot = new T.Vector3(ship.interior.max.x + 8, 0, ship.interior.getCenter(new T.Vector3()).z);
+    const fall = async (drop, fromFlight) => {
+      put(spot.clone().setY(0.05));
+      await until(() => character.grounded, 3000);
+      await wait(150);
+      put(spot.clone().setY(drop));
+      if (fromFlight) character.flying = true; // let go of the jetpack up there
+      let firedAt = null;
+      let last = 0;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 8000 && !(character.grounded && performance.now() - t0 > 100)) {
+        if (character.parachuting && firedAt === null) firedAt = character.position.y;
+        last = -character.verticalVelocity;
+        await new Promise(requestAnimationFrame);
+      }
+      return { firedAt, last };
+    };
+    const short = await fall(4, false);
+    const low = await fall(8, false);
+    const high = await fall(30, true);
+    settings.wearingJetpack = false;
+    const bare = await fall(8, false);
+    settings.wearingJetpack = true;
+    const soft = (r) => r.firedAt !== null && r.last < settings.parachuteLandingSpeed + 0.5;
+    const show = (r) => (r.firedAt === null ? `no burst, landed at ${r.last.toFixed(1)} m/s` : `fired at ${r.firedAt.toFixed(2)} m, landed at ${r.last.toFixed(1)} m/s`);
+    report(short.firedAt === null && soft(low) && soft(high) && high.firedAt > low.firedAt && bare.firedAt === null, 'the auto-parachute: a soft landing after a long fall with a jetpack on',
+      `4 m: ${show(short)}; 8 m: ${show(low)}; 30 m, let go of the jetpack: ${show(high)}; 8 m without a jetpack: ${show(bare)}`);
+  }
   {
     const hull = ship.interior;
     const centre = hull.getCenter(new T.Vector3());

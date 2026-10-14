@@ -93,16 +93,17 @@ export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vect
   );
   world.sun.target.position.copy(target);
   world.sun.intensity = settings.sunIntensity;
-  // The shadow map: its size, and the square around her that it covers. One texel is
-  // 2 × range / size (1.2 cm at 4096 and 25 m): the size of the steps on a shadow's edge.
+  // The shadow map: its size, and the square around her that it covers: sharp indoors, wider
+  // outdoors so the ship's shadow is seen from further away. One texel is 2 × range / size (1.2 cm at
+  // 4096 and 25 m): the size of the steps on a shadow's edge.
   const shadow = world.sun.shadow;
   if (shadow.mapSize.x !== settings.shadowMapSize) {
     shadow.mapSize.set(settings.shadowMapSize, settings.shadowMapSize);
     shadow.map?.dispose();
     shadow.map = null;
   }
-  if (shadow.camera.right !== settings.shadowRange) {
-    const r = settings.shadowRange;
+  const r = THREE.MathUtils.lerp(settings.shadowRangeOutdoors, settings.shadowRangeIndoors, insideAmount);
+  if (shadow.camera.right !== r) {
     shadow.camera.left = -r;
     shadow.camera.right = r;
     shadow.camera.top = r;

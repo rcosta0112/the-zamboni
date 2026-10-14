@@ -38,6 +38,17 @@ export const settings = {
   cameraMinPitchFlyingDeg: -40,
   // ...and below this height (m) a flight pointing down levels off, so she doesn't skim the ground.
   flyLowest: 1.0,
+  // The auto-parachute (owner, 2026-10-14): after a fall of at least parachuteMinDrop (a bit under
+  // the ship's 6.5 m), the jetpack she wears fires by itself near the ground and slows her to
+  // parachuteLandingSpeed (from 15 cm above the ground). On a fall of exactly that drop it brakes for parachuteBurst seconds (at
+  // 0.5 s it fires about 2.9 m up); the braking that gives is the same for every fall, so a longer one
+  // fires higher and for longer. Until the owner's change of 2026-10-14 it fired at her height on
+  // that fall (0.16 s); "twice as long" as it was, as measured from start to landing (the last 15 cm
+  // at landing speed included), is 0.5 here, not 0.33. Plan: doc/plans/features/auto-parachute.md
+  parachute: true,
+  parachuteMinDrop: 5.5,
+  parachuteLandingSpeed: 2,
+  parachuteBurst: 0.5,
 
   // Gamepad with an analog R2 (owner, 2026-10-14; a digital one, or Space, flies by Part 1's rule).
   // 'speed': the trigger sets her vertical speed: off below flyTriggerOff, descending in the lower
@@ -112,7 +123,11 @@ export const settings = {
   sunlitRooms: ['crew quarters', 'cockpit'], // rooms with windows (the markers' `room`): their lights are tinted
   sunlitRoomWarmth: 0.6, // 0 = the marker's own colour, 1 = the sun's colour
   shadowMapSize: 4096, // px; 2048 until 2026-10-12 (steps on the edges of the sun patches inside)
-  shadowRange: 25, // m around her covered by the sun's shadow (smaller = sharper, but far shadows disappear)
+  // m around her covered by the sun's shadow (smaller = sharper, but far shadows disappear). Eased
+  // between the two as she goes in and out. Outdoors 25 until 2026-10-14: the ship's shadow was gone
+  // from 40 m (it's cut from about 43 m at 50); a texel is 2 × range / map size (2.4 cm at 50 m).
+  shadowRangeIndoors: 25, // the sun patches inside stay sharp
+  shadowRangeOutdoors: 50,
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   haze: true, // distance haze in the horizon colour, hides the floor's edge
   hazeNear: 60,

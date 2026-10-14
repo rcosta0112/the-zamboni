@@ -36,6 +36,10 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
 
   const fly = gui.addFolder('Jetpack');
   fly.add(settings, 'wearingJetpack').name('wearing a jetpack').listen();
+  fly.add(settings, 'parachute').name('auto-parachute');
+  fly.add(settings, 'parachuteMinDrop', 2, 20, 0.5).name('auto-parachute: lowest fall (m)');
+  fly.add(settings, 'parachuteLandingSpeed', 0.5, 6, 0.1).name('auto-parachute: landing speed (m/s)');
+  fly.add(settings, 'parachuteBurst', 0.1, 1, 0.01).name('auto-parachute: burst on the lowest fall (s)');
   fly.add(settings, 'flySpeed', 1, 40, 0.5).name('fly speed (m/s)');
   fly.add(settings, 'flyRiseShare', 0, 1, 0.05).name('rise, stick at rest (× fly speed)');
   fly.add(settings, 'flyAcceleration', 1, 60, 0.5).name('acceleration (m/s²)');
@@ -91,7 +95,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   look.add(settings, 'worldStrength', 0, 3, 0.05).name('world strength');
   look.add(settings, 'sunThroughGlass').name('sun through glass');
   look.add(settings, 'shadowMapSize', [1024, 2048, 4096]).name('shadow map (px)');
-  look.add(settings, 'shadowRange', 8, 40, 1).name('shadow range (m)');
+  look.add(settings, 'shadowRangeIndoors', 8, 40, 1).name('shadow range indoors (m)');
+  look.add(settings, 'shadowRangeOutdoors', 8, 100, 1).name('shadow range outdoors (m)');
   look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');
   look.add(settings, 'metalReflections', 0, 2, 0.05).name('metal reflections');

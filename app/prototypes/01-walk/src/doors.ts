@@ -48,13 +48,14 @@ const STOP_GAP = CONTACT_GAP + 0.04;
 /**
  * Moves a part (a door, the ramp) from `from` to `to` (0..1), pushing her out of its way. Returns
  * where it got to, and whether it's now waiting for her to move.
- * @param unstoppable it still pushes her where it can, but never stops or waits for her (the cargo
- *   ramp moved from its keypad)
+ * @param unstoppable it still pushes her where it can, but doesn't stop or wait for her when she's
+ *   pinned (the cargo ramp moved from its keypad). It still stops if it would lift her: she's on it,
+ *   and it would pass through her (she then walked out through the closed ramp: owner, 2026-10-14).
  */
 export function advance(collider: MovingCollider, pose: (t: number) => void, from: number, to: number, pusher: Pusher, waiting: boolean, unstoppable = false): { amount: number; waiting: boolean } {
   pose(to);
-  const stop = () => {
-    if (unstoppable) return { amount: to, waiting: false }; // posed at `to` above, and left there
+  const stop = (lifts = false) => {
+    if (unstoppable && !lifts) return { amount: to, waiting: false }; // posed at `to` above, and left there
     // Back off (toward where it came from) until it's clear of her by STOP_GAP.
     const back = Math.sign(from - to) || -1;
     let t = from;
@@ -65,10 +66,11 @@ export function advance(collider: MovingCollider, pose: (t: number) => void, fro
     }
     return { amount: t, waiting: true };
   };
-  // After stopping against her, it doesn't creep after her: it waits for room.
+  // After stopping against her, it doesn't creep after her: it waits for room. (An unstoppable part
+  // waits only after it would have lifted her.)
   if (waiting) {
     const c = collider.contact(RESUME_GAP);
-    if (c && c.depth > -RESUME_GAP) return stop();
+    if (c && c.depth > -RESUME_GAP) return stop(true);
   }
   // She's kept PUSH_MARGIN clear of it, not just out of it: a door that came to rest nearer than her
   // controller's contact gap, without ever overlapping her, left her unable to move.
@@ -78,7 +80,8 @@ export function advance(collider: MovingCollider, pose: (t: number) => void, fro
     if (!near(c)) return { amount: to, waiting: false };
     const sideways = new THREE.Vector3(c.normal.x, 0, c.normal.z);
     const length = sideways.length();
-    if (!settings.doorsPush || pusher.climbing() || c.normal.y > LIFTS || length < 0.3) return stop();
+    const lifts = c.normal.y > LIFTS || length < 0.3;
+    if (!settings.doorsPush || pusher.climbing() || lifts) return stop(lifts);
     // Sideways only, far enough to clear the overlap, and the margin, along the normal.
     pusher.push(sideways.divideScalar(length).multiplyScalar((c.depth + PUSH_MARGIN) / length));
   }
