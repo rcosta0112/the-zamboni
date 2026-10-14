@@ -195,12 +195,16 @@ export const settings = {
 
   // See-through hull (inside the ship) and camera collision (outside)
   seeThrough: true,
+  // See-through from scratch (owner, 2026-10-14): 'hull only' draws the ship's shell alone (both
+  // decks, the crew too); 'all rules' is the version on main, kept to take the rules back from.
+  seeThroughStage: 'hull only' as 'hull only' | 'all rules',
   cutRadius: 1.44, // m, radius of the capsule from the camera to Dr. Green's chest (1.2 + 20%)
   cutSoftness: 0.25, // m, width of the dithered edge (0 = hard edge)
   cutTargetHeight: 0.75, // m above her feet: the end of the capsule (chest)
   cutBackColor: '#1b2327', // inside faces of cut surfaces (when not in their own colour)
   cutOwnColour: true, // inside faces in the surface's own colour, darkened
   cutShade: 0.35, // how much of its own colour the inside keeps
+  hullGapColour: '#284644', // the gap between the hull's two skins, where the hole cuts them: one flat colour, unlit (owner, 2026-10-14; the hull's dark teal at 60 %)
   singleSided: true, // the ship's materials as in the file (backface culling); off: double-sided, with the dark cut surface
   holeOnlyWhenHidden: true, // the hole opens only while something solid hides her (glass doesn't count)
   dividersWhole: false, // bulkheads (divider: true) cut as a whole, by the furniture rules, instead of by the hole

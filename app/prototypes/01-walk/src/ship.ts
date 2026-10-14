@@ -13,11 +13,11 @@ import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
-import { makeCuttable } from './cutaway';
+import { fillBackFaces, makeCuttable } from './cutaway';
 import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
 import { downloads } from './loading';
 import { named } from './names';
-import { newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
+import { isHullPart, newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
 import { settings } from './settings';
 
@@ -31,6 +31,22 @@ const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTF
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 
 const RAMP_SECONDS = 1.5; // time to open or close
+
+/**
+ * The ship's outer shell: the hull and what closes its openings (windshield, side door, roof hatch,
+ * cargo ramp, engineering window) and the turbines. See-through from scratch (owner, 2026-10-14):
+ * only these are drawn; everything inside is hidden while the see-through hull is on.
+ */
+const SHELL = [
+  'Hull_Merged', 'Windshield', 'Door', 'Top Hatch', 'Door Cargo', 'Lab Window', 'Lab Window.001',
+  'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002',
+];
+/** Two skins with a gap between: where the hole cuts them, the gap is filled with their colour (cutaway.ts). */
+const FILLED = ['Hull_Merged'];
+/** The cockpit's floor is part of `Dashboard Body`: its meshes with these materials (owner, 2026-10-14). */
+const COCKPIT_FLOOR = { object: 'Dashboard Body', materials: ['Floor Tiles', 'Grate'] };
+/** The crew quarters' inner walls: drawn with the hull's inner parts, though dividers (owner, 2026-10-14). */
+const CREW_QUARTERS_WALLS = ['Crew Quarters Sitting Area Walls', 'Walls and seat.001', 'Walls and seat.002'];
 
 export interface Ship {
   object: THREE.Object3D;
@@ -68,6 +84,10 @@ export interface Ship {
   doors: Door[];
   /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
   shadowCaster: THREE.Mesh;
+  /** The same for what's inside the shell: off while it's hidden (see-through stage 'hull only'). */
+  interiorShadowCaster: THREE.Mesh;
+  /** The moving parts inside the shell that cast shadows of their own (doors): off with it. */
+  interiorMovingCasters: THREE.Mesh[];
   /** The same for its glass (windows, windshield): casts only while the sun isn't let through. */
   glassShadowCaster: THREE.Mesh;
 }
@@ -118,6 +138,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   // mesh so the see-through rules' raycasts are fast (the hull and the Contraption are dense).
   for (const mesh of cuttable) {
     makeCuttable(mesh);
+    for (let n: THREE.Object3D | null = mesh; n && n !== object; n = n.parent) {
+      if (FILLED.some((name) => named(n!, name))) {
+        fillBackFaces(mesh);
+        break;
+      }
+    }
     mesh.geometry.boundsTree = new MeshBVH(mesh.geometry);
     mesh.raycast = acceleratedRaycast;
   }
@@ -204,9 +230,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
     rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
     doors,
-    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)]),
+    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)], new Set(cutUnits.filter((u) => !isHullPart(u)).flatMap((u) => u.meshes))),
+    interiorMovingCasters: [],
   };
-  scene.add(ship.shadowCaster, ship.glassShadowCaster);
+  // Left casting by mergeShadowCasters: the moving parts.
+  ship.interiorMovingCasters = cutUnits.filter((u) => !isHullPart(u)).flatMap((u) => u.meshes).filter((m) => m.castShadow);
+  scene.add(ship.shadowCaster, ship.interiorShadowCaster, ship.glassShadowCaster);
   updateShip(ship, 0, true);
   return ship;
 }
@@ -240,8 +269,20 @@ function groupCutUnits(
     list.push(mesh);
     byNode.set(node, list);
   }
-  const units: CutUnit[] = [];
+  // The cockpit's floor is part of the dashboard's object: its floor materials become a unit of
+  // their own, one of the hull's inner parts.
+  const groups: [THREE.Object3D, THREE.Mesh[], boolean][] = [];
   for (const [node, list] of byNode) {
+    if (!named(node, COCKPIT_FLOOR.object)) {
+      groups.push([node, list, false]);
+      continue;
+    }
+    const isFloor = (m: THREE.Mesh) => COCKPIT_FLOOR.materials.some((name) => (m.material as THREE.Material).name.startsWith(name));
+    groups.push([node, list.filter((m) => !isFloor(m)), false], [node, list.filter(isFloor), true]);
+  }
+  const units: CutUnit[] = [];
+  for (const [node, list, floor] of groups) {
+    if (list.length === 0) continue;
     const box = new THREE.Box3();
     for (const mesh of list) box.expandByObject(mesh);
     const tags = {
@@ -252,6 +293,8 @@ function groupCutUnits(
     };
     const unit = newCutUnit(node, tags, box.min.y >= upperFloorY - 0.4 ? 1 : 0, box.max.y);
     unit.meshes = list;
+    for (let n: THREE.Object3D | null = node; n && n !== ship && !unit.shell; n = n.parent) unit.shell = SHELL.some((name) => named(n!, name));
+    unit.lining = floor || (!unit.shell && tags.structure && (!tags.divider || CREW_QUARTERS_WALLS.some((name) => named(node, name))));
     prepareRaycasts(unit);
     for (const mesh of list) {
       mesh.userData.cutStructure = tags.structure ? 1 : 0;
@@ -262,6 +305,10 @@ function groupCutUnits(
     units.push(unit);
   }
   markAttachedToBulkheads(units, ship);
+  const list = (f: (u: CutUnit) => boolean) => units.filter(f).map((u) => `${u.object.name || `(part of ${u.object.parent?.name})`}${named(u.object, COCKPIT_FLOOR.object) && u.lining ? ' (its floor)' : ''}`);
+  const shell = list((u) => u.shell === true);
+  const lining = list((u) => u.lining === true);
+  console.info(`[01-walk] the hull (${shell.length + lining.length} of ${units.length} see-through objects): shell ${shell.join(', ')}; inner parts ${lining.join(', ')}`);
   return units;
 }
 
@@ -340,6 +387,9 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   for (const box of ship.boxes) box.visible = settings.showColliders && settings.collisionBoxes;
   ship.boxColliders?.setEnabled(settings.collisionBoxes);
   ship.glassShadowCaster.castShadow = !settings.sunThroughGlass;
+  const interiorShown = !(settings.seeThrough && settings.seeThroughStage === 'hull only');
+  ship.interiorShadowCaster.visible = interiorShown;
+  for (const mesh of ship.interiorMovingCasters) mesh.castShadow = interiorShown;
   if (pusher) updateAutoDoors(ship.doors, pusher.feet(), settings.zamboniHeight);
   for (const door of ship.doors) door.update(dt, force, pusher);
   const target = settings.cargoRampOpen ? 1 : 0;
@@ -388,16 +438,17 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
  * The glass (transparent materials: windows, the windshield) is a second mesh, so the sun can be let
  * through it into the rooms (owner, 2026-10-12: the crew quarters and cockpit were too blue).
  */
-function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[]): { shadowCaster: THREE.Mesh; glassShadowCaster: THREE.Mesh } {
+function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[], interior: Set<THREE.Mesh>): { shadowCaster: THREE.Mesh; interiorShadowCaster: THREE.Mesh; glassShadowCaster: THREE.Mesh } {
   ship.updateMatrixWorld(true);
   const solid: number[] = [];
+  const inner: number[] = [];
   const glass: number[] = [];
   const v = new THREE.Vector3();
   ship.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || !mesh.castShadow || moving.some((m) => isInside(mesh, m))) return;
     const material = mesh.material as THREE.MeshPhysicalMaterial;
-    const positions = material.transparent || (material.transmission ?? 0) > 0 ? glass : solid;
+    const positions = material.transparent || (material.transmission ?? 0) > 0 ? glass : interior.has(mesh) ? inner : solid;
     const position = mesh.geometry.getAttribute('position');
     const index = mesh.geometry.getIndex();
     const count = index ? index.count : position.count;
@@ -419,8 +470,12 @@ function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[]): { s
     mesh.layers.set(SHADOW_LAYER);
     return mesh;
   };
-  console.info(`[01-walk] ship shadow: ${solid.length / 9} triangles, glass ${glass.length / 9}`);
-  return { shadowCaster: caster('ship shadow caster', solid), glassShadowCaster: caster('ship shadow caster (glass)', glass) };
+  console.info(`[01-walk] ship shadow: ${solid.length / 9} triangles, inside ${inner.length / 9}, glass ${glass.length / 9}`);
+  return {
+    shadowCaster: caster('ship shadow caster', solid),
+    interiorShadowCaster: caster('ship shadow caster (inside)', inner),
+    glassShadowCaster: caster('ship shadow caster (glass)', glass),
+  };
 }
 
 /** True if `o` is `ancestor` or below it. */

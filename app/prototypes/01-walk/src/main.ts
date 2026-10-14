@@ -348,6 +348,7 @@ async function start(): Promise<void> {
       waist: settings.furnitureWaist * settings.zamboniHeight,
       ownColour: settings.cutOwnColour,
       shade: settings.cutShade,
+      fillColour: settings.hullGapColour,
     });
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
@@ -355,6 +356,8 @@ async function start(): Promise<void> {
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);
+    // Hull only: the crew are inside, so hidden too.
+    if (crew) crew.object.visible = !(settings.seeThrough && settings.seeThroughStage === 'hull only');
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];

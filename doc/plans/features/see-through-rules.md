@@ -135,7 +135,7 @@ The owner's play-test found seven edge cases (screenshots in the conversation of
 
 ## Fifth pass (backlog pass 5: items 11, 13, 14, 15; and the closed bulkhead door)
 
-*Status: draft, 2026-10-14, for the owner's review.* Part of [`../backlog-passes.md`](../backlog-passes.md) (pass 5). Written after pitch 0 (pass 1) and single-sided materials (pass 2) were played, as that plan asked.
+*Status: draft, 2026-10-14, for the owner's review.* **On hold (owner, 2026-10-14):** the see-through is being rebuilt from the shell only, one rule at a time, on the branch `see-through-from-scratch` (decision log). Items 11, 13, 14 and 15 will be taken up as rules there; this draft stays as a reference. Part of [`../backlog-passes.md`](../backlog-passes.md) (pass 5). Written after pitch 0 (pass 1) and single-sided materials (pass 2) were played, as that plan asked.
 
 **Goal:** the owner's four see-through items, plus the open question of a closed bulkhead door hiding her ([`features/interaction.md`](../../features/interaction.md#open-questions)). Each new behaviour gets a toggle in the tuning panel (*See-through hull* folder) so it can be compared with today's in play.
 **Out:** the rule table (next section; this pass adds rules the old way, and the table later describes them); the camera avoiding bad angles; the circle mask (left, owner 2026-10-12).

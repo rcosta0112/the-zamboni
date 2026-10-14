@@ -15,6 +15,7 @@
     "build": "npm run build --workspaces --if-present",
     "smoke": "node tools/smoke-01.mjs",
     "probe": "node tools/probe-01.mjs",
+    "see-through": "node tools/probe-01.mjs tools/see-through-views.js --shots .export/see-through",
     "export:ship": "node tools/export.mjs ship",
     "export:crew": "node tools/export.mjs crew",
     "export:player": "node tools/export.mjs player"

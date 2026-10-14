@@ -4,27 +4,27 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, eleventh session (everything is committed).*
+*Updated 2026-10-14, twelfth session. **On the branch `see-through-from-scratch`** (not committed).*
 
 ## Now
 
-- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5, 6 and items 25–38 built; pass 3 (lighting) set aside. Gravity still open (Part 1: 6 m/s², ours 20; the auto-parachute's braking follows it).
-- **39, the jetpack with momentum, built this session** ([plan](../plans/features/jetpack-hover-and-flight.md), approved with the agent's recommendations; [`interaction.md`](../features/interaction.md#flying); decision log). As in Asteroids: slow she hovers (R2 sets her height, the stick drifts her up to 1.5 m/s), from 4 m/s she flies (thrust where the stick points, forward where the camera looks, top speed 20); R2 let go at speed she glides, then falls; jet off on the ground at speed she skids. Space and a digital R2 = R2 held fully. Replaces pass 6b's R2 rule and Part 1's flight rule. `character.ts`: `jet`, `letGo`, `coast`, `moveBy`; eleven new settings, three removed. Eight smoke checks; smoke all passed. **Done** (owner: "no issues").
-  - Raised, no change asked: flight follows the camera's usual 8° downward pitch (a slow dive to 1 m; option: count it as level); taking off with R2 full she climbs about 2.5 m.
-- **40, the wind, built this session** (no plan: small; [`audio.md`](../architecture/audio.md)): `wind.ts`, cue `amb_wind`: `Wind-Mark_DiAngelo-1940285615.mp3` from the Islands project (third file tried), trimmed to 1–26.5 s (its fades), streamed, crossfaded over 3 s. Full outside **and on the ramp** (inside = in from the ramp's hinge); 0.08 inside; in the cargo bay up to 0.4 by the open area of the ramp (8.8 m²) and side door (1.5 m²). Probed: ramp 1, cargo with ramp 0.38, door 0.20, both 0.40, closed / upstairs 0.08; the loop hands over. **The owner's to hear.**
-- **Items 32–38 are still the owner's to play** (the rack, the ladder delay, the auto-parachute, the keypad ramp, the shadow range). Item 35 narrows the owner's rule "the keypad ramp doesn't stop for her": flagged in [`interaction.md`](../features/interaction.md).
-- **Next: pass 5** (see-through: items 11, 13, 14, 15): plan drafted, *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions).
-- **Tuning-panel switches that compare against decided things** (raised 2026-10-14, the owner's call): *collision boxes* and *indoors: moves the way the stick points* (both approved in item 30; the first's comment names a `colliders.ts` that's gone); *bulkheads cut as a whole* (probably moot with *bulkheads always visible*: for pass 5).
+- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5, 6 and items 25–40 built; items 32–40 **Done** (owner, 2026-10-14).
+- **Settled by the owner, 2026-10-14:** gravity stays at 20; the tuning-panel switches stay as they are; the jetpack's dive with the camera pitch and its 2.5 m climb are fine; lighting (pass 3) is ok for now, another pass later; the blend file 1.19 is fine (the owner deals with the backup copies); no licensing questions until production.
+- **Now: see-through from scratch** (owner; branch `see-through-from-scratch`; decision log). Pass 5's plan is on hold: the rules are rebuilt one at a time instead. **Stage 1 built:** only the shell is drawn (ship.ts `SHELL`: hull, windshield, side door, roof hatch, ramp, engineering window, turbines), cut by the hole; everything inside hidden on both decks (shader `cutSolid = -1`), the crew and the inside's shadows too (shadow caster split). Panel: the rules' settings left out. `settings.seeThroughStage = 'all rules'` gives main's version. Probed (both decks, screenshots), smoke all passed. **The owner's to play; then the next rule, the owner's pick.** Items 11, 13, 14, 15 come back as rules here.
+  - **Then (owner): the hull's inner parts and floors back** (structure that isn't a divider, `lining`: floors, crew quarters' ceiling, ceiling lights, both hatches), cut like the shell. Probed both decks. **Then (owner): the cockpit floor** (`Dashboard Body`'s `Floor Tiles` and `Grate` meshes, split off at load) **and the crew quarters' inner walls** (`CREW_QUARTERS_WALLS`). Probed (crew quarters, cockpit). Prompts still appear on hidden keypads.
+  - **Then (owner): the hull's gap filled** (`fillBackFaces`: an unlit back-face mesh on `Hull_Merged` in one flat *hull gap colour*; not on glass). The owner's to look at. **Open, the owner's call:** the camera can sit inside the wall's thickness indoors (it doesn't collide there): A pull it into the cabin (recommended), B push it outside, C a near-camera cut. Window frames (black in the file) show black where the cut crosses them.
+  - **Checking during this pass (owner, 2026-10-14): `npm run see-through`** (30 s; 12 screenshots in `app/.export/see-through/`) after each change; **the full smoke only once, before merging the branch.** Its last run here: **18 failed**, all in movement, ladder, interaction and sound, with "◯" prompts and snow steps mid-check: most likely a real controller in use, not the change (rendering only; passed after stage 1). Rerun with no controller in use.
 - `export:crew` not run since its collection name came back.
 
 ## Waiting on the owner
 
-- **To look at:** 1.19 in Blender (the boxes in `Game Collision`, the renamed collections, `Jetpack.003`); then the copies `… (before collision boxes / jetpack rack / fourth jetpack, 2026-10-14).blend` can go.
-- **The start screen, still open:** the font file is public with the game, so its licence has to allow web embedding. Not checked: a gamepad, Firefox, Safari, a phone (the button is 61 px wide upright).
+- **The start screen:** not checked with a gamepad, Firefox, Safari, a phone (the button is 61 px wide upright).
 - **Not said, so still open:** whether the ship noise's repeat is heard. Loops in Firefox and Safari: not tested.
-- **Lighting:** reference images and the lights in the blend file. The export reads marker objects (`lightRoom`, `lightColor`, `lightEnergy`); the game ignores `lightEnergy` and has four on at once. Pass 4 asks for daylight in engineering from the ramp, a light for the open window. **Pass 3, still to judge:** *sun through glass*, *metal reflections* (0.5). **Camera distances:** 3.5 m indoors, 4.5 m outdoors are placeholders.
+- **Lighting, for a later pass:** the export reads marker objects (`lightRoom`, `lightColor`, `lightEnergy`); the game ignores `lightEnergy` and has four on at once. **Camera distances:** 3.5 m indoors, 4.5 m outdoors are placeholders.
 
 ## Found, not fixed
+
+- **Engineering seen from above is slow in the test browser:** about 110 ms a frame (other rooms 16.7), the same with the see-through off and with main's rules: not this branch. Not looked into (headless Chrome; may not happen on a real GPU).
 
 - **Smoke, once in two runs (2026-10-14):** *the ramp closes from its keypad* failed (it didn't move in 4 s) and E then took a jetpack from the rack instead. Likely: she ends the walk-in at y 0.88, on the ramp's walkway, and since item 35 the ramp waits until she's off. Passed on the rerun.
 

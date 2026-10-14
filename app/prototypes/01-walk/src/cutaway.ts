@@ -37,13 +37,14 @@ const u = {
   waistY: uniform(0), // ...but only above this height (her waist)
   ownColour: uniform(1), // cut surface: 1 = the surface's own colour, darkened; 0 = backColor
   shade: uniform(0.35), // how much of its own colour the cut surface keeps
+  fillColour: uniform(new THREE.Color(0x284644)), // the hull's gap, filled: one flat colour (unlit)
 };
 
 /**
  * Per object, set on each mesh's userData by visibility.ts, packed into one uniform (one update per
  * draw instead of four: per-object uniforms cost CPU time on every draw):
  * x = 1: cut like structure; y: furniture's fade (0 whole, 1 cut); z = 1: cut as a whole when it's
- * cut (dividers); w = 1: not cut at all right now.
+ * cut (dividers); w = 1: not cut at all right now, -1: not drawn at all (hidden).
  */
 const perObject = uniform(new THREE.Vector4(1, 0, 0, 0)).onObjectUpdate(({ object }, self) => {
   const d = object?.userData;
@@ -98,7 +99,7 @@ const keep = (() => {
   const nearCamera = t.greaterThan(0).and(u.furnitureRadius.greaterThan(0.001)).and(fullMask.max(nearMask).lessThanEqual(noise)).and(positionWorld.y.greaterThan(u.waistY));
   const furnitureCut = select(u.furnitureFade.greaterThan(0.5).or(whole.greaterThan(0.5)), faded, inHole).or(nearCamera);
   const cut = select(isStructure, inHole, furnitureCut).and(ground.not()).and(solid.lessThan(0.5));
-  return cut.not();
+  return cut.or(solid.lessThan(-0.5)).not();
 })();
 
 /** Debug tint for furniture being cut (only visible in the fade look's ghost, or at the hole's edge). */
@@ -106,6 +107,8 @@ const occluderTint = u.showOccluders.mul(fade).mul(select(structure.lessThan(0.5
 
 /** One cuttable copy per source material, shared by every mesh that uses it. */
 const copies = new Map<THREE.Material, THREE.MeshStandardNodeMaterial>();
+/** The hull gap's fill material (fillBackFaces). */
+let fill: THREE.MeshBasicNodeMaterial | null = null;
 let singleSided = false;
 let reflections: THREE.Texture | null = null;
 
@@ -166,6 +169,34 @@ export function makeCuttable(mesh: THREE.Mesh): void {
   mesh.material = material;
 }
 
+/**
+ * The hull has an outer and an inner skin with a gap between (owner, 2026-10-14): where the hole
+ * cuts both, the gap showed through. A second mesh on the same geometry draws only the back faces,
+ * unlit, in one flat colour (*hull gap colour*), cut like the mesh: through the cut the gap reads as
+ * one solid edge. (Each material's own colour was tried first: the outer skin and the lining then
+ * showed in two colours at two depths, which still read as a hollow wall.) Unlit, as no light
+ * reaches inside the gap (lit back faces came out black there). Call after makeCuttable; the fill
+ * shares the mesh's userData (its see-through values).
+ */
+export function fillBackFaces(mesh: THREE.Mesh): void {
+  const source = mesh.material as THREE.MeshPhysicalNodeMaterial;
+  // Not glass: from inside, the windows would turn solid.
+  if (source.transparent || (source.transmission ?? 0) > 0) return;
+  if (!fill) {
+    fill = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide });
+    fill.name = 'hull gap';
+    fill.colorNode = u.fillColour;
+    fill.maskNode = keep;
+  }
+  const fillMesh = new THREE.Mesh(mesh.geometry, fill);
+  fillMesh.name = `${mesh.name} (hull gap)`;
+  fillMesh.userData = mesh.userData;
+  fillMesh.castShadow = false;
+  fillMesh.receiveShadow = false;
+  fillMesh.raycast = () => undefined;
+  mesh.add(fillMesh);
+}
+
 export interface CutawaySettings {
   radius: number; // m
   softness: number; // m
@@ -177,6 +208,7 @@ export interface CutawaySettings {
   waist: number; // m above her feet
   ownColour: boolean;
   shade: number; // 0..1
+  fillColour: string; // the hull's gap
 }
 
 /**
@@ -199,4 +231,5 @@ export function updateCutaway(cameraPosition: THREE.Vector3, target: THREE.Vecto
   u.waistY.value = feetY + s.waist;
   u.ownColour.value = s.ownColour ? 1 : 0;
   u.shade.value = s.shade;
+  u.fillColour.value.set(s.fillColour);
 }

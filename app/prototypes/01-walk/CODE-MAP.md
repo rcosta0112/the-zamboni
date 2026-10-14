@@ -23,7 +23,7 @@
 | `jetpack.ts` | The jetpack rack: its jetpacks (by tag), *Take* / *Put back*, which one is gone; follows `settings.wearingJetpack` | `JetpackRack`, `update` |
 | `exhaust.ts` | The jetpack's exhaust glow: a sprite per nozzle (halo painted in, TSL), where the nozzles are, following R2, the flicker | `Exhaust.update` |
 | `ladders.ts` | Finding ladders; attaching at the foot, climbing up and down, held at the top, leaving it (the float), jump; when the ladder collides | `shipLadders`, `Ladders.update`, `updateColliders` |
-| `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
+| `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays). Branch `see-through-from-scratch`: `hullOnly` (the shell drawn, the rest hidden) replaces the rules while `settings.seeThroughStage` is `'hull only'` | `updateVisibility`, `hullOnly`, `prepareRaycasts` |
 | `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
 | `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |
 | `world.ts` | Sky, haze, sun and its shadow, the ground | `createWorld`, `updateWorld` |

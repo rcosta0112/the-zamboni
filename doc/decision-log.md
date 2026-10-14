@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-14 | See-through from scratch: the shell only, then the rules one by one | feature | On a branch: every rule removed; only the hull and what closes its openings is drawn, cut by the hole; everything inside hidden on both decks; rules come back one at a time |
 | 2026-10-14 | The jetpack with momentum: hover, flight, glide, skid | feature | Her horizontal speed picks hover (R2 sets her height) or flight (thrust where the stick points, forward where the camera looks); R2 let go at speed she glides; jet off on the ground at speed she skids. Replaces pass 6b's R2 rule and Part 1's flight rule |
 | 2026-10-14 | The jetpack's exhaust glow: the halo painted in, no bloom | look | Part 1's glow (a particle made big by bloom) as one additive sprite per nozzle with the halo drawn into it; bloom stays for later |
 | 2026-10-14 | The auto-parachute: the jetpack slows a long fall | feature | After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking (0.5 s and about 2.85 m up on the minimum fall since the update; longer and higher for longer falls); she lands at 2 m/s |
@@ -40,6 +41,15 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-14] — See-through from scratch: the shell only, then the rules one by one (feature)
+
+**Context:** pass 5's plan (items 11, 13, 14, 15, in `plans/features/see-through-rules.md`) added four more rules on top of the second pass's. While reviewing it, the owner chose to start over instead, on a branch, since main has a good working version.
+**Decision (owner):** on the branch `see-through-from-scratch`, every see-through rule is removed. The first stage draws only the ship's shell (the hull, the windshield, the outer doors and hatch, the cargo ramp, the engineering window, the turbines), cut by the hole while it hides her; everything inside is hidden on both decks: furniture, floors, inner walls, bulkheads, the crew and their shadows. The tuning panel keeps only the settings that still apply. The rules then come back one at a time, each the owner's call.
+**Alternatives considered:** pass 5 as planned (more exceptions on top of the existing ones).
+**Rationale:** each rule is judged on its own, starting from the simplest view, instead of adding to a set that has grown by exceptions.
+**Status:** first stage built on the branch (2026-10-14), for the owner to play. The rules of 2026-10-08 to 10-12 remain in the code behind `settings.seeThroughStage = 'all rules'` (main's behaviour), to take back from; pass 5's draft is on hold.
+**Update 2026-10-14 (owner):** the hull's inner parts and the floors are back (structure that isn't a divider: floors, the crew quarters' ceiling, ceiling lights, the two hatches), cut like the shell. Then the cockpit floor (split off `Dashboard Body` at load) and the crew quarters' inner walls.
 
 ## [2026-10-14] — The jetpack with momentum: hover, flight, glide, skid (feature)
 

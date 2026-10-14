@@ -61,6 +61,7 @@ npm run check        # type-check every workspace
 npm run build        # build every workspace
 npm run smoke        # the whole scripted check of prototype 01
 npm run probe -- f.js  # one question to the running prototype
+npm run see-through  # screenshots of every room: the check while the see-through is rebuilt
 npm run export:ship  # the ship: Blender → compressed game files, with a summary
 npm run export:crew  # the same for the crew placed in the ship
 ```

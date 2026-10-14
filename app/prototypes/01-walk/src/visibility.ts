@@ -11,6 +11,9 @@
 //   load) count as dividers.
 // - Bulkheads always visible (tuning panel, on by default): the bulkheads, their doors and what's
 //   attached to them are never cut while she's on their deck, wherever the camera is.
+// - See-through from scratch (branch, owner 2026-10-14): `seeThroughStage: 'hull only'` replaces all
+//   of the above with hullOnly(): only the hull (shell and inner parts) is drawn; the rules come
+//   back one at a time.
 // The result goes on each mesh's userData (cutStructure, cutFade, cutWhole, cutSolid), read per
 // object by cutaway.ts.
 // Plan: doc/plans/features/see-through-rules.md
@@ -35,6 +38,13 @@ export interface CutUnit {
   attachedTo?: string;
   /** Part of a bulkhead (or attached to one). */
   bulkhead?: boolean;
+  /** Part of the ship's outer shell (hull, windshield, outer doors, turbines): ship.ts, `SHELL`. */
+  shell?: boolean;
+  /**
+   * The hull's inner parts: structure that isn't a divider (floors, ceilings, ceiling lights,
+   * hatches), the cockpit's floor and the crew quarters' inner walls (ship.ts).
+   */
+  lining?: boolean;
   /** Never cut right now, whatever the rules (the cargo ramp while it's open). */
   forceSolid?: boolean;
   /** 0 = lower deck, 1 = upper deck, from the bottom of its bounds. */
@@ -102,6 +112,7 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
   ROWS.forEach((r, i) => COLUMNS.forEach((c, j) => {
     herPoints[i * COLUMNS.length + j]!.copy(s.feet).addScaledVector(side, c).setY(s.feet.y + r * s.height);
   }));
+  if (settings.seeThroughStage === 'hull only') return hullOnly(units, s, dt);
   const waistY = s.feet.y + settings.furnitureWaist * s.height;
   const others: THREE.Vector3[] = [...(s.extraTargets ?? [])];
   if (s.moving && settings.wayAheadDistance > 0) {
@@ -159,6 +170,39 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
     }
   }
   return holeOpen;
+}
+
+/** Drawn in the 'hull only' stage: the shell and its inner parts (floors back, owner 2026-10-14). */
+export const isHullPart = (unit: CutUnit) => unit.shell === true || unit.lining === true;
+
+/**
+ * See-through from scratch (owner, 2026-10-14), the first stage: only the hull is drawn (its shell
+ * and inner parts, the floors among them), cut by the hole while it hides her; everything else
+ * inside is hidden, on both decks. The rules above come back one at a time.
+ */
+function hullOnly(units: CutUnit[], s: VisibilityInput, dt: number): boolean {
+  let hidden = false;
+  if (s.active) {
+    for (const unit of units) {
+      if (!isHullPart(unit) || unit.forceSolid) continue;
+      if (STRUCTURE_POINTS.some((k) => hides(unit, s.camera, herPoints[k]!))) {
+        hidden = true;
+        break;
+      }
+    }
+  }
+  holeClearFor = hidden ? 0 : holeClearFor + dt;
+  for (const unit of units) {
+    unit.fade = 0;
+    for (const mesh of unit.meshes) {
+      mesh.userData.cutStructure = 1;
+      mesh.userData.cutFade = 0;
+      mesh.userData.cutWhole = 0;
+      // -1: not drawn at all (cutaway.ts).
+      mesh.userData.cutSolid = !isHullPart(unit) && settings.seeThrough ? -1 : unit.forceSolid ? 1 : 0;
+    }
+  }
+  return s.active && (!settings.holeOnlyWhenHidden || holeClearFor < HOLE_HOLD);
 }
 
 /** Structure, and anything on the deck she isn't on, is cut by the hole. */
