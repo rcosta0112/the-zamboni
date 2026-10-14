@@ -36,13 +36,15 @@ export class FollowCamera {
 
   /**
    * @param indoors she's inside the ship (the same test as the see-through hull)
-   * @param flying the jetpack is on: the camera can go below her (she flies where it looks)
+   * @param flight how far she's in flight with the jetpack, 0..1: the camera can go below her that
+   *   much (she flies where it looks)
    */
-  update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean, flying = false): void {
+  update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean, flight = 0): void {
     const look = input.consumeLook(dt);
     this.yaw += look.yaw;
-    const min = (flying ? Math.min(settings.cameraMinPitchFlyingDeg, settings.cameraMinPitchDeg) : settings.cameraMinPitchDeg) * DEG;
-    if (flying) this.afterFlight = true;
+    const usual = settings.cameraMinPitchDeg;
+    const min = THREE.MathUtils.lerp(usual, Math.min(settings.cameraMinPitchFlyingDeg, usual), flight) * DEG;
+    if (flight > 0) this.afterFlight = true;
     else if (this.pitch >= min) this.afterFlight = false;
     // Below the usual limit after a flight: it eases back up instead of jumping.
     const floor = this.afterFlight && this.pitch < min ? this.pitch + (min - this.pitch) * (1 - Math.exp(-dt / PITCH_EASE)) : min;

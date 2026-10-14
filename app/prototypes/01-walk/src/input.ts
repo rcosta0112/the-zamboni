@@ -23,7 +23,7 @@ export class Input {
   flyHeld = false;
   /**
    * How far R2 is pressed (0..1) when it's analog and flying her; null when she flies by Space or
-   * a digital trigger, which fly by Part 1's rule (keyboard style).
+   * a digital trigger, which count as R2 held fully.
    */
   flyTrigger: number | null = null;
   lastDevice: Device = 'keyboard';
@@ -124,7 +124,7 @@ export class Input {
     this.walkHeld = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
     const spaceFly = this.keys.has('Space');
     this.flyHeld = spaceFly || padFly;
-    // Space wins: held, it flies by Part 1's rule whatever the trigger does.
+    // Space wins: held, it counts as R2 held fully whatever the trigger does.
     this.flyTrigger = spaceFly ? null : trigger;
 
     if (keyLen > 0) {

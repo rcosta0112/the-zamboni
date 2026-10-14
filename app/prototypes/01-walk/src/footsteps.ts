@@ -60,7 +60,8 @@ export class Footsteps {
         return;
       }
     }
-    if (climbing || before === null || now === null || character.movedSpeed < MIN_SPEED) return;
+    // Skidding: the landing is heard, no steps.
+    if (climbing || character.skidding || before === null || now === null || character.movedSpeed < MIN_SPEED) return;
     const turned = (now - before + 1) % 1;
     if (turned === 0 || turned > 0.5) return;
     const walk = character.walkSpeed();

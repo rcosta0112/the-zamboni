@@ -4,21 +4,17 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, ninth session (everything is committed).*
+*Updated 2026-10-14, tenth session (everything is committed).*
 
 ## Now
 
-- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5 and items 25–31 approved; pass 3 (lighting) set aside; passes 6 and 6b (the jetpack, 21) and item 32 (the jetpack rack) built, **the owner's to play with the real controller** (open: Part 1's gravity was 6 m/s², ours 20).
-- **This session (owner's notes of 2026-10-14):**
-  - **33, built:** she takes hold of a ladder after 0.5 s of walking into its foot (`ATTACH_DELAY`, `ladders.ts`). The owner's to try.
-  - **35, fixed:** closed from the keypad, the ramp (which never stops for her) passed through her while she stood on it, and she walked out through it. Now it stops when it would lift her (`stop(lifts)` in `advance`, `doors.ts`) and waits until she's off it. **This narrows the owner's rule** "the keypad ramp doesn't stop for her": flagged in [`interaction.md`](../features/interaction.md), with the other way (carry her off it into the bay). The owner's call.
-  - **36, built** (owner: follow the recommendations): the sun's shadow covers 25 m indoors, 50 m outdoors, eased (`shadowRangeIndoors` / `shadowRangeOutdoors`); the ship's shadow is seen to about 43 m. Cascades when an outdoor site is built.
-  - **37, done:** `Jetpack.003` on the rack's upper shelf (the agent saved the ship file; copy `… (before fourth jetpack, 2026-10-14).blend`); `export:ship` run, one difference; smoke expects 4.
-  - **34, the auto-parachute, built** ([plan](../plans/features/auto-parachute.md), approved: the agent's recommendations; [`interaction.md`](../features/interaction.md#the-auto-parachute); decision log). After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking; made twice as long by the owner (`parachuteBurst` 0.5 s on the minimum fall: fires about 2.85 m up; 4.1 m for 8, 16 m for 30) and she lands at 2 m/s; flying clip and jet sound. `Character.parachute`, `parachuting`; a smoke check. **The owner's to play.** Gravity still open (20 against Part 1's 6): the braking follows it.
-- **38, the jetpack's exhaust glow, done** (owner) ([plan](../plans/features/jetpack-glow.md), approved; [`interaction.md`](../features/interaction.md#the-exhaust-glow); decision log). `exhaust.ts`: a sprite per nozzle, halo painted in (no bloom), follows R2 like the jet sound, flickers. The owner: "works perfectly"; moved below and behind the jetpack at their request (`exhaustOut` 0.14, down and back; checked in a side view; smoke not rerun after the move).
-- **Next:** pass 5 (below), unless the owner's play-test of items 32–38 says otherwise.
+- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5, 6 and items 25–38 built; pass 3 (lighting) set aside. Gravity still open (Part 1: 6 m/s², ours 20; the auto-parachute's braking follows it).
+- **39, the jetpack with momentum, built this session** ([plan](../plans/features/jetpack-hover-and-flight.md), approved with the agent's recommendations; [`interaction.md`](../features/interaction.md#flying); decision log). As in Asteroids: slow she hovers (R2 sets her height, the stick drifts her up to 1.5 m/s), from 4 m/s she flies (thrust where the stick points, forward where the camera looks, top speed 20); R2 let go at speed she glides, then falls; jet off on the ground at speed she skids. Space and a digital R2 = R2 held fully. Replaces pass 6b's R2 rule and Part 1's flight rule. `character.ts`: `jet`, `letGo`, `coast`, `moveBy`; eleven new settings, three removed. Eight smoke checks; smoke all passed. **Done** (owner: "no issues").
+  - Raised, no change asked: flight follows the camera's usual 8° downward pitch (a slow dive to 1 m; option: count it as level); taking off with R2 full she climbs about 2.5 m.
+- **Items 32–38 are still the owner's to play** (the rack, the ladder delay, the auto-parachute, the keypad ramp, the shadow range). Item 35 narrows the owner's rule "the keypad ramp doesn't stop for her": flagged in [`interaction.md`](../features/interaction.md).
+- **Next: pass 5** (see-through: items 11, 13, 14, 15): plan drafted, *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions).
+- **Tuning-panel switches that compare against decided things** (raised 2026-10-14, the owner's call): *collision boxes* and *indoors: moves the way the stick points* (both approved in item 30; the first's comment names a `colliders.ts` that's gone); *bulkheads cut as a whole* (probably moot with *bulkheads always visible*: for pass 5).
 - `export:crew` not run since its collection name came back.
-- **Then pass 5** (see-through: items 11, 13, 14, 15): plan drafted, *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions).
 
 ## Waiting on the owner
 

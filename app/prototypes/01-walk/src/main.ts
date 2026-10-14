@@ -307,8 +307,8 @@ async function start(): Promise<void> {
     // Above the ground she's on the ship (its ramps, before she's "inside"): the ground is flat for now.
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
-    // Flying by Part 1's rule the camera's pitch steers her, so it may go below her; by R2 it doesn't.
-    view.update(dt, input, character.root.position, inside, character.flying && character.flyTrigger === null);
+    // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
+    view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
     // The jetpack's glow, at its nozzles as the animation left them, facing the camera.
     exhaust.update(dt, character.jetpack, character.flying || character.parachuting, character.flyTrigger, view.camera);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
@@ -367,7 +367,7 @@ function easeTo(value: number, target: number, step: number): number {
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers) · B/◯ interact · Start/Options pause · View: tuning\n' +
+    'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · B/◯ interact · Start/Options pause · View: tuning\n' +
     'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · ` tuning\n' +
     'Ladders: walk into the foot; push toward the ladder to climb, away to climb down; at the top, push back or sideways to step off\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';

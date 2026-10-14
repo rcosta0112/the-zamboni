@@ -138,7 +138,7 @@ A *fifth pass* section in [`see-through-rules.md`](features/see-through-rules.md
 
 ### Pass 6b: hovering on an analog R2 (gamepad only), and the flying animation
 
-*Status: approved 2026-10-14 ("let's follow your suggestion"; plus: detect whether R2 is analog or digital, and a digital one flies keyboard style); built the same day.*
+*Status: approved 2026-10-14 ("let's follow your suggestion"; plus: detect whether R2 is analog or digital, and a digital one flies keyboard style); built the same day. **Superseded 2026-10-14** by item 39, [the jetpack with momentum](features/jetpack-hover-and-flight.md): R2's hover bands and the analog/digital detection stay; the stick now drifts her while hovering and thrusts her into flight, and Space and a digital R2 count as R2 held fully.*
 
 > **[Agent note]** As built: R2 is analog once a value between 0 and 1 has been seen from that pad (until then, digital). Added while building: **on the ground only the climb band takes off**, and descending onto the ground lands her: half-way on the ground with the stick pushed would otherwise skim the ground at fly speed. The camera's below-her exception applies only to Part 1's rule. Checked with made-up pads (no controller in the test browser): hover drift 0 at 36%, 50% and 64%; smoke checks for the analog and digital cases. What exists: the prototype README, *Jetpack*.
 

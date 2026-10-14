@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-14 | The jetpack with momentum: hover, flight, glide, skid | feature | Her horizontal speed picks hover (R2 sets her height) or flight (thrust where the stick points, forward where the camera looks); R2 let go at speed she glides; jet off on the ground at speed she skids. Replaces pass 6b's R2 rule and Part 1's flight rule |
 | 2026-10-14 | The jetpack's exhaust glow: the halo painted in, no bloom | look | Part 1's glow (a particle made big by bloom) as one additive sprite per nozzle with the halo drawn into it; bloom stays for later |
 | 2026-10-14 | The auto-parachute: the jetpack slows a long fall | feature | After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking (0.5 s and about 2.85 m up on the minimum fall since the update; longer and higher for longer falls); she lands at 2 m/s |
 | 2026-10-14 | The jetpack is taken from the rack; the player's model comes from the ship file | feature | She takes a jetpack from the cargo hold's rack and puts it back there; she flies only while wearing one, and can jump with it; her model is exported from the ship file's `Player` collection at the crew file's scale |
@@ -39,6 +40,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-14] — The jetpack with momentum: hover, flight, glide, skid (feature)
+
+**Context:** on the controller, flying forward she kept climbing (owner, 2026-10-14). That was pass 6b's rule: an analog R2 set her height and the stick only moved her level; Space and a digital R2 flew by Part 1's rule (one speed along her facing, tilted by the camera; at rest she rose; letting go she fell from a standstill). The owner wanted two modes, hovering and flying where the camera points, chosen by her horizontal speed rather than by the stick, then simplified it: momentum "similar to the ship in Asteroids", a glide when R2 is let go, a skid on the ground.
+**Decision (owner, 2026-10-14, the agent's recommendations on the details):** while the jet is on she has a velocity. **Slow, she hovers**: R2 sets her height (pass 6b's bands), the stick's first 60 % drifts her up to 1.5 m/s, past that it thrusts. **Fast, she flies**: from 4 m/s, thrust (12 m/s²) where the stick points, forward where the camera looks, and a drag that holds her top speed at 20 m/s; she leaves flight only below 1.5 m/s with the stick eased off, so reversals don't lift her. **R2 let go** at more than her run speed, she glides (speed falls off, part of gravity cancelled by her speed, a slower fall), then falls; the stick does nothing. **Jet off on the ground at speed** she skids to a stop; off a ledge she glides again. Jet on, the ground slows her a little. **Space and a digital R2** count as R2 held fully. The tuning panel's other R2 modes (*acceleration*, *Part 1's rule*) are gone.
+**Alternatives considered:** R2 sets the height and the stick only steers (pass 6b: the climbing complaint); Part 1's rule on the pad (no hover); a blend by the speed she's heading for, without momentum (the agent's first two drafts); braking by pulling back mid-glide (dropped with the Asteroids model).
+**Rationale:** one velocity makes reversals, coasting, the glide and the skid follow from one rule instead of special cases; hovering stays precise near things; no damage in the game, so skids and drops are free to be fun.
+**Status:** Built 2026-10-14 ([`features/interaction.md`](features/interaction.md#flying); plan: [`plans/features/jetpack-hover-and-flight.md`](plans/features/jetpack-hover-and-flight.md)). **Done** (owner, 2026-10-14: "no issues"). Two things found while building: in flight up and down follow the camera more tightly than the drag (else a hover climb carried her 3 m on up), and a wall takes her speed only after three blocked steps (Rapier's controller now and then stops her for a step or two on open ground).
 
 ## [2026-10-14] — The jetpack's exhaust glow: the halo painted in, no bloom (look)
 

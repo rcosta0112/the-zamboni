@@ -127,6 +127,17 @@ Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)).
 - *Wearing a jetpack* in the tuning panel (*Jetpack*) moves the same state; the rack follows it (switched on, the first jetpack goes). She starts without one.
 - On Part 1's model (tuning panel) nothing shows or hides: its jetpack is part of the model. The flying rule is the same.
 
+### Flying
+
+Built 2026-10-14 (item 39; [plan](../plans/features/jetpack-hover-and-flight.md)). **The jetpack with momentum** (owner: "similar to the ship in Asteroids"). While the jet is on (R2 or Space held) there's no gravity and she has a velocity that carries over. **Her horizontal speed picks the mode**, with a 0.3 s handover:
+- **Hover** (slow): R2 sets her height: below 5 % the jet is off, then descend, hold (the middle third) and climb, up to 5 m/s, eased at 6 m/s². The stick's first 60 % drifts her up to 1.5 m/s in its direction (no momentum: precise near things); past that it thrusts. On the ground only R2's climb band takes off.
+- **Flight**: from 4 m/s, until she's back under 1.5 m/s with the stick in its drift range, so a reversal through zero stays in flight. Thrust (12 m/s² at a full push) where the stick points, forward being where the camera looks, its pitch included; a drag holds her top speed at 20 m/s (Part 1's fly speed). Up and down follow the camera's aim more tightly than the drag (2/s), so a climb left from hovering doesn't carry her on up: taking off into flight she climbs about 2.5 m. R2's depth doesn't matter. Below 1 m a dive levels off; touching the ground costs her 4 m/s² and she flies on. Turning 90° at full speed takes an arc about 33 m across; pulling fully back stops her in about 1.2 s; the stick let go, she coasts back into hover in about 4 s. She faces the stick while it's pushed, her motion while she coasts. The camera may go below her (-40°) in flight only, eased with the handover.
+- **R2 let go: the glide.** The jet cuts out at once and she keeps her velocity. Faster than her run, she glides: her speed falls off by 3 m/s², and on the way down part of gravity is cancelled by her speed (0.7 of it at top speed) and her fall is held to 6 m/s at top speed (12 m/s at her run speed). The stick does nothing. At her run speed the glide is over and she falls as without a jetpack; let go while hovering, she just falls. From 20 m/s, 10 m up: about 2 s and 35 m.
+- **The skid:** on the ground faster than her run with the jet off (a glide that lands, or letting go while skimming the ground), she slides along her motion, losing 15 m/s², to a stop: no steering, no steps, shown standing. Off a ledge, she glides again. There's no damage in the game (owner).
+- **Space and a digital R2** count as R2 held fully: with the stick at rest she climbs at 5 m/s (Part 1's rise).
+- **Walls** take away the part of her velocity that goes into them, after three steps of being blocked (Rapier's controller now and then stops her for a step or two on open ground when she's pressed into it at speed).
+- **Tuning panel** (*Jetpack*): top speed, thrust, up/down following the camera, the flight and drift speeds, the stick's drift range, the drift's acceleration and deceleration, the handover, the lowest flight, the ground drag, the glide's three values, the skid, and R2's band and speeds.
+
 ### The auto-parachute
 
 Built 2026-10-14 (item 34; [plan](../plans/features/auto-parachute.md)). **After a fall of 5.5 m or more** (a bit under the ship's 6.5 m), **the jetpack she wears fires by itself near the ground** and she lands at 2 m/s (owner).

@@ -26,18 +26,41 @@ export const settings = {
   // She wears a jetpack: taken from the cargo hold's rack, or switched here (the rack follows).
   // Shows it on her back, hides her little backpack, moves her hood out of its way; she can fly.
   wearingJetpack: false,
-  // Jetpack (held: Space, R1), Part 1's values (PlayerMovement.cs, Main.unity): fly speed 20 m/s;
-  // with the stick at rest she rises at a quarter of it; speeds up by 0.1 per frame (6 m/s² at
-  // 60 fps) and slows down 20 times as fast (120 m/s²). No gravity while flying.
+  // The jetpack (held: R2, Space), with momentum (owner, 2026-10-14: "similar to the ship in
+  // Asteroids"; plan: doc/plans/features/jetpack-hover-and-flight.md). No gravity while it's on.
+  // Hover, while she's slow: R2 sets her height (below), and the stick's first hoverStickShare of
+  // its travel sets a drift of up to hoverDriftSpeed, eased in and out at flyAcceleration and
+  // flyDeceleration (Part 1's 6 and 120 m/s²); past that share it thrusts. Flight, from cruiseSpeed
+  // until she's back under hoverDriftSpeed with the stick in its drift share: thrust (flyThrust
+  // times the push) where the stick points, forward being where the camera looks, and a drag that
+  // holds her top speed at flySpeed (Part 1's fly speed). The handover takes flightBlendTime.
   flySpeed: 20,
-  flyRiseShare: 0.25,
+  flyThrust: 12,
   flyAcceleration: 6,
   flyDeceleration: 120,
-  // While flying the camera can go below her, so she can fly upward (Part 1's camera could go
-  // 1.3 m under her). Not Part 1's: on the ground, a flight that points down lifts her off instead.
+  hoverDriftSpeed: 1.5,
+  cruiseSpeed: 4,
+  hoverStickShare: 0.6,
+  flightBlendTime: 0.3,
+  // In flight her vertical speed follows the camera's aim this fast (share of the gap per second):
+  // tighter than the drag, so a climb left from hovering doesn't carry her on up.
+  flyVerticalFollow: 2,
+  // In flight the camera can go below her, so she can fly upward (Part 1's camera could go
+  // 1.3 m under her).
   cameraMinPitchFlyingDeg: -40,
-  // ...and below this height (m) a flight pointing down levels off, so she doesn't skim the ground.
+  // In flight, below this height (m) a dive levels off, so she doesn't skim the ground; touching it
+  // with the jet on costs her this much speed (m/s²).
   flyLowest: 1.0,
+  flyGroundDrag: 4,
+  // The jet cut out (R2 let go) faster than her run speed: she glides. Her speed falls off by
+  // glideDrag (m/s²); on the way down glideLift of gravity is cancelled at fly speed (less as she
+  // slows), and her fall is held to glideSink (m/s) at fly speed, up to twice that at her run speed,
+  // where the glide ends.
+  // On the ground at speed with the jet off she skids, losing skidFriction (m/s²), to a stop.
+  glideDrag: 3,
+  glideLift: 0.7,
+  glideSink: 6,
+  skidFriction: 15,
   // The auto-parachute (owner, 2026-10-14): after a fall of at least parachuteMinDrop (a bit under
   // the ship's 6.5 m), the jetpack she wears fires by itself near the ground and slows her to
   // parachuteLandingSpeed (from 15 cm above the ground). On a fall of exactly that drop it brakes for parachuteBurst seconds (at
@@ -50,12 +73,10 @@ export const settings = {
   parachuteLandingSpeed: 2,
   parachuteBurst: 0.5,
 
-  // Gamepad with an analog R2 (owner, 2026-10-14; a digital one, or Space, flies by Part 1's rule).
-  // 'speed': the trigger sets her vertical speed: off below flyTriggerOff, descending in the lower
-  // third, hovering in the middle third, climbing in the upper third; the stick flies her
-  // horizontally. 'acceleration': the trigger sets her vertical acceleration (the middle third
-  // flat) with a drag so she settles. 'part1': as Space.
-  padFlyMode: 'speed' as 'speed' | 'acceleration' | 'part1',
+  // Hovering, R2 sets her vertical speed (owner, 2026-10-14): off below flyTriggerOff, descending
+  // in the lower third, holding her height in the middle third, climbing in the upper third, eased
+  // at flyVerticalAcceleration. A digital R2, or Space, counts as R2 held fully (climbing at
+  // flyClimbSpeed, Part 1's rise). In flight R2's depth doesn't matter.
   flyTriggerOff: 0.05,
   hoverLow: 0.33,
   hoverHigh: 0.67,
@@ -64,8 +85,6 @@ export const settings = {
   flyClimbSpeed: 5, // Part 1's rise: a quarter of fly speed
   flyDescendSpeed: 5,
   flyVerticalAcceleration: 6, // Part 1's acceleration
-  flyTriggerAcceleration: 10, // 'acceleration' mode: at the trigger's ends (m/s²)
-  flyVerticalDrag: 1.5, // 'acceleration' mode: share of her vertical speed lost per second
   // The jet sound's level and pitch follow the trigger (a way to hear the hover band).
   jetSoundFollowsTrigger: true,
   // At the trigger's bottom: level (share of full) and speed; at its top, full level and this speed.

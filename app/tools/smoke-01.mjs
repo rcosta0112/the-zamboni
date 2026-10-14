@@ -59,6 +59,9 @@ async function checks() {
     character.position.copy(p);
     character.verticalVelocity = 0;
     character.speed = 0;
+    character.velocity.set(0, 0, 0);
+    character.gliding = false;
+    character.skidding = false;
   };
   /** The camera's yaw that makes "forward" (W) this direction on the ground. */
   const yawToward = (dx, dz) => Math.atan2(-dx, -dz);
@@ -437,9 +440,9 @@ async function checks() {
     const rose = character.position.y - ground;
     const soundFlying = jet();
     const glowFlying = w.__exhaust.shown;
-    // Up to the rise speed at the jetpack's acceleration, then steady.
-    const rise = settings.flySpeed * settings.flyRiseShare;
-    const expected = rise * (1.5 - rise / (2 * settings.flyAcceleration));
+    // Space is R2 held fully: up to the climb speed at the vertical acceleration, then steady.
+    const rise = settings.flyClimbSpeed;
+    const expected = rise * (1.5 - rise / (2 * settings.flyVerticalAcceleration));
     key('Space', false);
     const fell = await until(() => character.grounded && !character.flying, 6000);
     report(character.flying === false && rose > expected * 0.8 && fell, 'the jetpack: held, she rises; let go, she falls back', `rose ${rose.toFixed(2)} m in 1.5 s (about ${expected.toFixed(2)} expected); back on the ground: ${fell}`);
@@ -462,9 +465,10 @@ async function checks() {
     view.yaw = yawToward(centre.x - character.position.x, 0);
     view.pitch = 0;
     character.facing = view.yaw; // faced first, or she sets off in an arc (from wherever the last check left her)
-    // Up to about 4 m first: lower down, the hull's side curves in under its widest point.
+    // Up a little first (taking off into flight she climbs on to about 3.5 m): lower down, the hull's
+    // side curves in under its widest point; much higher (5 m) she slides up it and over the roof.
     key('Space', true);
-    await wait(1300);
+    await wait(300);
     key('KeyW', true);
     await wait(2500);
     const chest = character.position.clone();
@@ -479,7 +483,7 @@ async function checks() {
     report(landed && character.position.y > ship.upperFloorY + 2, 'onto the ship\'s roof', `stands at ${fmt(character.position)}`);
 
     // An analog R2 (a made-up pad): 90% climbs, 50% holds her height, 20% descends, released she
-    // lands; the flying clip plays while she flies. A digital trigger flies by Part 1's rule.
+    // lands; the flying clip plays while she flies. A digital trigger flies as Space.
     put(new T.Vector3(hull.max.x + 10, 0.05, centre.z));
     await until(() => character.grounded, 3000);
     let padId = 'smoke analog pad', rt = 0;
@@ -499,7 +503,7 @@ async function checks() {
     const drift = character.position.y - hoverFrom;
     rt = 0.2;
     await wait(800);
-    const descending = character.verticalVelocity;
+    const descending = character.velocity.y;
     rt = 0;
     const down = await until(() => character.grounded && !character.flying, 8000);
     await wait(500);
@@ -511,7 +515,110 @@ async function checks() {
     rt = 0;
     await until(() => character.grounded, 8000);
     navigator.getGamepads = realPads;
-    report(digital.flying && digital.trigger === null, 'a digital R2 flies by Part 1\'s rule', `flying: ${digital.flying}; trigger read as analog: ${digital.trigger !== null}`);
+    report(digital.flying && digital.trigger === null, 'a digital R2 flies as Space', `flying: ${digital.flying}; trigger read as analog: ${digital.trigger !== null}`);
+
+    // Item 39, the jetpack with momentum (an analog pad, outdoors, flying away from the ship):
+    // hover, flight, a reversal, coasting, the glide, the skid, the jet on the ground, letting go
+    // while hovering.
+    {
+      const pad = { axes: [0, 0, 0, 0], rt: 0 };
+      navigator.getGamepads = () => [{ id: 'smoke momentum pad', connected: true, mapping: 'standard', axes: pad.axes,
+        buttons: Array.from({ length: 17 }, (_, i) => (i === 7 ? { pressed: pad.rt > 0.12, value: pad.rt } : { pressed: false, value: 0 })) }];
+      // Forward on the stick, -1..1, as the input sees it after its dead zone.
+      const stick = (f) => { pad.axes = [0, f === 0 ? 0 : -Math.sign(f) * (settings.stickDeadZone + Math.abs(f) * (1 - settings.stickDeadZone)), 0, 0]; };
+      const hs = () => Math.hypot(character.velocity.x, character.velocity.z);
+      const frames = async (ms, each) => { const t0 = performance.now(); while (performance.now() - t0 < ms) { each(); await new Promise(requestAnimationFrame); } };
+      const n = (x) => x.toFixed(2);
+      const start = async (dx) => {
+        pad.rt = 0; stick(0);
+        await wait(100);
+        put(new T.Vector3(hull.max.x + dx, 0.05, centre.z));
+        await until(() => character.grounded && !character.flying && !character.skidding, 4000);
+        view.yaw = yawToward(1, 0); view.pitch = 0; character.facing = view.yaw;
+        await wait(200);
+      };
+      pad.rt = 0.5; await wait(100); pad.rt = 0; await wait(100); // shows the pad as analog
+
+      await start(10);
+      pad.rt = 0.9; await wait(900);
+      pad.rt = 0.5; await wait(1200);
+      stick(0.4);
+      let drift = 0, dy = 0; const y1 = character.position.y;
+      await frames(2000, () => { drift = Math.max(drift, hs()); dy = Math.max(dy, Math.abs(character.position.y - y1)); });
+      report(drift <= settings.hoverDriftSpeed + 0.05 && dy < 0.1 && !character.inFlight, 'the jetpack hovers: R2 half-way holds her height, a part push drifts her',
+        `drift up to ${n(drift)} m/s (at most ${settings.hoverDriftSpeed}); height moved ${n(dy)} m over 2 s; in flight: ${character.inFlight}`);
+
+      pad.rt = 1; stick(1);
+      await wait(2000);
+      const y2 = character.position.y; const flying2 = character.inFlight && character.flightShare === 1; let dy2 = 0;
+      await frames(1500, () => { dy2 = Math.max(dy2, Math.abs(character.position.y - y2)); });
+      report(flying2 && dy2 < 1, 'pushing on into flight: level with the camera level (she no longer climbs)', `in flight: ${flying2} at ${n(hs())} m/s; height moved ${n(dy2)} m over 1.5 s`);
+
+      await wait(1500);
+      const vx = character.velocity.x; const y3 = character.position.y; let dy3 = 0, left = false;
+      stick(-1);
+      await frames(3500, () => { dy3 = Math.max(dy3, Math.abs(character.position.y - y3)); if (!character.inFlight) left = true; });
+      report(vx > 10 && character.velocity.x < -3 && !left && dy3 < 0.5, 'a reversal keeps her momentum, stays in flight and level',
+        `${n(vx)} → ${n(character.velocity.x)} m/s along x; left flight: ${left}; height moved ${n(dy3)} m`);
+
+      stick(0);
+      const t4 = performance.now();
+      const hovered = await until(() => !character.inFlight, 9000);
+      report(hovered && performance.now() - t4 < 7000, 'stick let go in flight: she coasts back into hover', `hovering after ${n((performance.now() - t4) / 1000)} s`);
+
+      await start(14);
+      pad.rt = 1; await wait(2300);
+      pad.rt = 0.5; await wait(1000);
+      pad.rt = 1; stick(1); await wait(4500);
+      const g0 = { x: character.position.x, y: character.position.y, speed: hs() };
+      pad.rt = 0; // the stick, still held forward, does nothing
+      let glided = false, over = 0, landX = null, landSpeed = null, skidded = false, stopX = null; const speeds = []; const tg = performance.now();
+      await frames(7000, () => {
+        if (character.gliding) {
+          glided = true;
+          const held = Math.min(1, Math.max(0, (hs() - character.runSpeed()) / (settings.flySpeed - character.runSpeed())));
+          over = Math.max(over, -character.velocity.y - settings.glideSink * (2 - held));
+        }
+        if (character.skidding) skidded = true;
+        speeds.push([performance.now() - tg, hs()]);
+        if (landX === null && character.grounded) { landX = character.position.x; landSpeed = hs(); }
+        if (skidded && stopX === null && !character.skidding) stopX = character.position.x;
+      });
+      stick(0);
+      const s1 = speeds.find(([t]) => t > 500), s2 = speeds.find(([t]) => t > 1500);
+      const lost = s1 && s2 ? (s1[1] - s2[1]) / ((s2[0] - s1[0]) / 1000) : NaN;
+      report(glided && Math.abs(lost - settings.glideDrag) < 1 && over < 0.5 && landX - g0.x > 30, 'R2 let go at speed: she glides, losing momentum, falling gently',
+        `from ${n(g0.y)} m up at ${n(g0.speed)} m/s: lost ${n(lost)} m/s per s (setting ${settings.glideDrag}); fell faster than allowed by ${n(over)} m/s; covered ${landX === null ? '?' : n(landX - g0.x)} m`);
+      const skid = landSpeed === null ? NaN : (landSpeed * landSpeed) / (2 * settings.skidFriction);
+      report(skidded && stopX !== null && Math.abs(stopX - landX - skid) < 1.5, 'landing from the glide, she skids to a stop',
+        `landed at ${landSpeed === null ? '?' : n(landSpeed)} m/s; skidded ${stopX === null ? '?' : n(stopX - landX)} m (about ${n(skid)} expected)`);
+
+      await start(10);
+      const lowest = settings.flyLowest;
+      settings.flyLowest = 0; // so she stays on the ground
+      view.pitch = 0.5;
+      pad.rt = 1; stick(1);
+      await wait(3500);
+      let contact = 0, all = 0;
+      const v7 = hs();
+      await frames(1500, () => { all++; if (character.grounded) contact++; });
+      settings.flyLowest = lowest;
+      view.pitch = 0;
+      report(contact > all / 2 && character.inFlight && hs() > v7 - 1, 'the jet on, skimming the ground: it slows her a bit, she flies on',
+        `on the ground ${contact} of ${all} frames; ${n(v7)} → ${n(hs())} m/s; in flight: ${character.inFlight}`);
+
+      await start(10);
+      pad.rt = 0.9; await wait(900);
+      pad.rt = 0.5; await wait(800);
+      pad.rt = 0;
+      await wait(100);
+      const gliding = character.gliding;
+      const fell = await until(() => character.grounded, 4000);
+      report(!gliding && fell, 'R2 let go while hovering: she just falls', `glided: ${gliding}; landed: ${fell}`);
+      pad.rt = 0; stick(0);
+      await wait(200);
+      navigator.getGamepads = realPads;
+    }
   }
   settings.wearingJetpack = false;
 

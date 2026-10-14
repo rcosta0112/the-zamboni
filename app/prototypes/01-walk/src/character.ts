@@ -1,9 +1,11 @@
 // Placeholder character: a 1.8 m capsule with a "nose" showing which way it faces.
 // Movement follows Part 1's controller: camera-relative input, accelerate to walk/run speed,
 // decelerate to a stop, turn smoothly toward the input, move along the facing direction.
-// The jetpack, as in Part 1: while it's held there's no gravity; with the stick pushed she flies
-// where the camera points (up and down included), at rest she rises straight up. Letting go, she
-// falls. No visuals, sound or animation yet. Plan: doc/plans/backlog-passes.md (pass 6).
+// The jetpack, with momentum (owner, 2026-10-14, "similar to the ship in Asteroids"): while it's on
+// there's no gravity and she has a velocity. Slow, she hovers (R2 sets her height, the stick drifts
+// her); fast, she flies (thrust where the stick points, forward being where the camera looks).
+// Letting go at speed she glides, losing momentum; on the ground at speed with the jet off she
+// skids to a stop. Plan: doc/plans/features/jetpack-hover-and-flight.md.
 // After a long fall, the jetpack she wears fires by itself near the ground (the auto-parachute).
 
 import * as THREE from 'three/webgpu';
@@ -37,12 +39,25 @@ export class Character {
   floating = 0;
   /** The jetpack is held (and worn: `settings.wearingJetpack`). */
   flying = false;
-  /** The way she flies (unit, world space); her speed is `speed`. */
-  readonly flyDirection = new THREE.Vector3(0, 1, 0);
-  /** Flying by an analog R2: how far it's pressed (0..1); null otherwise (Part 1's rule). */
+  /** Her velocity (world, m/s) while the jet is on, and while she glides or skids after. */
+  readonly velocity = new THREE.Vector3();
+  /** The jet is on and she's in flight (thrust where the stick points), not hovering. */
+  inFlight = false;
+  /** How far the handover from hover to flight has gone, 0..1 (over `flightBlendTime`). */
+  flightShare = 0;
+  /**
+   * Flying by an analog R2: how far it's pressed (0..1), going to 1 as she goes into flight (for the
+   * jet's sound and glow); null otherwise (Space, a digital R2: R2 held fully).
+   */
   flyTrigger: number | null = null;
-  /** Flying by R2, in the hover band (its edges widen once she's in it). */
+  /** Hovering by R2, in the hover band (its edges widen once she's in it). */
   hovering = false;
+  /** The jet cut out at speed: she glides on her momentum. */
+  gliding = false;
+  /** On the ground at speed with the jet off: she slides to a stop. */
+  skidding = false;
+  /** Steps in a row her move has been blocked (`moveBy`). */
+  private blocked = 0;
   /** The auto-parachute is firing: the jetpack slows a long fall near the ground. */
   parachuting = false;
   /** The top of the current fall: where she last stood, climbed or flew (world y). */
@@ -93,7 +108,8 @@ export class Character {
     const current = settings.showModel ? this.models[settings.characterModel] : undefined;
     this.capsule.visible = !current;
     for (const m of Object.values(this.models)) m.object.visible = m === current;
-    current?.update(dt, this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed(), this.flying || this.parachuting);
+    // Skidding, she's shown standing (there's no skid clip yet).
+    current?.update(dt, this.skidding ? 0 : this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed(), this.flying || this.parachuting);
   }
 
   /**
@@ -114,24 +130,22 @@ export class Character {
     const my = input.move.y;
     const amount = Math.min(1, Math.hypot(mx, my));
 
-    // By an analog R2, on the ground only the climb band takes off; descending onto the ground lands
-    // her (she walks, rather than skimming the ground at fly speed while hovering).
-    const byTrigger = input.flyTrigger !== null && settings.padFlyMode !== 'part1';
-    const takesOff = !byTrigger || !this.grounded || input.flyTrigger! > settings.hoverHigh;
+    // Space and a digital R2 count as R2 held fully.
+    const trigger = input.flyTrigger ?? 1;
+    // Hovering, on the ground only R2's climb band takes off; descending onto the ground lands her
+    // (she walks, rather than skimming the ground). In flight R2's depth doesn't matter.
+    const takesOff = !this.grounded || this.inFlight || trigger > settings.hoverHigh;
     // Only with a jetpack on (taken from the rack); jumping doesn't need one.
     if (input.flyHeld && takesOff && settings.wearingJetpack) {
       this.parachuting = false;
-      this.fly(dt, input, cameraYaw, cameraPitch, amount, physics);
+      this.jet(dt, input, trigger, cameraYaw, cameraPitch, amount, physics);
       return;
     }
-    if (this.flying) {
-      // Let go (Part 1): she falls from a standstill, and carries on the way she faces at the speed
-      // she had, which slows to her run.
-      this.flying = false;
-      this.flyTrigger = null;
-      this.hovering = false;
-      this.verticalVelocity = 0;
-      this.heading.set(-Math.sin(this.facing), 0, -Math.cos(this.facing));
+    if (this.flying) this.letGo();
+    if (this.gliding || this.skidding) {
+      input.consumeJump(); // no jumping out of a glide or a skid
+      this.coast(dt, physics);
+      return;
     }
 
     if (amount > 0.01) {
@@ -209,84 +223,71 @@ export class Character {
   }
 
   /**
-   * One fixed step with the jetpack held: Part 1's rule (PlayerMovement.cs). One speed, as on the
-   * ground (a run carries into the flight). With the stick pushed she turns as she does on foot and
-   * flies along her facing, tilted by the camera's pitch, speeding up to fly speed. With the stick
-   * at rest she slows down the way she was going, then rises straight up at a quarter of fly speed.
+   * One fixed step with the jet on (owner, 2026-10-14). No gravity; her velocity carries over. Two
+   * modes, picked by her horizontal speed, with an eased handover (`flightShare`):
+   * - **Hover** (slow): R2 sets her vertical speed (lower third descends, middle third holds, upper
+   *   third climbs), which she eases toward. The stick's first `hoverStickShare` of its travel sets
+   *   a drift of up to `hoverDriftSpeed`; past it, it thrusts.
+   * - **Flight** (from `cruiseSpeed`, until she's back under the drift speed with the stick in its
+   *   drift share, so a reversal through zero stays in flight): thrust where the stick points
+   *   (forward: where the camera looks, its pitch included), and a drag that holds her top speed at
+   *   `flySpeed`. Below `flyLowest` a dive levels off.
+   * She faces the stick while it's pushed, and her motion while she coasts.
    */
-  private fly(dt: number, input: Input, cameraYaw: number, cameraPitch: number, amount: number, physics: Physics | null): void {
-    if (input.flyTrigger !== null && settings.padFlyMode !== 'part1') {
-      this.flyByTrigger(dt, input, cameraYaw, amount, input.flyTrigger, physics);
-      return;
+  private jet(dt: number, input: Input, trigger: number, cameraYaw: number, cameraPitch: number, amount: number, physics: Physics | null): void {
+    const v = this.velocity;
+    if (!this.flying && !this.gliding && !this.skidding) {
+      // From the walk: its speed and fall carry over (a glide or a skid already has its velocity).
+      const direct = this.indoors && settings.indoorDirectMove;
+      v.set(
+        (direct ? this.heading.x : -Math.sin(this.facing)) * this.speed,
+        this.verticalVelocity,
+        (direct ? this.heading.z : -Math.cos(this.facing)) * this.speed,
+      );
     }
-    this.flyTrigger = null;
     this.flying = true;
+    this.gliding = false;
+    this.skidding = false;
     this.floating = 0;
-    this.verticalVelocity = 0;
 
+    const hs = Math.hypot(v.x, v.z);
+    const share = settings.hoverStickShare;
+    if (!this.inFlight && hs > settings.cruiseSpeed) this.inFlight = true;
+    else if (this.inFlight && hs < settings.hoverDriftSpeed && amount <= share) this.inFlight = false;
+    const blend = dt / Math.max(0.01, settings.flightBlendTime);
+    this.flightShare = THREE.MathUtils.clamp(this.flightShare + (this.inFlight ? blend : -blend), 0, 1);
+    const w = smoothstep(this.flightShare);
+    this.flyTrigger = input.flyTrigger === null ? null : THREE.MathUtils.lerp(trigger, 1, w);
+
+    // The stick on the ground, relative to the camera (length: how far it's pushed), and as a unit.
+    const stick = moveDirection(input, cameraYaw, direction);
+    const ux = amount > 0 ? stick.x / amount : 0;
+    const uz = amount > 0 ? stick.z / amount : 0;
     if (amount >= 0.1) {
-      const { x: dirX, z: dirZ } = moveDirection(input, cameraYaw, direction);
-      this.heading.set(dirX, 0, dirZ).normalize();
-      [this.facing, this.turnVelocity] = smoothDampAngle(this.facing, Math.atan2(-dirX, -dirZ), this.turnVelocity, settings.turnSmoothTime, dt);
-      const target = settings.flySpeed * amount;
-      this.speed = this.speed < target ? Math.min(target, this.speed + settings.flyAcceleration * dt) : Math.max(target, this.speed - settings.flyDeceleration * dt);
-      const cp = Math.cos(cameraPitch);
-      this.flyDirection.set(-Math.sin(this.facing) * cp, -Math.sin(cameraPitch), -Math.cos(this.facing) * cp);
-      // Not Part 1's: near the ground a flight that points down levels off, and from the ground it
-      // lifts her off, so pushing forward flies instead of skimming the ground at fly speed.
-      if (this.flyDirection.y < LIFT && physics) {
-        lift.copy(this.position).y += 0.05;
-        const below = physics.ray(lift, DOWN, settings.flyLowest + 0.05);
-        if (below) {
-          const share = 1 - THREE.MathUtils.clamp((below.distance - 0.05) / settings.flyLowest, 0, 1);
-          this.flyDirection.y = Math.max(this.flyDirection.y, LIFT * share);
-          this.flyDirection.normalize();
-        }
-      }
-    } else {
-      const rise = settings.flySpeed * settings.flyRiseShare;
-      if (this.speed <= rise + 1e-6) {
-        this.speed = Math.min(rise, this.speed + settings.flyAcceleration * dt);
-        this.flyDirection.set(0, 1, 0);
-      } else this.speed = Math.max(0, this.speed - settings.flyDeceleration * dt);
+      [this.facing, this.turnVelocity] = smoothDampAngle(this.facing, Math.atan2(-ux, -uz), this.turnVelocity, settings.turnSmoothTime, dt);
+    } else if (hs > settings.hoverDriftSpeed) {
+      [this.facing, this.turnVelocity] = smoothDampAngle(this.facing, Math.atan2(-v.x, -v.z), this.turnVelocity, settings.turnSmoothTime, dt);
     }
 
-    const desired = flyStep.copy(this.flyDirection).multiplyScalar(this.speed * dt);
-    if (physics) {
-      physics.move(desired);
-      this.position.copy(physics.feet);
-      this.grounded = physics.grounded;
-      this.movedSpeed = Math.hypot(physics.moved.x, physics.moved.z) / dt;
+    // Hover, horizontally: drift toward the stick's speed, or thrust past its drift share.
+    let hx: number;
+    let hz: number;
+    if (amount > share) {
+      const thrust = (settings.flyThrust * (amount - share)) / Math.max(0.01, 1 - share);
+      hx = ux * thrust;
+      hz = uz * thrust;
     } else {
-      this.position.add(desired);
-      if (this.position.y < 0) this.position.y = 0;
-      this.grounded = this.position.y <= 0;
-      this.movedSpeed = this.speed;
+      const drift = (settings.hoverDriftSpeed * amount) / Math.max(0.01, share);
+      const dx = ux * drift - v.x;
+      const dz = uz * drift - v.z;
+      const d = Math.hypot(dx, dz);
+      const most = (drift >= hs ? settings.flyAcceleration : settings.flyDeceleration) * dt;
+      const k = d > most ? most / d : 1;
+      hx = (dx * k) / dt;
+      hz = (dz * k) / dt;
     }
-  }
-
-  /**
-   * One fixed step flying by an analog R2 (owner, 2026-10-14): the stick flies her horizontally (at
-   * fly speed, turning as on foot); the trigger alone sets her height. 'speed' mode: the trigger
-   * gives a vertical speed (lower third descends, middle third hovers, upper third climbs), which
-   * she eases toward. 'acceleration' mode: it gives a vertical acceleration (the middle third
-   * none), with a drag so she settles.
-   */
-  private flyByTrigger(dt: number, input: Input, cameraYaw: number, amount: number, trigger: number, physics: Physics | null): void {
-    this.flying = true;
-    this.floating = 0;
-    this.flyTrigger = trigger;
-
-    if (amount >= 0.1) {
-      const { x: dirX, z: dirZ } = moveDirection(input, cameraYaw, direction);
-      this.heading.set(dirX, 0, dirZ).normalize();
-      [this.facing, this.turnVelocity] = smoothDampAngle(this.facing, Math.atan2(-dirX, -dirZ), this.turnVelocity, settings.turnSmoothTime, dt);
-      const target = settings.flySpeed * amount;
-      this.speed = this.speed < target ? Math.min(target, this.speed + settings.flyAcceleration * dt) : Math.max(target, this.speed - settings.flyDeceleration * dt);
-    } else this.speed = Math.max(0, this.speed - settings.flyDeceleration * dt);
-
-    // The trigger's shape, -1..1: 0 across the hover band (wider once she's in it), smooth ramps
-    // from its edges to the trigger's ends.
+    // Hover, vertically: R2's shape, -1..1: 0 across the hover band (wider once she's in it), smooth
+    // ramps from its edges to the trigger's ends.
     const widen = this.hovering ? settings.hoverHysteresis : 0;
     const low = settings.hoverLow - widen;
     const high = settings.hoverHigh + widen;
@@ -294,40 +295,147 @@ export class Character {
     const shape =
       trigger < low ? -smoothstep((low - trigger) / Math.max(0.01, low - settings.flyTriggerOff)) :
       trigger > high ? smoothstep((trigger - high) / Math.max(0.01, 1 - high)) : 0;
-    let vy = this.verticalVelocity;
-    if (settings.padFlyMode === 'acceleration') {
-      vy += shape * settings.flyTriggerAcceleration * dt;
-      vy -= vy * Math.min(1, settings.flyVerticalDrag * dt);
-    } else {
-      const target = shape > 0 ? shape * settings.flyClimbSpeed : shape * settings.flyDescendSpeed;
-      const change = settings.flyVerticalAcceleration * dt;
-      vy = vy < target ? Math.min(target, vy + change) : Math.max(target, vy - change);
+    const wantedVy = shape > 0 ? shape * settings.flyClimbSpeed : shape * settings.flyDescendSpeed;
+    const vyChange = settings.flyVerticalAcceleration * dt;
+    const hy = (THREE.MathUtils.clamp(wantedVy - v.y, -vyChange, vyChange)) / dt;
+
+    // Flight: thrust along the stick, forward tilted by the camera's pitch, and a drag that holds her
+    // top speed at fly speed. Vertically she follows the camera's aim more tightly (a climb left
+    // from hovering doesn't carry her on up), at the speed that thrust would give.
+    const cp = Math.cos(cameraPitch);
+    const fx = -Math.sin(cameraYaw);
+    const fz = -Math.cos(cameraYaw);
+    const thrust = settings.flyThrust;
+    const drag = thrust / Math.max(0.1, settings.flySpeed);
+    const my = input.move.y;
+    const mx = input.move.x;
+    const ax = (fx * cp * my + Math.cos(cameraYaw) * mx) * thrust - v.x * drag;
+    const az = (fz * cp * my - Math.sin(cameraYaw) * mx) * thrust - v.z * drag;
+    let ay = (-Math.sin(cameraPitch) * my * settings.flySpeed - v.y) * settings.flyVerticalFollow;
+    // Not Part 1's: near the ground a dive levels off (and from the ground she lifts off), so pushing
+    // forward flies instead of skimming the ground.
+    if (w > 0 && physics) {
+      lift.copy(this.position).y += 0.05;
+      const below = physics.ray(lift, DOWN, settings.flyLowest + 0.05);
+      if (below) {
+        const near = 1 - THREE.MathUtils.clamp((below.distance - 0.05) / Math.max(0.01, settings.flyLowest), 0, 1);
+        ay = Math.max(ay, 0) + (near * thrust) / LIFT;
+        if (v.y < 0) ay -= v.y * LEVEL_OFF * near;
+      }
     }
 
-    const direct = this.indoors && settings.indoorDirectMove;
-    const desired = flyStep.set(
-      (direct ? this.heading.x : -Math.sin(this.facing)) * this.speed * dt,
-      vy * dt,
-      (direct ? this.heading.z : -Math.cos(this.facing)) * this.speed * dt,
-    );
+    v.x += THREE.MathUtils.lerp(hx, ax, w) * dt;
+    v.z += THREE.MathUtils.lerp(hz, az, w) * dt;
+    v.y += THREE.MathUtils.lerp(hy, ay, w) * dt;
+    this.moveBy(dt, physics);
+    // Touching the ground with the jet on costs her some speed, no more.
+    if (this.grounded) slow(v, settings.flyGroundDrag * dt);
+    this.speed = Math.hypot(v.x, v.z);
+    this.verticalVelocity = v.y;
+  }
+
+  /**
+   * The jet cuts out (R2 or Space let go). Faster than her run she glides, or skids if she's on the
+   * ground; slower, she falls as she does without a jetpack, from the speed she had.
+   */
+  private letGo(): void {
+    const v = this.velocity;
+    this.flying = false;
+    this.inFlight = false;
+    this.flightShare = 0;
+    this.flyTrigger = null;
+    this.hovering = false;
+    this.speed = Math.hypot(v.x, v.z);
+    this.verticalVelocity = v.y;
+    if (this.speed > 0.01) this.heading.set(v.x, 0, v.z).normalize();
+    else this.heading.set(-Math.sin(this.facing), 0, -Math.cos(this.facing));
+    if (this.speed > this.runSpeed()) {
+      if (this.grounded) this.skidding = true;
+      else this.gliding = true;
+    }
+  }
+
+  /**
+   * One fixed step of a glide or a skid, with the jet off: she goes the way her momentum takes her
+   * (the stick does nothing), facing it. Gliding, her speed falls off by `glideDrag`, and on the way
+   * down part of gravity is cancelled and her fall held back, both by her speed. Skidding, it falls
+   * off by `skidFriction`. A glide that lands skids; a skid off a ledge glides again. Down to her run
+   * speed (a glide) or to a stop (a skid), she's back to the walk's rule.
+   */
+  private coast(dt: number, physics: Physics | null): void {
+    const v = this.velocity;
+    const run = this.runSpeed();
+    let hs = Math.hypot(v.x, v.z);
+    if (hs > 0.01) {
+      [this.facing, this.turnVelocity] = smoothDampAngle(this.facing, Math.atan2(-v.x, -v.z), this.turnVelocity, settings.turnSmoothTime, dt);
+    }
+    slow(v, (this.skidding ? settings.skidFriction : settings.glideDrag) * dt);
+    hs = Math.hypot(v.x, v.z);
+    if (this.gliding && v.y < 0) {
+      // The fastest fall: glideSink at fly speed, up to twice that at her run speed (where the glide
+      // ends). Falling faster already (a dive let go), she's eased back to it.
+      const held = THREE.MathUtils.clamp((hs - run) / Math.max(0.01, settings.flySpeed - run), 0, 1);
+      const fastest = settings.glideSink * (2 - held);
+      const within = v.y >= -fastest;
+      v.y -= settings.gravity * (1 - settings.glideLift * THREE.MathUtils.clamp(hs / settings.flySpeed, 0, 1)) * dt;
+      if (within) v.y = Math.max(v.y, -fastest);
+      else v.y += (-fastest - v.y) * Math.min(1, SINK_EASE * dt);
+    } else v.y -= settings.gravity * dt;
+    this.verticalVelocity = v.y;
+    this.parachute(dt, physics);
+    v.y = this.verticalVelocity;
+    this.moveBy(dt, physics);
+    hs = Math.hypot(v.x, v.z);
+
+    // A glide that lands skids; a skid off a ledge glides again.
+    if (this.grounded !== this.skidding && (this.gliding || this.skidding)) {
+      this.skidding = this.grounded;
+      this.gliding = !this.grounded;
+    }
+    if (this.gliding && hs <= run) this.gliding = false;
+    if (this.skidding && hs < SKID_STOP) {
+      this.skidding = false;
+      v.x = 0;
+      v.z = 0;
+      hs = 0;
+    }
+    this.speed = hs;
+    this.verticalVelocity = v.y;
+    if (hs > 0.01) this.heading.set(v.x, 0, v.z).normalize();
+  }
+
+  /**
+   * Moves her by her velocity for one step. What she runs into takes away that part of it (sliding
+   * along a wall she keeps the rest); on the ground she isn't falling, and against a ceiling she
+   * isn't climbing.
+   */
+  private moveBy(dt: number, physics: Physics | null): void {
+    const v = this.velocity;
+    const desired = flyStep.copy(v).multiplyScalar(dt);
     if (physics) {
       physics.move(desired);
       this.position.copy(physics.feet);
       this.grounded = physics.grounded;
-      // On the ground, or her head against something: that way she isn't moving.
-      if (this.grounded && vy < 0) vy = 0;
-      if (vy > 0 && physics.moved.y < desired.y * 0.5) vy = 0;
-      this.movedSpeed = Math.hypot(physics.moved.x, physics.moved.z) / dt;
+      const moved = physics.moved;
+      // Only a real block counts: the controller's small corrections on the ground would add up, and
+      // pressed into the ground at speed it now and then stops her for a step or two on open ground.
+      // A wall blocks her position all the same; it takes her speed once it has for BLOCK_STEPS.
+      const bx = Math.abs(moved.x) < Math.abs(desired.x) * BLOCKED;
+      const bz = Math.abs(moved.z) < Math.abs(desired.z) * BLOCKED;
+      this.blocked = bx || bz ? this.blocked + 1 : 0;
+      if (this.blocked >= BLOCK_STEPS) {
+        if (bx) v.x = moved.x / dt;
+        if (bz) v.z = moved.z / dt;
+      }
+      if (v.y > 0 && moved.y < desired.y * 0.5) v.y = 0;
+      this.movedSpeed = Math.hypot(moved.x, moved.z) / dt;
     } else {
       this.position.add(desired);
-      if (this.position.y <= 0) {
-        this.position.y = 0;
-        vy = Math.max(0, vy);
-      }
+      if (this.position.y < 0) this.position.y = 0;
       this.grounded = this.position.y <= 0;
-      this.movedSpeed = this.speed;
+      this.movedSpeed = Math.hypot(v.x, v.z);
     }
-    this.verticalVelocity = vy;
+    if (this.grounded && v.y < 0) v.y = 0;
   }
 
   /**
@@ -377,6 +485,9 @@ export class Character {
     this.speed = 0;
     this.movedSpeed = 0;
     this.verticalVelocity = 0;
+    this.velocity.set(0, 0, 0);
+    this.gliding = false;
+    this.skidding = false;
     this.floating = 0;
     this.grounded = true;
     physics?.teleport(feet);
@@ -419,8 +530,27 @@ function parachuteBraking(): number {
   const v = (-b + Math.sqrt(b * b - 4 * (b * vl - 2 * g * settings.parachuteMinDrop))) / 2;
   return Math.max(1, (v - vl) / t);
 }
-/** Near the ground, a flight is tilted up by at least this much (vertical share of its direction). */
+/** Near the ground in flight, the lift is the thrust over this (at the ground itself). */
 const LIFT = 0.5;
+/** ...and a dive loses this share of its downward speed per second (at the ground itself). */
+const LEVEL_OFF = 8;
+/** A glide falling faster than it may: the share of the excess lost per second. */
+const SINK_EASE = 4;
+/** Moved less than this share of the way asked for, along an axis: something blocked her there. */
+const BLOCKED = 0.9;
+/** ...for this many steps in a row (fewer: the controller's glitch on open ground). */
+const BLOCK_STEPS = 3;
+/** A skid is over below this speed (m/s). */
+const SKID_STOP = 0.3;
+
+/** Takes `by` off a velocity's horizontal speed (not below 0), keeping its direction. */
+function slow(v: THREE.Vector3, by: number): void {
+  const h = Math.hypot(v.x, v.z);
+  if (h <= 0) return;
+  const k = Math.max(0, h - by) / h;
+  v.x *= k;
+  v.z *= k;
+}
 
 /**
  * The stick or keys as a direction on the ground (world space, length = how far it's pushed,
