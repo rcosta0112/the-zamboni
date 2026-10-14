@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-14 | The start button is the template for every game UI button | design | `Button.svelte` in `packages/ui`, as drawn in the mockup's *Start Button*: new buttons use it, not a copy |
 | 2026-10-13 | The start screen: the design system's first code, the fonts in the repo | design | The start screen is Svelte, on tokens and two components in `packages/ui`; both fonts are files in the repo; Part 1's soundtrack plays on that screen only |
 | 2026-10-13 | Materials made with nodes are baked by the export | pipeline | What the glTF exporter can't follow (ramps, mixes, procedural textures before the colour, glow or alpha) is baked to an image by the export scripts; the blend file keeps its nodes |
 | 2026-10-13 | Placeholder audio; licensing put off | scope | The UE prototype's sounds are in the game as placeholders; licensing isn't raised until a production-ready build |
@@ -35,6 +36,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-14] — The start button is the template for every game UI button (design)
+
+**Context:** the start button's pressed state was reworked with the owner (2026-10-14) until it read as a physical button: the mockup's *Start Button* (Figma, "The Zamboni", node 21-2), whole pixels, and no flash while the body moves down.
+**Decision:** "Let's save it as the template for all future buttons on the game UI" (owner). Every button in the game's UI is `Button.svelte` from `packages/ui`, with its look and its states as they are now ([`design/README.md`](design/README.md#components), [`design/start-screen.md`](design/start-screen.md#the-button)). What varies (size, label) becomes props; the states don't.
+**Alternatives considered:** a button per screen, styled on its own: drifts apart, and every one would need the same pixel and timing fixes.
+**Rationale:** one component keeps the feel the owner approved everywhere, and fixes made once apply to every button.
+**Status:** Decided. The size is fixed to the start button's (226 × 55) until a second button needs another.
 
 ## [2026-10-13] — The start screen: the design system's first code, the fonts in the repo (design)
 
@@ -181,7 +190,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Update (2026-10-12): a door that a keypad controls isn't offered itself** (owner: the side door opens only from its panel). The cargo ramp already worked this way. Built in pass 1.
 
-**Update (2026-10-12): the prompt sits next to the target, instead of the highlight** (owner). The prompt is placed on screen beside the target's bounds, kept inside the screen's edges. The highlight is off by default; its slider stays until the owner has seen the prompt, then it goes with its shader code. Built in pass 1.
+**Update (2026-10-12): the prompt sits next to the target, instead of the highlight** (owner). The prompt is placed on screen beside the target's bounds, kept inside the screen's edges. The highlight is off by default; its slider stays until the owner has seen the prompt, then it goes with its shader code. Built in pass 1. *Update (2026-10-14):* the owner approved the prompt; the highlight's slider and shader code are removed.
 
 **Update (2026-10-12): the roof hatch is one target** (owner). `Top Hatch` and `Top Hatch Bottom` were two doors; now aiming at either shows one prompt and one press moves both. The pair is listed in the code for now; a tag (`opensWith`) at the next export. Built in pass 1.
 

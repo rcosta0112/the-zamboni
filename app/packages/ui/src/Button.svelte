@@ -1,7 +1,8 @@
 <!--
   A button: an outlined base with an outlined body standing a little above it. The states follow
-  Eigodojo's AnswerButton (default, hover, active: the body goes down onto the base), in the
-  Zamboni mockup's colours: white outlines, white tints for the fills. There's no disabled state
+  Eigodojo's AnswerButton (default, hover, active), in the Zamboni mockup's colours: white
+  outlines, a white tint for hover. Active as drawn in the Zamboni mockup (*Start Button*): the
+  base's outline goes and the body comes down to the bottom, with no fill. There's no disabled state
   yet: nothing shows a button that can't be used.
   `highlighted`: it looks hovered (the control a gamepad or the keyboard is on). `pressed`: it
   looks pressed (a gamepad button or a key is using it; the mouse does that by itself).
@@ -27,11 +28,11 @@
     position: relative;
     display: block;
     box-sizing: border-box;
-    width: calc(226 * var(--ui-unit));
-    height: calc(55 * var(--ui-unit));
+    /* Whole pixels, so the outlines are crisp. */
+    width: round(calc(226 * var(--ui-unit)), 1px);
+    height: round(calc(55 * var(--ui-unit)), 1px);
     margin: 0;
     padding: 0;
-    overflow: clip;
     border: var(--line) solid var(--color-white);
     border-radius: var(--radius-control);
     background: none;
@@ -52,7 +53,8 @@
     border: var(--line) solid var(--color-white);
     border-radius: var(--radius-control);
     transition:
-      translate var(--time-press) ease-out,
+      top var(--time-press) ease-out,
+      bottom var(--time-press) ease-out,
       background-color var(--time-press) ease-out;
   }
 
@@ -61,9 +63,25 @@
     background-color: var(--color-fill-hover);
   }
 
+  /* Pressed (the mockup's *Star Button Active*): the base's outline goes, and the body, the same
+     size, comes down to the bottom, leaving the background showing above it. No fill. Placed by its
+     insets, not a transform: the browser rounds both to the same pixels, so the bottom lines of
+     the two states fall on the same row (a transformed body was a pixel off at some scales). */
+  /* The base's bottom stays (the body's bottom line lands on it), and its top and sides go only
+     when the body has landed: gone at once, they left the bottom edge without a line while the
+     body moved (a flash). Released, the outline is back at once. */
+  .button:active,
+  .button.pressed {
+    border-top-color: transparent;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    transition: border-color 0s var(--time-press);
+  }
+
   .button:active .body,
   .button.pressed .body {
-    translate: 0 var(--control-depth);
-    background-color: var(--color-fill-active);
+    top: var(--control-depth);
+    bottom: calc(-1 * var(--line));
+    background-color: transparent;
   }
 </style>

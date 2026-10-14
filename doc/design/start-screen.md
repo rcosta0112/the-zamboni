@@ -17,7 +17,7 @@ Everything is placed on the mockup's 1440 × 1024 frame, and the frame is scaled
 | Background | The mockup's blue image (`start-background.png`, a soft gradient), stretched over the window; over it the line pattern (`start-pattern.png`, a 600 px tile), added to the blue at 24 %. The mockup's third layer (a radial gradient at 0 %) is left out |
 | *Big Moon Tiny Moon* | Afacad Regular 36, white, letters 10.8 apart, centred, above the title |
 | *The Zamboni* | Digital Desolation Plus 96, white, a little above the middle. Behind it a blurred copy in `#26a3ca` at 50 % (2 right, 9 down); over it a 1 px white outline of the same text at 59 % (6 right, 8 down) |
-| Bar, then button | 226 × 55, 163 under the title's centre. **Centred**: in the mockup it's 17 px left of the title's centre, which looked like a slip |
+| Bar, then button | 226 × 55, 163 under the title's centre. **Centred**: in the mockup it's 17 px left of the title's centre, which looked like a slip. **Snapped to whole pixels**, position and size (owner, 2026-10-14), so its 1 px outlines are crisp at any window size; the lip (2 px) and the outlines (1 px) don't scale |
 
 **The 3D view isn't shown**: the screen covers it, and the tuning panel is hidden until the game starts.
 
@@ -29,10 +29,10 @@ A white outline with no fill; inside it a second outlined box, the *body*, stand
 |---|---|---|---|
 | Default | Body up, a darker lip under it | As the mockup | The mouse is somewhere else |
 | Hover | The body a shade darker; a hand cursor | The body filled white at 14 %; a hand cursor | The mouse is on it, **or no mouse has moved**: with a gamepad or the keyboard, the one button is the one they're on |
-| Pressed | The body down on the lip | The body 2 px down, filled white at 26 % | Held with the mouse; for 0.12 s when a key or a gamepad button uses it |
+| Pressed | The body down on the lip | As the Zamboni mockup's [*Start Button*](https://www.figma.com/design/3x6wVCPPBUmzOp6IucXxsh/The-Zamboni?node-id=21-2) (owner, 2026-10-14): the outer outline goes, the body (same size) comes down to the bottom, leaving 3 px of background above it; no fill. The outer outline's bottom stays (the body lands on it) and its top and sides go only once the body has landed (0.06 s), so the bottom edge never loses its line on the way down | Held with the mouse; for 0.12 s when a key or a gamepad button uses it |
 | Disabled | Grey, down, smaller text | Not made | While loading the button isn't there at all |
 
-The two fills are the agent's proposal: the mockup has only white and the blues, and Eigodojo's hover is "a little darker", which on an unfilled button became "a little filled".
+The hover fill is the agent's proposal: the mockup has only white and the blues, and Eigodojo's hover is "a little darker", which on an unfilled button became "a little filled".
 
 **Using it:** a click or a touch, Enter, Space, or **any gamepad button**. A click also captures the mouse, as clicking the view does. The button makes a click (`ui_click`), the screen fades out over 0.6 s, and the game runs from that moment.
 

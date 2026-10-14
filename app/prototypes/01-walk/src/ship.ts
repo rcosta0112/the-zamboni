@@ -1,7 +1,8 @@
 // The Zamboni: exterior, cargo bay and the large interior elements (walls, bunks, couch, galley,
 // cockpit seats and consoles, engineering benches...), landed a few metres from the start.
 // Exported by app/tools/export-ship.py and compressed with Meshopt: the ship, and its collider
-// (`zamboni_col`, positions only) in a separate file. Everything gets the see-through hull except
+// (`zamboni_col`, positions only) in a separate file, with the collision boxes as objects of their
+// own (`*_col` objects tagged `reach: "through"`; they stop her, the reach test passes through them). Everything gets the see-through hull except
 // what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear.
 // Objects tagged `structure: true` are cut by the hole; the rest is furniture (visibility.ts), with
 // exceptions tagged `seeThrough: "keep"` and `divider: true`. The cargo ramp ("Door Cargo") is a separate
@@ -24,6 +25,8 @@ const SHIP_URL = '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 /** The ladder whose collision is switched off while she's above it (ladders.ts). */
 const LADDER = 'Ladder Cargo Bay';
+/** The ship's collider in its file; every other mesh there is a collision box. */
+const COLLIDER = 'zamboni_col';
 const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 
@@ -32,6 +35,10 @@ const RAMP_SECONDS = 1.5; // time to open or close
 export interface Ship {
   object: THREE.Object3D;
   collider: THREE.Mesh;
+  /** The collision boxes (every mesh in the collider file but the collider): shown with the colliders. */
+  boxes: THREE.Mesh[];
+  /** Their colliders, once added. */
+  boxColliders: { count: number; setEnabled: (on: boolean) => void } | null;
   ramp: THREE.Object3D;
   /** Hinge angle (radians) at which the ramp is closed: 0 if the file has it closed. */
   rampClosedAngle: number;
@@ -97,10 +104,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
     mesh.castShadow = !isProp(mesh, object);
     mesh.receiveShadow = true;
   });
-  let collider: THREE.Mesh | null = null;
+  const meshes: THREE.Mesh[] = [];
   colGltf.scene.traverse((o) => {
-    if ((o as THREE.Mesh).isMesh) collider = o as THREE.Mesh;
+    if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh);
   });
+  const collider = meshes.find((m) => named(m, COLLIDER)) ?? null;
+  const boxes = meshes.filter((m) => m !== collider);
   if (!collider) throw new Error(`${COLLIDER_URL} has no mesh`);
   if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
@@ -118,6 +127,11 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   const rampDoor: THREE.Object3D = ramp;
   col.material = new THREE.MeshBasicNodeMaterial({ color: 0xff3366, wireframe: true });
   col.visible = false;
+  const boxMaterial = new THREE.MeshBasicNodeMaterial({ color: 0x33ddff, wireframe: true });
+  for (const box of boxes) {
+    box.material = boxMaterial;
+    box.visible = false;
+  }
 
   scene.add(object);
   object.updateMatrixWorld(true);
@@ -174,6 +188,8 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   const ship: Ship = {
     object,
     collider: col,
+    boxes,
+    boxColliders: null,
     ramp: rampNode,
     rampClosedAngle,
     rampOpenAngle,
@@ -193,6 +209,15 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   scene.add(ship.shadowCaster, ship.glassShadowCaster);
   updateShip(ship, 0, true);
   return ship;
+}
+
+/**
+ * The collision boxes' colliders: added after everything that measures the ship with rays (the
+ * ladders, the ramp's walkway), as each box is convex and the rays would stop at it.
+ */
+export function addCollisionBoxes(ship: Ship, physics: Physics): void {
+  if (ship.boxes.length === 0) console.warn("[01-walk] the ship's collider file has no collision boxes");
+  ship.boxColliders = physics.addStaticConvex(ship.boxes, false);
 }
 
 /**
@@ -312,6 +337,8 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
  */
 export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pusher): void {
   ship.collider.visible = settings.showColliders;
+  for (const box of ship.boxes) box.visible = settings.showColliders && settings.collisionBoxes;
+  ship.boxColliders?.setEnabled(settings.collisionBoxes);
   ship.glassShadowCaster.castShadow = !settings.sunThroughGlass;
   if (pusher) updateAutoDoors(ship.doors, pusher.feet(), settings.zamboniHeight);
   for (const door of ship.doors) door.update(dt, force, pusher);

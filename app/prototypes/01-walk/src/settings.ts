@@ -84,7 +84,6 @@ export const settings = {
   // Interaction: point (the screen centre) at something within her reach and press E / Circle.
   interactReach: 1.0, // m, from her chest to the object's bounds
   interactMaxAngleDeg: 30, // how far from the screen centre a target may be
-  highlight: 0, // the target's lift toward white (0 = no highlight: the prompt sits at the target instead)
   doorSeconds: 0.6, // to open or close a door
   slideSeconds: 0.3, // the same for a sliding door (bulkhead doors, the engineering window, its lever)
   leverDelay: 0.6, // the window starts this long after its lever is used (s): the lever is heard first

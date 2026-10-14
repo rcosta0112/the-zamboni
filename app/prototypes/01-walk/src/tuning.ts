@@ -82,7 +82,6 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   const interact = gui.addFolder('Interaction');
   interact.add(settings, 'interactReach', 0.3, 3, 0.05).name('reach (m)');
   interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre (°)');
-  interact.add(settings, 'highlight', 0, 1, 0.05).name('highlight (0 = off)');
   interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');
   interact.add(settings, 'slideSeconds', 0.1, 3, 0.05).name('sliding door time (s)');
   interact.add(settings, 'leverDelay', 0, 2, 0.05).name('window after its lever (s)');

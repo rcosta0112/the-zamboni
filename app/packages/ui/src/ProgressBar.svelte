@@ -21,8 +21,9 @@
   .bar {
     position: relative;
     box-sizing: border-box;
-    width: calc(226 * var(--ui-unit));
-    height: calc(55 * var(--ui-unit));
+    /* Whole pixels, as the button it gives way to. */
+    width: round(calc(226 * var(--ui-unit)), 1px);
+    height: round(calc(55 * var(--ui-unit)), 1px);
     overflow: clip;
     border: var(--line) solid var(--color-white);
     border-radius: var(--radius-control);

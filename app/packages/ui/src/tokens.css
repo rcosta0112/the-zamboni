@@ -36,9 +36,9 @@
   --font-text: 'Afacad', sans-serif;
 
   /* Shape */
-  --radius-control: calc(8.393 * var(--ui-unit));
+  --radius-control: calc(8 * var(--ui-unit));
   --line: max(1px, var(--ui-unit)); /* outlines: never thinner than a pixel */
-  --control-depth: calc(2.05 * var(--ui-unit)); /* how far a button's body stands above its base */
+  --control-depth: calc(2 * var(--ui-unit)); /* how far a button's body stands above its base */
 
   /* Motion */
   --time-press: 60ms;

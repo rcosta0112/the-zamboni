@@ -44,7 +44,9 @@ It does what is derived from the scene:
   big props as their convex hulls (not those tagged ``collider: "none"``); and every ``*_col``
   object in the file, whatever collection it's in (the bulkheads' pieces,
   the boxes under the hull). A decimated collider closed openings (the cargo door), so it isn't
-  decimated.
+  decimated. ``*_col`` objects tagged ``reach: "through"`` (the collision boxes in front of the
+  crew quarters' walls and furniture) are left out of it and go into the same file as objects of
+  their own, under their own names: they stop her, but the game's reach test passes through them.
 - Reports every double-sided material ("PERF:"), as the pipeline requires; nothing is forced.
 - Materials whose colour, glow or alpha is made by nodes the glTF exporter can't follow are baked
   to images (bake_materials.py), written to a ``baked`` folder next to ``--out``; each is reported
@@ -278,9 +280,12 @@ def add_hull(target, mesh):
 bm = bmesh.new()
 hulls = []
 col_objects = [ob for ob in in_scene if ob.type == 'MESH' and ob.name.endswith('_col')]
+# Pieces tagged `reach: "through"` (the collision boxes) stay objects of their own: they stop
+# her, but the game's reach test passes through them.
+through = [ob for ob in col_objects if ob.get('reach') == 'through']
 for ob in objects + col_objects:
     how = ob.get('collider', 'mesh')
-    if ob in moving or how == 'none':
+    if ob in moving or ob in through or how == 'none':
         continue
     evaluated = ob.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
@@ -302,6 +307,9 @@ bm.free()
 col_mesh.materials.clear()  # one primitive, no materials: it's never rendered
 collider = bpy.data.objects.new('zamboni_col', col_mesh)
 bpy.context.scene.collection.objects.link(collider)
+# The collision boxes go into the same file as objects of their own (the game makes each a convex
+# collider: joined, boxes that touch would become one hull).
+colliders = [collider] + through
 
 for ob in objects + markers:
     for key in EXPORT_ONLY:
@@ -329,6 +337,6 @@ baked_materials = bake_node_materials(objects + props, os.path.join(os.path.dirn
 
 export(objects + props + markers, args.out, export_extras=True)
 # The collider: positions only (no normals, UVs or materials).
-export([collider], args.collider_out, export_normals=False, export_texcoords=False, export_materials='NONE')
+export(colliders, args.collider_out, export_normals=False, export_texcoords=False, export_materials='NONE')
 print('EXPORTED', args.out, args.collider_out)
-print(f'objects: {len(objects)}, props: {prop_count["big"]} big, {prop_count["small"]} small merged into {len(props) - len(big_props)} objects, lights: {len(markers)}, collision pieces: {len(col_objects)}, baked materials: {baked_materials}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')
+print(f'objects: {len(objects)}, props: {prop_count["big"]} big, {prop_count["small"]} small merged into {len(props) - len(big_props)} objects, lights: {len(markers)}, collision pieces: {len(col_objects)} ({len(through)} reach through), baked materials: {baked_materials}, collider triangles: {len(col_mesh.polygons)}, convex hulls: {hulls}')

@@ -2,7 +2,7 @@
 // "Pointing" in third person: of the targets within her reach (from her chest, not hidden behind
 // something solid), the one nearest the centre of the screen. No crosshair. A prompt next to the
 // target on screen names the action, with the button of the last device used (owner, 2026-10-12;
-// the highlight that came first is off by default).
+// the highlight that came first is gone, 2026-10-14).
 // Targets come from the ship file's tags: `interact: "open"` (doors), `interact: "use"` with
 // `controls: "<object name>"` (the keypads by the side door, the bulkhead doors' panels, the
 // engineering window's lever). A door that a device controls isn't offered itself (the side door,
@@ -24,7 +24,7 @@ import { settings } from './settings';
 export interface Interactable {
   /** A name for checks and logs. */
   name: string;
-  /** Its parts: for its bounds (all of them together), and the meshes to highlight. */
+  /** Its parts: for its bounds (all of them together). */
   objects: THREE.Object3D[];
   /** What pressing the button does, for the prompt ("Open", "Close"...). */
   verb: () => string;
@@ -174,8 +174,7 @@ export class Interaction {
   ) {}
 
   /**
-   * Per frame: pick the target, show the prompt next to it (and highlight it, if the highlight is
-   * on); act on a press.
+   * Per frame: pick the target, show the prompt next to it; act on a press.
    * @param chest her chest (world)
    */
   update(chest: THREE.Vector3, camera: THREE.Camera, device: Device, pressed: boolean): void {
@@ -207,11 +206,7 @@ export class Interaction {
         bestDistance = distance;
       }
     }
-    if (best !== this.target) {
-      if (this.target) for (const o of this.target.objects) setHighlight(o, 0);
-      if (best) for (const o of best.objects) setHighlight(o, 1);
-      this.target = best;
-    }
+    this.target = best;
     if (pressed && this.target) this.target.act();
     if (this.target) {
       this.prompt.textContent = `${GLYPH[device]}  ${this.target.verb()}`;
@@ -265,10 +260,4 @@ export class Interaction {
     this.promptAt.y = y;
     this.prompt.style.transform = `translate(${Math.round(x - w / 2)}px, ${Math.round(y - h / 2)}px)`;
   }
-}
-
-function setHighlight(object: THREE.Object3D, on: 0 | 1): void {
-  object.traverse((o) => {
-    if ((o as THREE.Mesh).isMesh) o.userData.highlight = on;
-  });
 }

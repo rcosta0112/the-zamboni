@@ -21,6 +21,10 @@ The same flow as Eigodojo:
 2. **Figma MCP + Claude Code** for automation: generating and updating Figma files, and turning Figma designs into code.
 3. **Code version:** the tokens and components in code, kept in step with Figma. Used by every prototype and the game.
 
+## Components
+
+- **The button: the template for every button in the game's UI** (owner, 2026-10-14). [`Button.svelte`](../../app/packages/ui/src/Button.svelte) in `packages/ui`, its states drawn in the Zamboni mockup's [*Start Button*](https://www.figma.com/design/3x6wVCPPBUmzOp6IucXxsh/The-Zamboni?node-id=21-2). An outlined base with an outlined body standing 2 px above its bottom edge; hover: the body filled white at 14 %; **pressed**: the body, the same size, comes down onto the base's bottom edge (3 px of background above it), no fill; the base's bottom line stays and its top and sides go only once the body has landed (no flash); released, back at once. Snapped to whole pixels, so the 1 px outlines are crisp. New buttons use this component (other sizes and labels as props), not a copy of it. Details: [`start-screen.md`](start-screen.md#the-button).
+
 ## Constraints from the docs
 
 - UI is Svelte 5 components rendering HTML/CSS over the 3D canvas ([`../architecture/stack.md`](../architecture/stack.md)).

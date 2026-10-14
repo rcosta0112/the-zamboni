@@ -37,14 +37,13 @@ const u = {
   waistY: uniform(0), // ...but only above this height (her waist)
   ownColour: uniform(1), // cut surface: 1 = the surface's own colour, darkened; 0 = backColor
   shade: uniform(0.35), // how much of its own colour the cut surface keeps
-  highlight: uniform(0.25), // how much the interaction target is lifted toward white
 };
 
 /**
  * Per object, set on each mesh's userData by visibility.ts, packed into one uniform (one update per
  * draw instead of four: per-object uniforms cost CPU time on every draw):
  * x = 1: cut like structure; y: furniture's fade (0 whole, 1 cut); z = 1: cut as a whole when it's
- * cut (dividers); w: 1 = not cut at all right now, + 2 = highlighted (the interaction target).
+ * cut (dividers); w = 1: not cut at all right now.
  */
 const perObject = uniform(new THREE.Vector4(1, 0, 0, 0)).onObjectUpdate(({ object }, self) => {
   const d = object?.userData;
@@ -52,14 +51,13 @@ const perObject = uniform(new THREE.Vector4(1, 0, 0, 0)).onObjectUpdate(({ objec
     (d?.cutStructure as number | undefined) ?? 1,
     (d?.cutFade as number | undefined) ?? 0,
     (d?.cutWhole as number | undefined) ?? 0,
-    ((d?.cutSolid as number | undefined) ?? 0) + ((d?.highlight as number | undefined) ?? 0) * 2,
+    (d?.cutSolid as number | undefined) ?? 0,
   );
 });
 const structure = perObject.x;
 const fade = perObject.y;
 const whole = perObject.z;
-const solid = mod(perObject.w, 2);
-const highlight = select(perObject.w.greaterThan(1.5), float(1), float(0));
+const solid = perObject.w;
 
 /** True where the pixel is kept. */
 const keep = (() => {
@@ -156,8 +154,7 @@ export function makeCuttable(mesh: THREE.Mesh): void {
     // Cast shadows from the back faces only, as a closed single-sided hull would.
     material.shadowSide = THREE.BackSide;
     const cutSurface = select(u.ownColour.greaterThan(0.5), materialColor.rgb.mul(u.shade), u.backColor.rgb);
-    const lifted = mix(materialColor.rgb, vec3(1, 1, 1), highlight.mul(u.highlight));
-    const surface = select(frontFacing, mix(lifted, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
+    const surface = select(frontFacing, mix(materialColor.rgb, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
     // A colour node without alpha is opaque: keep the alpha of the colour texture (the scanner's ray).
     material.colorNode = source.transparent && source.map ? vec4(surface, texture(source.map).a) : surface;
     material.maskNode = keep;
@@ -180,7 +177,6 @@ export interface CutawaySettings {
   waist: number; // m above her feet
   ownColour: boolean;
   shade: number; // 0..1
-  highlight: number; // 0..1, the interaction target's lift toward white
 }
 
 /**
@@ -203,5 +199,4 @@ export function updateCutaway(cameraPosition: THREE.Vector3, target: THREE.Vecto
   u.waistY.value = feetY + s.waist;
   u.ownColour.value = s.ownColour ? 1 : 0;
   u.shade.value = s.shade;
-  u.highlight.value = s.highlight;
 }

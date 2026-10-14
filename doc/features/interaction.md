@@ -31,7 +31,7 @@ The prompt shows the button of the last device used (◯ or E).
 
 **Doors that open together are one target:** the roof hatch's two parts (`Top Hatch`, `Top Hatch Bottom`). Aiming at either shows one prompt; one press moves both to the same state. Each part is tagged `opensWith: "<the other's name>"` in the ship file (since the export of 2026-10-12; until then the pair was listed in the code).
 
-**The highlight is off by default** (the *highlight* slider in the tuning panel, 0 = off): the target lifted toward white, the first version's feedback. The slider stays until the owner has seen the prompt; then it's removed with its shader code. It rides on the see-through hull's per-object uniform (its `w`: bit 0 = never cut, bit 1 = highlighted), so it costs no extra per-draw update.
+**No highlight:** the first version lifted the target toward white; the prompt replaced it, and the slider and its shader code were removed on 2026-10-14 (owner).
 
 ## Doors
 
@@ -153,7 +153,7 @@ From the ship file's custom properties (glTF extras). Since 2026-10-12 they're s
 
 ## Code
 
-In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place, highlight), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/tools/make-placeholder-sounds.mjs`](../../app/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
+In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/tools/make-placeholder-sounds.mjs`](../../app/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
 
 ## Open questions
 

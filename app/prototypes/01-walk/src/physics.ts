@@ -183,8 +183,7 @@ export class Physics {
   }
 
   /**
-   * A static box collider, axis-aligned in world space (the crew; the collision boxes); can be
-   * switched on and off.
+   * A static box collider, axis-aligned in world space (the crew); can be switched on and off.
    * @param solid false: it stops her, but `castRay` passes through it (a collision box stands in
    * front of things she can still see and use)
    */
@@ -197,16 +196,27 @@ export class Physics {
   }
 
   /**
-   * A static collider with a convex outline seen from above (`outline`: x, z pairs, world) from
-   * `bottom` to `top`: a box with a corner cut off. `solid` as for `addStaticBox`.
+   * Static convex colliders, one per mesh, in their current world position (the collision boxes):
+   * each mesh's convex hull. `solid` as for `addStaticBox`. Returns how many, and a switch for all.
    */
-  addStaticPrism(outline: [number, number][], bottom: number, top: number, solid = true): { setEnabled: (on: boolean) => void } {
-    const points = new Float32Array(outline.flatMap(([x, z]) => [x, bottom, z, x, top, z]));
-    const desc = RAPIER.ColliderDesc.convexHull(points);
-    if (!desc) throw new Error("Couldn't build a convex hull for a collision box");
-    const collider = this.world.createCollider(desc);
-    if (!solid) this.unseen.add(collider.handle);
-    return { setEnabled: (on) => collider.setEnabled(on) };
+  addStaticConvex(meshes: THREE.Mesh[], solid = true): { count: number; setEnabled: (on: boolean) => void } {
+    const v = new THREE.Vector3();
+    const colliders = meshes.map((mesh) => {
+      mesh.updateWorldMatrix(true, false);
+      const position = mesh.geometry.getAttribute('position');
+      const points = new Float32Array(position.count * 3);
+      for (let i = 0; i < position.count; i++) {
+        v.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
+        points.set([v.x, v.y, v.z], i * 3);
+      }
+      const desc = RAPIER.ColliderDesc.convexHull(points);
+      if (!desc) throw new Error(`Couldn't build a convex hull for "${mesh.name}"`);
+      const collider = this.world.createCollider(desc);
+      if (!solid) this.unseen.add(collider.handle);
+      return collider;
+    });
+    this.world.step();
+    return { count: colliders.length, setEnabled: (on) => colliders.forEach((c) => c.setEnabled(on)) };
   }
 
   /** A static triangle-mesh collider from world-space vertices; can be switched on and off. */

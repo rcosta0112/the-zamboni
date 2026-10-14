@@ -35,5 +35,6 @@ Scripts that changed the ship's reference file once, kept to show what was done.
 | [`tag-ship-pass4.py`](tag-ship-pass4.py) | Tagged the bulkhead doors, panels, window and lever, and closed the doors (2026-10-13) | [Bulkhead doors plan](../../doc/plans/features/bulkhead-doors.md) |
 | [`fit-bulkhead-doors.py`](fit-bulkhead-doors.py) | Closed the bulkhead doors' leaves edge to edge and into their frames (2026-10-13) | [Asset pipeline](../../doc/architecture/asset-pipeline.md#before-the-next-export) |
 | [`parent-polaroid.py`](parent-polaroid.py) | Made `Polaroid` a child of `Locker Door.003` (2026-10-13) | [Asset pipeline](../../doc/architecture/asset-pipeline.md#before-the-next-export) |
+| [`add-collision-boxes.py`](add-collision-boxes.py) | Added the ten collision boxes (`Box … _col`, `reach: "through"`) to `Game Collision` (2026-10-14) | [Asset pipeline](../../doc/architecture/asset-pipeline.md#export-proposed) |
 
 No new record script for a small change (owner, 2026-10-13): a line in the asset pipeline's checklist is enough.

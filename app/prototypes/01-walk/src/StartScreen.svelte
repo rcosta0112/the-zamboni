@@ -77,7 +77,8 @@
       <span class="face">The Zamboni</span>
       <span class="outline" aria-hidden="true">The Zamboni</span>
     </h1>
-    <div class="control">
+  </div>
+  <div class="control">
       {#if ready}
         <div class="slot" in:fade={{ duration: 300 }}>
           <Button {highlighted} {pressed} onclick={click}>START</Button>
@@ -87,7 +88,6 @@
           <ProgressBar value={progress} />
         </div>
       {/if}
-    </div>
   </div>
 </div>
 
@@ -169,14 +169,16 @@
     -webkit-text-stroke: var(--line) var(--color-white);
   }
 
-  /* Where the mockup's button is, but centred: there it's 17 px left of the title's centre. */
+  /* Where the mockup's button is, but centred: there it's 17 px left of the title's centre.
+     Outside the frame (centred by a transform, so at a fraction of a pixel) and snapped to whole
+     pixels, position and size, so its outlines are crisp: 674 is its top on the frame, 512 the
+     frame's middle. */
   .control {
     position: absolute;
-    left: 50%;
-    top: calc(674 * var(--ui-unit));
-    width: calc(226 * var(--ui-unit));
-    height: calc(55 * var(--ui-unit));
-    translate: -50% 0;
+    left: round(calc(50% - 113 * var(--ui-unit)), 1px);
+    top: round(calc(50% + (674 - 512) * var(--ui-unit)), 1px);
+    width: round(calc(226 * var(--ui-unit)), 1px);
+    height: round(calc(55 * var(--ui-unit)), 1px);
   }
 
   /* The bar going and the button coming are both there for a moment: one over the other. */

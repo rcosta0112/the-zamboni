@@ -311,7 +311,6 @@ async function checks() {
   }
 
   // --- The prompt next to the target (23) ------------------------------------------------------
-  report(settings.highlight === 0, 'the highlight is off by default', `highlight ${settings.highlight}`);
   if (rampPad && (await aimAt(rampPad))) {
     const onScreen = () => {
       const c = boxOf(rampPad).getCenter(new T.Vector3()).project(view.camera);

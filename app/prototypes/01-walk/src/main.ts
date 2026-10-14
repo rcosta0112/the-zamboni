@@ -13,14 +13,13 @@ import { loadModels } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
-import { createCollisionBoxes, type CollisionBoxes } from './colliders';
 import { createDoorSounds, motorSound, type Pusher } from './doors';
 import { Footsteps } from './footsteps';
 import { findDevice, Interaction, shipInteractables } from './interaction';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
-import { loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
+import { addCollisionBoxes, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import StartScreen from './StartScreen.svelte';
 import { Stats } from './stats';
@@ -72,7 +71,6 @@ async function start(): Promise<void> {
   let roomLights: RoomLights | null = null;
   let interaction: Interaction | null = null;
   let ladders: Ladders | null = null;
-  let collisionBoxes: CollisionBoxes | null = null;
   let boombox: Boombox | null = null;
   let doorSounds: (() => void) | null = null;
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
@@ -119,7 +117,7 @@ async function start(): Promise<void> {
       interaction = new Interaction(shipInteractables(s.object, s.doors, boombox ? [boombox.interactable] : [], (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
       ladders = new Ladders(shipLadders(s.object, physics, s.ladderColliders));
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
-      collisionBoxes = createCollisionBoxes(scene, physics);
+      addCollisionBoxes(s, physics);
       ship = s;
     })
     .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err))
@@ -134,7 +132,7 @@ async function start(): Promise<void> {
   let rungs = 0; // hands on the ladder's rungs so far
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => collisionBoxes, __audio: audio, __boombox: () => boombox, __footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
   gui.hide(); // until the start screen is gone: it would lie over it
@@ -317,7 +315,6 @@ async function start(): Promise<void> {
       waist: settings.furnitureWaist * settings.zamboniHeight,
       ownColour: settings.cutOwnColour,
       shade: settings.cutShade,
-      highlight: settings.highlight,
     });
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
@@ -325,7 +322,6 @@ async function start(): Promise<void> {
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);
-    collisionBoxes?.update();
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];
