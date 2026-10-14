@@ -52,6 +52,10 @@ const MADE = [
   ['sfx_ramp_stop', 0.7, `${noise(0)}*${hit(0, 8)}*0.3+sin(2*PI*70*t)*${hit(0, 22)}*0.7`, 'highpass=f=40,lowpass=f=3500'],
   // A hand on a rung: a light tap on metal, which rings for a moment.
   ...[[520, 1370], [560, 1290], [495, 1450]].map(([a, b], i) => [`sfx_ladder_grab_0${i + 1}`, 0.2, `${noise(0)}*${hit(0, 220)}*0.4+sin(2*PI*${a}*t)*${hit(0, 45)}*0.3+sin(2*PI*${b}*t)*${hit(0, 70)}*0.15`, 'highpass=f=200,lowpass=f=2600']),
+  // A jetpack off the rack and onto her back: a scrape of straps, then the buckle's metal clack.
+  ['sfx_jetpack_take', 0.45, `${noise(0)}*pow(sin(PI*clip(t/0.22,0,1)),2)*0.25+${noise(1)}*${hit(0.26, 160)}*0.45+sin(2*PI*1250*t)*${hit(0.26, 50)}*0.25+sin(2*PI*180*t)*${hit(0.26, 40)}*0.35`, 'highpass=f=120,lowpass=f=3800'],
+  // Back on the rack: the buckle undone, a short scrape, the weight onto its hooks.
+  ['sfx_jetpack_return', 0.45, `${noise(0)}*${hit(0, 170)}*0.4+sin(2*PI*1150*t)*${hit(0, 55)}*0.2+${noise(1)}*pow(sin(PI*clip((t-0.06)/0.16,0,1)),2)*0.2+sin(2*PI*130*t)*${hit(0.25, 35)}*0.6+${noise(2)}*${hit(0.25, 120)}*0.3`, 'highpass=f=80,lowpass=f=3200'],
   // The start button: a short, soft tick with a little body under it.
   ['ui_click', 0.12, `${noise(0)}*${hit(0, 320)}*0.3+sin(2*PI*1100*t)*${hit(0, 110)}*0.35+sin(2*PI*550*t)*${hit(0, 70)}*0.25`, 'highpass=f=250,lowpass=f=4500'],
 ];

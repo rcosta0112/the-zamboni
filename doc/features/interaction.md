@@ -97,6 +97,7 @@ Built 2026-10-13 ([plan](../plans/features/interaction-sounds.md)). **Placeholde
 | The lever | A lever being thrown (a recording the owner chose); no tones | When used (not while it or the window is moving: it isn't used then). **The window starts 0.6 s later** |
 | The cargo ramp, the side door | **An electric motor over the hiss of hydraulics** (owner), not loud; then the press letting its pressure go, and a thud | While it moves; when it reaches open or closed |
 | The ladder | A light tap on metal (three variations) | She takes hold; then every 0.35 m climbed |
+| The jetpack rack | Straps, then a buckle's clack; for putting back, the buckle, then the weight onto the hooks | Taking one; putting it back |
 
 - A door that stops against her and waits: the motor stops with it and starts again; the small doors make their closing sound only once closed.
 - Which sound a hinged door gets comes from what's already known of it, not a new tag: it opens down to the ground (a motor), its hinge stands upright (a latch) or lies flat (a hatch).
@@ -113,6 +114,16 @@ Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)).
 - **It shakes while a track plays**: a small random move and turn each frame (*boombox: vibration*, tuning panel; 0 = still). As in UE.
 - **The sound comes from the boombox** and falls off with distance, in a straight line: full within 1.5 m, silent at 12 m (*boombox: full within*, *silent at*). A guess: UE's values aren't readable. The distance is to the camera, not to her. A closed door doesn't muffle it.
 - **Not from UE:** the ring's *off* step (UE's `Stop` is most likely "stop and move to the next track"); what UE's `Random Integer` feeds isn't known, so nothing here is random but the shake.
+
+## The jetpack rack
+
+Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)). On the cargo hold's wall: two shelves (`Jetpack Rack`, `Jetpack Rack.001`) and three jetpacks with straps (`Jetpack.001`, `.002`, `.004`).
+
+- **Pointing at one, *Take jetpack*:** it disappears from the rack and she wears one. Hers (`Jetpack`, no straps) shows on her back, her little backpack (`Backpack.002`) hides, and the hood's shape key `jetpack` is on, so the hood clears it. **She can fly only while she wears one** (Space / R2). Jumping (C / Cross) works with or without it.
+- **While she wears one, only the empty spot is offered, *Put back jetpack*:** it reappears there and everything goes back (owner, 2026-10-14: taken off at the rack only).
+- Sounds: straps and a buckle, one for taking, one for putting back (placeholders: [Sounds](#sounds)).
+- *Wearing a jetpack* in the tuning panel (*Jetpack*) moves the same state; the rack follows it (switched on, the first jetpack goes). She starts without one.
+- On Part 1's model (tuning panel) nothing shows or hides: its jetpack is part of the model. The flying rule is the same.
 
 ## Ladders
 
@@ -149,11 +160,12 @@ From the ship file's custom properties (glTF extras). Since 2026-10-12 they're s
 - `interact: "use"`, `device: "panel"`, `controls: "<object name>"` on the keypads and the bulkhead doors' panels; `device: "lever"` on the window's lever panel. `controls` names one door: everything that opens with it moves too.
 - **A device's child that's tagged as a door is its handle** (the lever on its panel): it goes to its other position with what the device controls.
 - `opensWith: "<object name>"` on doors that open together (the roof hatch's parts, a bulkhead door's leaves, the window's halves).
+- `interact: "pickup"`, `device: "jetpack"` on the rack's jetpacks (set 2026-10-14). The export keeps every prop tagged `interact` as an object of its own, with these two tags.
 - Ladders are listed by name in the code for now. So is the boombox (`UNTAGGED` in `interaction.ts`), until the next export tags it `interact: "use"`, `device: "boombox"`.
 
 ## Code
 
-In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/tools/make-placeholder-sounds.mjs`](../../app/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
+In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`jetpack.ts`](../../app/prototypes/01-walk/src/jetpack.ts) (the rack; what she wears is in `model.ts`, flying only with one in `character.ts`), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/tools/make-placeholder-sounds.mjs`](../../app/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
 
 ## Open questions
 

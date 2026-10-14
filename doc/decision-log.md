@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-14 | The jetpack is taken from the rack; the player's model comes from the ship file | feature | She takes a jetpack from the cargo hold's rack and puts it back there; she flies only while wearing one, and can jump with it; her model is exported from the ship file's `Player` collection at the crew file's scale |
 | 2026-10-14 | The start button is the template for every game UI button | design | `Button.svelte` in `packages/ui`, as drawn in the mockup's *Start Button*: new buttons use it, not a copy |
 | 2026-10-13 | The start screen: the design system's first code, the fonts in the repo | design | The start screen is Svelte, on tokens and two components in `packages/ui`; both fonts are files in the repo; Part 1's soundtrack plays on that screen only |
 | 2026-10-13 | Materials made with nodes are baked by the export | pipeline | What the glTF exporter can't follow (ramps, mixes, procedural textures before the colour, glow or alpha) is baked to an image by the export scripts; the blend file keeps its nodes |
@@ -36,6 +37,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-14] — The jetpack is taken from the rack; the player's model comes from the ship file (feature)
+
+**Context:** the owner added Dr. Green with a jetpack to the ship file (a new collection, now `Player`): the same rig as the player's model from the crew file, plus a jetpack without straps and a shape key that lifts the hood clear of it. The ship's cargo hold already had a rack with three jetpacks (with straps). Until now she could fly anywhere without wearing anything.
+**Decision (owner):** she walks up to the rack and takes a jetpack: that one disappears from the rack, hers shows, her little backpack hides, the hood's shape key is applied, and the jetpack controls work. **She takes it off at the rack** (the empty spot). **She can jump while wearing it:** jump and flight have their own buttons since 2026-10-12, which supersedes "no jumping while wearing the backpack" in `scope.md`. **Everything stays at the prototype's scale:** the export sets the armature to the crew file's 0.826 (it's 1.033 in the ship file), so her size and the ship's are unchanged. The player's model is exported from the ship file (`npm run export:player`).
+**Alternatives considered:** copying the jetpack and the shape key into the crew file (a Blender session on an older file for the same result); three loose switches (the first version of the plan); taking it off anywhere (then where does it go?); fixing her scale in the blend file (not needed: the export does it).
+**Rationale:** the ship file is the one being edited and already read by the other exports; the rack makes the jetpack something she has, not a mode.
+**Status:** Built 2026-10-14 ([`features/interaction.md`](features/interaction.md#the-jetpack-rack); plan: [`plans/features/dr-green-jetpack-model.md`](plans/features/dr-green-jetpack-model.md)). The owner's to play.
 
 ## [2026-10-14] — The start button is the template for every game UI button (design)
 

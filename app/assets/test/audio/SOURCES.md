@@ -23,6 +23,7 @@ Made by [`app/tools/make-placeholder-sounds.mjs`](../../../tools/make-placeholde
 |---|---|---|---|
 | `sfx_latch_open.m4a`, `sfx_latch_close.m4a` (the hatches play the same files, lower) | Made by the script from tones and noise: no master, the recipe is in the script | The project | Nothing to license |
 | `sfx_panel_open.m4a`, `sfx_panel_close.m4a` | The same | The project | Nothing to license |
+| `sfx_jetpack_take.m4a`, `sfx_jetpack_return.m4a` | The same (2026-10-14): straps and a buckle, taking a jetpack from the rack and putting it back | The project | Nothing to license |
 | `sfx_lever.m4a` | The first of the two sounds in `freesound_community-lever-action-cocking-2-39680.mp3` in `resources/audio/` (added by the owner, 2026-10-13), 0.355 to 0.565 s of it: the silence around it is cut off | Not known (the name looks like a Pixabay download from its Freesound community account, id 39680) | Not checked |
 | `sfx_ramp_move.m4a`, `sfx_ramp_stop.m4a` | The same | The project | Nothing to license |
 | `sfx_ladder_grab_01.m4a` … `_03.m4a` | The same | The project | Nothing to license |

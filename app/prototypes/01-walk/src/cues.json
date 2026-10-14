@@ -12,6 +12,8 @@
   "sfx_panel_open": { "file": "sfx_panel_open.m4a", "volume": 0.2, "bus": "sfx", "group": "interaction", "falloff": { "full": 1, "gone": 8 } },
   "sfx_panel_close": { "file": "sfx_panel_close.m4a", "volume": 0.2, "bus": "sfx", "group": "interaction", "falloff": { "full": 1, "gone": 8 } },
   "sfx_lever": { "file": "sfx_lever.m4a", "volume": 0.3, "bus": "sfx", "group": "interaction", "falloff": { "full": 1, "gone": 8 } },
+  "sfx_jetpack_take": { "file": "sfx_jetpack_take.m4a", "volume": 0.35, "bus": "sfx", "group": "interaction", "falloff": { "full": 1, "gone": 8 } },
+  "sfx_jetpack_return": { "file": "sfx_jetpack_return.m4a", "volume": 0.35, "bus": "sfx", "group": "interaction", "falloff": { "full": 1, "gone": 8 } },
   "sfx_ramp_move": { "file": "sfx_ramp_move.m4a", "volume": 0.25, "fadeIn": 0.1, "bus": "sfx", "group": "interaction", "falloff": { "full": 2, "gone": 14 } },
   "sfx_ramp_stop": { "file": "sfx_ramp_stop.m4a", "volume": 0.3, "bus": "sfx", "group": "interaction", "falloff": { "full": 2, "gone": 14 } },
   "sfx_ladder_grab": { "files": ["sfx_ladder_grab_01.m4a", "sfx_ladder_grab_02.m4a", "sfx_ladder_grab_03.m4a"], "volume": 0.2, "spread": 0.05, "overlap": true, "bus": "sfx", "group": "interaction" },

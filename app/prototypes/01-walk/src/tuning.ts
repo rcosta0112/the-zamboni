@@ -35,6 +35,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   jump.add(settings, 'gravity', 5, 50, 0.5).name('gravity (m/s²)');
 
   const fly = gui.addFolder('Jetpack');
+  fly.add(settings, 'wearingJetpack').name('wearing a jetpack').listen();
   fly.add(settings, 'flySpeed', 1, 40, 0.5).name('fly speed (m/s)');
   fly.add(settings, 'flyRiseShare', 0, 1, 0.05).name('rise, stick at rest (× fly speed)');
   fly.add(settings, 'flyAcceleration', 1, 60, 0.5).name('acceleration (m/s²)');

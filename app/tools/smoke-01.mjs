@@ -108,7 +108,7 @@ async function checks() {
   report(view.distance === outdoors, 'the mouse wheel does not zoom', `${view.distance.toFixed(2)} m after a wheel turn`);
   view.pitch = -0.5;
   await wait(100);
-  report(settings.cameraMinPitchDeg === 0 && view.pitch >= 0, 'minimum pitch is 0', `pitch ${T.MathUtils.radToDeg(view.pitch).toFixed(1)}° after asking for -28.6°`);
+  report(settings.cameraMinPitchDeg === 0 && view.pitch >= 0, 'minimum pitch is 0', `pitch ${T.MathUtils.radToDeg(view.pitch).toFixed(1)}Â° after asking for -28.6Â°`);
   // Up the open ramp into the cargo bay, on foot.
   const rampMouth = new T.Vector3(inside.x, 0.05, ship.interior.max.z + 6);
   put(rampMouth);
@@ -123,7 +123,7 @@ async function checks() {
   key('KeyW', false);
   await wait(1200);
   report(wasOutside && cameIn, 'she walks up the open ramp into the ship', `now at ${fmt(character.position)}`);
-  report(cameIn && Math.abs(view.distance - settings.cameraDistanceIndoors) < 0.01 && midway !== outdoors && Math.abs(midway - settings.cameraDistanceIndoors) > 0.01, 'camera distance changes at the ramp, eased', `${outdoors.toFixed(2)} → ${midway.toFixed(2)} (0.25 s in) → ${view.distance.toFixed(2)} m (setting ${settings.cameraDistanceIndoors})`);
+  report(cameIn && Math.abs(view.distance - settings.cameraDistanceIndoors) < 0.01 && midway !== outdoors && Math.abs(midway - settings.cameraDistanceIndoors) > 0.01, 'camera distance changes at the ramp, eased', `${outdoors.toFixed(2)} â†’ ${midway.toFixed(2)} (0.25 s in) â†’ ${view.distance.toFixed(2)} m (setting ${settings.cameraDistanceIndoors})`);
 
   // --- The cargo ramp, from its keypad (9) -----------------------------------------------------
   const rampPad = items.find((i) => i.objects[0].userData.controls === 'Door Cargo');
@@ -138,7 +138,7 @@ async function checks() {
     const closed = await until(() => ship.rampAmount === 0, 4000);
     const travel = T.MathUtils.radToDeg(Math.abs(ship.rampClosedAngle - ship.rampOpenAngle));
     const closedTop = rampTop();
-    report(closed && travel > 60 && closedTop - openTop > 1, 'the ramp closes from its keypad', `prompt "${shown}"; turned ${travel.toFixed(0)}°; its top edge ${openTop.toFixed(2)} → ${closedTop.toFixed(2)} m`);
+    report(closed && travel > 60 && closedTop - openTop > 1, 'the ramp closes from its keypad', `prompt "${shown}"; turned ${travel.toFixed(0)}Â°; its top edge ${openTop.toFixed(2)} â†’ ${closedTop.toFixed(2)} m`);
     await wait(200);
     const shownClosed = prompt.textContent;
     await tap('KeyE');
@@ -321,6 +321,10 @@ async function checks() {
     const places = [];
     const yaw = view.yaw;
     let insideScreen = true;
+    // Only the keypad is a target meanwhile: turned 0.5 rad, the jetpack rack next to it can be
+    // nearer the screen's centre (this is about where the prompt goes, not which target wins).
+    const items = interaction.items;
+    interaction.items = [rampPad];
     for (const a of [-0.5, 0, 0.5]) {
       view.yaw = yaw + a;
       await wait(250);
@@ -332,18 +336,64 @@ async function checks() {
       offsets.push(Math.hypot(px - t.x, py - t.y));
       places.push(t.x);
       if (r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight) insideScreen = false;
-      samples.push(`keypad at ${t.x.toFixed(0)},${t.y.toFixed(0)} → prompt at ${px.toFixed(0)},${py.toFixed(0)}`);
+      samples.push(`keypad at ${t.x.toFixed(0)},${t.y.toFixed(0)} â†’ prompt at ${px.toFixed(0)},${py.toFixed(0)}`);
     }
+    interaction.items = items;
     view.yaw = yaw;
     await wait(100);
     // The keypad moved across the screen, and the prompt stayed the same short way from it.
     const follows = samples.length === 3 && Math.max(...places) - Math.min(...places) > 40 && Math.max(...offsets) - Math.min(...offsets) < 30 && Math.max(...offsets) < 160;
-    report(follows && insideScreen, 'the prompt follows the target on screen', `${samples.join('; ')} (screen ${innerWidth}×${innerHeight})`);
+    report(follows && insideScreen, 'the prompt follows the target on screen', `${samples.join('; ')} (screen ${innerWidth}Ã—${innerHeight})`);
   } else {
     report(false, 'the prompt follows the target on screen', 'the ramp keypad could not be aimed at');
   }
 
+  // --- Item 32: the jetpack rack. Without one she can't fly; at the rack E takes one (it hides
+  // there; hers shows, her little backpack hides, the hood's shape key is on) and she flies; E on
+  // the empty spot puts it back. The rack is on the cargo hold's +x wall.
+  {
+    const rack = w.__rack();
+    const model = character.models.zamboni;
+    const hull = ship.interior;
+    put(new T.Vector3(hull.max.x + 6, 0.05, hull.getCenter(new T.Vector3()).z));
+    await until(() => character.grounded, 3000);
+    key('Space', true);
+    await wait(800);
+    const flewWithout = character.flying;
+    key('Space', false);
+    await until(() => character.grounded, 5000);
+    const slot = rack.slots[0];
+    const at = new T.Box3().setFromObject(slot).getCenter(new T.Vector3());
+    const atRack = async () => {
+      put(new T.Vector3(at.x - 0.7, at.y - 0.6, at.z)); // the floor is 0.7 below the slot
+      await until(() => character.grounded, 4000);
+      view.yaw = yawToward(1, 0);
+      view.pitch = 0.15;
+      character.facing = view.yaw;
+      await until(() => interaction.target?.name === slot.name, 3000);
+    };
+    await atRack();
+    const offered = interaction.target?.verb();
+    await tap('KeyE');
+    await wait(200);
+    const hood = () => model.hood.every((h) => h.mesh.morphTargetInfluences[h.index] === 1);
+    const worn = settings.wearingJetpack && rack.taken === slot && !slot.visible && model.jetpack.visible && !model.backpack.visible && hood();
+    key('Space', true);
+    await wait(400);
+    const flewWith = character.flying;
+    key('Space', false);
+    await until(() => character.grounded, 5000);
+    await atRack();
+    const back = interaction.target?.verb();
+    await tap('KeyE');
+    await wait(200);
+    const returned = !settings.wearingJetpack && rack.slots.every((s) => s.visible) && !model.jetpack.visible && model.backpack.visible && !hood();
+    report(rack.slots.length === 3 && !flewWithout && offered === 'Take jetpack' && worn && flewWith && back === 'Put back jetpack' && returned, 'the jetpack rack: take one, fly, put it back',
+      `${rack.slots.length} on the rack; flies without: ${flewWithout}; "${offered}" â†’ worn (hidden on the rack, hers on, little backpack off, hood up): ${worn}; flies: ${flewWith}; "${back}" â†’ back: ${returned}`);
+  }
+
   // --- Pass 6: the jetpack (21). Held Space: rise; let go: fall; the hull stops her; onto the roof -
+  settings.wearingJetpack = true; // flying needs one on (item 32); the rack follows
   {
     const hull = ship.interior;
     const centre = hull.getCenter(new T.Vector3());
@@ -377,6 +427,7 @@ async function checks() {
     // Level toward the ship, camera behind her: the hull stops her.
     view.yaw = yawToward(centre.x - character.position.x, 0);
     view.pitch = 0;
+    character.facing = view.yaw; // faced first, or she sets off in an arc (from wherever the last check left her)
     // Up to about 4 m first: lower down, the hull's side curves in under its widest point.
     key('Space', true);
     await wait(1300);
@@ -418,7 +469,7 @@ async function checks() {
     rt = 0;
     const down = await until(() => character.grounded && !character.flying, 8000);
     await wait(500);
-    report(climbed > 2 && Math.abs(drift) < 0.05 && descending < -0.5 && down && clipOn > 0.9 && flyClip() < 0.1, 'an analog R2: climbs, hovers half-way, descends, lands; the flying clip while she flies', `climbed ${climbed.toFixed(2)} m at 90%; drift ${drift.toFixed(3)} m over 1.5 s at 50%; ${descending.toFixed(2)} m/s at 20%; landed: ${down}; flying clip ${clipOn.toFixed(2)} → ${flyClip().toFixed(2)}`);
+    report(climbed > 2 && Math.abs(drift) < 0.05 && descending < -0.5 && down && clipOn > 0.9 && flyClip() < 0.1, 'an analog R2: climbs, hovers half-way, descends, lands; the flying clip while she flies', `climbed ${climbed.toFixed(2)} m at 90%; drift ${drift.toFixed(3)} m over 1.5 s at 50%; ${descending.toFixed(2)} m/s at 20%; landed: ${down}; flying clip ${clipOn.toFixed(2)} â†’ ${flyClip().toFixed(2)}`);
     padId = 'smoke digital pad';
     rt = 1;
     await wait(800);
@@ -428,6 +479,7 @@ async function checks() {
     navigator.getGamepads = realPads;
     report(digital.flying && digital.trigger === null, 'a digital R2 flies by Part 1\'s rule', `flying: ${digital.flying}; trigger read as analog: ${digital.trigger !== null}`);
   }
+  settings.wearingJetpack = false;
 
   // --- Pass 2: the re-export from the reference file (12, 18, 19, 20) --------------------------
   const part = (blenderName) => {
@@ -442,7 +494,7 @@ async function checks() {
     return o ? new T.Box3().setFromObject(o) : null;
   };
   const shipScale = ship.object.scale.x;
-  report(Math.abs(ship.rampClosedAngle) < 0.001, 'the ramp is closed in the file', `closed at ${T.MathUtils.radToDeg(ship.rampClosedAngle).toFixed(1)}° from the file's pose`);
+  report(Math.abs(ship.rampClosedAngle) < 0.001, 'the ramp is closed in the file', `closed at ${T.MathUtils.radToDeg(ship.rampClosedAngle).toFixed(1)}Â° from the file's pose`);
 
   /** Walk from `from` in a straight line on the ground for `ms`; where she ends up. */
   const walk = async (from, dx, dz, ms) => {
@@ -618,7 +670,7 @@ async function checks() {
       }
       await tap('KeyE');
       const again = await until(() => settled(leaves, 1), 3000);
-      report(wasOpen && shut && blocked && again, `${name}: shuts the door and keeps it shut; used again, it opens`, `open with her at it: ${wasOpen}; prompt "${shown}" → shut: ${shut}${n === 0 ? `; she can't walk through: ${blocked}` : ''}; prompt "${shownShut}" → open: ${again}`);
+      report(wasOpen && shut && blocked && again, `${name}: shuts the door and keeps it shut; used again, it opens`, `open with her at it: ${wasOpen}; prompt "${shown}" â†’ shut: ${shut}${n === 0 ? `; she can't walk through: ${blocked}` : ''}; prompt "${shownShut}" â†’ open: ${again}`);
     }
   }
 
@@ -641,7 +693,7 @@ async function checks() {
     const shownOpen = prompt.textContent;
     await tap('KeyE');
     const closed = await until(() => settled([...halves, handle], 0), 3000);
-    report(opened && closed && Math.abs(moved - 0.06) < 0.005 && openGap > closedGap * 2.5, 'the lever opens and closes the window, and slides', `prompt "${shown}" → open: ${opened}; the halves' centres ${closedGap.toFixed(2)} → ${openGap.toFixed(2)} m apart; the lever moved ${moved.toFixed(3)} (Blender units); prompt "${shownOpen}" → closed: ${closed}`);
+    report(opened && closed && Math.abs(moved - 0.06) < 0.005 && openGap > closedGap * 2.5, 'the lever opens and closes the window, and slides', `prompt "${shown}" â†’ open: ${opened}; the halves' centres ${closedGap.toFixed(2)} â†’ ${openGap.toFixed(2)} m apart; the lever moved ${moved.toFixed(3)} (Blender units); prompt "${shownOpen}" â†’ closed: ${closed}`);
   }
   const offeredDoors = items.filter((i) => i.objects.some((o) => ship.doors.some((d) => d.object === o && (d.slide || d.device))) && !i.objects[0].userData.controls);
   report(offeredDoors.length === 0, 'the bulkhead doors, the window and the lever are not targets themselves', offeredDoors.map((i) => i.name).join(', '));
@@ -709,7 +761,7 @@ async function checks() {
     const first = await until(() => boombox.track === 1, 5000);
     await wait(100);
     prompts.push(prompt.textContent);
-    report(cassette && first && boombox.step === 1, 'using the boombox plays the cassette sound, then track 1', `cassette first: ${cassette}; then sounding: track ${boombox.track}; prompts "${prompts.join('" → "')}"`);
+    report(cassette && first && boombox.step === 1, 'using the boombox plays the cassette sound, then track 1', `cassette first: ${cassette}; then sounding: track ${boombox.track}; prompts "${prompts.join('" â†’ "')}"`);
     // It shakes while a track plays, and comes from the boombox.
     const places = new Set();
     for (let i = 0; i < 6; i++) {
@@ -795,8 +847,8 @@ async function checks() {
   {
     const NEW = ['sfx_latch_open', 'sfx_latch_close', 'sfx_hatch_open', 'sfx_hatch_close', 'sfx_panel_open', 'sfx_panel_close', 'sfx_lever', 'sfx_ramp_move', 'sfx_ramp_stop', 'sfx_ladder_grab', 'sfx_step_snow', 'sfx_step_ship', 'sfx_land_snow', 'sfx_land_ship'];
     const snap = () => Object.fromEntries(NEW.map((c) => [c, count(c)]));
-    /** What started since, as "cue ×n, cue ×n" in the order of NEW. */
-    const since = (before) => NEW.filter((c) => count(c) !== before[c]).map((c) => `${c} ×${count(c) - before[c]}`).join(', ') || 'nothing';
+    /** What started since, as "cue Ã—n, cue Ã—n" in the order of NEW. */
+    const since = (before) => NEW.filter((c) => count(c) !== before[c]).map((c) => `${c} Ã—${count(c) - before[c]}`).join(', ') || 'nothing';
     const away = new T.Vector3(inside.x + 25, 0.05, inside.z); // on the snow, clear of every door
     const still = (doors) => doors.every((d) => !d.moving);
     /** Use a target twice (by its action, not by aiming); what started each time. */
@@ -823,25 +875,25 @@ async function checks() {
     report(since(quiet) === 'nothing', 'standing still, no step sounds', since(quiet));
 
     const locker = await twice(items.find((i) => i.name === 'Locker_Door001'), [door('Locker_Door001')]);
-    report(both(locker, 'sfx_latch_open ×1', 'sfx_latch_close ×1'), 'a locker: a latch sound as it opens, another once closed', said(locker));
+    report(both(locker, 'sfx_latch_open Ã—1', 'sfx_latch_close Ã—1'), 'a locker: a latch sound as it opens, another once closed', said(locker));
     const trap = await twice(items.find((i) => i.name === 'Hatch002'), [door('Hatch002')]);
-    report(both(trap, 'sfx_hatch_open ×1', 'sfx_hatch_close ×1'), 'the trapdoor: the hatch sounds', said(trap));
+    report(both(trap, 'sfx_hatch_open Ã—1', 'sfx_hatch_close Ã—1'), 'the trapdoor: the hatch sounds', said(trap));
     const roof = await twice(items.find((i) => i.objects.includes(top.object)), [top, bottom]);
-    report(both(roof, 'sfx_hatch_open ×1', 'sfx_hatch_close ×1'), 'the roof hatch: one sound for its two parts', said(roof));
+    report(both(roof, 'sfx_hatch_open Ã—1', 'sfx_hatch_close Ã—1'), 'the roof hatch: one sound for its two parts', said(roof));
     for (const [pad, name] of [[sidePad, 'the side door'], [rampPad, 'the cargo ramp']]) {
       const heard = await twice(pad, [side]);
-      const tones = both(heard.map((h) => ({ started: h.started.split(', ')[0] })), 'sfx_panel_open ×1', 'sfx_panel_close ×1');
-      const motor = heard.every((h) => h.started.endsWith('sfx_ramp_move ×1, sfx_ramp_stop ×1') && h.motor && !h.motorAfter);
+      const tones = both(heard.map((h) => ({ started: h.started.split(', ')[0] })), 'sfx_panel_open Ã—1', 'sfx_panel_close Ã—1');
+      const motor = heard.every((h) => h.started.endsWith('sfx_ramp_move Ã—1, sfx_ramp_stop Ã—1') && h.motor && !h.motorAfter);
       report(tones && motor, `${name}: its keypad's two tones, the motor while it moves, the stop when it's there`, `${said(heard)}; motor sounding while moving: ${heard.map((h) => h.motor)}, after: ${heard.map((h) => h.motorAfter)}`);
     }
     if (lever) {
       const heard = await twice(lever, [...halves, handle]);
-      report(heard.every((h) => h.started === 'sfx_lever ×1'), 'the lever: its clunk each way, and no tones', said(heard));
+      report(heard.every((h) => h.started === 'sfx_lever Ã—1'), 'the lever: its clunk each way, and no tones', said(heard));
     }
     const panel = items.find((i) => i.objects[0].userData.device === 'panel' && bulkheadDoors.some((leaves) => leaves.some((d) => d.object.name === String(i.objects[0].userData.controls).replace(/ /g, '_'))));
     if (panel) {
       const heard = await twice(panel, []);
-      report(heard[0].started === 'sfx_panel_close ×1' && heard[1].started === 'sfx_panel_open ×1', "a bulkhead door's panel: down for close, up for open", said(heard));
+      report(heard[0].started === 'sfx_panel_close Ã—1' && heard[1].started === 'sfx_panel_open Ã—1', "a bulkhead door's panel: down for close, up for open", said(heard));
     } else {
       report(false, "a bulkhead door's panel: down for close, up for open", 'no panel found');
     }
@@ -869,7 +921,7 @@ async function checks() {
     const jump = snap();
     await tap('KeyC');
     await wait(1500);
-    report(since(jump) === 'sfx_land_snow ×1', 'a jump ends in a landing sound', since(jump));
+    report(since(jump) === 'sfx_land_snow Ã—1', 'a jump ends in a landing sound', since(jump));
     // From the start position up the open cargo ramp: the ship's floor from the ramp on.
     settings.cargoRampOpen = true;
     await until(() => ship.rampAmount === 1, 4000);
@@ -999,7 +1051,7 @@ async function main() {
     for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81, text: type === 'keyDown' ? 'q' : undefined });
     await new Promise((r) => setTimeout(r, 300));
     const audioAfter = await audioState();
-    console.log(`${audioBefore === 'suspended' && audioAfter === 'running' ? 'PASS' : 'FAIL'}  the sound is off until a key is pressed, then on: ${audioBefore} → ${audioAfter}`);
+    console.log(`${audioBefore === 'suspended' && audioAfter === 'running' ? 'PASS' : 'FAIL'}  the sound is off until a key is pressed, then on: ${audioBefore} â†’ ${audioAfter}`);
     let failed0 = audioBefore === 'suspended' && audioAfter === 'running' ? 0 : 1;
     // The start screen: a bar and no button while it loads; then the button, which starts the game
     // with a click sound and sends the screen's music away.

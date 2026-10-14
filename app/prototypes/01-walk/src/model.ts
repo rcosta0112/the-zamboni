@@ -1,7 +1,8 @@
 // Animated character models, for testing walk/run animation:
 // - "part1": Part 1's Dr. Green (Big Moon Tiny Moon) with its own animations.
-// - "zamboni": the Zamboni Dr. Green (parka) from the crew file, driven by Part 1's animations
-//   through retargeting (same bone names, different bone orientations and proportions).
+// - "zamboni": the Zamboni Dr. Green (parka) from the ship file's `Player` collection (the crew
+//   file's model, with a jetpack), driven by Part 1's animations through retargeting (same bone
+//   names, different bone orientations and proportions). Wearing a jetpack shows it and moves the hood.
 // Blends standing → walking → running by speed, keeping walk and run on the same step
 // (shared phase), and plays the jump while airborne. Flying (the jetpack), Part 1's Flying clip
 // loops, blended in and out over FLY_BLEND.
@@ -9,6 +10,7 @@
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { downloads } from './loading';
+import { named } from './names';
 import { retargetClips } from './retarget';
 import { settings } from './settings';
 
@@ -18,6 +20,12 @@ const ZAMBONI_URL = '/test/green-parka.glb';
 export const PART1_HEIGHT = 1.23;
 
 export type ModelId = 'zamboni' | 'part1';
+
+/** In the Zamboni model (the ship file's `Player` collection): the jetpack on her back, her little
+ * backpack, and the hood's shape key for wearing the jetpack. */
+const JETPACK = 'Jetpack';
+const BACKPACK = 'Backpack.002';
+const HOOD_KEY = 'jetpack';
 
 /** Time constant of the blend into and out of the flying clip (s). */
 const FLY_BLEND = 0.12;
@@ -80,8 +88,24 @@ export class AnimatedModel {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.frustumCulled = false; // skinned meshes move away from their bind-pose bounds
+        const index = (child as THREE.Mesh).morphTargetDictionary?.[HOOD_KEY];
+        if (index !== undefined) this.hood.push({ mesh: child as THREE.Mesh, index });
       }
+      if (named(child, JETPACK)) this.jetpack = child;
+      if (named(child, BACKPACK)) this.backpack = child;
     });
+  }
+
+  // Wearing a jetpack (the Zamboni model; Part 1's has its own, always on): hers shows, her little
+  // backpack hides, and the hood's shape key moves it out of the jetpack's way.
+  private jetpack: THREE.Object3D | null = null;
+  private backpack: THREE.Object3D | null = null;
+  private hood: { mesh: THREE.Mesh; index: number }[] = [];
+
+  private wear(on: boolean): void {
+    if (this.jetpack) this.jetpack.visible = on;
+    if (this.backpack) this.backpack.visible = !on;
+    for (const { mesh, index } of this.hood) mesh.morphTargetInfluences![index] = on ? 1 : 0;
   }
 
   /**
@@ -91,6 +115,7 @@ export class AnimatedModel {
   update(dt: number, actualSpeed: number, grounded: boolean, walk: number, run: number, flying = false): void {
     this.object.scale.setScalar(settings.modelScale * this.heightToScale());
     this.object.rotation.y = THREE.MathUtils.degToRad(this.baseYawDeg + settings.modelYawOffsetDeg);
+    this.wear(settings.wearingJetpack);
 
     // The animation follows a smoothed speed, so starting and stopping blend over time instead of
     // snapping (the movement itself stops almost instantly). Slowing down eases more gently than

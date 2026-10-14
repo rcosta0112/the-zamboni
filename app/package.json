@@ -16,7 +16,8 @@
     "smoke": "node tools/smoke-01.mjs",
     "probe": "node tools/probe-01.mjs",
     "export:ship": "node tools/export.mjs ship",
-    "export:crew": "node tools/export.mjs crew"
+    "export:crew": "node tools/export.mjs crew",
+    "export:player": "node tools/export.mjs player"
   },
   "devDependencies": {
     "@gltf-transform/cli": "4.5.1",

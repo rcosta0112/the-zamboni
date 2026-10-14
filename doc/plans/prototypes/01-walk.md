@@ -36,6 +36,8 @@ Gamepad first (standard mapping, Xbox names shown); keyboard and mouse as second
 | Camera orbit | Right stick | Mouse (pointer lock on click; Esc releases) |
 | Camera distance | D-pad up/down | Mouse wheel |
 | Jump (the same button flies when wearing the backpack, which isn't in this prototype) | A | Space |
+
+> **[Agent note]** Superseded: since 2026-10-12 jump and flight have their own buttons (C / Cross jumps, Space / R2 flies), and since 2026-10-14 she can jump while wearing the jetpack (owner). See [`../../architecture/scope.md`](../../architecture/scope.md).
 | Invert vertical look (as in Part 1) | — (tuning panel) | Y |
 | Show/hide the tuning panel | Back/View | ` (backtick) |
 
@@ -87,7 +89,7 @@ To test walk/run animation, prototype 01 also shows **Part 1's Dr. Green** (from
 
 - **Movement values:** start from Part 1's, read from its Unity scene (`Main.unity`): walk 1.5 m/s, run 7 m/s, turn smoothing 0.2 s, acceleration 0.1 per frame (frame-rate dependent in Part 1; about 6 m/s² at 60 fps). A second, slower run speed for indoors will probably be needed later.
 - **Jump:** the character can jump, unless they're wearing the backpack (jetpack). Jump and fly use the same button. Part 1's jump height setting was 4, but its jump was switched off, so the height will be tuned from scratch.
-  > **[Agent note]** Changed by the owner (2026-10-12): jump and fly have **separate buttons** (C / Cross jumps; Space / right trigger flies, held). The jetpack is built (2026-10-14): [`../backlog-passes.md`](../backlog-passes.md), pass 6.
+  > **[Agent note]** Changed by the owner (2026-10-12): jump and fly have **separate buttons** (C / Cross jumps; Space / right trigger flies, held). The jetpack is built (2026-10-14): [`../backlog-passes.md`](../backlog-passes.md), pass 6. Jumping while wearing it is allowed (owner, 2026-10-14), and it's taken from the rack in the cargo hold: [`../features/dr-green-jetpack-model.md`](../features/dr-green-jetpack-model.md).
 
 ## Open questions
 

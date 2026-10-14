@@ -10,7 +10,7 @@
 | `settings.ts` | Every tunable value and its starting point | `settings` |
 | `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
 | `input.ts` | Actions from gamepad and keyboard: move, look, jump, interact, last device used | `Input.poll`, `consume*` |
-| `character.ts` | Her movement (indoors: the way the stick points), jump (lower indoors) and gravity; placing her on a ladder; floating off a ladder's top | `Character.update`, `jump`, `floating`, `setClimbing`, `moveDirection` |
+| `character.ts` | Her movement (indoors: the way the stick points), jump (lower indoors) and gravity; flying (only while she wears a jetpack); placing her on a ladder; floating off a ladder's top | `Character.update`, `jump`, `floating`, `setClimbing`, `moveDirection` |
 | `physics.ts` | Rapier: ground, static colliders (a part of a mesh can be its own, switchable), boxes, convex ones (the collision boxes, which rays pass through), her capsule and controller, moving colliders (doors), rays | `Physics.move`, `addStaticMesh`, `addStaticBox`, `addStaticConvex`, `addMovingConvex`, `ray`, `castRay`, `fits`, `overFloor` |
 | `camera.ts` | Orbit camera: yaw, pitch, the fixed indoor and outdoor distances, follow, collision outside the ship | `FollowCamera.update` |
 | `ship.ts` | Loading the ship, its collider and the collision boxes (the collider file's other meshes); "inside"; decks; see-through units and their tags; **the cargo ramp** (its closed and open angles); hinges; the merged shadow caster | `loadShip`, `addCollisionBoxes`, `updateShip`, `closedAngle`, `groupCutUnits`, `hingeAt` |
@@ -19,15 +19,16 @@
 | `audio.ts`, `cues.json` | Sound: cues by id (the data: file or variations, bus, volume, speed, falloff, which level it follows), buses, decoded and streamed sounds, sounds placed in the world, turning the sound on, stopping with the pause, the ship's noise, a cue that repeats and fades (the start screen's music) and how a streamed loop repeats | `GameAudio.play`, `stop`, `setLoop`, `setPaused`, `update`, `StreamLoop` |
 | `footsteps.ts` | Her footsteps: when a foot comes down in the walk/run cycle, which surface, landings | `Footsteps.update` |
 | `boombox.ts` | The boombox: its ring of steps, the cassette sound then the track, the shake | `Boombox.use`, `update` |
+| `jetpack.ts` | The jetpack rack: its jetpacks (by tag), *Take* / *Put back*, which one is gone; follows `settings.wearingJetpack` | `JetpackRack`, `update` |
 | `ladders.ts` | Finding ladders; attaching at the foot, climbing up and down, held at the top, leaving it (the float), jump; when the ladder collides | `shipLadders`, `Ladders.update`, `updateColliders` |
 | `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays) | `updateVisibility`, `prepareRaycasts` |
 | `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
 | `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |
 | `world.ts` | Sky, haze, sun and its shadow, the ground | `createWorld`, `updateWorld` |
 | `crew.ts` | The crew placed in the ship: load, idle loop, box colliders | `loadCrew` |
-| `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; retargeting Part 1's animations | `loadModels`, `AnimatedModel.update` |
+| `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; wearing a jetpack (hers shown, the little backpack hidden, the hood's shape key); retargeting Part 1's animations | `loadModels`, `AnimatedModel.update` |
 | `names.ts`, `stats.ts` | Blender names as GLTFLoader gives them; the frame-time readout | `named` |
 
 Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. The button, the progress bar and the tokens (colours, fonts) are in [`app/packages/ui`](../../packages/ui/README.md); the screen's images and fonts in `app/assets/ui/`. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/tools/README.md`](../../tools/README.md).
 
-Until the start button is used, nothing is simulated: the frame stops after the sound while loading, then is made in full under the start screen. Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the ladder's sound → her animation, footsteps → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.
+Until the start button is used, nothing is simulated: the frame stops after the sound while loading, then is made in full under the start screen. Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the jetpack rack, the ladder's sound → her animation, footsteps → camera → see-through rules → see-through shader values → interaction → world, crew, lights → render.

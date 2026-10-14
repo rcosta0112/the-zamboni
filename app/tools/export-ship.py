@@ -23,6 +23,8 @@ It does what is derived from the scene:
 - Props: every other render-visible mesh, curve and text object in the ship's collections (under
   SHIP_COLLECTION; not the collections or objects tagged ``export: false``), baked to a mesh in
   place. Big ones (BIG and up) stay separate objects and go into the collider as convex hulls;
+  props tagged ``interact`` (the rack's jetpacks) stay separate too, keeping their ``interact``
+  and ``device`` tags (small ones don't collide);
   small ones are merged into one object per collection ("Props <collection>"), one draw call per
   material. Every prop is tagged ``prop: true`` (the game doesn't let them cast shadows: inside
   the hull the sun doesn't reach them, and it halves their draw calls) and takes its collection's
@@ -216,14 +218,21 @@ for collection in list(prop_collections(bpy.context.view_layer.layer_collection)
     for ob in list(collection.objects):
         if not is_prop(ob):
             continue
-        if largest_side(ob) >= BIG and ob.type == 'MESH':
+        big = largest_side(ob) >= BIG
+        # Something she can use (a rack's jetpack) stays an object of its own, whatever its size,
+        # so the game can find it and hide it.
+        if (big or 'interact' in ob) and ob.type == 'MESH':
             mesh = baked_mesh(ob)
             name = ob.name
             ob.name = name + ' (source)'
             ob['export'] = False  # nothing is saved: so an object in two collections is baked once
-            big_props.append(add_prop(name, mesh, collection))
-            if ob.get('collider') != 'none':  # tagged: its own *_col mesh collides instead
-                hull_props.append(big_props[-1])
+            prop = add_prop(name, mesh, collection)
+            for key in ('interact', 'device'):
+                if key in ob:
+                    prop[key] = ob[key]
+            big_props.append(prop)
+            if big and ob.get('collider') != 'none':  # tagged: its own *_col mesh collides instead
+                hull_props.append(prop)
             prop_count['big'] += 1
         else:
             small.append(ob)

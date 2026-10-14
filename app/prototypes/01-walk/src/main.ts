@@ -16,6 +16,7 @@ import { loadCrew, type Crew } from './crew';
 import { createDoorSounds, motorSound, type Pusher } from './doors';
 import { Footsteps } from './footsteps';
 import { findDevice, Interaction, shipInteractables } from './interaction';
+import { JetpackRack } from './jetpack';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
@@ -72,6 +73,7 @@ async function start(): Promise<void> {
   let interaction: Interaction | null = null;
   let ladders: Ladders | null = null;
   let boombox: Boombox | null = null;
+  let rack: JetpackRack | null = null;
   let doorSounds: (() => void) | null = null;
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
   loadModels((share) => loading.set('models', share))
@@ -114,7 +116,10 @@ async function start(): Promise<void> {
         doors();
         ramp();
       };
-      interaction = new Interaction(shipInteractables(s.object, s.doors, boombox ? [boombox.interactable] : [], (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
+      rack = new JetpackRack(s.object, (id, at) => audio.play(id, at));
+      if (rack.slots.length === 0) console.warn('[01-walk] the ship has no jetpack rack');
+      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables];
+      interaction = new Interaction(shipInteractables(s.object, s.doors, others, (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
       ladders = new Ladders(shipLadders(s.object, physics, s.ladderColliders));
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
       addCollisionBoxes(s, physics);
@@ -133,7 +138,7 @@ async function start(): Promise<void> {
   let jetSounding = false; // the jetpack's sound is on
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack,__footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
 
   const gui = createTuningPanel({ pixelRatio: () => resize() });
   gui.hide(); // until the start screen is gone: it would lie over it
@@ -270,6 +275,7 @@ async function start(): Promise<void> {
     if (steps === MAX_STEPS) accumulator = 0;
     doorSounds?.();
     boombox?.update();
+    rack?.update();
     if (ladders && ladders.rungs !== rungs) {
       rungs = ladders.rungs;
       audio.play('sfx_ladder_grab');
@@ -358,7 +364,8 @@ function showHelp(): void {
   el.textContent =
     'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers) · B/◯ interact · Start/Options pause · View: tuning\n' +
     'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · ` tuning\n' +
-    'Ladders: walk into the foot; push toward the ladder to climb, away to climb down; at the top, push back or sideways to step off';
+    'Ladders: walk into the foot; push toward the ladder to climb, away to climb down; at the top, push back or sideways to step off\n' +
+    'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }
 
 start().catch((err: unknown) => {

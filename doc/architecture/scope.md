@@ -21,7 +21,7 @@ Priority: **Core** = the game doesn't work without it. **Wanted** = planned. **M
 | Feature | Priority | Notes |
 |---|---|---|
 | Third-person controller + camera | Core | Probably two run speeds: outdoors and indoors |
-| Jump | Core | Same button as backpack flight; no jumping while wearing the backpack |
+| Jump | Core | Its own button, apart from backpack flight (C / Cross; flight: Space / R2), so she can jump while wearing the backpack (owner, 2026-10-14; separate buttons since 2026-10-12) |
 | See-through hull | Core | [`../features/see-through-hull.md`](../features/see-through-hull.md) |
 | Ship interior, walkable during travel and landings | Core | |
 | Outdoor landing areas with soft + hard boundaries | Core | Bark first (*"I shouldn't get too far from the ship"*), invisible walls further out |
@@ -33,7 +33,7 @@ Priority: **Core** = the game doesn't work without it. **Wanted** = planned. **M
 | Scanner | Core | Scans ruins and artifacts, maybe wildlife; adds entries to the mission data |
 | Cutscenes (in-engine) | Core | Pre-rendered only as a fallback |
 | Music, ambience, sound effects | Core | Workflow: [`audio.md`](audio.md) |
-| Backpack | Wanted | Outdoors only. Reference: Part 1 jetpack. (Prototype 01 allows it anywhere, for testing; the limit comes with the user-testing build: owner, 2026-10-12) |
+| Backpack | Wanted | The jetpack. Outdoors only. Reference: Part 1 jetpack. (Prototype 01 allows it anywhere, for testing; the limit comes with the user-testing build: owner, 2026-10-12.) Taken from the rack in the cargo hold and put back there; she flies only while wearing one (owner, 2026-10-14: [`../features/interaction.md`](../features/interaction.md#the-jetpack-rack)) |
 | Save / continue | Core | Stop and continue later. Checkpoint saves; props aren't tracked and reset on reload (owner, 2026-10-08) |
 | Installable web app, offline play | Core | Download everything at once and play offline (owner, 2026-10-08) |
 | Settings (volume, mouse sensitivity, invert Y) | Wanted | |

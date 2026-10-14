@@ -23,6 +23,9 @@ export const settings = {
   indoorJumpHeight: 0.6,
   gravity: 20,
 
+  // She wears a jetpack: taken from the cargo hold's rack, or switched here (the rack follows).
+  // Shows it on her back, hides her little backpack, moves her hood out of its way; she can fly.
+  wearingJetpack: false,
   // Jetpack (held: Space, R1), Part 1's values (PlayerMovement.cs, Main.unity): fly speed 20 m/s;
   // with the stick at rest she rises at a quarter of it; speeds up by 0.1 per frame (6 m/s² at
   // 60 fps) and slows down 20 times as fast (120 m/s²). No gravity while flying.

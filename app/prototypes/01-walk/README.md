@@ -30,7 +30,7 @@ Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per ch
 | Move | Left stick (speed follows how far it's pushed) | W A S D (run), hold Shift to walk |
 | Camera | Right stick | Mouse (click the view to capture it; Esc releases) |
 | Jump | A / Cross | C |
-| Fly (jetpack, anywhere for now) | R2, analog: past two thirds she climbs, the middle third hovers, the lower third descends, released she falls; the stick flies her level. (A digital R2 flies like Space) | Hold Space: the stick flies her where the camera points (pull the camera below her to climb); at rest she rises. Let go and she falls |
+| Fly (jetpack, anywhere for now; **only while she wears one**: take it from the rack in the cargo hold, or *wearing a jetpack* in the tuning panel) | R2, analog: past two thirds she climbs, the middle third hovers, the lower third descends, released she falls; the stick flies her level. (A digital R2 flies like Space) | Hold Space: the stick flies her where the camera points (pull the camera below her to climb); at rest she rises. Let go and she falls |
 | Interact (open, close, use the target) | B / Circle | E |
 | The boombox (crew quarters shelf) | B / Circle: *Play*, *Next track* (three times), *Turn off* | E |
 | Go through a bulkhead door | Walk up to it: it opens by itself and closes behind her. The panel beside it shuts it and keeps it shut | Same |
@@ -63,15 +63,15 @@ Two models, switchable in the tuning panel (*Character model → model*); the ca
 
 ### Zamboni Dr. Green (default)
 
-The parka Dr. Green from `resources/models/The Crew 1.09 Dr. Green.blend`, **driven by Part 1's animations**. Exported to `app/assets/test/green-parka.glb` (460 KB, uncompressed) with [`app/tools/export-crew-character.py`](../../tools/export-crew-character.py):
+The parka Dr. Green, **driven by Part 1's animations**. Since 2026-10-14 from the ship file's `Player` collection (`resources/models/The Zamboni 1.19.blend`): the crew file's model (`The Crew 1.09 Dr. Green.blend`, the same rig and body) with a jetpack and the hood's shape key. Exported to `app/assets/test/green-parka.glb` (540 KB, uncompressed) with [`app/tools/export-crew-character.py`](../../tools/export-crew-character.py), in one command (in `app/`):
 
 ```sh
-blender -b "resources/models/The Crew 1.09 Dr. Green.blend" --python app/tools/export-crew-character.py -- \
-  --armature "Dr. Green Parka" --objects "Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002" \
-  --out app/assets/test/green-parka.glb --force-double-sided
+npm run export:player   # body, gadgets, little backpack, jetpack; no binoculars; at the crew file's scale (0.826)
 ```
 
-The script exports in the rest pose at the origin, applies modifiers (the mesh is mirrored), leaves out bones that are flagged as deforming but carry no weights (`Elbow_r`, the IK pointer, plus `Foot_l` and `Foot_r`), and reports double-sided materials (a performance cost, to be fixed in Blender). This model uses `--force-double-sided` as a **temporary** workaround: the hood is a single surface on materials with backface culling on (`Black`, `Teal`, `White`, `Brown`, `Dark Brown`), so its back was invisible. Drop the flag once the hood is fixed in Blender.
+**Wearing a jetpack** (taken from the rack: [interaction](../../../doc/features/interaction.md#the-jetpack-rack)) shows `Jetpack`, hides her little backpack (`Backpack.002`) and sets the hood's shape key `jetpack` to 1. The ship file has her armature at scale 1.033; the export sets the crew file's 0.826, so she and the ship (scaled from her height) are the size they were (owner, 2026-10-14).
+
+The script exports in the rest pose at the origin, applies modifiers (the mesh is mirrored and subdivided) **keeping shape keys** (the glTF exporter would drop them), leaves out bones that are flagged as deforming but carry no weights (`Elbow_r`, the IK pointer, plus `Foot_l` and `Foot_r`), and reports double-sided materials (a performance cost, to be fixed in Blender). This model uses `--force-double-sided` as a **temporary** workaround: the hood is a single surface on materials with backface culling on (`Black`, `Teal`, `White`, `Brown`, `Dark Brown`), so its back was invisible. Drop the flag once the hood is fixed in Blender.
 
 **Retargeting** ([`src/retarget.ts`](src/retarget.ts)): both rigs use the same bone names, but the bones are rolled differently, so Part 1's tracks can't be copied across directly. At load time, each Part 1 clip is sampled at 30 fps; for every bone, its rotation away from rest (in world space) is applied to the Zamboni bone of the same name on top of that bone's own rest pose, and `Body`'s movement is scaled by the ratio of hip heights. The result is ordinary animation clips, so playback costs nothing extra. Bones Part 1 doesn't have (`Hood`) stay at rest.
 

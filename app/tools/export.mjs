@@ -2,6 +2,7 @@
 //
 //     npm run export:ship       ship + collider → assets/test/zamboni-ship.glb, zamboni-ship-col.glb
 //     npm run export:crew       crew → assets/test/zamboni-crew.glb
+//     npm run export:player     the player's Dr. Green → assets/test/green-parka.glb (not compressed)
 //
 // Runs the Blender export script (nothing is saved to the .blend: Blender may be open), caps the
 // textures at 512 px, removes duplicates (ship), compresses (Meshopt), then compares with the
@@ -34,10 +35,23 @@ const JOBS = {
     args: (raw) => ['--out', join(raw, 'zamboni-crew.glb')],
     files: { 'zamboni-crew.glb': ['resize', 'meshopt'] },
   },
+  // The player's Dr. Green (the `Player` collection), at the crew file's scale; not compressed
+  // (the game loads it without a Meshopt decoder).
+  player: {
+    script: 'export-crew-character.py',
+    args: (raw) => [
+      '--armature', 'Dr. Green Parka',
+      '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack',
+      '--scale', '0.826',
+      '--force-double-sided',
+      '--out', join(raw, 'green-parka.glb'),
+    ],
+    files: { 'green-parka.glb': ['copy'] },
+  },
 };
 const job = JOBS[what];
 if (!job) {
-  console.error('export: npm run export:ship | npm run export:crew');
+  console.error('export: npm run export:ship | npm run export:crew | npm run export:player');
   process.exit(2);
 }
 
@@ -62,13 +76,17 @@ if (blender.error || !/^EXPORTED /m.test(log)) {
   console.error(log.split(/\r?\n/).filter((l) => /Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);
 }
-const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|BAKED)\b/.test(l));
+const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|BAKED|SHAPE KEY)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
 // 2. Resize, dedup, compress.
 for (const [name, steps] of Object.entries(job.files)) {
   let from = join(raw, name);
   for (const step of steps) {
+    if (step === 'copy') {
+      copyFileSync(from, join(ASSETS, name));
+      continue;
+    }
     const to = step === 'meshopt' ? join(ASSETS, name) : join(raw, name.replace('.glb', `-${step}.glb`));
     const done = run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
     if (done.status !== 0) {

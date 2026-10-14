@@ -34,7 +34,7 @@ export class Character {
   private heading = new THREE.Vector3(0, 0, -1);
   /** Seconds left of floating (no gravity) after leaving a ladder at its top; ends on the floor. */
   floating = 0;
-  /** The jetpack is held. */
+  /** The jetpack is held (and worn: `settings.wearingJetpack`). */
   flying = false;
   /** The way she flies (unit, world space); her speed is `speed`. */
   readonly flyDirection = new THREE.Vector3(0, 1, 0);
@@ -104,7 +104,8 @@ export class Character {
     // her (she walks, rather than skimming the ground at fly speed while hovering).
     const byTrigger = input.flyTrigger !== null && settings.padFlyMode !== 'part1';
     const takesOff = !byTrigger || !this.grounded || input.flyTrigger! > settings.hoverHigh;
-    if (input.flyHeld && takesOff) {
+    // Only with a jetpack on (taken from the rack); jumping doesn't need one.
+    if (input.flyHeld && takesOff && settings.wearingJetpack) {
       this.fly(dt, input, cameraYaw, cameraPitch, amount, physics);
       return;
     }
