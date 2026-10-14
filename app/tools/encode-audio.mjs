@@ -28,8 +28,11 @@ const FILES = [
   ['amb_ship_noise_b_loop', 'plane-landing-23118_01', '48k', 1],
 ];
 // [game file, the master's whole path, bit rate, channels]: masters that aren't in resources/.
-// Part 1's soundtrack is 44.1 kHz and keeps it.
-const ELSEWHERE = [['mus_part1_theme', join(PART1, 'Background Music.wav'), '128k', 2]];
+// Part 1's soundtrack is 44.1 kHz and keeps it; so does its jetpack's sound (it loops).
+const ELSEWHERE = [
+  ['mus_part1_theme', join(PART1, 'Background Music.wav'), '128k', 2],
+  ['sfx_jetpack_loop', join(PART1, 'Thrusters.mp3'), '64k', 2],
+];
 const onlyAt = process.argv.indexOf('--only');
 const ONLY = onlyAt >= 0 ? process.argv[onlyAt + 1] : null;
 

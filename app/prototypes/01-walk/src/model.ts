@@ -3,7 +3,8 @@
 // - "zamboni": the Zamboni Dr. Green (parka) from the crew file, driven by Part 1's animations
 //   through retargeting (same bone names, different bone orientations and proportions).
 // Blends standing → walking → running by speed, keeping walk and run on the same step
-// (shared phase), and plays the jump while airborne.
+// (shared phase), and plays the jump while airborne. Flying (the jetpack), Part 1's Flying clip
+// loops, blended in and out over FLY_BLEND.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -18,7 +19,10 @@ export const PART1_HEIGHT = 1.23;
 
 export type ModelId = 'zamboni' | 'part1';
 
-type Clips = { standing: THREE.AnimationAction; walking: THREE.AnimationAction; running: THREE.AnimationAction; jumping: THREE.AnimationAction };
+/** Time constant of the blend into and out of the flying clip (s). */
+const FLY_BLEND = 0.12;
+
+type Clips = { standing: THREE.AnimationAction; walking: THREE.AnimationAction; running: THREE.AnimationAction; jumping: THREE.AnimationAction; flying: THREE.AnimationAction };
 
 export class AnimatedModel {
   readonly object: THREE.Object3D;
@@ -33,6 +37,8 @@ export class AnimatedModel {
   private wasGrounded = true;
   /** Speed the animation is showing (m/s), eased toward the character's real speed. */
   private animSpeed = 0;
+  /** The flying clip's share, eased (0..1). */
+  private flyWeight = 0;
 
   constructor(
     object: THREE.Object3D,
@@ -55,7 +61,10 @@ export class AnimatedModel {
       walking: action('walking'),
       running: action('running'),
       jumping: action('jumping'),
+      flying: action('flying'),
     };
+    this.clips.flying.play();
+    this.clips.flying.setEffectiveWeight(0);
 
     // Walk and run are driven by hand (time set from the shared phase), so they don't advance on their own.
     for (const a of [this.clips.standing, this.clips.walking, this.clips.running]) {
@@ -79,7 +88,7 @@ export class AnimatedModel {
    * Called every rendered frame with the character's current horizontal speed, and the walk and
    * run speeds in use (they differ indoors), which set the walk/run blend.
    */
-  update(dt: number, actualSpeed: number, grounded: boolean, walk: number, run: number): void {
+  update(dt: number, actualSpeed: number, grounded: boolean, walk: number, run: number, flying = false): void {
     this.object.scale.setScalar(settings.modelScale * this.heightToScale());
     this.object.rotation.y = THREE.MathUtils.degToRad(this.baseYawDeg + settings.modelYawOffsetDeg);
 
@@ -92,7 +101,7 @@ export class AnimatedModel {
     if (this.animSpeed < 0.01) this.animSpeed = 0;
     const speed = this.animSpeed;
 
-    const { standing, walking, running, jumping } = this.clips;
+    const { standing, walking, running, jumping, flying: flyingClip } = this.clips;
 
     // Ground blend: 0 = standing, 1 = walking, 2 = running.
     const blend = speed <= walk ? speed / walk : 1 + Math.min(1, (speed - walk) / Math.max(0.01, run - walk));
@@ -109,19 +118,24 @@ export class AnimatedModel {
     walking.time = this.phase * walking.getClip().duration;
     running.time = this.phase * running.getClip().duration;
 
-    // Airborne: the jump takes over.
-    if (!grounded && this.wasGrounded) {
+    // Airborne: the jump takes over (not when she takes off flying).
+    if (!grounded && this.wasGrounded && !flying) {
       jumping.reset();
       jumping.play();
     }
     this.wasGrounded = grounded;
-    const wJump = grounded ? 0 : 1;
-    const ground = 1 - wJump;
+    // Flying: the flying clip over everything, eased in and out.
+    this.flyWeight += ((flying ? 1 : 0) - this.flyWeight) * (1 - Math.exp(-Math.max(0, dt) / FLY_BLEND));
+    if (this.flyWeight < 0.001) this.flyWeight = 0;
+    const rest = 1 - this.flyWeight;
+    const wJump = grounded ? 0 : rest;
+    const ground = grounded ? rest : 0;
 
     standing.setEffectiveWeight(wStand * ground);
     walking.setEffectiveWeight(wWalk * ground);
     running.setEffectiveWeight(wRun * ground);
     jumping.setEffectiveWeight(wJump);
+    flyingClip.setEffectiveWeight(this.flyWeight);
 
     this.mixer.update(dt);
   }

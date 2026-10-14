@@ -131,7 +131,7 @@ export class Ladders {
 
     if (!this.on) {
       if (amount < 0.2) this.waitForRelease = false;
-      if (this.waitForRelease || !character.grounded || amount < 0.3) return false;
+      if (this.waitForRelease || !character.grounded || input.flyHeld || amount < 0.3) return false;
       const feet = character.position;
       for (const ladder of this.list) {
         if (!ladder.available()) continue;
@@ -155,6 +155,8 @@ export class Ladders {
       return false;
     };
     if (!ladder.available()) return leave();
+    // The jetpack lets go: she flies from where she is.
+    if (input.flyHeld) return leave();
     // Jump is a jump, from where she is: she falls back down, or lands on the floor above.
     if (input.consumeJump()) {
       character.jump();

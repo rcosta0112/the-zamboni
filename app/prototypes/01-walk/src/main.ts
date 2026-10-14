@@ -130,6 +130,7 @@ async function start(): Promise<void> {
   audio.setLoop('mus_part1_theme', true, 0.5);
   const footsteps = new Footsteps((id, level) => audio.play(id, undefined, undefined, level));
   let rungs = 0; // hands on the ladder's rungs so far
+  let jetSounding = false; // the jetpack's sound is on
 
   // Dev only: reachable from the browser console and test scripts.
   if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __footsteps: footsteps, __start: () => ({ ready, begun, share: loading.share }) });
@@ -260,7 +261,7 @@ async function start(): Promise<void> {
       // Indoors: the same "inside" test as the see-through hull, on the simulated position.
       stepChest.copy(character.position).y += settings.cutTargetHeight;
       const indoors = ship !== null && ship.interior.containsPoint(stepChest);
-      if (!ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, physics, indoors);
+      if (!ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
       // Doors and the ramp after her own move: a moving door pushes her out of its way.
       if (ship) updateShip(ship, STEP, false, pusher);
       accumulator -= STEP;
@@ -273,6 +274,21 @@ async function start(): Promise<void> {
       rungs = ladders.rungs;
       audio.play('sfx_ladder_grab');
     }
+    // The jetpack's sound loops while she flies (Part 1's, which stopped dead; a short fade here).
+    if (character.flying !== jetSounding) {
+      jetSounding = character.flying;
+      if (jetSounding) audio.play('sfx_jetpack_loop');
+      else audio.stop('sfx_jetpack_loop', undefined, 0.1);
+    }
+    // By R2 its level and pitch follow the trigger: quieter and lower hovering, full climbing.
+    if (jetSounding) {
+      const t = settings.jetSoundFollowsTrigger ? character.flyTrigger : null;
+      audio.shape(
+        'sfx_jetpack_loop',
+        t === null ? 1 : THREE.MathUtils.lerp(settings.jetSoundLowLevel, 1, t * t),
+        t === null ? 1 : THREE.MathUtils.lerp(settings.jetSoundLowRate, settings.jetSoundHighRate, t),
+      );
+    }
 
     character.render(accumulator / STEP);
     character.animate(dt);
@@ -282,7 +298,8 @@ async function start(): Promise<void> {
     // Above the ground she's on the ship (its ramps, before she's "inside"): the ground is flat for now.
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
-    view.update(dt, input, character.root.position, inside);
+    // Flying by Part 1's rule the camera's pitch steers her, so it may go below her; by R2 it doesn't.
+    view.update(dt, input, character.root.position, inside, character.flying && character.flyTrigger === null);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
     const active = inside && settings.seeThrough;
     let holeOpen = active;
@@ -339,8 +356,8 @@ function easeTo(value: number, target: number, step: number): number {
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · A jump · B/◯ interact · Start/Options pause · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · Space jump · E interact · Y invert · ` tuning\n' +
+    'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers) · B/◯ interact · Start/Options pause · View: tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · ` tuning\n' +
     'Ladders: walk into the foot; push toward the ladder to climb, away to climb down; at the top, push back or sideways to step off';
 }
 

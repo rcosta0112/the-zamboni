@@ -87,6 +87,7 @@ To test walk/run animation, prototype 01 also shows **Part 1's Dr. Green** (from
 
 - **Movement values:** start from Part 1's, read from its Unity scene (`Main.unity`): walk 1.5 m/s, run 7 m/s, turn smoothing 0.2 s, acceleration 0.1 per frame (frame-rate dependent in Part 1; about 6 m/s² at 60 fps). A second, slower run speed for indoors will probably be needed later.
 - **Jump:** the character can jump, unless they're wearing the backpack (jetpack). Jump and fly use the same button. Part 1's jump height setting was 4, but its jump was switched off, so the height will be tuned from scratch.
+  > **[Agent note]** Changed by the owner (2026-10-12): jump and fly have **separate buttons** (C / Cross jumps; Space / right trigger flies, held). The jetpack is built (2026-10-14): [`../backlog-passes.md`](../backlog-passes.md), pass 6.
 
 ## Open questions
 

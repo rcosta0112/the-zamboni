@@ -23,6 +23,44 @@ export const settings = {
   indoorJumpHeight: 0.6,
   gravity: 20,
 
+  // Jetpack (held: Space, R1), Part 1's values (PlayerMovement.cs, Main.unity): fly speed 20 m/s;
+  // with the stick at rest she rises at a quarter of it; speeds up by 0.1 per frame (6 m/s² at
+  // 60 fps) and slows down 20 times as fast (120 m/s²). No gravity while flying.
+  flySpeed: 20,
+  flyRiseShare: 0.25,
+  flyAcceleration: 6,
+  flyDeceleration: 120,
+  // While flying the camera can go below her, so she can fly upward (Part 1's camera could go
+  // 1.3 m under her). Not Part 1's: on the ground, a flight that points down lifts her off instead.
+  cameraMinPitchFlyingDeg: -40,
+  // ...and below this height (m) a flight pointing down levels off, so she doesn't skim the ground.
+  flyLowest: 1.0,
+
+  // Gamepad with an analog R2 (owner, 2026-10-14; a digital one, or Space, flies by Part 1's rule).
+  // 'speed': the trigger sets her vertical speed: off below flyTriggerOff, descending in the lower
+  // third, hovering in the middle third, climbing in the upper third; the stick flies her
+  // horizontally. 'acceleration': the trigger sets her vertical acceleration (the middle third
+  // flat) with a drag so she settles. 'part1': as Space.
+  padFlyMode: 'speed' as 'speed' | 'acceleration' | 'part1',
+  flyTriggerOff: 0.05,
+  hoverLow: 0.33,
+  hoverHigh: 0.67,
+  // Once hovering, the band widens by this much on each side, so a shaky finger stays in it.
+  hoverHysteresis: 0.03,
+  flyClimbSpeed: 5, // Part 1's rise: a quarter of fly speed
+  flyDescendSpeed: 5,
+  flyVerticalAcceleration: 6, // Part 1's acceleration
+  flyTriggerAcceleration: 10, // 'acceleration' mode: at the trigger's ends (m/s²)
+  flyVerticalDrag: 1.5, // 'acceleration' mode: share of her vertical speed lost per second
+  // The jet sound's level and pitch follow the trigger (a way to hear the hover band).
+  jetSoundFollowsTrigger: true,
+  // At the trigger's bottom: level (share of full) and speed; at its top, full level and this speed.
+  // Level follows the trigger squared, so it drops off faster toward the bottom (owner, 2026-10-14:
+  // stronger, quieter at the lower end).
+  jetSoundLowLevel: 0.08,
+  jetSoundLowRate: 0.75,
+  jetSoundHighRate: 1.15,
+
   // Camera
   // Fixed distances, no zoom (owner, 2026-10-12): the camera eases from one to the other when she
   // crosses the ship's "inside" test. Starting values: the owner is tuning them.

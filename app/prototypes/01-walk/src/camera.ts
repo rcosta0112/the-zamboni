@@ -9,6 +9,8 @@ import type { Input } from './input';
 const DEG = Math.PI / 180;
 /** Time constant of the ease between the indoor and outdoor distances: about 0.5 s to get there. */
 const DISTANCE_EASE = 0.17;
+/** Time constant of the pitch's return to its limit after a flight. */
+const PITCH_EASE = 0.25;
 
 export class FollowCamera {
   readonly camera: THREE.PerspectiveCamera;
@@ -18,6 +20,8 @@ export class FollowCamera {
   distance = settings.cameraDistanceOutdoors;
   private focus = new THREE.Vector3();
   private initialised = false;
+  /** Flying, or easing back to the usual pitch limit since. */
+  private afterFlight = false;
   /** Distance actually used after collision (eases back out when the way clears). */
   private collidedDistance = Infinity;
   /**
@@ -30,15 +34,19 @@ export class FollowCamera {
     this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 500);
   }
 
-  /** @param indoors she's inside the ship (the same test as the see-through hull) */
-  update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean): void {
+  /**
+   * @param indoors she's inside the ship (the same test as the see-through hull)
+   * @param flying the jetpack is on: the camera can go below her (she flies where it looks)
+   */
+  update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean, flying = false): void {
     const look = input.consumeLook(dt);
     this.yaw += look.yaw;
-    this.pitch = THREE.MathUtils.clamp(
-      this.pitch + look.pitch,
-      settings.cameraMinPitchDeg * DEG,
-      settings.cameraMaxPitchDeg * DEG,
-    );
+    const min = (flying ? Math.min(settings.cameraMinPitchFlyingDeg, settings.cameraMinPitchDeg) : settings.cameraMinPitchDeg) * DEG;
+    if (flying) this.afterFlight = true;
+    else if (this.pitch >= min) this.afterFlight = false;
+    // Below the usual limit after a flight: it eases back up instead of jumping.
+    const floor = this.afterFlight && this.pitch < min ? this.pitch + (min - this.pitch) * (1 - Math.exp(-dt / PITCH_EASE)) : min;
+    this.pitch = THREE.MathUtils.clamp(this.pitch + look.pitch, Math.min(min, floor), settings.cameraMaxPitchDeg * DEG);
     const wanted = indoors ? settings.cameraDistanceIndoors : settings.cameraDistanceOutdoors;
     this.distance += (wanted - this.distance) * (1 - Math.exp(-dt / DISTANCE_EASE));
     if (Math.abs(wanted - this.distance) < 0.002) this.distance = wanted;

@@ -19,6 +19,7 @@
   "sfx_step_ship": { "files": ["sfx_step_ship_01.m4a", "sfx_step_ship_02.m4a", "sfx_step_ship_03.m4a", "sfx_step_ship_04.m4a"], "volume": 0.3, "spread": 0.06, "overlap": true, "bus": "sfx", "group": "steps" },
   "sfx_land_snow": { "files": ["sfx_step_snow_01.m4a", "sfx_step_snow_02.m4a", "sfx_step_snow_03.m4a", "sfx_step_snow_04.m4a"], "volume": 0.5, "rate": 0.75, "bus": "sfx", "group": "steps" },
   "sfx_land_ship": { "files": ["sfx_step_ship_01.m4a", "sfx_step_ship_02.m4a", "sfx_step_ship_03.m4a", "sfx_step_ship_04.m4a"], "volume": 0.5, "rate": 0.75, "bus": "sfx", "group": "steps" },
+  "sfx_jetpack_loop": { "file": "sfx_jetpack_loop.m4a", "bus": "sfx", "volume": 1.26, "loop": true },
   "ui_click": { "file": "ui_click.m4a", "bus": "ui", "volume": 0.5 },
   "mus_part1_theme": { "file": "mus_part1_theme.m4a", "bus": "music", "volume": 0.7, "stream": true, "loop": true, "crossfade": 2 },
   "amb_ship_noise": { "layers": ["amb_ship_noise_a_loop.m4a", "amb_ship_noise_b_loop.m4a"], "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 2 }

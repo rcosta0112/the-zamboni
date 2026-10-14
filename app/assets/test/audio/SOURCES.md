@@ -38,4 +38,10 @@ Plan: [`doc/plans/features/start-screen.md`](../../../../doc/plans/features/star
 | `mus_part1_theme.m4a` | `Background Music.wav` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`; 2 min 17 s, 44.1 kHz, 24-bit stereo), whole, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 128 kbit/s stereo | Not known | Not known: where Part 1's file came from isn't recorded |
 | `ui_click.m4a` | Made by [`make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs) from a tone and noise: no master, the recipe is in the script | The project | Nothing to license |
 
+## The jetpack (2026-10-14)
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `sfx_jetpack_loop.m4a` | `Thrusters.mp3` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`; 9.5 s, 44.1 kHz stereo; peaks at -4.5 dB), whole, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 64 kbit/s stereo. Part 1 looped it at volume 0.75 with Unity's *normalize* on (peak to 0 dB): the cue's volume, 1.26, is the two together | Not known | Not known: where Part 1's file came from isn't recorded |
+
 The boombox's tracks are numbered in the order of the inventory's table. **Not confirmed against the Blueprint:** the order of its track list isn't readable from the `.uasset`.

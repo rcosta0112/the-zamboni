@@ -24,7 +24,7 @@
 | 18 | All double-sided materials single-sided, with a switch in the tuning panel; issues fixed in Blender | 2 | Built |
 | 19 | The ship's collision extended down to the ground (a box), so she can't get under it | 2 | Built |
 | 20 | The same under the front thrusters | 2 | Built |
-| 21 | The jetpack, as in Big Moon Tiny Moon; no visuals; allowed anywhere for now | 6 | To do |
+| 21 | The jetpack, as in Big Moon Tiny Moon; no visuals; allowed anywhere for now | 6 | Built 2026-10-14 (before pass 5, owner): hold Space; C / Cross jumps; Part 1's rule, values, jet sound and *Flying* clip. Gamepad (pass 6b): an analog R2 hovers half-way, climbs above, descends below; a digital R2 flies like Space. **The owner's to play** |
 | 22 | The top hatch: one interaction opens or closes both parts | 1 | Built |
 | 23 | The control prompt moves next to the object pointed at, instead of the colour highlight | 1 | Built; approved, the highlight's code removed 2026-10-14 |
 | 24 | The audio files and audio events of the UE prototype, copied to the game (owner, 2026-10-13) | 4.5 | Built 2026-10-13 ([`features/audio-from-ue.md`](features/audio-from-ue.md), *As built*): door sound, boombox, the ship's noise. Played by the owner, 2026-10-13: good |

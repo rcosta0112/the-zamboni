@@ -25,7 +25,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [Prototype 01: walk](prototypes/01-walk.md) | [Step 2](../steps/02-first-prototype.md) | Built; owner play-test pending |
 | [Prototype 02: low-resolution rendering](prototypes/02-low-res.md) | [Step 2](../steps/02-first-prototype.md) | Draft, for review |
 | [See-through hull](features/see-through-hull.md) | [Step 3](../steps/03-see-through-hull.md) | Built; owner play-test pending |
-| [See-through rules (what gets cut, and when)](features/see-through-rules.md) | [Step 3](../steps/03-see-through-hull.md) | Built (four passes); rule table next |
+| [See-through rules (what gets cut, and when)](features/see-through-rules.md) | [Step 3](../steps/03-see-through-hull.md) | Built (four passes); fifth pass drafted 2026-10-14, for review; rule table later |
 | [The rest of the ship (props, interior lights, Dr. Kaufman)](features/ship-contents.md) | Prototype 01 | Built; owner play-test pending |
 | [Basic interaction (doors, hatches, lockers, the cargo panels, ladders)](features/interaction-doors.md) | Prototype 01 | Built; owner play-test pending |
 | [Doors and the character (getting in the way, getting trapped)](features/interaction-clearance.md) | Prototype 01 | Built; owner play-test pending |

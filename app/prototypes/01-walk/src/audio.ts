@@ -35,6 +35,7 @@ interface Cue {
   /** Where in the file it starts (s). */
   offset?: number;
   stream?: boolean;
+  /** It repeats: streamed, by `crossfade`; decoded, from end straight back to start until stopped. */
   loop?: boolean;
   /** A streamed loop repeats by fading its end into its start over this long (s). */
   crossfade?: number;
@@ -200,6 +201,8 @@ export class GameAudio {
       const source = this.context.createBufferSource();
       source.buffer = buffer;
       source.playbackRate.value = (cue.rate ?? 1) * (1 + (Math.random() * 2 - 1) * (cue.spread ?? 0));
+      // A decoded sound that repeats (the jetpack) goes round until it's stopped.
+      source.loop = cue.loop === true;
       source.connect(voice.out);
       source.onended = () => {
         source.disconnect();
@@ -234,6 +237,19 @@ export class GameAudio {
     } else {
       this.halt(voice);
     }
+  }
+
+  /**
+   * Change a sounding cue's level (share of its volume) and speed (share of its rate), eased over a
+   * few hundredths of a second (the jetpack following the trigger).
+   */
+  shape(id: CueId, level: number, rate: number, at?: THREE.Object3D): void {
+    const voice = this.voices.get(key(id, at));
+    if (!voice?.playing) return;
+    const cue: Cue = cues[id];
+    const now = this.context.currentTime;
+    voice.out.gain.setTargetAtTime((cue.volume ?? 1) * level, now, 0.03);
+    voice.source?.playbackRate.setTargetAtTime((cue.rate ?? 1) * rate, now, 0.03);
   }
 
   isPlaying(id: CueId, at?: THREE.Object3D): boolean {

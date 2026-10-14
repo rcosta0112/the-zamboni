@@ -34,6 +34,28 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   jump.add(settings, 'indoorJumpHeight', 0.2, 3, 0.05).name('height indoors (m)');
   jump.add(settings, 'gravity', 5, 50, 0.5).name('gravity (m/s²)');
 
+  const fly = gui.addFolder('Jetpack');
+  fly.add(settings, 'flySpeed', 1, 40, 0.5).name('fly speed (m/s)');
+  fly.add(settings, 'flyRiseShare', 0, 1, 0.05).name('rise, stick at rest (× fly speed)');
+  fly.add(settings, 'flyAcceleration', 1, 60, 0.5).name('acceleration (m/s²)');
+  fly.add(settings, 'flyDeceleration', 5, 200, 1).name('deceleration (m/s²)');
+  fly.add(settings, 'cameraMinPitchFlyingDeg', -80, 0, 1).name('camera min pitch, flying (°)');
+  fly.add(settings, 'flyLowest', 0, 5, 0.1).name('lowest flight, stick pushed (m)');
+  fly.add(settings, 'padFlyMode', { 'R2 sets vertical speed (hover)': 'speed', 'R2 sets vertical acceleration': 'acceleration', "Part 1's rule (as Space)": 'part1' }).name('analog R2');
+  fly.add(settings, 'flyTriggerOff', 0, 0.3, 0.01).name('R2: off below');
+  fly.add(settings, 'hoverLow', 0.05, 0.95, 0.01).name('R2: hover from');
+  fly.add(settings, 'hoverHigh', 0.05, 0.95, 0.01).name('R2: hover to');
+  fly.add(settings, 'hoverHysteresis', 0, 0.15, 0.01).name('R2: hover band widens by');
+  fly.add(settings, 'flyClimbSpeed', 0.5, 20, 0.5).name('R2: climb speed (m/s)');
+  fly.add(settings, 'flyDescendSpeed', 0.5, 20, 0.5).name('R2: descend speed (m/s)');
+  fly.add(settings, 'flyVerticalAcceleration', 1, 60, 0.5).name('R2: vertical acceleration (m/s²)');
+  fly.add(settings, 'flyTriggerAcceleration', 1, 40, 0.5).name('R2 accel. mode: max (m/s²)');
+  fly.add(settings, 'flyVerticalDrag', 0, 10, 0.1).name('R2 accel. mode: drag (/s)');
+  fly.add(settings, 'jetSoundFollowsTrigger').name('jet sound follows R2');
+  fly.add(settings, 'jetSoundLowLevel', 0, 1, 0.01).name('jet sound: level at R2 bottom');
+  fly.add(settings, 'jetSoundLowRate', 0.5, 1, 0.01).name('jet sound: pitch at R2 bottom');
+  fly.add(settings, 'jetSoundHighRate', 1, 1.5, 0.01).name('jet sound: pitch at R2 top');
+
   const cam = gui.addFolder('Camera');
   cam.add(settings, 'cameraDistanceIndoors', 1, 12, 0.1).name('distance indoors (m)');
   cam.add(settings, 'cameraDistanceOutdoors', 1, 12, 0.1).name('distance outdoors (m)');

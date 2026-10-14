@@ -133,6 +133,59 @@ The owner's play-test found seven edge cases (screenshots in the conversation of
 
 > **[Agent note]** Fixed while building: (1) the export script only tagged the objects on its list, not their children, so the backrests (children of the seats) weren't tagged; it now tags children too. (2) An object with several materials was sometimes grouped with its parent (GLTFLoader doesn't always record the group of a multi-material node), so the backrests counted as part of the whole seat; a mesh that isn't a node now belongs to its direct parent group.
 
+## Fifth pass (backlog pass 5: items 11, 13, 14, 15; and the closed bulkhead door)
+
+*Status: draft, 2026-10-14, for the owner's review.* Part of [`../backlog-passes.md`](../backlog-passes.md) (pass 5). Written after pitch 0 (pass 1) and single-sided materials (pass 2) were played, as that plan asked.
+
+**Goal:** the owner's four see-through items, plus the open question of a closed bulkhead door hiding her ([`features/interaction.md`](../../features/interaction.md#open-questions)). Each new behaviour gets a toggle in the tuning panel (*See-through hull* folder) so it can be compared with today's in play.
+**Out:** the rule table (next section; this pass adds rules the old way, and the table later describes them); the camera avoiding bad angles; the circle mask (left, owner 2026-10-12).
+
+### Constraints and conflicts (flagged)
+
+- **Conflict (11) with the second pass:** "lockers covering half of her (cargo bay): should be cut" (owner, 2026-10-08). Item 11 says everything in the cargo hold and engineering is always visible while she's there. The newer instruction is specific, so the plan follows it (and the toggle allows going back); a dated *Update* in the decision log.
+- **Change (14) to the owner's decision of 2026-10-09** ("the characters… all visible all the time"): already listed in [`../backlog-passes.md`](../backlog-passes.md); a dated *Update* in the decision log.
+- **Item 11, read as in the approved pass plan:** furniture and props on the lower deck are never cut while she's on it; **structure (hull, walls, ceilings) is still cut by the hole**, or she'd be hidden inside the hull from outside. If "everything" meant the walls too, say so.
+- Rules kept: the ground rule, one material copy per source material, shaders compiled while loading, per-object uniforms.
+
+### The rules
+
+1. **Lower deck solid (11).** While she's on the lower deck, every piece of furniture there behaves as `seeThrough: "solid"`: never cut, not even near the camera. Structure keeps the hole. On the upper deck nothing changes. Toggle: *lower deck furniture always visible* (on).
+   - Trade-off: with the camera behind a locker or the engineering machinery, the object fills the view. The camera doesn't collide indoors; if this shows in play, the fix belongs to the camera work, not here.
+2. **Characters (14).** The crew join the see-through rules: on her deck **solid** (never cut); on the other deck cut like everything there (the hole, or the black mask of rule 4). They get see-through material copies (skinned meshes, same shader), their deck from the bottom of each character's posed bounds. They're left out of the "does something hide her" test (their raycast data would be in the bind pose, not the pose they're in): on the other deck they're cut whenever the hole is open, which the structure around them opens anyway.
+3. **Furniture against the crew quarters' walls (13).** Today the hole cuts the wall but not the bunks and lockers in front of it, so from outside the view is their backs. Three options, each behind one setting (*wall furniture*: one of the three), to compare in play:
+   - **A. Part of the wall** (recommended): cut by the hole with the wall, like structure; never cut on its own. It's what you'd expect from a cutaway: the wall goes, and what's fixed to it goes with it.
+   - **B. Cut as a whole** when the hole is open and the object is between the camera and her (the whole-object fade the dividers use). Cleaner shapes, but a bunk can vanish whole even when only its corner is in the way.
+   - **C. Height cut:** cut by the hole only above her waist (the near-camera rule, applied to these objects wherever they are). Keeps the low part (bunk bases), which reads as a floor plan.
+   - **Which objects:** found at load, as the objects attached to bulkheads are: **upper-deck furniture whose surface comes within 3 cm of the hull or a crew-quarters wall** (BVH closest point), listed in the console. Not the cockpit (its furniture is `solid`). If the search catches the wrong things, a list in the export script instead (`seeThrough: "wall"`), as for the other tags.
+4. **Black mask on the other deck (15).** Instead of cutting what's on the deck she isn't on, it's drawn **flat black** (unlit, no cut): the other floor reads as a dark mass, and only her floor has detail. Setting *other deck*: *hole* (today) / *black*.
+   - **Which objects:** everything whose deck is the other deck, **except objects spanning both decks** (the hull, the bulkheads, the cargo ramp: their bottom is on the lower deck but they rise past the upper floor). Without that exception the whole hull would turn black while she's upstairs. "Spans both decks": its bounds reach more than 0.5 m past the upper floor's height on both sides.
+   - Seen mostly downstairs, looking up through the hole at the upper deck. Upstairs, the floor already hides the lower deck except through the trapdoor's opening.
+   - **Alternative, not recommended:** a height mask (every pixel above or below the deck line inside the hull's footprint, hull included). It catches everything with no per-object list, but it blacks out the outside of the hull's upper half from outside.
+5. **A closed bulkhead door hiding her** (open question). Since the doors no longer open and close by themselves (item 29), it happens only when the player closes a door with the camera on the other side. Recommended: **the door leaves follow the divider rule** (solid unless they hide her; then cut by the hole), instead of *bulkheads always visible*; the bulkheads themselves stay always visible. Alternative: leave it (the player closed the door).
+
+### The work
+
+1. `visibility.ts`: rule 1 (lower-deck furniture solid), rule 5 (door leaves out of *bulkheads always visible*), a `character` flag on units (rule 2), a `wall` flag (rule 3) and its three behaviours, a `spans` flag (rule 4).
+2. `ship.ts`: the wall-furniture search at load (as the bulkhead search), the spanning test; `crew.ts`: crew meshes made cuttable and grouped into one unit per character, with its deck.
+3. `cutaway.ts`: the black mode for the other deck (flat black colour, no mask) as a per-object value, so materials stay shared.
+4. Tuning panel: the four settings above.
+5. Check, with the probe: screenshots of the cargo bay and engineering (lockers in front of her: whole), the crew quarters from outside with A, B and C, the upper deck from downstairs with *hole* and *black*, a character on each deck from the other; a door closed between her and the camera. Frame time before and after (the crew add draws with the see-through material). Then the whole smoke check once.
+
+### Done when
+
+- **Agent:** check and build pass; the screenshots above; no console errors; frame time measured.
+- **Owner:** plays it; picks the wall-furniture option and *hole* or *black*; says whether rule 1 is right with the camera behind lower-deck furniture.
+
+### Open questions
+
+- Item 11: furniture only (as planned), or the walls too?
+- Item 15: is "everything on the other floor" the objects on it (recommended), or the whole height of it, hull included?
+- Where the crew stand (which deck each is on) is checked at load and reported; nothing to decide.
+
+### After
+
+[`features/see-through-hull.md`](../../features/see-through-hull.md) (groups and rules), the naming contract if `seeThrough: "wall"` is used, decision-log updates (items 11 and 14), the interaction doc's open question, [`../backlog.md`](../backlog.md).
+
 ## Next pass: a rule table for exceptions (outline, for discussion)
 
 Exceptions will keep growing (owner: every angle in the ship should look good), and they now depend on the camera's situation as well as the object. Instead of a code branch per exception, a small table in data:

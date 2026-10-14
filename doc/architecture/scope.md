@@ -33,7 +33,7 @@ Priority: **Core** = the game doesn't work without it. **Wanted** = planned. **M
 | Scanner | Core | Scans ruins and artifacts, maybe wildlife; adds entries to the mission data |
 | Cutscenes (in-engine) | Core | Pre-rendered only as a fallback |
 | Music, ambience, sound effects | Core | Workflow: [`audio.md`](audio.md) |
-| Backpack | Wanted | Outdoors only. Reference: Part 1 jetpack |
+| Backpack | Wanted | Outdoors only. Reference: Part 1 jetpack. (Prototype 01 allows it anywhere, for testing; the limit comes with the user-testing build: owner, 2026-10-12) |
 | Save / continue | Core | Stop and continue later. Checkpoint saves; props aren't tracked and reset on reload (owner, 2026-10-08) |
 | Installable web app, offline play | Core | Download everything at once and play offline (owner, 2026-10-08) |
 | Settings (volume, mouse sensitivity, invert Y) | Wanted | |

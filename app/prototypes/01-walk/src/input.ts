@@ -8,7 +8,10 @@ export type Device = 'gamepad' | 'keyboard';
 // Standard-mapping button indices (Xbox names).
 const PAD_A = 0;
 const PAD_B = 1; // Circle on a PlayStation controller
+const PAD_RT = 7; // right trigger (R2): fly; analog on most pads (owner, 2026-10-14)
 const PAD_VIEW = 8;
+/** A trigger value this far from both 0 and 1 shows the trigger is analog. */
+const ANALOG_MARGIN = 0.02;
 const PAD_START = 9; // Options on a PlayStation controller
 
 export class Input {
@@ -16,6 +19,13 @@ export class Input {
   readonly move = { x: 0, y: 0 };
   /** Keyboard walk modifier (Shift). The stick walks by being pushed less far. */
   walkHeld = false;
+  /** The jetpack: held, not latched (Space, R2). */
+  flyHeld = false;
+  /**
+   * How far R2 is pressed (0..1) when it's analog and flying her; null when she flies by Space or
+   * a digital trigger, which fly by Part 1's rule (keyboard style).
+   */
+  flyTrigger: number | null = null;
   lastDevice: Device = 'keyboard';
   /** A gamepad button went down this frame. */
   padPressed = false;
@@ -29,6 +39,12 @@ export class Input {
   private interactLatched = false;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
+  /**
+   * The pad whose R2 has been seen between 0 and 1: it's analog. A digital trigger only ever reports
+   * 0 or 1; an analog one passes through values between as it goes down, so it shows itself on its
+   * first press. Until then it counts as digital.
+   */
+  private analogPad: string | null = null;
   private onTogglePanel: () => void;
 
   constructor(private canvas: HTMLCanvasElement, onTogglePanel: () => void) {
@@ -38,7 +54,8 @@ export class Input {
       if (e.repeat) return;
       this.keys.add(e.code);
       this.lastDevice = 'keyboard';
-      if (e.code === 'Space') this.jumpLatched = true;
+      // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
+      if (e.code === 'KeyC') this.jumpLatched = true;
       if (e.code === 'KeyE') this.interactLatched = true;
       if (e.code === 'KeyY') settings.invertY = !settings.invertY;
       if (e.code === 'Backquote') this.onTogglePanel();
@@ -66,6 +83,8 @@ export class Input {
     this.padLook.y = 0;
     this.padPressed = false;
     this.pausePressed = false;
+    let padFly = false;
+    let trigger: number | null = null;
 
     if (pad) {
       const [lx, ly] = deadZone(pad.axes[0] ?? 0, pad.axes[1] ?? 0, settings.stickDeadZone);
@@ -82,6 +101,14 @@ export class Input {
       if (justPressed(PAD_B)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
+      const rt = pad.buttons[PAD_RT];
+      if (rt) {
+        if (rt.value > ANALOG_MARGIN && rt.value < 1 - ANALOG_MARGIN) this.analogPad = pad.id;
+        if (this.analogPad === pad.id) {
+          padFly = rt.value > settings.flyTriggerOff;
+          if (padFly) trigger = rt.value;
+        } else padFly = rt.pressed || rt.value >= 0.5;
+      }
 
       if (lx || ly || rx || ry || pressed.some(Boolean)) this.lastDevice = 'gamepad';
       this.padButtons = pressed;
@@ -95,6 +122,10 @@ export class Input {
     if (this.keys.has('KeyS')) keyY -= 1;
     const keyLen = Math.hypot(keyX, keyY);
     this.walkHeld = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+    const spaceFly = this.keys.has('Space');
+    this.flyHeld = spaceFly || padFly;
+    // Space wins: held, it flies by Part 1's rule whatever the trigger does.
+    this.flyTrigger = spaceFly ? null : trigger;
 
     if (keyLen > 0) {
       this.move.x = keyX / keyLen;
@@ -116,6 +147,11 @@ export class Input {
     this.mouseDX = 0;
     this.mouseDY = 0;
     return { yaw, pitch };
+  }
+
+  /** The gamepad's R2 has shown itself to be analog. */
+  get analogTrigger(): boolean {
+    return this.analogPad !== null;
   }
 
   /** True once per interact press (E, gamepad B / Circle). */

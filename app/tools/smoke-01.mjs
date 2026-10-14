@@ -257,7 +257,7 @@ async function checks() {
     await climbTo(0.5);
     key('KeyW', false);
     const from = character.position.y;
-    await tap('Space');
+    await tap('KeyC');
     let peak = from;
     const t1 = performance.now();
     while (performance.now() - t1 < 1500) {
@@ -267,10 +267,10 @@ async function checks() {
     report(peak - from > settings.indoorJumpHeight * 0.7 && ladders.state.is === 'off' && onCargoFloor(), 'jump part of the way up the ladder: she jumps, and falls to the cargo floor', `rose ${(peak - from).toFixed(2)} m from ${from.toFixed(2)}; ends at ${fmt(character.position)}`);
     await climbTo(0.85);
     key('KeyW', false);
-    key('Space', true);
+    key('KeyC', true);
     key('KeyS', true);
     await wait(80);
-    key('Space', false);
+    key('KeyC', false);
     await wait(800);
     key('KeyS', false);
     await offLadder();
@@ -341,6 +341,92 @@ async function checks() {
     report(follows && insideScreen, 'the prompt follows the target on screen', `${samples.join('; ')} (screen ${innerWidth}×${innerHeight})`);
   } else {
     report(false, 'the prompt follows the target on screen', 'the ramp keypad could not be aimed at');
+  }
+
+  // --- Pass 6: the jetpack (21). Held Space: rise; let go: fall; the hull stops her; onto the roof -
+  {
+    const hull = ship.interior;
+    const centre = hull.getCenter(new T.Vector3());
+    put(new T.Vector3(hull.max.x + 6, 0.05, centre.z));
+    await until(() => character.grounded, 3000);
+    const ground = character.position.y;
+    const jet = () => w.__audio.playing().includes('sfx_jetpack_loop');
+    key('Space', true);
+    await wait(1500);
+    const rose = character.position.y - ground;
+    const soundFlying = jet();
+    // Up to the rise speed at the jetpack's acceleration, then steady.
+    const rise = settings.flySpeed * settings.flyRiseShare;
+    const expected = rise * (1.5 - rise / (2 * settings.flyAcceleration));
+    key('Space', false);
+    const fell = await until(() => character.grounded && !character.flying, 6000);
+    report(character.flying === false && rose > expected * 0.8 && fell, 'the jetpack: held, she rises; let go, she falls back', `rose ${rose.toFixed(2)} m in 1.5 s (about ${expected.toFixed(2)} expected); back on the ground: ${fell}`);
+    report(soundFlying && !jet(), 'the jetpack\'s sound plays while she flies, and stops', `while flying: ${soundFlying}; after: ${jet()}`);
+    // From the ground, stick forward with the camera looking down at her: she flies, not skims.
+    view.yaw = yawToward(1, 0);
+    view.pitch = 0.3;
+    key('Space', true);
+    key('KeyW', true);
+    await wait(2000);
+    const height = character.position.y - ground;
+    key('KeyW', false);
+    key('Space', false);
+    report(height > settings.flyLowest * 0.6, 'stick forward and the jetpack, the camera looking down: she lifts off', `${height.toFixed(2)} m up after 2 s (lowest flight ${settings.flyLowest} m)`);
+    put(new T.Vector3(hull.max.x + 6, 0.05, centre.z));
+    await until(() => character.grounded, 3000);
+    // Level toward the ship, camera behind her: the hull stops her.
+    view.yaw = yawToward(centre.x - character.position.x, 0);
+    view.pitch = 0;
+    // Up to about 4 m first: lower down, the hull's side curves in under its widest point.
+    key('Space', true);
+    await wait(1300);
+    key('KeyW', true);
+    await wait(2500);
+    const chest = character.position.clone();
+    chest.y += settings.cutTargetHeight;
+    const stopped = !hull.containsPoint(chest) && character.position.x > hull.max.x - 0.5;
+    report(stopped, 'flying into the hull: it stops her', `at ${fmt(character.position)}; the hull's side at x ${hull.max.x.toFixed(2)}`);
+    key('KeyW', false);
+    key('Space', false);
+    // From above the roof, let go: she lands on it.
+    put(new T.Vector3(centre.x, hull.max.y + 3, centre.z));
+    const landed = await until(() => character.grounded, 6000);
+    report(landed && character.position.y > ship.upperFloorY + 2, 'onto the ship\'s roof', `stands at ${fmt(character.position)}`);
+
+    // An analog R2 (a made-up pad): 90% climbs, 50% holds her height, 20% descends, released she
+    // lands; the flying clip plays while she flies. A digital trigger flies by Part 1's rule.
+    put(new T.Vector3(hull.max.x + 10, 0.05, centre.z));
+    await until(() => character.grounded, 3000);
+    let padId = 'smoke analog pad', rt = 0;
+    const realPads = navigator.getGamepads.bind(navigator);
+    navigator.getGamepads = () => [{ id: padId, connected: true, mapping: 'standard', axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, (_, i) => (i === 7 ? { pressed: rt > 0.12, value: rt } : { pressed: false, value: 0 })) }];
+    const flyClip = () => character.models[settings.characterModel]?.flyWeight ?? 0;
+    const y0 = character.position.y;
+    rt = 0.9;
+    await wait(1500);
+    const climbed = character.position.y - y0;
+    const clipOn = flyClip();
+    rt = 0.5;
+    await wait(1500);
+    const hoverFrom = character.position.y;
+    await wait(1500);
+    const drift = character.position.y - hoverFrom;
+    rt = 0.2;
+    await wait(800);
+    const descending = character.verticalVelocity;
+    rt = 0;
+    const down = await until(() => character.grounded && !character.flying, 8000);
+    await wait(500);
+    report(climbed > 2 && Math.abs(drift) < 0.05 && descending < -0.5 && down && clipOn > 0.9 && flyClip() < 0.1, 'an analog R2: climbs, hovers half-way, descends, lands; the flying clip while she flies', `climbed ${climbed.toFixed(2)} m at 90%; drift ${drift.toFixed(3)} m over 1.5 s at 50%; ${descending.toFixed(2)} m/s at 20%; landed: ${down}; flying clip ${clipOn.toFixed(2)} → ${flyClip().toFixed(2)}`);
+    padId = 'smoke digital pad';
+    rt = 1;
+    await wait(800);
+    const digital = { flying: character.flying, trigger: character.flyTrigger };
+    rt = 0;
+    await until(() => character.grounded, 8000);
+    navigator.getGamepads = realPads;
+    report(digital.flying && digital.trigger === null, 'a digital R2 flies by Part 1\'s rule', `flying: ${digital.flying}; trigger read as analog: ${digital.trigger !== null}`);
   }
 
   // --- Pass 2: the re-export from the reference file (12, 18, 19, 20) --------------------------
@@ -781,7 +867,7 @@ async function checks() {
     const walking = await steps(1, 0, 3000, true);
     report(running.snow >= 5 && running.snow > walking.snow && walking.snow >= 2 && running.ship + walking.ship === 0, 'steps in the snow outside, more of them at a run', `3 s at a run: ${running.snow}; at a walk: ${walking.snow}; ship steps: ${running.ship + walking.ship}`);
     const jump = snap();
-    await tap('Space');
+    await tap('KeyC');
     await wait(1500);
     report(since(jump) === 'sfx_land_snow ×1', 'a jump ends in a landing sound', since(jump));
     // From the start position up the open cargo ramp: the ship's floor from the ramp on.
@@ -820,7 +906,7 @@ async function checks() {
     const expected = 1 + Math.floor((ladder.top.y - ladder.bottom.y) / 0.35);
     report(count('sfx_ladder_grab') - grabs === expected, 'the ladder: a sound taking hold, then every 0.35 m climbed', `${count('sfx_ladder_grab') - grabs} for ${(ladder.top.y - ladder.bottom.y).toFixed(2)} m (expected ${expected})`);
     // She's held at the top: off it (a jump) before she's put elsewhere, or the ladder keeps her.
-    await tap('Space');
+    await tap('KeyC');
     await until(() => ladders.state.is === 'off', 1000);
     put(away);
     await wait(300);

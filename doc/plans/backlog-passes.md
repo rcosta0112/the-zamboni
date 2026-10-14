@@ -121,7 +121,7 @@ A *fifth pass* section in [`see-through-rules.md`](features/see-through-rules.md
 - **Crew-quarters furniture against the walls (13):** options to weigh in that plan: treat wall furniture as part of the wall behind it (cut with the hull, never on its own); cut it as a whole; a height cut. Each behind a toggle, to compare in play.
 - **Black mask over the other floor (15):** a try-out behind a toggle in prototype 01 (it needs the ship and the decks): everything on the deck she isn't on drawn black instead of cut. The numbered backlog mentions a "circle-mask idea of 2026-10-09": it isn't written down in the docs (open question 8).
 
-## Pass 6: jetpack (21)
+## Pass 6: jetpack (21) (built 2026-10-14)
 
 **Part 1's behaviour** (read from `PlayerMovement.cs`): while *Fly* is held there's no gravity. With the stick pushed she flies where the camera points, up and down included, at fly speed (20 m/s; run is 7). With the stick at rest she rises straight up, to a quarter of fly speed. Letting go, she falls.
 
@@ -131,6 +131,49 @@ A *fifth pass* section in [`see-through-rules.md`](features/see-through-rules.md
 4. It works **anywhere**, inside the ship too, for now. An *outdoors only* limit comes with the user-testing build ([`scope.md`](../architecture/scope.md) says outdoors only: noted there).
 
 **Done when:** from the ground she can fly onto the ship's roof and land; she can't pass through the hull or the ground; letting go drops her; the owner compares the feel with Part 1's build.
+
+> **[Agent note]** Built 2026-10-14, before pass 5 (owner: "let's do the jetpack first"). As planned, plus: taking off keeps the velocity she had, letting go keeps her momentum; against the ground or a wall her flight velocity is cut to what actually moved her. **Acceleration (30 m/s²) is a guess**: Part 1's value wasn't recorded. **With minimum pitch 0 the camera never looks up, so the stick never flies her upward** (level at best, down when the camera is above her); she rises only with the stick at rest. Part 1's camera could look up. To judge in play. Checked: three smoke checks (rise and fall, the hull stops her, onto the roof); gamepad untested.
+>
+> **Update (2026-10-14, owner's play):** fly moved to **R1** (Part 1's right shoulder); stick + jetpack "runs really fast instead of flying". Now **Part 1's exact rule and values** (from its `PlayerMovement.cs` and `Main.unity`, which supersede the note above): one speed shared with the run, flight along her facing tilted by the camera's pitch, acceleration 6 m/s² and deceleration 120 m/s², no vertical momentum on release. Two additions, not Part 1's, to fix the report: the camera may go below her while flying (-40°), and below 1 m a downward flight levels off and lifts her from the ground. **Part 1's jet sound** (`Thrusters.mp3`) loops while she flies. Part 1's gravity was 6 m/s² (0.1 per frame); ours stays 20 (the jump is tuned to it): to judge in play. Smoke: rise and fall, the sound, the lift-off, the hull, the roof; R1 tried with a made-up pad.
+
+### Pass 6b: hovering on an analog R2 (gamepad only), and the flying animation
+
+*Status: approved 2026-10-14 ("let's follow your suggestion"; plus: detect whether R2 is analog or digital, and a digital one flies keyboard style); built the same day.*
+
+> **[Agent note]** As built: R2 is analog once a value between 0 and 1 has been seen from that pad (until then, digital). Added while building: **on the ground only the climb band takes off**, and descending onto the ground lands her: half-way on the ground with the stick pushed would otherwise skim the ground at fly speed. The camera's below-her exception applies only to Part 1's rule. Checked with made-up pads (no controller in the test browser): hover drift 0 at 36%, 50% and 64%; smoke checks for the analog and digital cases. What exists: the prototype README, *Jetpack*.
+
+**Asked (owner, 2026-10-14):** fly back on **R2**, as it's analog. Held about half-way she **hovers** in place when she isn't flying forward. The idea: vertical acceleration proportional to the trigger, damped in the middle third so the hover point is easy to find. Keyboard unchanged (Space, Part 1's rule).
+
+**Issues with acceleration proportional to the trigger:**
+
+1. **It doesn't settle.** With the trigger setting acceleration, the half-way point gives zero acceleration, so she keeps whatever vertical speed she had: rising at 2 m/s when the player finds the middle, she goes on rising at 2 m/s. To stop she has to overshoot below the middle and come back. That's a lunar-lander control: fun for some, but hovering takes constant correction, and damping the middle third (a flatter curve there) makes it *slower* to correct, not easier.
+2. **Released has to mean off.** At 0 the jetpack is off (she falls, the sound stops), so the trigger's travel is shared: a little for "off", then descend, hover, climb.
+3. **Some pads have digital triggers** (Switch Pro, some cheap pads: 0 or 1 only). They can't hover, so full = Part 1's rise.
+4. **Holding a trigger half-way for long** tires the finger, more on triggers with no resistance (Xbox) or a stiff one.
+5. **With the stick pushed**, Part 1 flies along the camera's pitch, so up and down come from two places (camera and trigger) and fight each other.
+
+**Proposed instead: the trigger sets her vertical *speed*, not her acceleration.**
+
+| Trigger | Target vertical speed |
+|---|---|
+| Released (below 5%) | Jetpack off: she falls |
+| 5% to 33% | Descend: from -5 m/s up to 0, eased |
+| **33% to 67%** | **0: hover.** Flat, so anywhere in the middle third holds her height exactly |
+| 67% to 100% | Climb: from 0 up to +5 m/s (Part 1's rise), eased |
+
+- Her vertical speed eases toward the target at the jetpack's acceleration, so she still floats into a hover instead of stopping dead. Once there she stays (no drift).
+- The ramps on either side of the flat third are smooth (no step at 33% or 67%), with a little hysteresis at the edges so a shaky finger doesn't flicker between hover and climb.
+- **With the stick pushed**, on the gamepad the stick flies her horizontally at fly speed and **the trigger alone sets her height**; the camera's pitch no longer steers. That removes the skimming problem and the *camera below her* exception on the gamepad (they stay for the keyboard).
+- **Feedback for finding the hover point:** the jet sound's volume and pitch follow the trigger (quieter and lower while hovering, loudest climbing). Optional, a setting.
+- A setting switches the gamepad between this and Part 1's rule, so both can be compared.
+
+**Option: the owner's version as asked**, behind the same switch: acceleration proportional to the trigger, the middle third flattened, plus a small drag on her vertical speed so she settles by herself. Cheap to build next to the proposal and compare in play.
+
+**The flying animation.** Part 1's Dr. Green has these clips (`Dr.Green.fbx`, 24 fps): *Walking* (1.42 s, loop), *Running* (0.83 s, loop), *Jumping* and *Jumping 2* (1.42 s, once), ***Flying* (7.5 s, loop)**, *Standing* (one frame), and *Scanning* (10 s, loop, a separate `.anim`). Part 1's Animator plays *Flying* whenever *Fly* is held. **It's already in the prototype's file** (`part1-dr-green.glb`: `flying`, 7.54 s) and unused: today she shows the jump pose in the air. Proposed: play it while she flies (a short blend in and out), on both models (the Zamboni model takes Part 1's clips retargeted). Other characters in Part 1: Dr. Kaufman *Scanning* (500 frames), Dr. Ogawa *Engineer Working* (160 frames), the generic *Character* (Jumping, Running, Standing, Walking).
+
+**The work:** R2's value in `input.ts` (Space stays digital); the trigger mapping and the switch in `character.ts`; the sound's level and pitch; the flying clip in `model.ts`; tuning-panel settings (the thirds' edges, descend and climb speeds); a smoke check with a made-up pad at 20%, 50% and 90%.
+
+**Done when:** with a made-up pad, she holds her height within a few centimetres anywhere in the middle third, descends below it and climbs above it; released, she falls; the flying clip plays while she flies. Then the owner plays it with the real controller.
 
 ## After every pass
 

@@ -4,18 +4,19 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, fifth session (everything is committed).*
+*Updated 2026-10-14, sixth session (everything is committed).*
 
 ## Now
 
 - **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. Six passes, all in prototype 01. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md).
 - **Passes 1, 2, 4 and 4.5, items 25, 26, 28–31 are built, played and approved** (30 and 31: "all good", 2026-10-14). **Pass 3 (lighting) is set aside** (owner, 2026-10-13); direction in the [decision log](../decision-log.md), 2026-10-12 update: the owner places the lights in the blend file.
-- **Done this session (2026-10-14), owner's go-ahead for each:**
+- **Done in the fifth session (2026-10-14, committed), owner's go-ahead for each:**
   - **The collision boxes are in the ship file:** ten `Box … _col` objects in `Game Collision`, tagged `reach: "through"` (they stop her; the reach test passes through them). [`add-collision-boxes.py`](../../app/tools/add-collision-boxes.py) is the record. The export writes each as its own object in the collider file; `addCollisionBoxes` in `ship.ts` makes each a convex collider. `colliders.ts` is gone. In [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md) (naming contract, *Export*).
   - **The start button, approved ("perfect"), is the template for every game UI button** ([decision log](../decision-log.md), [`../design/README.md`](../design/README.md#components)): pressed as in the mockup's *Start Button* (node 21-2), whole pixels, the base's top and sides go only once the body has landed (no flash).
   - **The highlight is removed** (slider, setting, shader code, `setHighlight`, its smoke check).
   - **The three old copies of 1.19 are deleted**; the new one, `… (before collision boxes, 2026-10-14).blend`, is next to the file.
-- **Start here: pass 5** (see-through: items 11, 13, 14, 15), which **needs its own plan first**: a *fifth pass* section in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), reviewed by the owner before building. It also settles "a closed bulkhead door hides her from a camera in the next room" (options in [`../features/interaction.md`](../features/interaction.md#open-questions)).
+- **Pass 6 and 6b, the jetpack (21), built this session** before pass 5 (owner's call). Keyboard: hold Space, **Part 1's exact rule and values** (its `PlayerMovement.cs`, `Main.unity`, at `C:\Users\31658\Projects\Big Moon Tiny Moon\`), with the camera allowed below her and a lift-off near the ground. Gamepad: **R2, analog found by itself**: half-way hovers, above climbs, below descends; a digital R2 flies like Space (`input.ts` `flyTrigger`, `character.ts` `fly()` / `flyByTrigger()`, *analog R2* in the tuning panel). C / Cross jumps. Part 1's jet sound (`sfx_jetpack_loop`, follows R2) and *Flying* clip (`model.ts`). Seven smoke checks; the whole smoke passes. **The owner's to play with the real controller.** Open: Part 1's gravity was 6 m/s², ours 20 (notes: [`../plans/backlog-passes.md`](../plans/backlog-passes.md), pass 6 and 6b).
+- **Then pass 5** (see-through: items 11, 13, 14, 15). **Its plan is drafted** (2026-10-14): *Fifth pass* in [`../plans/features/see-through-rules.md`](../plans/features/see-through-rules.md), **waiting on the owner's review** (two open questions; item 11 reverses the second pass's "cargo lockers cut"). It also settles the closed bulkhead door hiding her (rule 5).
 
 ## Waiting on the owner
 

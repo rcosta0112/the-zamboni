@@ -47,7 +47,8 @@ export class Footsteps {
     const now = character.cycle;
     this.cycle = now;
     const y = character.position.y;
-    if (!character.grounded && !climbing) {
+    // Flying (on the ground too), no steps; the landing comes once she's let go.
+    if ((!character.grounded || character.flying) && !climbing) {
       this.top = Math.max(this.top ?? y, y);
       return;
     }
