@@ -12,6 +12,18 @@
 6. **Ladders, if there's a quick solution** (they work in the UE prototype); otherwise next pass. **No button: walking into a ladder is enough** (owner): walking toward a ladder's foot attaches her to it; pushing toward it climbs, pushing away climbs down; at the top she steps off onto the floor above, at the bottom onto the ground; walking from the floor above toward the opening attaches her at the top; jump lets go. A closed hatch above stops her below it, and she can open it from the ladder. No climbing animation yet. Ladders: `Ladder Cargo Bay` (to the crew quarters through the trapdoor), `Ladder Crew Quarters` (to the roof through the two hatches), and the open side door.
 7. **After the first look (owner, 2026-10-09):** the side door, open, works as a **ramp**, not a ladder; the cargo locker door was flipped (export bug: fixed); the trapdoor **starts open** for now (hard to aim at from below); the roof hatch: an unfolding ladder later, or nothing (they have jetpacks).
 
+## Notes for picking things up and using them (owner, 2026-10-15)
+
+Not built yet; for the plan that adds them.
+
+1. **The player will pick up small objects and look at them.** Any object where that makes sense has to be considered (collision boxes, the export, the see-through rules).
+2. **We control the setting:** objects that would cause performance or other problems can be removed or replaced. Example: each chess piece interactable could be a problem; the board could be removed and replaced by something else, maybe holographic.
+3. **Dropped objects could go back to where they were**, so we don't have to deal with physics.
+4. **Some objects are picked up and used**, like the jetpacks.
+5. **Changing clothes:** one plan is to let the player go to the closet and change their clothes.
+
+> **[Agent note]** Conflicts with the docs, flagged for the owner, not resolved: (a) [`scope.md`](../../architecture/scope.md) lists *Pick up small objects (carry, drop, throw)* as core, and [`architecture/README.md`](../../architecture/README.md) plans *Physics objects* as Rapier rigid bodies; note 3 (back to their place, no physics) would drop *throw* and the rigid bodies. (b) The pillar "everything interactable" ([`overview.md`](../../overview.md)) and note 2 (removing objects that cost too much) pull in different directions; the owner decides case by case. Also for the export: small props are merged per room today ([asset pipeline](../../architecture/asset-pipeline.md)), so a pickable one has to stay an object of its own (as the jetpacks do, with `interact`).
+
 ## Goal
 
 A first interaction, like the UE prototype's: **point at an object and press a button** to use it (owner, 2026-10-09). **E** on the keyboard, **Circle** on a PS4 controller (B on Xbox; standard-mapping button 1).

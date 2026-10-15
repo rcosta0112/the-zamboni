@@ -4,13 +4,13 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-15, fourteenth session. **On the branch `see-through-from-scratch`**, committed (not pushed).*
+*Updated 2026-10-15, fourteenth session. **On the branch `see-through-from-scratch`**, committed up to 7f9acb6 (not pushed); the camera stopping at glass and the docs since are not.*
 
 ## Next session, in this order (owner)
 
 0. **The camera indoors** (owner, 2026-10-15): it stays **inside the hull**, in front of the **bulkheads and their doors** (never cut while it does), and in the crew quarters of **two boxes** (bunks + galley; back wall) and the **couch, table and sitting-area walls** (that corner never cut on her deck). Settings `cameraInsideHull`, `cameraCollidesBulkheads`, `cameraCollidesFurniture`.
 1. **The hole's far end** (item 41): owner chose **round, 0 m past her** (`holeEnd`, `holeBeyond`; square and vertical kept on the panel). Found with it (see-through-hull.md, last update): she's hidden behind engineering's contraption (never cut on her deck); the hole cuts the hull wall next to the camera and the outside shows (view 6). Still to do (owner): **the camera went inside a locker** (feet 3.612, 3.461, −13.92; yaw 6.304, pitch 0.008; camera 3.633, 4.469, −12.92) and **try the camera colliding with the ceiling**.
-2. **Collision for medium and small objects** (item 42): a pass over the furniture and props that collide one by one, replacing detailed shapes with simple boxes where she catches or where several things stand together. Owner's example: **the jetpack rack and the fire extinguisher under it inside one box.** Today: big props (≥ 0.25 Blender units) collide as convex hulls, parts as their meshes, ten `Box … _col` boxes (`reach: "through"`, convex) stand in front of detailed shapes ([asset pipeline](../architecture/asset-pipeline.md), agent note at the top; [`add-collision-boxes.py`](../../app/tools/add-collision-boxes.py) is the record of how they were added). New since today: the six extinguisher clamps are parts, so they collide as meshes (845 triangles). Start by listing what collides and how (`collider` tags, hulls, boxes), propose the boxes, then a record script like `add-collision-boxes.py`; the export takes the boxes as they are.
+2. **Collision boxes for medium and small objects** (item 42): plan drafted, [collision-boxes.md](../plans/features/collision-boxes.md), changed for the owner's picking-up notes (in [interaction-doors.md](../plans/features/interaction-doors.md)); **waiting on the owner's review** and its four open questions.
 
 ## Where the see-through stands (item 41; [`see-through-hull.md`](../features/see-through-hull.md), agent notes at the top)
 

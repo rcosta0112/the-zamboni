@@ -65,7 +65,15 @@ export interface CutUnit {
   lookTarget?: boolean;
   /** For the raycasts (the ship doesn't move): bounds, and each opaque mesh's BVH in its own space. */
   sphere: THREE.Sphere;
-  targets: { bvh: MeshBVH; toLocal: THREE.Matrix4; scale: number }[];
+  targets: RaycastTarget[];
+  /** The same for its glass (left out of `targets`: glass doesn't hide her, but the camera stops at it). */
+  glassTargets: RaycastTarget[];
+}
+
+interface RaycastTarget {
+  bvh: MeshBVH;
+  toLocal: THREE.Matrix4;
+  scale: number;
 }
 
 export interface VisibilityInput {
@@ -264,16 +272,17 @@ export function prepareRaycasts(unit: CutUnit): void {
   const box = new THREE.Box3();
   for (const mesh of unit.meshes) box.expandByObject(mesh);
   unit.sphere = box.getBoundingSphere(new THREE.Sphere());
-  unit.targets = unit.meshes
-    .filter((mesh) => !isGlass(mesh) && mesh.geometry.boundsTree)
-    .map((mesh) => {
-      const toLocal = mesh.matrixWorld.clone().invert();
-      // Ray.applyMatrix4 keeps the direction normalised, so lengths are converted with this
-      // (the ship is scaled uniformly).
-      return { bvh: mesh.geometry.boundsTree as MeshBVH, toLocal, scale: toLocal.getMaxScaleOnAxis() };
-    });
+  const target = (mesh: THREE.Mesh): RaycastTarget => {
+    const toLocal = mesh.matrixWorld.clone().invert();
+    // Ray.applyMatrix4 keeps the direction normalised, so lengths are converted with this
+    // (the ship is scaled uniformly).
+    return { bvh: mesh.geometry.boundsTree as MeshBVH, toLocal, scale: toLocal.getMaxScaleOnAxis() };
+  };
+  const withBvh = unit.meshes.filter((mesh) => mesh.geometry.boundsTree);
+  unit.targets = withBvh.filter((mesh) => !isGlass(mesh)).map(target);
+  unit.glassTargets = withBvh.filter(isGlass).map(target);
 }
 
 export function newCutUnit(object: THREE.Object3D, tags: { structure: boolean; divider: boolean; keep: boolean; solid: boolean }, deck: 0 | 1, top: number): CutUnit {
-  return { object, meshes: [], ...tags, deck, top, fade: 0, clearFor: Infinity, sphere: new THREE.Sphere(), targets: [] };
+  return { object, meshes: [], ...tags, deck, top, fade: 0, clearFor: Infinity, sphere: new THREE.Sphere(), targets: [], glassTargets: [] };
 }

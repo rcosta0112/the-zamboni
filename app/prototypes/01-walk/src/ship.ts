@@ -519,7 +519,7 @@ export function furnitureAt(units: CutUnit[], boxes: THREE.Box3[], from: THREE.V
   let nearest: number | null = null;
   for (const unit of units) {
     if (!wallRay.intersectsSphere(unit.sphere)) continue;
-    for (const t of unit.targets) {
+    for (const t of [...unit.targets, ...unit.glassTargets]) {
       wallLocal.copy(wallRay).applyMatrix4(t.toLocal);
       const hit = t.bvh.raycastFirst(wallLocal, THREE.DoubleSide, 0, length * t.scale);
       if (hit && (nearest === null || hit.distance / t.scale < nearest)) nearest = hit.distance / t.scale;
