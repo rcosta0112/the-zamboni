@@ -26,7 +26,10 @@ It does what is derived from the scene:
   props tagged ``interact`` (the rack's jetpacks) stay separate too, keeping their ``interact``
   and ``device`` tags (small ones don't collide);
   small ones are merged into one object per collection ("Props <collection>"), one draw call per
-  material. Every prop is tagged ``prop: true`` (the game doesn't let them cast shadows: inside
+  material. A prop that hangs on a part (a child of it, or of a prop that is) is exported with it,
+  as a child object: a big one as its own object, the small ones merged into one ("Props <part>", or
+  the prop's own name when it's alone), so they move, show and hide with it (owner, 2026-10-15: the
+  pallet's lantern, the cabinets' contents, the fire extinguishers on their clamps). Every prop is tagged ``prop: true`` (the game doesn't let them cast shadows: inside
   the hull the sun doesn't reach them, and it halves their draw calls) and takes its collection's
   ``seeThrough`` tag (the cockpit's props are never cut).
 - Lights: glTF can't carry area lights, so the room lights are marker empties in the file
@@ -212,33 +215,25 @@ def add_prop(name, mesh, collection):
     return prop
 
 
-prop_count = {'big': 0, 'small': 0}
-for collection in list(prop_collections(bpy.context.view_layer.layer_collection)):
-    small = []
-    for ob in list(collection.objects):
-        if not is_prop(ob):
-            continue
-        big = largest_side(ob) >= BIG
-        # Something she can use (a rack's jetpack) stays an object of its own, whatever its size,
-        # so the game can find it and hide it.
-        if (big or 'interact' in ob) and ob.type == 'MESH':
-            mesh = baked_mesh(ob)
-            name = ob.name
-            ob.name = name + ' (source)'
-            ob['export'] = False  # nothing is saved: so an object in two collections is baked once
-            prop = add_prop(name, mesh, collection)
-            for key in ('interact', 'device'):
-                if key in ob:
-                    prop[key] = ob[key]
-            big_props.append(prop)
-            if big and ob.get('collider') != 'none':  # tagged: its own *_col mesh collides instead
-                hull_props.append(prop)
-            prop_count['big'] += 1
-        else:
-            small.append(ob)
-    if not small:
-        continue
-    # Merge this room's small props: one mesh, its materials combined.
+def anchor_of(ob):
+    """The part a prop hangs on (its nearest ancestor that's a part), or None."""
+    p = ob.parent
+    while p:
+        if p in objects:
+            return p
+        p = p.parent
+    return None
+
+
+def hang_on(prop, anchor):
+    """Parent a baked prop (its mesh in world space) to its part, keeping it in place."""
+    if anchor:
+        prop.parent = anchor
+        prop.matrix_parent_inverse = anchor.matrix_world.inverted()
+
+
+def merge(name, small, collection, anchor=None):
+    """Small props merged into one object: one mesh, their materials combined."""
     bm_props = bmesh.new()
     materials = []
     for ob in small:
@@ -257,12 +252,51 @@ for collection in list(prop_collections(bpy.context.view_layer.layer_collection)
         bpy.data.meshes.remove(mesh)
         ob['export'] = False
         prop_count['small'] += 1
-    merged = bpy.data.meshes.new(f'Props {collection.name}')
+    merged = bpy.data.meshes.new(name)
     bm_props.to_mesh(merged)
     bm_props.free()
     for mat in materials:
         merged.materials.append(mat)
-    add_prop(f'Props {collection.name}', merged, collection)
+    hang_on(add_prop(name, merged, collection), anchor)
+
+
+prop_count = {'big': 0, 'small': 0}
+for collection in list(prop_collections(bpy.context.view_layer.layer_collection)):
+    small = []
+    hanging = {}  # part -> its small props
+    for ob in list(collection.objects):
+        if not is_prop(ob):
+            continue
+        anchor = anchor_of(ob)
+        big = largest_side(ob) >= BIG
+        # Something she can use (a rack's jetpack) stays an object of its own, whatever its size,
+        # so the game can find it and hide it.
+        if (big or 'interact' in ob) and ob.type == 'MESH':
+            mesh = baked_mesh(ob)
+            name = ob.name
+            ob.name = name + ' (source)'
+            ob['export'] = False  # nothing is saved: so an object in two collections is baked once
+            prop = add_prop(name, mesh, collection)
+            hang_on(prop, anchor)
+            for key in ('interact', 'device'):
+                if key in ob:
+                    prop[key] = ob[key]
+            big_props.append(prop)
+            if big and ob.get('collider') != 'none':  # tagged: its own *_col mesh collides instead
+                hull_props.append(prop)
+            prop_count['big'] += 1
+        elif anchor:
+            hanging.setdefault(anchor, []).append(ob)
+        else:
+            small.append(ob)
+    # What hangs on each part, then the rest of this room's small props.
+    for anchor, obs in hanging.items():
+        name = obs[0].name if len(obs) == 1 else f'Props {anchor.name}'
+        if len(obs) == 1:
+            obs[0].name = name + ' (source)'
+        merge(name, obs, collection, anchor)
+    if small:
+        merge(f'Props {collection.name}', small, collection)
 
 for mat in sorted({s.material for ob in props for s in ob.material_slots if s.material} - {s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:

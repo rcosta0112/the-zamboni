@@ -4,7 +4,7 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-15, end of the twelfth session (handover). **On the branch `see-through-from-scratch`**; since commit 7b6fa48 (tag `see-through-gap-filled`) the work is **not committed**: ask the owner.*
+*Updated 2026-10-15, thirteenth session. **On the branch `see-through-from-scratch`** (pushed); stage 1 committed; stage 2 (below) **not committed**: ask the owner.*
 
 ## Now: see-through from scratch (backlog item 41)
 
@@ -14,7 +14,8 @@
   - **The gap between the hull's skins:** every drawn hull part draws front faces only, plus a back-face mesh in one flat unlit colour (`fillBackFaces`; *hull gap colour*, switch *hull gap black*).
   - **The camera kept out of the hull's wall** indoors (`hullWallAt`, switch *camera out of the hull wall*). **Owner: the camera moving by itself is "not great": minimise it in future work.** It misfires in the crew quarters (single skin there: see below).
   - Tuning panel: the old rules' settings left out; **Copy view** button (her position, camera, ramp, doors) to reproduce the owner's screenshots (example: `app/tools/views/owner-2026-10-14.json`).
-- **Next session: bring hidden objects back**, a group at a time, in the order the owner picks (furniture per room, bulkheads and their doors, the crew; pass 5's items 11, 13, 14, 15 as rules). Ask first; each step is small (no plan needed unless the owner asks).
+- **Stage 2, built 2026-10-15:** every object drawn again, cut by the hole like the hull; the crew hidden only while she's inside on the lower deck. **Never cut on her deck** (`keepOnDeck`; ship.ts `ALWAYS_ON_DECK_ROOMS`, `ALWAYS_ON_DECK`, `CAMERA_BLOCKERS`): the cockpit and engineering (not what's on their bulkheads), the sled and pallet with what hangs on them, the table, the lockers, bunks, galley and what's on them. **The camera stays in front of the lockers, bunks, galley** (`furnitureAt`; owner: it works). Ship file: `hang-props.py` saved (clamps as parts, cabinet contents parented); export: props hanging on a part become its children. Owner's views: `app/tools/views/owner-2026-10-15.json`.
+- **Next (owner): the hole's flat far end** (`t < 0.98` in cutaway.ts): slanted cuts on bulkheads, lockers, the hull round the engineering window (views 2, 4, 5, 6, 9). Recommended: a vertical end through her; or brought-back objects cut only while they hide her.
 - **Checks during this work (owner):** `npm run see-through` (30 s, 12 screenshots in `app/.export/see-through/`) after each change; the full `npm run smoke` **once, before merging the branch**: its last run had 18 failures from a real controller in use mid-run (rerun with none).
 
 ## Answer owed / given to the owner
@@ -23,14 +24,13 @@
 
 ## Waiting on the owner
 
-- How to proceed with the clipping fix (above); whether to commit the branch's work.
+- How to proceed with the clipping fix (above); whether to commit stage 2.
 - **The start screen:** not checked with a gamepad, Firefox, Safari, a phone. **The ship noise's repeat**, loops in Firefox and Safari: not said / not tested.
 - **Lighting, for a later pass;** camera distances 3.5 m / 4.5 m are placeholders.
 
 ## Found, not fixed
 
 - **Window frames** (black in the file) show as strips where the hole half-cuts them (their front faces; their cut edge is filled). Options given: leave frames out of the cut, or let *hull gap black* blend them. A **cargo hold artifact** (a lit face in the wall by the side door) couldn't be reproduced: the owner reports it if seen again.
-
 - **Engineering seen from above is slow in the test browser:** about 110 ms a frame (other rooms 16.7), the same with the see-through off and with main's rules: not this branch. Not looked into (headless Chrome; may not happen on a real GPU).
 - **Smoke, once in two runs (2026-10-14):** *the ramp closes from its keypad* failed (it didn't move in 4 s) and E then took a jetpack from the rack instead. Likely: she ends the walk-in at y 0.88, on the ramp's walkway, and since item 35 the ramp waits until she's off. Passed on the rerun.
 - **Dropping through the trapdoor's opening while pushing toward the ladder**, she lands where the ladder stands (it doesn't collide until she's clear of it) and overlaps it until she steps away. **Closed doors with colliders of their own** (the cargo hold's lockers) will stop her as the galley's did, wherever she slides along their wall: only the crew quarters have boxes.

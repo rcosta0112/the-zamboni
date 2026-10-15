@@ -45,6 +45,10 @@ export interface CutUnit {
    * hatches), the cockpit's floor and the crew quarters' inner walls (ship.ts).
    */
   lining?: boolean;
+  /** Brought back in stage 2 (ship.ts; all of them since 2026-10-15): drawn and cut by the hole like the hull. */
+  back?: boolean;
+  /** Never cut while she's on its deck (ship.ts, `ALWAYS_ON_DECK`); cut by the hole from the other. */
+  keepOnDeck?: boolean;
   /** Never cut right now, whatever the rules (the cargo ramp while it's open). */
   forceSolid?: boolean;
   /** 0 = lower deck, 1 = upper deck, from the bottom of its bounds. */
@@ -174,6 +178,8 @@ export function updateVisibility(units: CutUnit[], s: VisibilityInput, dt: numbe
 
 /** Drawn in the 'hull only' stage: the shell and its inner parts (floors back, owner 2026-10-14). */
 export const isHullPart = (unit: CutUnit) => unit.shell === true || unit.lining === true;
+/** Drawn in the 'hull only' stage: the hull and what has been brought back (owner, 2026-10-15). */
+export const isDrawn = (unit: CutUnit) => isHullPart(unit) || unit.back === true;
 
 /**
  * See-through from scratch (owner, 2026-10-14), the first stage: only the hull is drawn (its shell
@@ -184,7 +190,7 @@ function hullOnly(units: CutUnit[], s: VisibilityInput, dt: number): boolean {
   let hidden = false;
   if (s.active) {
     for (const unit of units) {
-      if (!isHullPart(unit) || unit.forceSolid) continue;
+      if (!isDrawn(unit) || unit.forceSolid || (unit.keepOnDeck && unit.deck === s.deck)) continue;
       if (STRUCTURE_POINTS.some((k) => hides(unit, s.camera, herPoints[k]!))) {
         hidden = true;
         break;
@@ -199,7 +205,7 @@ function hullOnly(units: CutUnit[], s: VisibilityInput, dt: number): boolean {
       mesh.userData.cutFade = 0;
       mesh.userData.cutWhole = 0;
       // -1: not drawn at all (cutaway.ts).
-      mesh.userData.cutSolid = !isHullPart(unit) && settings.seeThrough ? -1 : unit.forceSolid ? 1 : 0;
+      mesh.userData.cutSolid = !isDrawn(unit) && settings.seeThrough ? -1 : unit.forceSolid || (unit.keepOnDeck && unit.deck === s.deck) ? 1 : 0;
     }
   }
   return s.active && (!settings.holeOnlyWhenHidden || holeClearFor < HOLE_HOLD);

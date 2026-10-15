@@ -179,6 +179,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   // until their rule comes back (settings.seeThroughStage).
   cut.add(settings, 'cameraCollision').name('camera collision (outside)');
   cut.add(settings, 'cameraOutOfHullWall').name('camera out of the hull wall (inside)');
+  cut.add(settings, 'cameraCollidesFurniture').name('camera in front of lockers, bunks, galley');
 
   const render = gui.addFolder('Rendering');
   render.add(settings, 'maxPixelRatio', 0.1, 3, 0.05).name('max pixel ratio').onChange(onChange.pixelRatio);

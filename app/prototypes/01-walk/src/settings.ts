@@ -221,6 +221,7 @@ export const settings = {
   furnitureNearPart: 0.5, // furniture in the hole is cut anyway on this part of the way from the camera to her (0 = never)
   showOccluders: false, // debug: tint furniture that is being cut
   cameraCollision: true, // outside the ship
+  cameraCollidesFurniture: true, // inside: in front of the crew quarters' lockers, bunks and galley (owner, 2026-10-15: try it)
   cameraOutOfHullWall: true, // inside: never inside the hull's wall, pulled into the cabin instead (owner, 2026-10-14)
 
   // Room lights inside the ship: the 4 nearest her are on (budget), or all of them to compare.

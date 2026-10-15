@@ -21,7 +21,7 @@ import { JetpackRack } from './jetpack';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
-import { addCollisionBoxes, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
+import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import StartScreen from './StartScreen.svelte';
 import { Stats } from './stats';
@@ -324,7 +324,13 @@ async function start(): Promise<void> {
     const s = ship;
     view.collide = !inside
       ? settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null
-      : settings.cameraOutOfHullWall && s ? (from, to) => hullWallAt(s, from, to) : null;
+      : s && (settings.cameraOutOfHullWall || settings.cameraCollidesFurniture)
+        ? (from, to) => {
+            const wall = settings.cameraOutOfHullWall ? hullWallAt(s, from, to) : null;
+            const furniture = settings.cameraCollidesFurniture ? furnitureAt(s, from, to) : null;
+            return wall === null ? furniture : furniture === null ? wall : Math.min(wall, furniture);
+          }
+        : null;
     // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
     view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
     // The jetpack's glow, at its nozzles as the animation left them, facing the camera.
@@ -369,8 +375,12 @@ async function start(): Promise<void> {
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);
-    // Hull only: the crew are inside, so hidden too.
-    if (crew) crew.object.visible = !(settings.seeThrough && settings.seeThroughStage === 'hull only');
+    // The crew are back (owner, 2026-10-15), except while she's inside on the lower deck: they're all
+    // upstairs, can't be cut, and would stand in the hole's way.
+    if (crew) {
+      const hullOnly = settings.seeThrough && settings.seeThroughStage === 'hull only';
+      crew.object.visible = !(hullOnly && active && character.root.position.y < (ship?.upperFloorY ?? 0) - 0.5);
+    }
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];

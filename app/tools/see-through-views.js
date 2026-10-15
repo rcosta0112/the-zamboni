@@ -6,7 +6,8 @@
 const physics = w.__physics, character = w.__character, view = w.__view, settings = w.__settings;
 const DOWN = new T.Vector3(0, -1, 0);
 const centre = ship.interior.getCenter(new T.Vector3());
-const unitNamed = (name) => ship.cutUnits.find((u) => u.object.name === name);
+// By its name, or its parent's (a part with something hanging on it has its mesh in a child).
+const unitNamed = (name) => ship.cutUnits.find((u) => u.object.name === name || (u.object.name === '' && u.object.parent?.name === name));
 const put = (p) => {
   physics.teleport(p);
   character.position.copy(p);
