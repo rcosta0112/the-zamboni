@@ -60,8 +60,25 @@ const BULKHEAD_SIDE = 0.15;
  */
 const ALWAYS_ON_DECK_ROOMS = ['cockpit', 'engineering'];
 const ALWAYS_ON_DECK = ['Sledge', 'Pallet', 'Table'];
-/** Indoors, the camera stays in front of these (owner, 2026-10-15: it works): the crew quarters' big furniture. */
-const CAMERA_BLOCKERS = ['Lockers', 'Bunks', 'Bunks.001', 'Bunks.002', 'Galley'];
+/** The crew quarters' big furniture: never cut on her deck, with everything on or in them. */
+const KEEP_WITH_CONTENTS = ['Lockers', 'Bunks', 'Bunks.001', 'Bunks.002', 'Galley'];
+/**
+ * The couch's corner (owner, 2026-10-15): these walls are never cut on her deck, nor anything else on
+ * the upper deck whose centre is within their bounds (the couch, the table and what's on it, the
+ * shelves and panels behind the couch).
+ */
+const SITTING_AREA_WALLS = ['Crew Quarters Sitting Area Walls', 'Walls and seat.002'];
+/** Indoors, the camera stays in front of these: the couch, the table, the walls round them (owner, 2026-10-15). */
+const CAMERA_BLOCKERS = ['Couch', 'Table', ...SITTING_AREA_WALLS];
+/**
+ * ...and in front of these boxes, each round some objects' bounds, in place of their shapes (owner,
+ * 2026-10-15): the bunks and galley; the lockers and the shelves and panels behind the couch, across to
+ * the sitting area's port wall.
+ */
+const CAMERA_BOXES = [
+  { around: ['Galley', 'Bunks', 'Bunks.001', 'Bunks.002'] },
+  { around: ['Lockers', 'Props Shelf', 'TRS-80.001', 'Dials.007'], across: SITTING_AREA_WALLS[0] },
+];
 
 export interface Ship {
   object: THREE.Object3D;
@@ -95,8 +112,14 @@ export interface Ship {
   hullUnit: CutUnit | undefined;
   /** The cargo ramp's objects: cut like the hull while closed, never while open. */
   rampUnits: CutUnit[];
-  /** Indoors, the camera stays in front of these (CAMERA_BLOCKERS). */
+  /** Indoors, the camera stays in front of these (CAMERA_BLOCKERS)... */
   cameraBlockers: CutUnit[];
+  /** ...and of these boxes (world; CAMERA_BOXES). */
+  cameraBoxes: THREE.Box3[];
+  /** And of these: the bulkheads and their doors (not what's attached to them); never cut while it does. */
+  cameraWalls: CutUnit[];
+  /** The shell's parts: indoors, the camera stays inside them. */
+  shellUnits: CutUnit[];
   /** The doors the player opens and closes (not the ramp). */
   doors: Door[];
   /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
@@ -223,6 +246,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   const rampCollider = physics.addMovingConvex(rampNode);
   const doors = createDoors(object, physics, hingeAt);
   for (const door of doors) door.units.push(...cutUnits.filter((u) => isInside(u.object, door.hinge)));
+  for (const unit of cutUnits) if (unit.bulkhead && !unit.attachedTo) unit.cameraWall = true;
 
   const ship: Ship = {
     object,
@@ -246,6 +270,9 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
       for (let n: THREE.Object3D | null = u.object; n && n !== object; n = n.parent) if (CAMERA_BLOCKERS.some((name) => named(n!, name))) return true;
       return false;
     }),
+    cameraBoxes: cameraBoxes(object),
+    cameraWalls: cutUnits.filter((u) => u.bulkhead && !u.attachedTo),
+    shellUnits: cutUnits.filter((u) => u.shell),
     doors,
     ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
     interiorMovingCasters: [],
@@ -332,7 +359,33 @@ function groupCutUnits(
   return units;
 }
 
-/** Sets `back` (every object but the hull's) and `keepOnDeck` (ALWAYS_ON_DECK…, CAMERA_BLOCKERS). */
+/** The camera's boxes (CAMERA_BOXES), in world space: the ship turns only about the vertical. */
+function cameraBoxes(ship: THREE.Object3D): THREE.Box3[] {
+  const find = (name: string) => {
+    let found: THREE.Object3D | undefined;
+    ship.traverse((o) => {
+      if (!found && named(o, name)) found = o;
+    });
+    if (!found) console.warn(`[01-walk] camera box: the ship has no "${name}"`);
+    return found;
+  };
+  return CAMERA_BOXES.map(({ around, across }) => {
+    const box = new THREE.Box3();
+    for (const name of around) {
+      const o = find(name);
+      if (o) box.union(new THREE.Box3().setFromObject(o));
+    }
+    const wall = across ? find(across) : undefined;
+    if (wall) {
+      const w = new THREE.Box3().setFromObject(wall);
+      box.min.x = Math.min(box.min.x, w.min.x);
+      box.max.x = Math.max(box.max.x, w.max.x);
+    }
+    return box;
+  });
+}
+
+/** Sets `back` (every object but the hull's) and `keepOnDeck` (ALWAYS_ON_DECK…, KEEP_WITH_CONTENTS, SITTING_AREA_WALLS). */
 function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
   const boxOf = (u: CutUnit) => {
     const box = new THREE.Box3();
@@ -352,7 +405,12 @@ function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
     for (let n: THREE.Object3D | null = unit.object; n && n !== ship; n = n.parent) if (names.some((name) => named(n!, name))) return true;
     return false;
   };
-  const blockers = units.filter((u) => inChain(u, CAMERA_BLOCKERS)).map((u) => boxOf(u).expandByScalar(0.05));
+  const blockers = units.filter((u) => inChain(u, KEEP_WITH_CONTENTS)).map((u) => boxOf(u).expandByScalar(0.05));
+  // The sitting area: across and along a little wider than its walls, not below the floor (the
+  // cargo hold's ceiling lights hang under it).
+  const sittingWalls = units.filter((u) => inChain(u, SITTING_AREA_WALLS));
+  const sittingArea = sittingWalls.map((u) => boxOf(u).expandByVector(new THREE.Vector3(0.05, 0, 0.05)));
+  for (const unit of sittingWalls) unit.keepOnDeck = true;
   for (const unit of units) {
     if (isHullPart(unit)) continue;
     unit.back = true;
@@ -362,7 +420,8 @@ function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
     const centre = boxOf(unit).getCenter(new THREE.Vector3());
     unit.keepOnDeck = (inRooms.length === 1 && ALWAYS_ON_DECK_ROOMS.includes(inRooms[0]!)) ||
       inChain(unit, ALWAYS_ON_DECK) ||
-      blockers.some((box) => box.containsPoint(centre));
+      blockers.some((box) => box.containsPoint(centre)) ||
+      (unit.deck === 1 && sittingArea.some((box) => box.containsPoint(centre)));
   }
 }
 
@@ -434,48 +493,42 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
 
 const wallRay = new THREE.Ray();
 const wallLocal = new THREE.Ray();
+const boxHit = new THREE.Vector3();
 
 /**
- * Indoors, the camera doesn't collide (the hull is cut instead), so it can end up inside the hull's
- * wall, between its two skins, and the view is the inside of the wall (owner, 2026-10-14: option A,
- * pull it into the cabin). For FollowCamera.collide: the distance from `from` (her chest) to the
- * wall's inner surface when `to` (the camera) is inside the wall, else null. Inside = the line
- * crosses the hull's surface (glass left out) an odd number of times; outside the hull it's even,
- * and the camera is left there (the hole shows her).
+ * Indoors, the camera stays inside the hull (owner, 2026-10-15; before, it was only kept out of the
+ * wall between the skins and could stand outside the ship, the hole showing her). For
+ * FollowCamera.collide: the distance from `from` (her chest) to the first of the shell's parts
+ * (hull, glass, side door, hatches) toward `to` (the camera), else null. Open doors and windows let
+ * it through: their raycasts follow them.
  */
 export function hullWallAt(ship: Ship, from: THREE.Vector3, to: THREE.Vector3): number | null {
-  const hull = ship.hullUnit;
-  if (!hull) return null;
-  const length = from.distanceTo(to);
-  if (length < 1e-3) return null;
-  wallRay.set(from, to.clone().sub(from).divideScalar(length));
-  const hits: number[] = [];
-  for (const t of hull.targets) {
-    wallLocal.copy(wallRay).applyMatrix4(t.toLocal);
-    for (const hit of t.bvh.raycast(wallLocal, THREE.DoubleSide, 0, length * t.scale)) hits.push(hit.distance / t.scale);
-  }
-  hits.sort((a, b) => a - b);
-  // Triangles sharing an edge give the same crossing twice.
-  const crossings = hits.filter((d, i) => i === 0 || d - hits[i - 1]! > 0.002);
-  return crossings.length % 2 === 1 ? crossings[crossings.length - 1]! : null;
+  return furnitureAt(ship.shellUnits, [], from, to);
 }
 
 /**
  * Indoors, for FollowCamera.collide with hullWallAt: the distance from `from` (the camera's focus) to
- * the nearest of the ship's camera blockers between it and `to` (the camera), else null.
+ * the nearest of `units` (the ship's camera blockers, its bulkheads) or `boxes` between it and `to`
+ * (the camera), else null. A door's raycasts follow it (Door), so an open bulkhead door lets the
+ * camera through. A box she's inside doesn't count.
  */
-export function furnitureAt(ship: Ship, from: THREE.Vector3, to: THREE.Vector3): number | null {
+export function furnitureAt(units: CutUnit[], boxes: THREE.Box3[], from: THREE.Vector3, to: THREE.Vector3): number | null {
   const length = from.distanceTo(to);
   if (length < 1e-3) return null;
   wallRay.set(from, to.clone().sub(from).divideScalar(length));
   let nearest: number | null = null;
-  for (const unit of ship.cameraBlockers) {
+  for (const unit of units) {
     if (!wallRay.intersectsSphere(unit.sphere)) continue;
     for (const t of unit.targets) {
       wallLocal.copy(wallRay).applyMatrix4(t.toLocal);
       const hit = t.bvh.raycastFirst(wallLocal, THREE.DoubleSide, 0, length * t.scale);
       if (hit && (nearest === null || hit.distance / t.scale < nearest)) nearest = hit.distance / t.scale;
     }
+  }
+  for (const box of boxes) {
+    if (box.containsPoint(from) || !wallRay.intersectBox(box, boxHit)) continue;
+    const d = from.distanceTo(boxHit);
+    if (d <= length && (nearest === null || d < nearest)) nearest = d;
   }
   return nearest;
 }

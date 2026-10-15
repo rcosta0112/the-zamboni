@@ -4,18 +4,19 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-15, end of the thirteenth session (handover). **On the branch `see-through-from-scratch`**, all committed and pushed (b0a9410).*
+*Updated 2026-10-15, fourteenth session. **On the branch `see-through-from-scratch`**, committed (not pushed).*
 
 ## Next session, in this order (owner)
 
-1. **The hole's flat far end** (item 41): the slanted cuts on the bulkheads, the locker, the hull round the engineering window. **Present the solution to the owner again before building.** Cause: the hole is a tube from the camera to her chest, ended by a flat plane square to that line at 98 % of the way (cutaway.ts, `keep`: `t.lessThan(0.98)`). Anything reaching past that plane, beside or behind her, is cut only up to it: a straight edge, slanted because the plane tilts with the camera's pitch. Views 2, 4, 5, 6, 9 of `app/tools/views/owner-2026-10-15.json` show it. **Recommended: end the hole with a vertical plane through her**, square to the camera's direction seen from above (the horizontal part of camera → chest): walls then end in vertical edges at her depth, like a section drawing, whatever the pitch. A few lines in the shader; it changes every cut, the hull's too. **Alternative:** the objects brought back (not the hull) are cut only while they hide her (`hides()` in visibility.ts, with the 0.3 s hold): the bulkhead and locker beside her stay whole, but the hull keeps its slanted edge. Check with the views script (below) on those five views.
+0. **The camera indoors** (owner, 2026-10-15): it stays **inside the hull**, in front of the **bulkheads and their doors** (never cut while it does), and in the crew quarters of **two boxes** (bunks + galley; back wall) and the **couch, table and sitting-area walls** (that corner never cut on her deck). Settings `cameraInsideHull`, `cameraCollidesBulkheads`, `cameraCollidesFurniture`.
+1. **The hole's far end** (item 41): owner chose **round, 0 m past her** (`holeEnd`, `holeBeyond`; square and vertical kept on the panel). Found with it (see-through-hull.md, last update): she's hidden behind engineering's contraption (never cut on her deck); the hole cuts the hull wall next to the camera and the outside shows (view 6). Still to do (owner): **the camera went inside a locker** (feet 3.612, 3.461, −13.92; yaw 6.304, pitch 0.008; camera 3.633, 4.469, −12.92) and **try the camera colliding with the ceiling**.
 2. **Collision for medium and small objects** (item 42): a pass over the furniture and props that collide one by one, replacing detailed shapes with simple boxes where she catches or where several things stand together. Owner's example: **the jetpack rack and the fire extinguisher under it inside one box.** Today: big props (≥ 0.25 Blender units) collide as convex hulls, parts as their meshes, ten `Box … _col` boxes (`reach: "through"`, convex) stand in front of detailed shapes ([asset pipeline](../architecture/asset-pipeline.md), agent note at the top; [`add-collision-boxes.py`](../../app/tools/add-collision-boxes.py) is the record of how they were added). New since today: the six extinguisher clamps are parts, so they collide as meshes (845 triangles). Start by listing what collides and how (`collider` tags, hulls, boxes), propose the boxes, then a record script like `add-collision-boxes.py`; the export takes the boxes as they are.
 
 ## Where the see-through stands (item 41; [`see-through-hull.md`](../features/see-through-hull.md), agent notes at the top)
 
 - `settings.seeThroughStage = 'hull only'` (`'all rules'` = main's rules, kept to take back from). **Everything is drawn**, cut by the hole while something hides her; the hull's parts draw a flat fill on their backs (`fillBackFaces`). The crew are hidden only while she's inside on the lower deck.
 - **Never cut while she's on their deck** (`keepOnDeck`; ship.ts `ALWAYS_ON_DECK_ROOMS`, `ALWAYS_ON_DECK`, `CAMERA_BLOCKERS`): the cockpit and engineering (not what's on their bulkheads), the sled and pallet with what hangs on them, the crew quarters' table, lockers, bunks, galley and what's on them.
-- **The camera indoors:** kept out of the hull's wall (`hullWallAt`) and in front of the lockers, bunks, galley (`furnitureAt`; owner: it works). Owner: the camera moving by itself should stay minimal.
+- **The camera indoors:** stops at the hull's shell (`hullWallAt`), the bulkheads and the crew quarters' boxes, couch and table (`furnitureAt`). Owner: the camera moving by itself should stay minimal.
 - **Export (2026-10-15):** a prop hanging on a part is exported as its child (clamps and extinguishers, the cabinets' contents, the pallet's lantern); ship file edited by `hang-props.py`, saved.
 - **Reproducing the owner's views:** the tuning panel's *Copy view* gives JSON (feet, yaw, pitch, camera, ramp, doors). This session's script set her position, `view.yaw` / `view.pitch`, `settings.cameraDistanceIndoors` = distance from the camera to her feet + `cameraHeight`, and the doors, waited 2.5 s, took a shot: it wasn't kept; rewrite it as `app/tools/owner-views.js` if it's needed again.
 - **Checks:** `npm run see-through` after each change; the full `npm run smoke` **once, before merging the branch** (not run this session; the game files changed).
@@ -23,7 +24,7 @@
 ## Waiting on the owner
 
 - The clipping fix of objects in the hull's wall (asked 2026-10-15): by hand, or a semi-automatic Blender script (Shrinkwrap on the offending vertices; `npm run probe -- tools/hull-clipping.js` lists them). The crew quarters need a modelling decision first (no inner skin there).
-- **The start screen:** not checked with a gamepad, Firefox, Safari, a phone. **The ship noise's repeat** in Firefox and Safari: not tested. **Lighting** for a later pass; camera distances placeholders.
+- **The start screen:** not checked with a gamepad (Chrome on desktop only for now: owner, 2026-10-15). **Lighting** for a later pass; camera distances placeholders.
 
 ## Found, not fixed
 

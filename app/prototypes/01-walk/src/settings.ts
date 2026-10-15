@@ -201,6 +201,10 @@ export const settings = {
   cutRadius: 1.44, // m, radius of the capsule from the camera to Dr. Green's chest (1.2 + 20%)
   cutSoftness: 0.25, // m, width of the dithered edge (0 = hard edge)
   cutTargetHeight: 0.75, // m above her feet: the end of the capsule (chest)
+  // The hole's far end (owner, 2026-10-15: try them): square to the line of sight (as before), a
+  // vertical plane, or round (a hemisphere that closes there, so the hole narrows near her).
+  holeEnd: 'round' as 'square' | 'vertical' | 'round', // owner, 2026-10-15: round, 0 m past her
+  holeBeyond: 0, // m: how far past her chest the hole goes (the old end: -0.07 at 3.5 m, square to the line of sight)
   cutBackColor: '#1b2327', // inside faces of cut surfaces (when not in their own colour)
   cutOwnColour: true, // inside faces in the surface's own colour, darkened
   cutShade: 0.35, // how much of its own colour the inside keeps
@@ -221,8 +225,9 @@ export const settings = {
   furnitureNearPart: 0.5, // furniture in the hole is cut anyway on this part of the way from the camera to her (0 = never)
   showOccluders: false, // debug: tint furniture that is being cut
   cameraCollision: true, // outside the ship
-  cameraCollidesFurniture: true, // inside: in front of the crew quarters' lockers, bunks and galley (owner, 2026-10-15: try it)
-  cameraOutOfHullWall: true, // inside: never inside the hull's wall, pulled into the cabin instead (owner, 2026-10-14)
+  cameraCollidesFurniture: true, // inside: in front of the crew quarters' furniture: a box round the bunks and galley, one round the lockers and shelves, the couch, table and their walls (owner, 2026-10-15)
+  cameraCollidesBulkheads: true, // inside: in front of the two bulkheads and their doors (owner, 2026-10-15: try it)
+  cameraInsideHull: true, // inside: stops at the hull, its glass and its doors (owner, 2026-10-15; until then only kept out of the wall)
 
   // Room lights inside the ship: the 4 nearest her are on (budget), or all of them to compare.
   roomLights: 'nearest 4' as 'nearest 4' | 'all',

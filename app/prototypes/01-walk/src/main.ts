@@ -320,14 +320,19 @@ async function start(): Promise<void> {
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     // Not under the start screen: its music is heard there.
     if (begun) wind.update(dt, chest, ship);
-    // Indoors, only out of the hull's wall (pulled into the cabin), when it would be inside it.
+    // Indoors: inside the hull, in front of the bulkheads and the crew quarters' furniture.
     const s = ship;
     view.collide = !inside
       ? settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null
-      : s && (settings.cameraOutOfHullWall || settings.cameraCollidesFurniture)
+      : s && (settings.cameraInsideHull || settings.cameraCollidesFurniture || settings.cameraCollidesBulkheads)
         ? (from, to) => {
-            const wall = settings.cameraOutOfHullWall ? hullWallAt(s, from, to) : null;
-            const furniture = settings.cameraCollidesFurniture ? furnitureAt(s, from, to) : null;
+            const wall = settings.cameraInsideHull ? hullWallAt(s, from, to) : null;
+            const blockers = [
+              ...(settings.cameraCollidesFurniture ? s.cameraBlockers : []),
+              ...(settings.cameraCollidesBulkheads ? s.cameraWalls : []),
+            ];
+            const boxes = settings.cameraCollidesFurniture ? s.cameraBoxes : [];
+            const furniture = blockers.length > 0 || boxes.length > 0 ? furnitureAt(blockers, boxes, from, to) : null;
             return wall === null ? furniture : furniture === null ? wall : Math.min(wall, furniture);
           }
         : null;
@@ -368,6 +373,8 @@ async function start(): Promise<void> {
       ownColour: settings.cutOwnColour,
       shade: settings.cutShade,
       fillColour: settings.hullGapBlack ? '#000000' : settings.hullGapColour,
+      holeEnd: settings.holeEnd,
+      holeBeyond: settings.holeBeyond,
     });
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();

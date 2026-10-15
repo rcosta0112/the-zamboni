@@ -51,6 +51,8 @@ export interface CutUnit {
   keepOnDeck?: boolean;
   /** Never cut right now, whatever the rules (the cargo ramp while it's open). */
   forceSolid?: boolean;
+  /** A bulkhead or one of its doors: never cut while the camera stays in front of them (owner, 2026-10-15). */
+  cameraWall?: boolean;
   /** 0 = lower deck, 1 = upper deck, from the bottom of its bounds. */
   deck: 0 | 1;
   /** Top of its bounds (world y). */
@@ -186,11 +188,14 @@ export const isDrawn = (unit: CutUnit) => isHullPart(unit) || unit.back === true
  * and inner parts, the floors among them), cut by the hole while it hides her; everything else
  * inside is hidden, on both decks. The rules above come back one at a time.
  */
+const kept = (unit: CutUnit, deck: number) =>
+  unit.forceSolid === true || (unit.keepOnDeck === true && unit.deck === deck) || (unit.cameraWall === true && settings.cameraCollidesBulkheads);
+
 function hullOnly(units: CutUnit[], s: VisibilityInput, dt: number): boolean {
   let hidden = false;
   if (s.active) {
     for (const unit of units) {
-      if (!isDrawn(unit) || unit.forceSolid || (unit.keepOnDeck && unit.deck === s.deck)) continue;
+      if (!isDrawn(unit) || kept(unit, s.deck)) continue;
       if (STRUCTURE_POINTS.some((k) => hides(unit, s.camera, herPoints[k]!))) {
         hidden = true;
         break;
@@ -205,7 +210,7 @@ function hullOnly(units: CutUnit[], s: VisibilityInput, dt: number): boolean {
       mesh.userData.cutFade = 0;
       mesh.userData.cutWhole = 0;
       // -1: not drawn at all (cutaway.ts).
-      mesh.userData.cutSolid = !isDrawn(unit) && settings.seeThrough ? -1 : unit.forceSolid || (unit.keepOnDeck && unit.deck === s.deck) ? 1 : 0;
+      mesh.userData.cutSolid = !isDrawn(unit) && settings.seeThrough ? -1 : kept(unit, s.deck) ? 1 : 0;
     }
   }
   return s.active && (!settings.holeOnlyWhenHidden || holeClearFor < HOLE_HOLD);

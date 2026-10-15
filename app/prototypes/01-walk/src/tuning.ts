@@ -168,6 +168,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   cut.add(settings, 'cutRadius', 0.2, 4, 0.05).name('radius (m)');
   cut.add(settings, 'cutSoftness', 0, 1.5, 0.05).name('edge softness (m)');
   cut.add(settings, 'cutTargetHeight', 0.2, 1.5, 0.05).name('target height (m)');
+  cut.add(settings, 'holeEnd', ['square', 'vertical', 'round']).name("hole's far end");
+  cut.add(settings, 'holeBeyond', -0.5, 1.5, 0.05).name('hole goes past her (m)');
   cut.add(settings, 'singleSided').name('single-sided materials');
   cut.add(settings, 'cutOwnColour').name('cut edge in own colour');
   cut.add(settings, 'cutShade', 0, 1, 0.05).name('own colour brightness');
@@ -178,8 +180,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   // See-through from scratch (owner, 2026-10-14): the rules' settings are left out of the panel
   // until their rule comes back (settings.seeThroughStage).
   cut.add(settings, 'cameraCollision').name('camera collision (outside)');
-  cut.add(settings, 'cameraOutOfHullWall').name('camera out of the hull wall (inside)');
-  cut.add(settings, 'cameraCollidesFurniture').name('camera in front of lockers, bunks, galley');
+  cut.add(settings, 'cameraInsideHull').name('camera stays inside the hull');
+  cut.add(settings, 'cameraCollidesFurniture').name('camera in front of crew quarters furniture');
+  cut.add(settings, 'cameraCollidesBulkheads').name('camera in front of bulkheads, their doors');
 
   const render = gui.addFolder('Rendering');
   render.add(settings, 'maxPixelRatio', 0.1, 3, 0.05).name('max pixel ratio').onChange(onChange.pixelRatio);

@@ -4,7 +4,7 @@
 // Plans: doc/plans/features/see-through-hull.md, doc/plans/features/see-through-rules.md
 //
 // - Structure (hull, walls, ceilings, and furniture on another deck): a hole, the pixels inside a
-//   capsule from the camera to her chest.
+//   tube from the camera to her chest, its far end set by settings.holeEnd.
 // - Furniture on her deck: cut only while it hides her (visibility.ts sets a per-object fade),
 //   either by the same hole or by dithering out the whole object (tuning panel). Furniture near the
 //   camera is cut by the hole above her waist anyway: it isn't next to her, it just fills the view.
@@ -18,7 +18,7 @@
 //   it has in the ship file, so through a cut you see what's behind it, not the surface's back.
 
 import * as THREE from 'three/webgpu';
-import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, texture, uniform, vec3, vec4 } from 'three/tsl';
+import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, clamp, texture, uniform, vec2, vec3, vec4 } from 'three/tsl';
 
 /** Shared by every cuttable material; updated each frame by updateCutaway(). */
 const u = {
@@ -38,6 +38,8 @@ const u = {
   ownColour: uniform(1), // cut surface: 1 = the surface's own colour, darkened; 0 = backColor
   shade: uniform(0.35), // how much of its own colour the cut surface keeps
   fillColour: uniform(new THREE.Color(0x284644)), // the hull's gap, filled: one flat colour (unlit)
+  holeEnd: uniform(2), // the hole's far end: 0 = square to the line of sight, 1 = a vertical plane, 2 = round
+  holeBeyond: uniform(0), // ...this far past her chest (m; below 0: short of it)
 };
 
 /**
@@ -86,10 +88,25 @@ const keep = (() => {
   const isStructure = structure.greaterThan(0.5);
   const radius = select(isStructure, u.radius, u.furnitureRadius.mul(fade));
   const soft = select(isStructure, u.soft, u.furnitureSoft.mul(fade));
-  const mask = smoothstep(radius.sub(soft), radius, d);
-  // Only between the camera and the target, and only when there's a hole at all (with radius 0,
+  // The hole's far end (owner, 2026-10-15), holeBeyond past her chest (the floor she stands on stays:
+  // `ground`). Vertical: a plane square to the camera's direction seen from above, so walls beside her
+  // end in vertical edges whatever the pitch. Round: a hemisphere of the hole's radius that closes
+  // there, so the hole narrows as it nears her. Otherwise a plane square to the line of sight (it
+  // leans with the pitch); vertical falls back to it when the camera looks almost straight down,
+  // where "seen from above" means nothing.
+  const lengthAB = length(ab);
+  const across = length(vec2(ab.x, ab.z));
+  const round = u.holeEnd.greaterThan(1.5);
+  const capT = float(1).add(u.holeBeyond.sub(radius).div(lengthAB));
+  const dRound = length(positionWorld.sub(u.camera.add(ab.mul(clamp(t, 0, capT.max(0))))));
+  const mask = smoothstep(radius.sub(soft), radius, select(round, dRound, d));
+  const pastAlongSight = t.sub(1).mul(lengthAB);
+  const pastSeenFromAbove = dot(vec2(positionWorld.x.sub(u.target.x), positionWorld.z.sub(u.target.z)), vec2(ab.x, ab.z)).div(across.max(1e-4));
+  const vertical = u.holeEnd.greaterThan(0.5).and(round.not()).and(across.greaterThan(lengthAB.mul(0.2)));
+  const beforeEnd = round.or(select(vertical, pastSeenFromAbove, pastAlongSight).lessThan(u.holeBeyond));
+  // Only between the camera and the end, and only when there's a hole at all (with radius 0,
   // smoothstep's edges meet and its result is undefined on GPUs).
-  const inHole = t.greaterThan(0).and(t.lessThan(0.98)).and(radius.greaterThan(0.001)).and(mask.lessThanEqual(noise));
+  const inHole = t.greaterThan(0).and(beforeEnd).and(radius.greaterThan(0.001)).and(mask.lessThanEqual(noise));
   // Whole-object fade (look B): dithers out the whole object, down to the minimum visibility.
   const faded = fade.mul(float(1).sub(u.minVisibility)).greaterThan(noise);
   // Near the camera, furniture is cut by the full hole whether or not it hides her (it fills the
@@ -229,6 +246,8 @@ export interface CutawaySettings {
   ownColour: boolean;
   shade: number; // 0..1
   fillColour: string; // the hull's gap
+  holeEnd: 'square' | 'vertical' | 'round';
+  holeBeyond: number; // m past her chest
 }
 
 /**
@@ -252,4 +271,6 @@ export function updateCutaway(cameraPosition: THREE.Vector3, target: THREE.Vecto
   u.ownColour.value = s.ownColour ? 1 : 0;
   u.shade.value = s.shade;
   u.fillColour.value.set(s.fillColour);
+  u.holeEnd.value = ['square', 'vertical', 'round'].indexOf(s.holeEnd);
+  u.holeBeyond.value = s.holeBeyond;
 }
