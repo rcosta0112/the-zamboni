@@ -204,6 +204,7 @@ export const settings = {
   cutBackColor: '#1b2327', // inside faces of cut surfaces (when not in their own colour)
   cutOwnColour: true, // inside faces in the surface's own colour, darkened
   cutShade: 0.35, // how much of its own colour the inside keeps
+  hullGapBlack: false, // the gap painted black instead of the gap colour, to compare (owner, 2026-10-15)
   hullGapColour: '#284644', // the gap between the hull's two skins, where the hole cuts them: one flat colour, unlit (owner, 2026-10-14; the hull's dark teal at 60 %)
   singleSided: true, // the ship's materials as in the file (backface culling); off: double-sided, with the dark cut surface
   holeOnlyWhenHidden: true, // the hole opens only while something solid hides her (glass doesn't count)
@@ -220,6 +221,7 @@ export const settings = {
   furnitureNearPart: 0.5, // furniture in the hole is cut anyway on this part of the way from the camera to her (0 = never)
   showOccluders: false, // debug: tint furniture that is being cut
   cameraCollision: true, // outside the ship
+  cameraOutOfHullWall: true, // inside: never inside the hull's wall, pulled into the cabin instead (owner, 2026-10-14)
 
   // Room lights inside the ship: the 4 nearest her are on (budget), or all of them to compare.
   roomLights: 'nearest 4' as 'nearest 4' | 'all',

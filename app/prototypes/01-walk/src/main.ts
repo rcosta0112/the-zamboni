@@ -21,7 +21,7 @@ import { JetpackRack } from './jetpack';
 import { Ladders, shipLadders } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
-import { addCollisionBoxes, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
+import { addCollisionBoxes, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import StartScreen from './StartScreen.svelte';
 import { Stats } from './stats';
@@ -145,7 +145,16 @@ async function start(): Promise<void> {
   // Dev only: reachable from the browser console and test scripts.
   if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share }) });
 
-  const gui = createTuningPanel({ pixelRatio: () => resize() });
+  const round = (v: number) => Math.round(v * 1000) / 1000;
+  const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
+    feet: character.position.toArray().map(round),
+    yaw: round(view.yaw),
+    pitch: round(view.pitch),
+    camera: view.camera.position.toArray().map(round),
+    cargoRampOpen: settings.cargoRampOpen,
+    doorsOpen: ship?.doors.filter((d) => d.open).map((d) => d.name) ?? [],
+    wearingJetpack: settings.wearingJetpack,
+  }));
   gui.hide(); // until the start screen is gone: it would lie over it
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
 
@@ -311,7 +320,11 @@ async function start(): Promise<void> {
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     // Not under the start screen: its music is heard there.
     if (begun) wind.update(dt, chest, ship);
-    view.collide = !inside && settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null;
+    // Indoors, only out of the hull's wall (pulled into the cabin), when it would be inside it.
+    const s = ship;
+    view.collide = !inside
+      ? settings.cameraCollision ? (from, to) => physics.castRay(from, to) : null
+      : settings.cameraOutOfHullWall && s ? (from, to) => hullWallAt(s, from, to) : null;
     // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
     view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
     // The jetpack's glow, at its nozzles as the animation left them, facing the camera.
@@ -348,7 +361,7 @@ async function start(): Promise<void> {
       waist: settings.furnitureWaist * settings.zamboniHeight,
       ownColour: settings.cutOwnColour,
       shade: settings.cutShade,
-      fillColour: settings.hullGapColour,
+      fillColour: settings.hullGapBlack ? '#000000' : settings.hullGapColour,
     });
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();

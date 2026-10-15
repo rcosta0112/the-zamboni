@@ -41,8 +41,6 @@ const SHELL = [
   'Hull_Merged', 'Windshield', 'Door', 'Top Hatch', 'Door Cargo', 'Lab Window', 'Lab Window.001',
   'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002',
 ];
-/** Two skins with a gap between: where the hole cuts them, the gap is filled with their colour (cutaway.ts). */
-const FILLED = ['Hull_Merged'];
 /** The cockpit's floor is part of `Dashboard Body`: its meshes with these materials (owner, 2026-10-14). */
 const COCKPIT_FLOOR = { object: 'Dashboard Body', materials: ['Floor Tiles', 'Grate'] };
 /** The crew quarters' inner walls: drawn with the hull's inner parts, though dividers (owner, 2026-10-14). */
@@ -138,12 +136,6 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   // mesh so the see-through rules' raycasts are fast (the hull and the Contraption are dense).
   for (const mesh of cuttable) {
     makeCuttable(mesh);
-    for (let n: THREE.Object3D | null = mesh; n && n !== object; n = n.parent) {
-      if (FILLED.some((name) => named(n!, name))) {
-        fillBackFaces(mesh);
-        break;
-      }
-    }
     mesh.geometry.boundsTree = new MeshBVH(mesh.geometry);
     mesh.raycast = acceleratedRaycast;
   }
@@ -186,6 +178,8 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, scale: numb
   if (!upperFloor) throw new Error('The ship has no upper floor ("Floor Top.001")');
   const upperFloorY = new THREE.Box3().setFromObject(upperFloor).max.y;
   const cutUnits = groupCutUnits(object, gltf.parser.associations, cuttable, upperFloorY);
+  // The hull's parts: seen from behind through the cut, one flat colour (the gap between the skins).
+  for (const unit of cutUnits) if (isHullPart(unit)) for (const mesh of unit.meshes) fillBackFaces(mesh);
   const hullBox = new THREE.Box3().setFromObject(hull);
   const interior = new THREE.Box3(
     new THREE.Vector3(hullBox.min.x, floorBox.max.y - 0.3, hullBox.min.z),
@@ -376,6 +370,34 @@ function neverCut(mesh: THREE.Object3D, ship: THREE.Object3D): boolean {
     if (o.userData.cuttable === false) return true;
   }
   return false;
+}
+
+const wallRay = new THREE.Ray();
+const wallLocal = new THREE.Ray();
+
+/**
+ * Indoors, the camera doesn't collide (the hull is cut instead), so it can end up inside the hull's
+ * wall, between its two skins, and the view is the inside of the wall (owner, 2026-10-14: option A,
+ * pull it into the cabin). For FollowCamera.collide: the distance from `from` (her chest) to the
+ * wall's inner surface when `to` (the camera) is inside the wall, else null. Inside = the line
+ * crosses the hull's surface (glass left out) an odd number of times; outside the hull it's even,
+ * and the camera is left there (the hole shows her).
+ */
+export function hullWallAt(ship: Ship, from: THREE.Vector3, to: THREE.Vector3): number | null {
+  const hull = ship.hullUnit;
+  if (!hull) return null;
+  const length = from.distanceTo(to);
+  if (length < 1e-3) return null;
+  wallRay.set(from, to.clone().sub(from).divideScalar(length));
+  const hits: number[] = [];
+  for (const t of hull.targets) {
+    wallLocal.copy(wallRay).applyMatrix4(t.toLocal);
+    for (const hit of t.bvh.raycast(wallLocal, THREE.DoubleSide, 0, length * t.scale)) hits.push(hit.distance / t.scale);
+  }
+  hits.sort((a, b) => a - b);
+  // Triangles sharing an edge give the same crossing twice.
+  const crossings = hits.filter((d, i) => i === 0 || d - hits[i - 1]! > 0.002);
+  return crossings.length % 2 === 1 ? crossings[crossings.length - 1]! : null;
 }
 
 /**

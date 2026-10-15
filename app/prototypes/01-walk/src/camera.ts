@@ -26,7 +26,8 @@ export class FollowCamera {
   private collidedDistance = Infinity;
   /**
    * Camera collision: distance from the focus toward the camera to the first obstacle, or null.
-   * Set to null to turn collision off (inside the ship, where the hull is cut instead).
+   * Set to null to turn collision off. Inside the ship it only keeps the camera out of the hull's
+   * wall (ship.ts hullWallAt): the hull is cut instead.
    */
   collide: ((from: THREE.Vector3, to: THREE.Vector3) => number | null) | null = null;
 

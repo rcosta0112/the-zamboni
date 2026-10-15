@@ -49,6 +49,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Alternatives considered:** pass 5 as planned (more exceptions on top of the existing ones).
 **Rationale:** each rule is judged on its own, starting from the simplest view, instead of adding to a set that has grown by exceptions.
 **Status:** first stage built on the branch (2026-10-14), for the owner to play. The rules of 2026-10-08 to 10-12 remain in the code behind `settings.seeThroughStage = 'all rules'` (main's behaviour), to take back from; pass 5's draft is on hold.
+**Update 2026-10-15 (owner): first stage closed** ("good enough for now"): the hull, its inner parts and floors, the cockpit floor and the crew quarters' walls drawn; the gap between the skins filled with one flat colour on every drawn hull part (switch: black); the camera kept out of the hull's wall indoors (to be kept to a minimum in future work). Next: the hidden objects come back, one group at a time. Clipping into the hull's wall is to be fixed in Blender.
 **Update 2026-10-14 (owner):** the hull's inner parts and the floors are back (structure that isn't a divider: floors, the crew quarters' ceiling, ceiling lights, the two hatches), cut like the shell. Then the cockpit floor (split off `Dashboard Body` at load) and the crew quarters' inner walls.
 
 ## [2026-10-14] — The jetpack with momentum: hover, flight, glide, skid (feature)

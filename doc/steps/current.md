@@ -4,30 +4,35 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-14, twelfth session. **On the branch `see-through-from-scratch`** (not committed).*
+*Updated 2026-10-15, end of the twelfth session (handover). **On the branch `see-through-from-scratch`**; since commit 7b6fa48 (tag `see-through-gap-filled`) the work is **not committed**: ask the owner.*
 
-## Now
+## Now: see-through from scratch (backlog item 41)
 
-- **Plan:** [`../plans/backlog-passes.md`](../plans/backlog-passes.md), approved 2026-10-12. **Tracker:** [`../plans/backlog.md`](../plans/backlog.md). Passes 1, 2, 4, 4.5, 6 and items 25–40 built; items 32–40 **Done** (owner, 2026-10-14).
-- **Settled by the owner, 2026-10-14:** gravity stays at 20; the tuning-panel switches stay as they are; the jetpack's dive with the camera pitch and its 2.5 m climb are fine; lighting (pass 3) is ok for now, another pass later; the blend file 1.19 is fine (the owner deals with the backup copies); no licensing questions until production.
-- **Now: see-through from scratch** (owner; branch `see-through-from-scratch`; decision log). Pass 5's plan is on hold: the rules are rebuilt one at a time instead. **Stage 1 built:** only the shell is drawn (ship.ts `SHELL`: hull, windshield, side door, roof hatch, ramp, engineering window, turbines), cut by the hole; everything inside hidden on both decks (shader `cutSolid = -1`), the crew and the inside's shadows too (shadow caster split). Panel: the rules' settings left out. `settings.seeThroughStage = 'all rules'` gives main's version. Probed (both decks, screenshots), smoke all passed. **The owner's to play; then the next rule, the owner's pick.** Items 11, 13, 14, 15 come back as rules here.
-  - **Then (owner): the hull's inner parts and floors back** (structure that isn't a divider, `lining`: floors, crew quarters' ceiling, ceiling lights, both hatches), cut like the shell. Probed both decks. **Then (owner): the cockpit floor** (`Dashboard Body`'s `Floor Tiles` and `Grate` meshes, split off at load) **and the crew quarters' inner walls** (`CREW_QUARTERS_WALLS`). Probed (crew quarters, cockpit). Prompts still appear on hidden keypads.
-  - **Then (owner): the hull's gap filled** (`fillBackFaces`: an unlit back-face mesh on `Hull_Merged` in one flat *hull gap colour*; not on glass). The owner's to look at. **Open, the owner's call:** the camera can sit inside the wall's thickness indoors (it doesn't collide there): A pull it into the cabin (recommended), B push it outside, C a near-camera cut. Window frames (black in the file) show black where the cut crosses them.
-  - **Checking during this pass (owner, 2026-10-14): `npm run see-through`** (30 s; 12 screenshots in `app/.export/see-through/`) after each change; **the full smoke only once, before merging the branch.** Its last run here: **18 failed**, all in movement, ladder, interaction and sound, with "◯" prompts and snow steps mid-check: most likely a real controller in use, not the change (rendering only; passed after stage 1). Rerun with no controller in use.
-- `export:crew` not run since its collection name came back.
+- **Why:** the owner put pass 5's plan on hold and rebuilds the see-through rules one at a time, from the hull alone ([decision log](../decision-log.md), 2026-10-14 and its updates; what exists: [`see-through-hull.md`](../features/see-through-hull.md), agent notes at the top).
+- **Stage 1, closed 2026-10-15** (owner: "good enough for now"). `settings.seeThroughStage = 'hull only'` (`'all rules'` = main's version, kept in the code to take rules back from):
+  - **Drawn:** the shell (ship.ts `SHELL`), the hull's inner parts (`lining`: structure that isn't a divider), the cockpit floor (split off `Dashboard Body` at load), the crew quarters' walls. Cut by the hole. **Hidden:** everything else (shader `cutSolid = -1`), the crew, their shadows (shadow caster split).
+  - **The gap between the hull's skins:** every drawn hull part draws front faces only, plus a back-face mesh in one flat unlit colour (`fillBackFaces`; *hull gap colour*, switch *hull gap black*).
+  - **The camera kept out of the hull's wall** indoors (`hullWallAt`, switch *camera out of the hull wall*). **Owner: the camera moving by itself is "not great": minimise it in future work.** It misfires in the crew quarters (single skin there: see below).
+  - Tuning panel: the old rules' settings left out; **Copy view** button (her position, camera, ramp, doors) to reproduce the owner's screenshots (example: `app/tools/views/owner-2026-10-14.json`).
+- **Next session: bring hidden objects back**, a group at a time, in the order the owner picks (furniture per room, bulkheads and their doors, the crew; pass 5's items 11, 13, 14, 15 as rules). Ask first; each step is small (no plan needed unless the owner asks).
+- **Checks during this work (owner):** `npm run see-through` (30 s, 12 screenshots in `app/.export/see-through/`) after each change; the full `npm run smoke` **once, before merging the branch**: its last run had 18 failures from a real controller in use mid-run (rerun with none).
+
+## Answer owed / given to the owner
+
+- **Clipping into the hull's wall: how much could be automated?** (given 2026-10-15) Detection is done: `npm run probe -- tools/hull-clipping.js` lists 56 of 153 objects; about 25 outside the crew quarters, mostly a few vertices (floors' edges, benches, bulkheads, jetpack rack, dashboard, doors). A **semi-automatic fix** is feasible in about half a day: a Blender script puts each offending vertex in a vertex group and adds a Shrinkwrap modifier that pulls it back onto the hull's inner surface; the owner reviews and applies. Good for shallow overlaps, not for objects deep in the wall. **Not automatable: the crew quarters**, where the hull has no inner skin (the walls and bunks are the room's surface): a modelling decision first (an inner skin there, or the walls treated as the lining). The owner chooses: by hand, or the script.
 
 ## Waiting on the owner
 
-- **The start screen:** not checked with a gamepad, Firefox, Safari, a phone (the button is 61 px wide upright).
-- **Not said, so still open:** whether the ship noise's repeat is heard. Loops in Firefox and Safari: not tested.
-- **Lighting, for a later pass:** the export reads marker objects (`lightRoom`, `lightColor`, `lightEnergy`); the game ignores `lightEnergy` and has four on at once. **Camera distances:** 3.5 m indoors, 4.5 m outdoors are placeholders.
+- How to proceed with the clipping fix (above); whether to commit the branch's work.
+- **The start screen:** not checked with a gamepad, Firefox, Safari, a phone. **The ship noise's repeat**, loops in Firefox and Safari: not said / not tested.
+- **Lighting, for a later pass;** camera distances 3.5 m / 4.5 m are placeholders.
 
 ## Found, not fixed
 
+- **Window frames** (black in the file) show as strips where the hole half-cuts them (their front faces; their cut edge is filled). Options given: leave frames out of the cut, or let *hull gap black* blend them. A **cargo hold artifact** (a lit face in the wall by the side door) couldn't be reproduced: the owner reports it if seen again.
+
 - **Engineering seen from above is slow in the test browser:** about 110 ms a frame (other rooms 16.7), the same with the see-through off and with main's rules: not this branch. Not looked into (headless Chrome; may not happen on a real GPU).
-
 - **Smoke, once in two runs (2026-10-14):** *the ramp closes from its keypad* failed (it didn't move in 4 s) and E then took a jetpack from the rack instead. Likely: she ends the walk-in at y 0.88, on the ramp's walkway, and since item 35 the ramp waits until she's off. Passed on the rerun.
-
 - **Dropping through the trapdoor's opening while pushing toward the ladder**, she lands where the ladder stands (it doesn't collide until she's clear of it) and overlaps it until she steps away. **Closed doors with colliders of their own** (the cargo hold's lockers) will stop her as the galley's did, wherever she slides along their wall: only the crew quarters have boxes.
 - `Tape.003` is in both exported files as a stray object; the front thrusters' collision mesh may lack geometry-nodes instances.
 - Metal on parts that are never cut (landing gear, cargo ramp) gets no reflections. Crew materials shared with the ship are single-sided in 1.19: check the placed crew at the next crew export.

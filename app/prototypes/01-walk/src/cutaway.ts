@@ -107,6 +107,9 @@ const occluderTint = u.showOccluders.mul(fade).mul(select(structure.lessThan(0.5
 
 /** One cuttable copy per source material, shared by every mesh that uses it. */
 const copies = new Map<THREE.Material, THREE.MeshStandardNodeMaterial>();
+/** The hull's parts: front faces only, whatever the single-sided switch (fillBackFaces). */
+const frontCopies = new Map<THREE.Material, THREE.MeshStandardNodeMaterial>();
+const sourceOf = new Map<THREE.Material, THREE.MeshStandardMaterial>();
 /** The hull gap's fill material (fillBackFaces). */
 let fill: THREE.MeshBasicNodeMaterial | null = null;
 let singleSided = false;
@@ -143,45 +146,62 @@ export function makeCuttable(mesh: THREE.Mesh): void {
   const source = mesh.material as THREE.MeshStandardMaterial;
   let material = copies.get(source);
   if (!material) {
-    material = (source as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial
-      ? new THREE.MeshPhysicalNodeMaterial()
-      : new THREE.MeshStandardNodeMaterial();
-    // As three's own conversion does (NodeLibrary.fromMaterial), minus the identity.
-    const target = material as unknown as Record<string, unknown>;
-    for (const key in source) {
-      if (key === 'uuid' || key === 'type' || key === 'name') continue;
-      target[key] = (source as unknown as Record<string, unknown>)[key];
-    }
-    material.name = `${source.name} (cuttable)`;
+    material = cuttableCopy(source, 'cuttable');
     material.side = singleSided ? source.side : THREE.DoubleSide;
-    // Cast shadows from the back faces only, as a closed single-sided hull would.
-    material.shadowSide = THREE.BackSide;
-    const cutSurface = select(u.ownColour.greaterThan(0.5), materialColor.rgb.mul(u.shade), u.backColor.rgb);
-    const surface = select(frontFacing, mix(materialColor.rgb, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
-    // A colour node without alpha is opaque: keep the alpha of the colour texture (the scanner's ray).
-    material.colorNode = source.transparent && source.map ? vec4(surface, texture(source.map).a) : surface;
-    material.maskNode = keep;
-    // Not glass: it's see-through, and in the ship file it's fully metallic too.
-    if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections);
-    material.maskShadowNode = bool(true);
     copies.set(source, material);
   }
+  sourceOf.set(material, source);
   mesh.material = material;
 }
 
+function cuttableCopy(source: THREE.MeshStandardMaterial, label: string): THREE.MeshStandardNodeMaterial {
+  const material = (source as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial
+    ? new THREE.MeshPhysicalNodeMaterial()
+    : new THREE.MeshStandardNodeMaterial();
+  // As three's own conversion does (NodeLibrary.fromMaterial), minus the identity.
+  const target = material as unknown as Record<string, unknown>;
+  for (const key in source) {
+    if (key === 'uuid' || key === 'type' || key === 'name') continue;
+    target[key] = (source as unknown as Record<string, unknown>)[key];
+  }
+  material.name = `${source.name} (${label})`;
+  // Cast shadows from the back faces only, as a closed single-sided hull would.
+  material.shadowSide = THREE.BackSide;
+  const cutSurface = select(u.ownColour.greaterThan(0.5), materialColor.rgb.mul(u.shade), u.backColor.rgb);
+  const surface = select(frontFacing, mix(materialColor.rgb, vec3(1, 0.1, 0.3), occluderTint), cutSurface);
+  // A colour node without alpha is opaque: keep the alpha of the colour texture (the scanner's ray).
+  material.colorNode = source.transparent && source.map ? vec4(surface, texture(source.map).a) : surface;
+  material.maskNode = keep;
+  // Not glass: it's see-through, and in the ship file it's fully metallic too.
+  if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections);
+  material.maskShadowNode = bool(true);
+  return material;
+}
+
 /**
- * The hull has an outer and an inner skin with a gap between (owner, 2026-10-14): where the hole
- * cuts both, the gap showed through. A second mesh on the same geometry draws only the back faces,
- * unlit, in one flat colour (*hull gap colour*), cut like the mesh: through the cut the gap reads as
- * one solid edge. (Each material's own colour was tried first: the outer skin and the lining then
- * showed in two colours at two depths, which still read as a hollow wall.) Unlit, as no light
- * reaches inside the gap (lit back faces came out black there). Call after makeCuttable; the fill
- * shares the mesh's userData (its see-through values).
+ * The hull has an outer and an inner skin with a gap between, and parts that sit in the gap (the
+ * ceilings, the ceiling lights, the tops of the inner walls) (owner, 2026-10-14): where the hole cuts
+ * them, the gap showed through. Each drawn part of the hull (ship.ts: the shell and its inner parts)
+ * draws its front faces as before (front only, even where the file's material is double-sided) and
+ * a second mesh on the same geometry draws its back faces, unlit, in one flat colour (*hull gap
+ * colour*), cut like the mesh: through the cut, whatever is seen from behind reads as one solid
+ * edge. (Each material's own colour was tried first: the outer skin and the lining then showed in
+ * two colours at two depths, which still read as a hollow wall.) Unlit, as no light reaches inside
+ * the gap (lit back faces came out black there). Call after makeCuttable; the fill shares the mesh's
+ * userData (its see-through values).
  */
 export function fillBackFaces(mesh: THREE.Mesh): void {
-  const source = mesh.material as THREE.MeshPhysicalNodeMaterial;
+  const copy = mesh.material as THREE.MeshStandardNodeMaterial;
+  const source = sourceOf.get(copy);
   // Not glass: from inside, the windows would turn solid.
-  if (source.transparent || (source.transmission ?? 0) > 0) return;
+  if (!source || source.transparent || ((source as THREE.MeshPhysicalMaterial).transmission ?? 0) > 0) return;
+  let front = frontCopies.get(source);
+  if (!front) {
+    front = cuttableCopy(source, 'cuttable, front');
+    front.side = THREE.FrontSide;
+    frontCopies.set(source, front);
+  }
+  mesh.material = front;
   if (!fill) {
     fill = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide });
     fill.name = 'hull gap';

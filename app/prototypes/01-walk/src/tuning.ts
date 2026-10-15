@@ -1,5 +1,6 @@
 // Tuning panel (lil-gui, which ships with three). "Copy values" puts the current settings
-// on the clipboard as JSON, to paste back into settings.ts or the prototype's README.
+// on the clipboard as JSON, to paste back into settings.ts or the prototype's README. "Copy view"
+// puts her position and the camera's angles there, to reproduce a screenshot.
 
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { settings } from './settings';
@@ -15,7 +16,7 @@ export function antialiasEnabled(): boolean {
   }
 }
 
-export function createTuningPanel(onChange: { pixelRatio: () => void }) {
+export function createTuningPanel(onChange: { pixelRatio: () => void }, describeView: () => object) {
   const gui = new GUI({ title: 'Tuning  ( ` or View button )' });
 
   const move = gui.addFolder('Movement');
@@ -172,10 +173,12 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
   cut.add(settings, 'cutShade', 0, 1, 0.05).name('own colour brightness');
   cut.addColor(settings, 'cutBackColor').name('cut edge colour');
   cut.addColor(settings, 'hullGapColour').name('hull gap colour');
+  cut.add(settings, 'hullGapBlack').name('hull gap black');
   cut.add(settings, 'holeOnlyWhenHidden').name('hole only when hidden');
   // See-through from scratch (owner, 2026-10-14): the rules' settings are left out of the panel
   // until their rule comes back (settings.seeThroughStage).
   cut.add(settings, 'cameraCollision').name('camera collision (outside)');
+  cut.add(settings, 'cameraOutOfHullWall').name('camera out of the hull wall (inside)');
 
   const render = gui.addFolder('Rendering');
   render.add(settings, 'maxPixelRatio', 0.1, 3, 0.05).name('max pixel ratio').onChange(onChange.pixelRatio);
@@ -199,6 +202,10 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }) {
       'copy',
     )
     .name('Copy values');
+  // Where she is and where the camera looks, to reproduce a screenshot in a check (probe-01.mjs).
+  gui
+    .add({ view: () => void navigator.clipboard.writeText(JSON.stringify(describeView())) }, 'view')
+    .name('Copy view (for a screenshot)');
 
   // Everything starts collapsed: the folders, and the panel itself.
   for (const folder of gui.foldersRecursive()) folder.close();
