@@ -4,7 +4,7 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-16, end of the fifteenth session. **On the branch `see-through-from-scratch`**, pushed up to 6f1b946; not committed since: the docs of the fourteenth session, and item 42 (the record script, the smoke fix, the docs; the `.blend` and the exported collider are saved).*
+*Updated 2026-10-16, end of the fifteenth session. **On the branch `see-through-from-scratch`**, pushed up to 9918d92 (item 42 built; the `.blend` saved, not in git).*
 
 ## Next session, in this order (owner)
 
