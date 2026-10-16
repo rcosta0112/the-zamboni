@@ -40,7 +40,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [The auto-parachute: the jetpack slows a long fall (item 34)](features/auto-parachute.md) | Prototype 01 | Built 2026-10-14; the owner's to play |
 | [The jetpack's exhaust glow, as in Part 1 (item 38)](features/jetpack-glow.md) | Prototype 01 | Done 2026-10-14 |
 | [The jetpack with momentum: hover, flight, glide and skid (item 39)](features/jetpack-hover-and-flight.md) | Prototype 01 | Done 2026-10-14 |
-| [Collision boxes for medium and small objects (item 42)](features/collision-boxes.md) | Prototype 01 | Draft 2026-10-15, for review |
+| [Collision boxes for medium and small objects (item 42)](features/collision-boxes.md) | Prototype 01 | Built 2026-10-16 |
 
 ## Plan format
 

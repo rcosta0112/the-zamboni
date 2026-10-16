@@ -4,37 +4,35 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-15, fourteenth session. **On the branch `see-through-from-scratch`**, committed up to 7f9acb6 (not pushed); the camera stopping at glass and the docs since are not.*
+*Updated 2026-10-16, end of the fifteenth session. **On the branch `see-through-from-scratch`**, pushed up to 6f1b946; not committed since: the docs of the fourteenth session, and item 42 (the record script, the smoke fix, the docs; the `.blend` and the exported collider are saved).*
 
 ## Next session, in this order (owner)
 
-0. **The camera indoors** (owner, 2026-10-15): it stays **inside the hull**, in front of the **bulkheads and their doors** (never cut while it does), and in the crew quarters of **two boxes** (bunks + galley; back wall) and the **couch, table and sitting-area walls** (that corner never cut on her deck). Settings `cameraInsideHull`, `cameraCollidesBulkheads`, `cameraCollidesFurniture`.
-1. **The hole's far end** (item 41): owner chose **round, 0 m past her** (`holeEnd`, `holeBeyond`; square and vertical kept on the panel). Found with it (see-through-hull.md, last update): she's hidden behind engineering's contraption (never cut on her deck); the hole cuts the hull wall next to the camera and the outside shows (view 6). Still to do (owner): **the camera went inside a locker** (feet 3.612, 3.461, −13.92; yaw 6.304, pitch 0.008; camera 3.633, 4.469, −12.92) and **try the camera colliding with the ceiling**.
-2. **Collision boxes for medium and small objects** (item 42): plan drafted, [collision-boxes.md](../plans/features/collision-boxes.md), changed for the owner's picking-up notes (in [interaction-doors.md](../plans/features/interaction-doors.md)); **waiting on the owner's review** and its four open questions.
+1. **The owner walks around the cargo hold, engineering and the cockpit** with the gamepad (item 42 built: [collision-boxes.md](../plans/features/collision-boxes.md), *As built*). Twelve boxes, 96 objects out of the collider (49,842 → 19,862 triangles). Open: she may fly onto the jetpack rack's box (top 0.85 above the floor, as planned).
+2. **The camera** (asked by the owner, not started): it went **inside a locker** (view: feet 3.612, 3.461, −13.92; yaw 6.304, pitch 0.008; camera 3.633, 4.469, −12.92 = Blender camera (0.25, 2.75, 3.01), behind the lockers' front): check whether the back-wall camera box already stops it; then **try the camera colliding with the ceiling**.
+3. **Later (owner, 2026-10-16, backlog item 43):** the camera also collides with the cargo ramp when it's closed.
 
-## Where the see-through stands (item 41; [`see-through-hull.md`](../features/see-through-hull.md), agent notes at the top)
+## Where things stand (item 41; [`see-through-hull.md`](../features/see-through-hull.md), updates at the top)
 
-- `settings.seeThroughStage = 'hull only'` (`'all rules'` = main's rules, kept to take back from). **Everything is drawn**, cut by the hole while something hides her; the hull's parts draw a flat fill on their backs (`fillBackFaces`). The crew are hidden only while she's inside on the lower deck.
-- **Never cut while she's on their deck** (`keepOnDeck`; ship.ts `ALWAYS_ON_DECK_ROOMS`, `ALWAYS_ON_DECK`, `CAMERA_BLOCKERS`): the cockpit and engineering (not what's on their bulkheads), the sled and pallet with what hangs on them, the crew quarters' table, lockers, bunks, galley and what's on them.
-- **The camera indoors:** stops at the hull's shell (`hullWallAt`), the bulkheads and the crew quarters' boxes, couch and table (`furnitureAt`). Owner: the camera moving by itself should stay minimal.
-- **Export (2026-10-15):** a prop hanging on a part is exported as its child (clamps and extinguishers, the cabinets' contents, the pallet's lantern); ship file edited by `hang-props.py`, saved.
-- **Reproducing the owner's views:** the tuning panel's *Copy view* gives JSON (feet, yaw, pitch, camera, ramp, doors). This session's script set her position, `view.yaw` / `view.pitch`, `settings.cameraDistanceIndoors` = distance from the camera to her feet + `cameraHeight`, and the doors, waited 2.5 s, took a shot: it wasn't kept; rewrite it as `app/tools/owner-views.js` if it's needed again.
-- **Checks:** `npm run see-through` after each change; the full `npm run smoke` **once, before merging the branch** (not run this session; the game files changed).
+- `settings.seeThroughStage = 'hull only'`: everything drawn, cut by the hole while something hides her. **The hole ends in a hemisphere closing at her chest** (`holeEnd: 'round'`, `holeBeyond: 0`; square and vertical on the panel). Owner: partial coverage is fine (better framing); **the player must never lose track of her**. Idea kept for later: stop cutting the shell indoors if more artifacts beside the camera turn up.
+- **Never cut on her deck** (`keepOnDeck`): the cockpit, engineering, the sled and pallet, the crew quarters' lockers, bunks, galley and the couch corner (`SITTING_AREA_WALLS`). **The bulkheads and their doors are never cut** while the camera collides with them (`cameraWall`).
+- **The camera indoors** (ship.ts `hullWallAt`, `furnitureAt`; main.ts): stops at the shell (glass and outer doors too), the bulkheads and their doors, two boxes in the crew quarters (`CAMERA_BOXES`) and the couch, table and sitting-area walls (owner: fine as it is there). Owner: the camera moving by itself should stay minimal.
+- **Picking things up** (later; notes and the sorted list of every prop in [interaction-doors.md](../plans/features/interaction-doors.md)): the costly parts are deferred by the owner (clothes, one object per pickable, attaching, throw vs back in place). Getting into a seat will be a button.
+- **Owner's views:** a probe set feet, `view.yaw`/`pitch`, `cameraDistanceIndoors` (camera to feet + `cameraHeight`) and doors, with the camera's indoor collisions off; not kept (write `app/tools/owner-views.js` if needed again). Chrome on desktop only for now (owner).
 
 ## Waiting on the owner
 
 - The clipping fix of objects in the hull's wall (asked 2026-10-15): by hand, or a semi-automatic Blender script (Shrinkwrap on the offending vertices; `npm run probe -- tools/hull-clipping.js` lists them). The crew quarters need a modelling decision first (no inner skin there).
-- **The start screen:** not checked with a gamepad (Chrome on desktop only for now: owner, 2026-10-15). **Lighting** for a later pass; camera distances placeholders.
+- **The start screen:** not checked with a gamepad. **Lighting** for a later pass; camera distances placeholders.
 
 ## Found, not fixed
 
 - **Window frames** (black in the file) show as strips where the hole half-cuts them (their front faces; their cut edge is filled). Options given: leave frames out of the cut, or let *hull gap black* blend them. A **cargo hold artifact** (a lit face in the wall by the side door) couldn't be reproduced: the owner reports it if seen again.
 - **Engineering seen from above is slow in the test browser:** about 110 ms a frame (other rooms 16.7), the same with the see-through off and with main's rules: not this branch. Not looked into (headless Chrome; may not happen on a real GPU).
 - **Smoke, once in two runs (2026-10-14):** *the ramp closes from its keypad* failed (it didn't move in 4 s) and E then took a jetpack from the rack instead. Likely: she ends the walk-in at y 0.88, on the ramp's walkway, and since item 35 the ramp waits until she's off. Passed on the rerun.
-- **Dropping through the trapdoor's opening while pushing toward the ladder**, she lands where the ladder stands (it doesn't collide until she's clear of it) and overlaps it until she steps away. **Closed doors with colliders of their own** (the cargo hold's lockers) will stop her as the galley's did, wherever she slides along their wall: only the crew quarters have boxes.
+- **Dropping through the trapdoor's opening while pushing toward the ladder**, she lands where the ladder stands (it doesn't collide until she's clear of it) and overlaps it until she steps away. **Closed doors with colliders of their own** stop her (in the air too) when she touches their edge: the crew quarters and the cargo locker have boxes 0.08 in front of them now.
 - `Tape.003` is in both exported files as a stray object; the front thrusters' collision mesh may lack geometry-nodes instances.
 - Metal on parts that are never cut (landing gear, cargo ramp) gets no reflections. Crew materials shared with the ship are single-sided in 1.19: check the placed crew at the next crew export.
-- The ship's triangle count fell by 74 when the panels and lever went from props to parts: not looked into (they look right in the game).
 
 ## Known traps
 
@@ -46,7 +44,7 @@
 - **The ship is turned half a turn in the world** and scaled 1.486: Blender (x, y, z) is `ship.object.localToWorld(x, z, -y)`; the other way, `worldToLocal`, then (x, -z, y).
 - **In checks:** she turns in an arc when she sets off (face her first, or she misses a doorway); teleported into a closed door she's stuck; several spots 2.5 m into engineering and the cockpit are inside furniture. **Flying needs `settings.wearingJetpack`.** `npm run probe` drops `--shot`: run `node tools/probe-01.mjs` for screenshots.
 - **Flipping the single-sided switch rebuilds the shaders:** frames stall for seconds. In checks, wait on a value, not on a time. **A frame's `dt` can be below zero** on the first frame: clamp it where a fade depends on it.
-- **Screenshots from a script:** wait 2 s after moving her before capturing. The indoor camera is 3.5 m behind her: in a small room it's behind the bulkhead (set `cameraDistanceIndoors` lower for the shot).
+- **Screenshots from a script:** wait 2 s after moving her before capturing.
 - **In the Bash tool, heredocs with apostrophes fail:** write the script to the scratchpad with the Write tool, then run it.
 - **A dev server may already be running on 5201** (the owner's): the smoke script uses it, and `npm run dev:01` then fails (port taken). **After `vite.config.ts` or a dependency changes it restarts by itself**; if the page is blank, restart it by hand.
 - **Dev hooks** on `window` in dev builds: `__settings`, `__character`, `__physics`, `__ship()`, `__view`, `__scene`, `__world`, `__interaction()`, `__ladders()`, `__boxes()` (`count`), `__audio` (`started`, `playing()`), `__boombox()`, `__rack()`, `__exhaust` (`shown`), `__wind` (`level`), `__start()` (`ready`, `begun`, `share`), `__THREE`.

@@ -76,11 +76,12 @@ async function checks() {
   const inside = ship.interior.getCenter(new T.Vector3());
 
   /** Stand her in front of an item (toward the middle of the ship), looking at it; true once it's the target. */
-  const aimAt = async (item) => {
+  const aimAt = async (item, axis) => {
     const centre = boxOf(item).getCenter(new T.Vector3());
     const away = new T.Vector3(inside.x - centre.x, 0, inside.z - centre.z);
-    // Along the axis the item's wall faces: the larger part of the way to the middle of the ship.
-    if (Math.abs(away.x) > Math.abs(away.z)) away.z = 0;
+    // Along the axis the item's wall faces: the larger part of the way to the middle of the ship,
+    // or `axis` ('x' across the ship) where that's along its wall.
+    if (axis === 'x' || (!axis && Math.abs(away.x) > Math.abs(away.z))) away.z = 0;
     else away.x = 0;
     away.normalize();
     const feet = centre.clone().addScaledVector(away, 0.55);
@@ -132,7 +133,9 @@ async function checks() {
   const rampPad = items.find((i) => i.objects[0].userData.controls === 'Door Cargo');
   const sidePad = items.find((i) => i.objects[0].userData.controls === 'Door');
   const rampTop = () => new T.Box3().setFromObject(ship.ramp).max.y;
-  if (!rampPad || !(await aimAt(rampPad))) {
+  // On the side wall, nearer the rack than the ship's middle: from in front of it, not along the wall
+  // (there she stands beside the rack, and its jetpacks are nearer).
+  if (!rampPad || !(await aimAt(rampPad, 'x'))) {
     report(false, 'the ramp keypad can be aimed at', rampPad ? `target: ${interaction.target?.name ?? 'none'}` : 'no keypad controls "Door Cargo"');
   } else {
     const openTop = rampTop();
@@ -314,7 +317,7 @@ async function checks() {
   }
 
   // --- The prompt next to the target (23) ------------------------------------------------------
-  if (rampPad && (await aimAt(rampPad))) {
+  if (rampPad && (await aimAt(rampPad, 'x'))) {
     const onScreen = () => {
       const c = boxOf(rampPad).getCenter(new T.Vector3()).project(view.camera);
       return { x: (c.x * 0.5 + 0.5) * innerWidth, y: (-c.y * 0.5 + 0.5) * innerHeight };
