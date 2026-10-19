@@ -79,10 +79,10 @@ async function start(): Promise<void> {
   let doorSounds: (() => void) | null = null;
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
   loadModels((share) => loading.set('models', share))
-    .then(({ models, zamboniFileHeight }) => {
+    .then(({ models }) => {
       loading.set('models', 1);
       character.setModels(models);
-      return loadShip(scene, physics, settings.zamboniHeight / zamboniFileHeight, (share) => loading.set('ship', share));
+      return loadShip(scene, physics, (share) => loading.set('ship', share));
     })
     .then(async (s) => {
       // The crew placed in the ship, and the room lights, before the shaders are built.

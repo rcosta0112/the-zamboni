@@ -30,6 +30,9 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 1. **Small edits to the ship file are the owner's.** The owner makes them in Blender and runs `npm run export:ship`; the agent comes in only if the summary shows something unexpected. When the agent does export, it uses that command too, never the steps one by one.
 2. **Small fixes are light.** A change of one object or one value needs no plan (an exception to rule 4), no record script and no new scripted check unless the owner asks: one line in the doc that describes the thing, and `doc/steps/current.md`.
 3. **Check narrowly while working, fully once.** One thing: `npm run probe -- <file.js>` (about 20 s). The whole scripted check (`npm run smoke`, three and a half minutes): once, at the end of a session's changes. Try a new check out with the probe before adding it to the smoke script.
+4. **Edits to the `.blend` are announced** (owner, 2026-10-19): the owner says what changed in the file before a task. Before working from a new version, compare it with the last one (objects added, removed or renamed; door poses; actions; collections); **if it looks different from what was said, ask**.
+5. **Big tasks are flagged before starting, and split into passes** (owner, 2026-10-19), with a stop to assess between passes. If something turns out to be more work than expected, flag it then.
+6. **Blender scripts are tried on a scratch copy** first. A long check's whole output goes to a file, never through `tail`. After restoring files from git, re-run every export that touched them.
 
 ## Naming in the game world
 

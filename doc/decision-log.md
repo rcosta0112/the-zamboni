@@ -8,11 +8,13 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-19 | What the ship export takes is a list | pipeline | `ship-export-list.json`, made from what the game had (1.19), not the collections switched on in the file; new or missing objects are flagged |
+| 2026-10-19 | One scale: the ship file is the game 1:1 | pipeline | 1 Blender unit = 1 m; Dr. Green 1.23 tall at armature scale 1; the game's proportions kept; no correction factor in any export; the exports stop if her size is off |
 | 2026-10-14 | See-through from scratch: the shell only, then the rules one by one | feature | On a branch: every rule removed; only the hull and what closes its openings is drawn, cut by the hole; everything inside hidden on both decks; rules come back one at a time |
 | 2026-10-14 | The jetpack with momentum: hover, flight, glide, skid | feature | Her horizontal speed picks hover (R2 sets her height) or flight (thrust where the stick points, forward where the camera looks); R2 let go at speed she glides; jet off on the ground at speed she skids. Replaces pass 6b's R2 rule and Part 1's flight rule |
 | 2026-10-14 | The jetpack's exhaust glow: the halo painted in, no bloom | look | Part 1's glow (a particle made big by bloom) as one additive sprite per nozzle with the halo drawn into it; bloom stays for later |
 | 2026-10-14 | The auto-parachute: the jetpack slows a long fall | feature | After a fall of 5.5 m or more, wearing a jetpack, it fires near the ground at a fixed braking (0.5 s and about 2.85 m up on the minimum fall since the update; longer and higher for longer falls); she lands at 2 m/s |
-| 2026-10-14 | The jetpack is taken from the rack; the player's model comes from the ship file | feature | She takes a jetpack from the cargo hold's rack and puts it back there; she flies only while wearing one, and can jump with it; her model is exported from the ship file's `Player` collection at the crew file's scale |
+| 2026-10-14 | The jetpack is taken from the rack; the player's model comes from the ship file | feature | She takes a jetpack from the cargo hold's rack and puts it back there; she flies only while wearing one, and can jump with it; her model is exported from the ship file's `Player` collection (at the crew file's scale until 2026-10-19; the file's since) |
 | 2026-10-14 | The start button is the template for every game UI button | design | `Button.svelte` in `packages/ui`, as drawn in the mockup's *Start Button*: new buttons use it, not a copy |
 | 2026-10-13 | The start screen: the design system's first code, the fonts in the repo | design | The start screen is Svelte, on tokens and two components in `packages/ui`; both fonts are files in the repo; Part 1's soundtrack plays on that screen only |
 | 2026-10-13 | Materials made with nodes are baked by the export | pipeline | What the glTF exporter can't follow (ramps, mixes, procedural textures before the colour, glow or alpha) is baked to an image by the export scripts; the blend file keeps its nodes |
@@ -20,7 +22,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-13 | First audio code: AAC, cues as data, three buses | tech | In prototype 01: `.m4a`, a cue file, master → music / ambience / sfx, streamed music, loops by crossfade |
 | 2026-10-12 | Lighting inside the ship | look | Sun through the glass, the world's blue light at half strength indoors, warm-tinted lights in the rooms with windows, sky reflections on metal |
 | 2026-10-12 | Single-sided materials in the ship | pipeline | Backface culling on in the ship file; the game draws what the file says, with a switch back; no measurable saving |
-| 2026-10-12 | The ship's reference file | pipeline | `The Zamboni 1.19.blend` is the scene as in the game; tags are custom properties in the file, not lists in the export script |
+| 2026-10-12 | The ship's reference file | pipeline | `The Zamboni 1.19.blend` (1.21 since 2026-10-19) is the scene as in the game; tags are custom properties in the file; what's exported is a list since 2026-10-19 |
 | 2026-10-12 | Keeping context small between sessions | docs | A state file read first (`steps/current.md`), a backlog tracker, a code map, this index |
 | 2026-10-09 | Basic interaction: doors, keypads, ladders | feature | E / Circle uses the target nearest the screen centre within reach, with a prompt next to it; doors toggle on a hinge (a door with a keypad only from the keypad); bulkhead doors slide open when she's near, a panel shuts them; the engineering window from its lever; ladders need no button and go up only |
 | 2026-10-09 | The rest of the ship: props, room lights, crew | prototype | Small props merged per room, no prop shadows; one or two lights per room, the four nearest on; the crew placed in the ship |
@@ -41,6 +43,22 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-19] — What the ship export takes is a list (pipeline)
+
+**Context:** in 1.20 the owner switched off (excluded from the view layer) most of the ship's collections while tidying. The export took only switched-on collections, so it lost most of the props; the same had happened in 1.19 (`Ship` excluded). The owner turns collections on and off all the time while working.
+**Decision (owner):** what goes into the game is **a list of the objects**, made from what the game had (the export of `The Zamboni 1.19.blend`): `app/tools/ship-export-list.json` (parts, props with the group each is merged into and its `seeThrough` tag, collision pieces, light markers). Every collection counts, switched on or not. The export flags what doesn't fit: listed but not in the file, or in the file and not listed. Things not imported before (`Archive`, `Ground`, `Temple`, the `Booleans` cutters, the crew's own collections) stay out.
+**Alternatives considered:** export everything under `Ship` whatever its switch (the cutters render, so they'd need a tag; moving a prop to a new collection would still rename its merged group and change its `seeThrough`); the owner keeping the collections switched on.
+**Rationale:** the file can be organised freely without changing the game; a change to what's in the game is an edit to the list, visible in git.
+**Status:** built 2026-10-19 (`ship-export-list.py` made it; `export-ship.py` reads it). Changes from 1.20 put in the list: `Door Boolean.001` renamed `Door Frame Bottom`; `Monitor.004` and `Keyboard.002` replaced by `Signal Receiver.001` and its two dials and two switches. Supersedes "this script holds no list of objects" in *The ship's reference file* (2026-10-12).
+
+## [2026-10-19] — One scale: the ship file is the game 1:1 (pipeline)
+
+**Context:** the owner's ladder animation (1.20) was made with Dr. Green at the ship file's size (armature scale 1.033), but the game showed her at the crew file's (0.826, *Taking a jetpack from the rack*): 0.8 of her size next to the ladder, so the animation didn't fit. The game scaled the ship by her height over her exported model's (1.4856), the player export shrank her armature, the crew export resized each character around their hips.
+**Decision (owner):** **the game's proportions are kept** (making her 25% bigger isn't acceptable); the file takes them, and the scale is normalized: **1 Blender unit = 1 m, Dr. Green is 1.23 tall at armature scale 1** ("around 1.2", so gravity and every value in metres stay as they are). No export applies a correction factor; every export **stops** if her armature isn't at scale 1 or she isn't 1.23 (±0.01) tall. The owner re-keys the ladder animation (her rise is now 2.26, floor to floor).
+**Alternatives considered:** the game at the file's proportions (she'd be 25% bigger in the ship; the animation would fit as made); her at 1 m tall in the game (every value in metres ×0.813); the export stretching the animation's rise.
+**Rationale:** with no factor anywhere, what's made in the file fits the game as made; the check stops a wrong size before anyone animates on it.
+**Status:** built 2026-10-19. `app/tools/normalize-scale.py` made `The Zamboni 1.21.blend` from 1.20 (1.20 untouched): everything ×1.4856, her player armatures applied at scale 1, the crew resized around their hips as the export did. The game: the ship at scale 1, no settings changed. Proven: positions in the game the same within 1.5 mm (the probe), the rooms' screenshots the same apart from the owner's 1.20 changes. The other characters' armature scales aren't applied (some share actions at different scales). Updates *Taking a jetpack from the rack* (2026-10-14) on her size.
 
 ## [2026-10-14] — See-through from scratch: the shell only, then the rules one by one (feature)
 
@@ -88,6 +106,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Alternatives considered:** copying the jetpack and the shape key into the crew file (a Blender session on an older file for the same result); three loose switches (the first version of the plan); taking it off anywhere (then where does it go?); fixing her scale in the blend file (not needed: the export does it).
 **Rationale:** the ship file is the one being edited and already read by the other exports; the rack makes the jetpack something she has, not a mode.
 **Status:** Built 2026-10-14 ([`features/interaction.md`](features/interaction.md#the-jetpack-rack); plan: [`plans/features/dr-green-jetpack-model.md`](plans/features/dr-green-jetpack-model.md)). The owner's to play.
+**Update 2026-10-19 (owner):** her size is in the file now: 1.23 tall at armature scale 1, and the export has no `--scale` (*One scale: the ship file is the game 1:1*). The game's proportions are unchanged.
 
 ## [2026-10-14] — The start button is the template for every game UI button (design)
 
@@ -201,6 +220,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Rationale:** "Art drives behaviour through names and custom properties" ([`architecture/README.md`](architecture/README.md)) was the rule; the lists were a stand-in. With the tags in the file, a new door or collision box is a change in Blender and a re-export.
 
 **Status:** Done 2026-10-12. Proven before anything else changed: the reference file exported with the new script matched 1.18's export object for object (differences: the ramp, now closed, and the new `opensWith` tag; the collider has the same vertices and surface area). Details: [`architecture/asset-pipeline.md`](architecture/asset-pipeline.md#the-ships-reference-file).
+**Update 2026-10-19 (owner):** the reference file is `The Zamboni 1.21.blend` (1.20 at the game's scale), and *what* is exported is a list again (`ship-export-list.json`), not the collections switched on in the file; *how* each thing behaves is still set by tags in the file. See the two entries of 2026-10-19.
 
 ## [2026-10-12] — Keeping context small between sessions (docs)
 

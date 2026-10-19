@@ -13,8 +13,9 @@ import { settings } from './settings';
 const CASSETTE: CueId = 'sfx_boombox_cassette';
 const TRACKS: CueId[] = ['mus_boombox_01', 'mus_boombox_02', 'mus_boombox_03', 'mus_boombox_04'];
 
-/** The shake at vibration 1: up to this far (m, in the ship file's units) and this much turn (rad). */
-const SHAKE_MOVE = 0.0015;
+/** The shake at vibration 1: up to this far (m) and this much turn (rad). (0.0015 in the ship
+ * file's units until they became metres, 2026-10-19.) */
+const SHAKE_MOVE = 0.00223;
 const SHAKE_TURN = 0.004;
 
 export class Boombox {

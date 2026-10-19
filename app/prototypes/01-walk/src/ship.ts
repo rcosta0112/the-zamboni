@@ -136,17 +136,17 @@ export interface Ship {
 export const SHADOW_LAYER = 1;
 
 /**
- * @param scale the same scale as the characters (ship and crew share units in the Blender files)
+ * At the file's size: the ship file is the game 1:1, 1 Blender unit = 1 m (since 2026-10-19; until
+ * then the game scaled the ship by her height over her exported model's, 1.4856).
  * @param onProgress the share of the two files that has been downloaded
  */
-export async function loadShip(scene: THREE.Scene, physics: Physics, scale: number, onProgress: (share: number) => void = () => undefined): Promise<Ship> {
+export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress: (share: number) => void = () => undefined): Promise<Ship> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const [a, b] = downloads(2, onProgress);
   const [gltf, colGltf] = await Promise.all([loader.loadAsync(SHIP_URL, a), loader.loadAsync(COLLIDER_URL, b)]);
   const object = gltf.scene;
 
   // Landed ahead of the player, back toward them, so the open cargo ramp faces the start.
-  object.scale.setScalar(scale);
   object.position.set(4, 0, -17);
   object.rotation.y = Math.PI;
 

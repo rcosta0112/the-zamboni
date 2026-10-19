@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = resolve(APP, '..');
-const BLEND = join(ROOT, 'resources', 'models', 'The Zamboni 1.19.blend');
+const BLEND = join(ROOT, 'resources', 'models', 'The Zamboni 1.21.blend');
 const ASSETS = join(APP, 'assets', 'test');
 const GLTF_TRANSFORM = join(APP, 'node_modules', '@gltf-transform', 'cli', 'bin', 'cli.js');
 const BLENDER = [process.env.BLENDER_PATH, 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe'].find((p) => p && existsSync(p)) ?? 'blender';
@@ -35,14 +35,13 @@ const JOBS = {
     args: (raw) => ['--out', join(raw, 'zamboni-crew.glb')],
     files: { 'zamboni-crew.glb': ['resize', 'meshopt'] },
   },
-  // The player's Dr. Green (the `Player` collection), at the crew file's scale; not compressed
-  // (the game loads it without a Meshopt decoder).
+  // The player's Dr. Green (the `Player` collection), at the file's scale (the game's since
+  // 2026-10-19); not compressed (the game loads it without a Meshopt decoder).
   player: {
     script: 'export-crew-character.py',
     args: (raw) => [
       '--armature', 'Dr. Green Parka',
       '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack',
-      '--scale', '0.826',
       '--force-double-sided',
       '--out', join(raw, 'green-parka.glb'),
     ],
@@ -73,10 +72,10 @@ const log = `${blender.stdout ?? ''}\n${blender.stderr ?? ''}`;
 writeFileSync(join(raw, 'export.log'), log);
 if (blender.error || !/^EXPORTED /m.test(log)) {
   console.error(`export: Blender didn't finish the export${blender.error ? ` (${blender.error.message})` : ''}. Its log: ${join(raw, 'export.log')}`);
-  console.error(log.split(/\r?\n/).filter((l) => /Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
+  console.error(log.split(/\r?\n/).filter((l) => /^SCALE:|Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);
 }
-const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|BAKED|SHAPE KEY)\b/.test(l));
+const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|BAKED|SHAPE KEY|SCALE)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
 // 2. Resize, dedup, compress.

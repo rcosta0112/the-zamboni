@@ -637,7 +637,6 @@ async function checks() {
     const o = part(blenderName);
     return o ? new T.Box3().setFromObject(o) : null;
   };
-  const shipScale = ship.object.scale.x;
   report(Math.abs(ship.rampClosedAngle) < 0.001, 'the ramp is closed in the file', `closed at ${T.MathUtils.radToDeg(ship.rampClosedAngle).toFixed(1)}Â° from the file's pose`);
 
   /** Walk from `from` in a straight line on the ground for `ms`; where she ends up. */
@@ -681,10 +680,10 @@ async function checks() {
   if (!display || !hull) {
     report(false, 'the engineering display is in the room', 'no "Monitor Arm.031" in the ship');
   } else {
-    // Posed, the arm reaches 0.4 Blender units out from the wall; in its rest pose (the bug) 0.23, inside the wall.
-    const reach = (display.max.x - display.min.x) / shipScale;
-    const fromHull = Math.min(display.min.x - hull.min.x, hull.max.x - display.max.x) / shipScale;
-    report(reach > 0.35 && fromHull > 0.15, 'the engineering display is in the room', `reaches ${reach.toFixed(2)} out, starting ${fromHull.toFixed(2)} in from the hull's side (Blender units)`);
+    // Posed, the arm reaches 0.59 m out from the wall; in its rest pose (the bug) 0.34, inside the wall (0.4 and 0.23 in 1.19's units).
+    const reach = display.max.x - display.min.x;
+    const fromHull = Math.min(display.min.x - hull.min.x, hull.max.x - display.max.x);
+    report(reach > 0.52 && fromHull > 0.22, 'the engineering display is in the room', `reaches ${reach.toFixed(2)} out, starting ${fromHull.toFixed(2)} m in from the hull's side`);
   }
 
   const cuttable = [];
@@ -831,13 +830,13 @@ async function checks() {
     const shown = prompt.textContent;
     await tap('KeyE');
     const opened = await until(() => settled([...halves, handle], 1), 3000);
-    const moved = place().distanceTo(at) / shipScale;
+    const moved = place().distanceTo(at);
     const openGap = gap();
     await wait(200);
     const shownOpen = prompt.textContent;
     await tap('KeyE');
     const closed = await until(() => settled([...halves, handle], 0), 3000);
-    report(opened && closed && Math.abs(moved - 0.06) < 0.005 && openGap > closedGap * 2.5, 'the lever opens and closes the window, and slides', `prompt "${shown}" â†’ open: ${opened}; the halves' centres ${closedGap.toFixed(2)} â†’ ${openGap.toFixed(2)} m apart; the lever moved ${moved.toFixed(3)} (Blender units); prompt "${shownOpen}" â†’ closed: ${closed}`);
+    report(opened && closed && Math.abs(moved - 0.089) < 0.0074 && openGap > closedGap * 2.5, 'the lever opens and closes the window, and slides', `prompt "${shown}" â†’ open: ${opened}; the halves' centres ${closedGap.toFixed(2)} â†’ ${openGap.toFixed(2)} m apart; the lever moved ${moved.toFixed(3)} m; prompt "${shownOpen}" â†’ closed: ${closed}`);
   }
   const offeredDoors = items.filter((i) => i.objects.some((o) => ship.doors.some((d) => d.object === o && (d.slide || d.device))) && !i.objects[0].userData.controls);
   report(offeredDoors.length === 0, 'the bulkhead doors, the window and the lever are not targets themselves', offeredDoors.map((i) => i.name).join(', '));

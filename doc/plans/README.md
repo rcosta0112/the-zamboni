@@ -41,6 +41,8 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [The jetpack's exhaust glow, as in Part 1 (item 38)](features/jetpack-glow.md) | Prototype 01 | Done 2026-10-14 |
 | [The jetpack with momentum: hover, flight, glide and skid (item 39)](features/jetpack-hover-and-flight.md) | Prototype 01 | Done 2026-10-14 |
 | [Collision boxes for medium and small objects (item 42)](features/collision-boxes.md) | Prototype 01 | Built 2026-10-16 |
+| [One scale for the ship file and the game (item 46)](features/scale-normalization.md) | Prototype 01 | Built 2026-10-19 |
+| [The ladder with a climbing animation (item 44)](features/ladder-climb-animation.md) | Prototype 01 | Draft; pass 2, after the owner re-keys the animation |
 
 ## Plan format
 

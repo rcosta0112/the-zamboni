@@ -4,7 +4,7 @@ Normally run by ``npm run export:ship`` (app/tools/export.mjs), which does all o
 prints what changed. By hand: with Blender from the command line. The .blend is opened read-only:
 nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship.py -- \
+    blender -b "resources/models/The Zamboni 1.21.blend" --python app/tools/export-ship.py -- \
         --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 
 then cap the textures at 512 px and compress both (Meshopt) into app/assets, from app/:
@@ -13,25 +13,29 @@ then cap the textures at 512 px and compress both (Meshopt) into app/assets, fro
     npx gltf-transform meshopt <raw>/zamboni-ship-512.glb assets/test/zamboni-ship.glb
     npx gltf-transform meshopt <raw>/zamboni-ship-col.glb assets/test/zamboni-ship-col.glb
 
-What is exported, and how it behaves in the game, is set in the file with custom properties
-(doc/architecture/asset-pipeline.md, "Naming contract"): this script holds no list of objects.
-It does what is derived from the scene:
+**What is exported is a list**, ``ship-export-list.json`` (owner, 2026-10-19: the owner turns
+collections on and off while working; until then the collections switched on in the file were the
+criterion). Every collection counts, switched on or not. The list names the parts, the props (each
+with the group it's merged into and its ``seeThrough`` tag, so moving a prop to another collection
+changes nothing in the game), the collision pieces and the light markers. ``NOTE:`` lines flag what
+doesn't fit: listed but not in the file (renamed, deleted), or in the file and not listed (new: add
+it to the list to export it). How each thing behaves in the game is set in the file with custom
+properties (doc/architecture/asset-pipeline.md, "Naming contract"):
 
 - Parts (``part``): exported as their own objects, with modifiers applied (mirrors, booleans,
   geometry nodes). What hangs on a door (the poster on a locker door) is exported with it. A part
   posed by an armature (the engineering display) is baked in its posed place first.
-- Props: every other render-visible mesh, curve and text object in the ship's collections (under
-  SHIP_COLLECTION; not the collections or objects tagged ``export: false``), baked to a mesh in
-  place. Big ones (BIG and up) stay separate objects and go into the collider as convex hulls;
+- Props: the listed render-visible meshes, curves and text objects (the list was made from the
+  ship's collections, not those tagged ``export: false``), baked to a mesh in place. Big ones (BIG and up) stay separate objects and go into the collider as convex hulls;
   props tagged ``interact`` (the rack's jetpacks) stay separate too, keeping their ``interact``
   and ``device`` tags (small ones don't collide);
-  small ones are merged into one object per collection ("Props <collection>"), one draw call per
-  material. A prop that hangs on a part (a child of it, or of a prop that is) is exported with it,
+  small ones are merged into one object per group ("Props <group>": the collection they were in
+  when the list was made), one draw call per material. A prop that hangs on a part (a child of it, or of a prop that is) is exported with it,
   as a child object: a big one as its own object, the small ones merged into one ("Props <part>", or
   the prop's own name when it's alone), so they move, show and hide with it (owner, 2026-10-15: the
   pallet's lantern, the cabinets' contents, the fire extinguishers on their clamps). Every prop is tagged ``prop: true`` (the game doesn't let them cast shadows: inside
-  the hull the sun doesn't reach them, and it halves their draw calls) and takes its collection's
-  ``seeThrough`` tag (the cockpit's props are never cut).
+  the hull the sun doesn't reach them, and it halves their draw calls) and takes its group's
+  ``seeThrough`` tag from the list (the cockpit's props are never cut).
 - Lights: glTF can't carry area lights, so the room lights are marker empties in the file
   (``lightRoom``, ``lightColor``, ``lightEnergy``), written with one ``light`` property.
 - Doors (``doorAxis``, ``doorAngle``, ``doorToGround``, ``doorStartOpen``; closed in the file) are
@@ -59,6 +63,7 @@ It does what is derived from the scene:
 """
 
 import argparse
+import json
 import math
 import os
 import sys
@@ -69,16 +74,18 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
+from scale_check import check_scale
 
-# The ship's collections: everything under this one, included in the view layer and not tagged
-# ``export: false``, is looked through for props.
+# What's exported (ship-export-list.py made it; edit it to add or remove things).
+LIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ship-export-list.json')
+# The ship's collections: looked through for props that aren't listed (to flag them), except the
+# boolean cutters' (they render, but they're never exported).
 SHIP_COLLECTION = 'Ship'
-# The light markers and collision pieces: included for the export even when it's excluded from the
-# view layer in the file (nothing is saved).
-GAME_COLLECTION = 'Game'
-# Props this big or bigger (largest side, Blender units: ~0.4 m in the game) stay separate objects
-# with a collider; smaller ones are merged per room and don't collide.
-BIG = 0.25
+CUTTERS = {'Booleans'}
+# Props this big or bigger (largest side, Blender units = m) stay separate objects with a
+# collider; smaller ones are merged per room and don't collide. (0.25 before the file took the
+# game's scale, 2026-10-19: x 1.4856.)
+BIG = 0.371
 # Tags that only this script reads: not written to the exported file.
 EXPORT_ONLY = ['part', 'collider', 'moving', 'doorAxis', 'doorAngle', 'doorToGround', 'doorStartOpen', 'doorSlide', 'doorDistance', 'doorAuto', 'lightRoom', 'lightColor', 'lightEnergy']
 AXES = {'X': 0, 'Y': 1, 'Z': 2}
@@ -88,29 +95,49 @@ parser.add_argument('--out', required=True)
 parser.add_argument('--collider-out', required=True)
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
-
-
-def include(layer, inside=False):
-    """The game's own collection may be switched off in the file, to keep it out of the way."""
-    inside = inside or layer.collection.name == GAME_COLLECTION
-    if inside:
-        layer.exclude = False
+def include(layer):
+    """Every collection, switched on or not in the file (nothing is saved)."""
+    layer.exclude = False
     for child in layer.children:
-        include(child, inside)
+        include(child)
 
 
 include(bpy.context.view_layer.layer_collection)
 bpy.context.view_layer.update()
+check_scale()
 
+with open(LIST, encoding='utf-8') as f:
+    listed = json.load(f)
 in_scene = list(bpy.context.view_layer.objects)
-objects = [ob for ob in in_scene if ob.get('part')]
+
+
+def find(names, what):
+    """The listed objects that are in the file; the others flagged."""
+    found = []
+    for name in names:
+        ob = bpy.data.objects.get(name)
+        if ob is None or ob not in in_scene:
+            print(f'NOTE: {what} {name!r} is in the list but not in the file (renamed or deleted?): not exported')
+        else:
+            found.append(ob)
+    return found
+
+
+objects = find(listed['parts'], 'part')
 if not objects:
-    sys.exit('No object is tagged "part": this script exports the reference file (The Zamboni 1.19.blend or later).')
+    sys.exit('None of the listed parts is in the file: this script exports the reference file (The Zamboni 1.21.blend or later).')
+names = set(listed['parts'])
+for ob in in_scene:
+    if ob.get('part') and ob.name not in names:
+        print(f'NOTE: part {ob.name!r} is tagged in the file but not in the list: not exported')
 doors = [ob for ob in objects if 'doorAxis' in ob or 'doorSlide' in ob]
-# What hangs on a door moves with it (the poster on a locker door).
-door_children = [c for door in doors for c in door.children_recursive if c not in objects]
+# What hangs on a door moves with it (the poster on a locker door): listed with the parts.
+door_children = [c for door in doors for c in door.children_recursive if c in objects and not c.get('part')]
+for door in doors:
+    for c in door.children_recursive:
+        if c not in objects and not c.get('part'):
+            print(f'NOTE: {c.name!r} hangs on the door {door.name!r} but is not in the list: not exported')
 moving = doors + door_children + [ob for ob in objects if ob.get('moving')]
-objects += door_children
 
 for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:
@@ -167,15 +194,49 @@ def largest_side(ob):
 
 
 def prop_collections(layer, inside=False):
-    """The ship's collections, in the outliner's order."""
+    """The ship's collections (not those tagged ``export: false``), in the outliner's order."""
     collection = layer.collection
-    if layer.exclude or collection.get('export', True) is False:
+    if collection.get('export', True) is False:
         return
     inside = inside or collection.name == SHIP_COLLECTION
     if inside:
         yield collection
     for child in layer.children:
         yield from prop_collections(child, inside)
+
+
+class Group:
+    """Listed props merged together, and their ``seeThrough`` tag (in place of a collection)."""
+
+    def __init__(self, name):
+        self.name = name
+        self.objects = []
+        self.tags = {}
+
+    def __contains__(self, key):
+        return key in self.tags
+
+    def __getitem__(self, key):
+        return self.tags[key]
+
+
+groups = {}
+for entry in listed['props']:
+    group = groups.setdefault(entry['group'], Group(entry['group']))
+    if 'seeThrough' in entry:
+        group.tags['seeThrough'] = entry['seeThrough']
+    for ob in find([entry['name']], 'prop'):
+        if is_prop(ob):
+            group.objects.append(ob)
+        else:
+            print(f'NOTE: prop {ob.name!r} is in the list but is no longer a prop (a part now, render-hidden, on an armature?): not exported')
+prop_names = {entry['name'] for entry in listed['props']}
+for collection in prop_collections(bpy.context.view_layer.layer_collection):
+    for ob in collection.objects:
+        if ob.name not in prop_names and is_prop(ob) and collection.name not in CUTTERS:
+            print(f'NOTE: {ob.name!r} (in {collection.name!r}) would be a prop but is not in the list: not exported')
+            prop_names.add(ob.name)
+listed_sources = objects + [ob for g in groups.values() for ob in g.objects]
 
 
 def copy_tags(source, target):
@@ -261,11 +322,11 @@ def merge(name, small, collection, anchor=None):
 
 
 prop_count = {'big': 0, 'small': 0}
-for collection in list(prop_collections(bpy.context.view_layer.layer_collection)):
+for collection in groups.values():
     small = []
     hanging = {}  # part -> its small props
-    for ob in list(collection.objects):
-        if not is_prop(ob):
+    for ob in collection.objects:
+        if ob.get('export', True) is False:  # baked already (listed twice)
             continue
         anchor = anchor_of(ob)
         big = largest_side(ob) >= BIG
@@ -303,7 +364,10 @@ for mat in sorted({s.material for ob in props for s in ob.material_slots if s.ma
         print(f'PERF: material {mat.name!r} is double-sided (backface culling off in Blender)')
 
 # Light markers.
-markers = [ob for ob in in_scene if 'lightRoom' in ob]
+markers = find(listed['lights'], 'light marker')
+for ob in in_scene:
+    if 'lightRoom' in ob and ob not in markers:
+        print(f'NOTE: light marker {ob.name!r} is not in the list: not exported')
 for marker in markers:
     marker['light'] = {'room': marker['lightRoom'], 'color': list(marker['lightColor']), 'energy': marker['lightEnergy']}
 
@@ -322,7 +386,10 @@ def add_hull(target, mesh):
 # the file's own collision pieces.
 bm = bmesh.new()
 hulls = []
-col_objects = [ob for ob in in_scene if ob.type == 'MESH' and ob.name.endswith('_col')]
+col_objects = find(listed['collision'], 'collision piece')
+for ob in in_scene:
+    if ob.type == 'MESH' and ob.name.endswith('_col') and ob not in col_objects:
+        print(f'NOTE: collision piece {ob.name!r} is not in the list: not exported')
 # Pieces tagged `reach: "through"` (the collision boxes) stay objects of their own: they stop
 # her, but the game's reach test passes through them.
 through = [ob for ob in col_objects if ob.get('reach') == 'through']
@@ -342,7 +409,7 @@ for ob in objects + col_objects:
 # Big props: their convex hulls (already baked in place).
 for prop in hull_props:
     add_hull(bm, prop.data)
-bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.005)
+bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0074)  # m (0.005 Blender units before 2026-10-19, x 1.4856)
 bmesh.ops.triangulate(bm, faces=bm.faces)
 col_mesh = bpy.data.meshes.new('zamboni_col')
 bm.to_mesh(col_mesh)
@@ -376,7 +443,7 @@ def export(selection, path, **options):
 
 # What the exporter can't follow in a material (a colour ramp before the emission, a procedural
 # texture) is baked to an image first: see bake_materials.py.
-baked_materials = bake_node_materials(objects + props, os.path.join(os.path.dirname(os.path.abspath(args.out)), 'baked'), candidates=in_scene)
+baked_materials = bake_node_materials(objects + props, os.path.join(os.path.dirname(os.path.abspath(args.out)), 'baked'), candidates=listed_sources)
 
 export(objects + props + markers, args.out, export_extras=True)
 # The collider: positions only (no normals, UVs or materials).

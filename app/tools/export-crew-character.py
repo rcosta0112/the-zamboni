@@ -4,18 +4,19 @@ Normally run by ``npm run export:player`` (app/tools/export.mjs): Dr. Green from
 ``Player`` collection. By hand, with Blender from the command line. The .blend is opened read-only:
 nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-crew-character.py -- \
+    blender -b "resources/models/The Zamboni 1.21.blend" --python app/tools/export-crew-character.py -- \
         --armature "Dr. Green Parka" \
         --objects "Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack" \
-        --scale 0.826 --out app/assets/test/green-parka.glb
+        --out app/assets/test/green-parka.glb
 
 - Exports mesh + skeleton only, no animations (characters and animations are separate files).
 - Modifiers are applied (mirrored halves, subdivision), **keeping shape keys** (the hood's
   ``jetpack``): the glTF exporter drops shape keys when it applies modifiers itself, so each part's
   modifiers other than the Armature are baked here, once per shape key, and the keys are rebuilt
   on the baked mesh. Every key is exported at 0.
-- ``--scale``: the armature's scale for the export (the ship file has her at 1.033; the game's
-  model and the ship's size are measured from the crew file's 0.826: owner, 2026-10-14).
+- At the file's scale: the file is the game 1:1 since 2026-10-19 (scale_check.py). The player's
+  armature must be at scale 1 and 1.23 tall, or nothing is exported. (Until then ``--scale 0.826``
+  shrank her from the ship file's 1.033 to the crew file's size.)
 - Only the active scene is exported (the ship file's ``Boombox`` scene has a stray ``Tape.003``).
 - Exported in the rest pose with the armature at the origin, whatever pose or position it has in the file.
 - Backface culling follows Blender. Every double-sided material is reported as a performance cost
@@ -27,17 +28,22 @@ nothing is saved back.
 """
 
 import argparse
+import os
 import sys
 
 import bpy
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from scale_check import check_scale
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--armature', required=True)
 parser.add_argument('--objects', required=True, help='comma-separated object names to export with the armature')
 parser.add_argument('--out', required=True)
 parser.add_argument('--force-double-sided', action='store_true', help='temporary workaround: export every material double-sided')
-parser.add_argument('--scale', type=float, help="the armature's scale for the export (default: as in the file)")
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
+
+check_scale()
 
 armature = bpy.data.objects[args.armature]
 parts = [bpy.data.objects[name.strip()] for name in args.objects.split(',')]
@@ -78,8 +84,6 @@ for mat in sorted(materials, key=lambda m: m.name):
 # in a layout). Rotation and scale are kept.
 armature.data.pose_position = 'REST'
 armature.location = (0.0, 0.0, 0.0)
-if args.scale:
-    armature.scale = (args.scale,) * 3
 if armature.animation_data:
     armature.animation_data.action = None
 for pb in armature.pose.bones:

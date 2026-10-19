@@ -22,11 +22,11 @@ then cap the textures at 512 px and compress (Meshopt) into app/assets, from app
 - The other characters in the scene (the visible `Crew.001` collection: both Adam bodies and
   Dr. Ogawa; not Dr. Green's copy, she's the player) have no animation: their posed meshes are
   baked to static meshes.
-- Sizes: the crew in the ship file is modelled bigger than in the crew file (Dr. Green's jumpsuit
-  copy here stands 1.045 units, her parka in the crew file, the player, 0.828). Each character is
-  scaled around their hips (they're seated) to HEIGHTS: their standing height relative to
-  Dr. Green, as in the crew file. Adam isn't in the crew file at another size: the same correction
-  as Dr. Green's copy.
+- Sizes: exported as placed in the file, which is the game 1:1 since 2026-10-19 (scale_check.py
+  stops the export otherwise). Each character's height relative to Dr. Green is checked against
+  HEIGHTS and a ``NOTE:`` printed when it's 2% off. (Until then the crew was modelled bigger in the
+  ship file than in the crew file, and this script scaled each character around their hips;
+  normalize-scale.py put that resize into the file.)
 - Every exported object carries a ``character`` custom property (the character's name).
 - Reports every double-sided material ("PERF:"), as the pipeline requires.
 - Materials made by nodes the glTF exporter can't follow are baked to images (bake_materials.py)
@@ -41,6 +41,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
+from scale_check import check_scale
 
 ANIMATED = {'Dr. Kaufman': ('Dr. Kaufman.002', ['Dr. KaufmanMesh.003', 'Mug.003'])}
 STATIC = {
@@ -50,13 +51,10 @@ STATIC = {
 }
 INCLUDE_COLLECTIONS = ['Crew']
 
-# Dr. Green's standing height in the crew file (the player's model) and her jumpsuit copy's in this
-# file (Blender units).
-GREEN_CREW_FILE = 0.828
-GREEN_SHIP_FILE = 'Dr. Green Jump suit Baked.001'
 # Standing height relative to Dr. Green (owner, 2026-10-09: Dr. Kaufman is shorter, Dr. Ogawa about
-# the same): from the crew file's parkas (Kaufman 0.650, Ogawa 0.827, Green 0.828). None: the same
-# correction as Dr. Green's copy here.
+# the same): from the crew file's parkas (Kaufman 0.650, Ogawa 0.827, Green 0.828). Checked, not
+# corrected: since 2026-10-19 the file has them at these sizes (normalize-scale.py did the resize
+# this script used to do), and the crew is exported as placed. None: no reference (Adam).
 HEIGHTS = {'Dr. Kaufman': 0.650 / 0.828, 'Dr. Ogawa': 1.0, 'Adam (Red)': None, 'Adam (Blue)': None}
 
 parser = argparse.ArgumentParser()
@@ -101,16 +99,21 @@ def standing_height(armature):
     return max(zs) - min(zs)
 
 
-green_correction = GREEN_CREW_FILE / standing_height(bpy.data.objects[GREEN_SHIP_FILE])
+green_height = check_scale()
 
 
 def resize(character, armature):
-    """The scale for this character, and the matrix that applies it around their hips."""
+    """No resize (the identity): the character's height relative to Dr. Green's, checked."""
     ratio = HEIGHTS[character]
-    factor = green_correction if ratio is None else GREEN_CREW_FILE * ratio / standing_height(armature)
-    hips = armature.matrix_world @ armature.pose.bones['Body'].head
-    print(f'{character}: scaled by {factor:.3f} around the hips')
-    return Matrix.Translation(hips) @ Matrix.Scale(factor, 4) @ Matrix.Translation(-hips)
+    height = standing_height(armature)
+    if ratio is None:
+        print(f'{character}: {height:.3f} tall')
+    else:
+        off = height / (green_height * ratio) - 1
+        print(f'{character}: {height:.3f} tall, {height / green_height:.3f} of Dr. Green' + ('' if abs(off) < 0.02 else f' (expected {ratio:.3f})'))
+        if abs(off) >= 0.02:
+            print(f'NOTE: {character} is {off:+.1%} off the height relative to Dr. Green (HEIGHTS)')
+    return Matrix.Identity(4)
 
 
 selection = []

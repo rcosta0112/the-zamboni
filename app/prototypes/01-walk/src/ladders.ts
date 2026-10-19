@@ -71,7 +71,10 @@ function fixedLadder(name: string, object: THREE.Object3D, physics: Physics): Om
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
   const thin = size.x < size.z ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
-  const free = (dir: THREE.Vector3) => physics.ray(centre, dir, 3, true)?.distance ?? Infinity;
+  // Measured at her height above its foot, not at its middle: the ladder reaches up into the
+  // opening since 1.20, and halfway up the rays met what's around the opening.
+  const low = new THREE.Vector3(centre.x, box.min.y + 0.5, centre.z);
+  const free = (dir: THREE.Vector3) => physics.ray(low, dir, 3, true)?.distance ?? Infinity;
   const normal = free(thin) >= free(thin.clone().negate()) ? thin : thin.clone().negate();
   const thickness = Math.min(size.x, size.z);
   const stand = centre.clone().addScaledVector(normal, thickness / 2 + RADIUS + 0.05);

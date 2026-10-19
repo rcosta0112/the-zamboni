@@ -168,11 +168,11 @@ export class AnimatedModel {
 }
 
 /**
- * Load both characters. The Zamboni Dr. Green gets Part 1's animations, retargeted.
- * Also returns the Zamboni Dr. Green's height in the Blender file's units, so other models from
- * the same files (the ship) can be scaled to match.
+ * Load both characters. The Zamboni Dr. Green gets Part 1's animations, retargeted. She's 1.23
+ * tall in the file, as in the game (since 2026-10-19), so she's shown at the file's size unless
+ * the tuning panel's height changes it.
  */
-export async function loadModels(onProgress: (share: number) => void = () => undefined): Promise<{ models: Record<ModelId, AnimatedModel>; zamboniFileHeight: number }> {
+export async function loadModels(onProgress: (share: number) => void = () => undefined): Promise<{ models: Record<ModelId, AnimatedModel> }> {
   const loader = new GLTFLoader();
   const [a, b] = downloads(2, onProgress);
   const [part1, zamboni] = await Promise.all([loader.loadAsync(PART1_URL, a), loader.loadAsync(ZAMBONI_URL, b)]);
@@ -187,6 +187,5 @@ export async function loadModels(onProgress: (share: number) => void = () => und
       part1: new AnimatedModel(part1.scene, part1.animations, 180, () => 1),
       zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight),
     },
-    zamboniFileHeight: zamboniHeight,
   };
 }
