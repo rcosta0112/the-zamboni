@@ -4,7 +4,7 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-19, end of the sixteenth session. **On the branch `see-through-from-scratch`**, at 93d26cb; this session's work (item 46) not committed. `The Zamboni 1.21.blend` written by the agent (not in git).*
+*Updated 2026-10-19, end of the sixteenth session. **On the branch `see-through-from-scratch`**, committed up to 257621d (item 46), not pushed. `The Zamboni 1.21.blend` written by the agent (not in git).*
 
 ## Next session, in this order (owner)
 
