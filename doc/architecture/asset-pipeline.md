@@ -41,6 +41,7 @@ Copied on 2026-10-08 from `The Zamboni.archive` (the newest versions only). The 
 | Since | Exception | Why |
 |---|---|---|
 | 2026-10-20 | The `POSE:` line for the frame the file was left on | Every export runs at the start frame: the frame doesn't change the export (owner) |
+| 2026-10-20 | A new id, or an id whose object was renamed or moved to another collection (an id gone, or changing kind, stops it; two objects with one id stop it; something the game uses without an id is a `NOTE:`) | Ids are what scenes, Ink and cutscenes name: only losing one breaks them (the game's structure, pass 1) |
 | 2026-10-20 | The crew's places, poses and actions (objects moved, an animation changed, a `CREW:` line changed) | The crew will be in different places and animations in different scenes (owner) |
 
 **The crew's checks** (`export-ship-crew.py`, owner 2026-10-20): a `CREW:` line per character (hips, facing, action). **These stop the export (`STOP:`):** an animated character with no action; one that had an action in the last taken export and has none; one missing since then; one at the world origin, outside the hull's bounds (`Hull_Merged`), below the lower deck or reaching more than 0.05 below the floor of their deck (`Floor Bottom`, `Floor Top.001`); two whose hips are closer than 0.3 m. **The player export** stops if a part listed for her or the ladder clip (`--clip`, `--clip-start`) is missing.
@@ -85,6 +86,7 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 
 | Prefix / property | Meaning | Example |
 |---|---|---|
+| `id`, `kind` | **Since 2026-10-20 (the game's structure, pass 1):** the stable id the game, scenes, Ink and cutscenes name it by (lowercase words joined by hyphens, written once from the name, kept when the object is renamed), and what it is (a kind defined in the game, `src/kinds.ts`). On the 33 objects the game uses; static scenery has none. The export prints an `ID:` line for each and writes [`ids.json`](../../app/prototypes/0.0.2/tools/ids.json) when it's taken (id, kind, name, collection). Behaviour comes from the kind; the `door…` tags below still give the instance (axis, angle, slide) and, until pass 6, a copy of the behaviour (the game warns if it disagrees with the kind) | `id: "cockpit-door-left"`, `kind: "sliding-door"` |
 | `door_*` | A door | `door_galley`, `door_hatch_cargo` |
 | `interact: <verb>` | What the player can do: `pickup`, `use`, `open`, `talk`, `scan`, `sit` | `interact: pickup` |
 | `device: <type>` | Device behaviour class | `device: boombox`, `device: lever` |

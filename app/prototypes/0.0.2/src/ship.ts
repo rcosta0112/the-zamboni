@@ -15,6 +15,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import { fillBackFaces, makeCuttable } from './cutaway';
 import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
+import { Entities, type Openable } from './entities';
 import { downloads } from './loading';
 import { named } from './names';
 import { sameLayouts, unmirror } from './pipelines';
@@ -123,6 +124,10 @@ export interface Ship {
   shellUnits: CutUnit[];
   /** The doors the player opens and closes (not the ramp). */
   doors: Door[];
+  /** The ship's things by id, with their components (entities.ts). */
+  entities: Entities;
+  /** The ramp as a component (its state stays in `settings.cargoRampOpen` and `rampAmount`). */
+  rampState: Openable;
   /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
   shadowCaster: THREE.Mesh;
   /** The same for what's inside the shell: off while it's hidden (see-through stage 'hull only'). */
@@ -251,7 +256,8 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   rampNode.rotation.x = 0;
   rampNode.updateWorldMatrix(true, true);
   const rampCollider = physics.addMovingConvex(rampNode);
-  const doors = createDoors(object, physics, hingeAt);
+  const entities = new Entities(object);
+  const doors = createDoors(object, physics, hingeAt, entities);
   for (const door of doors) door.units.push(...cutUnits.filter((u) => isInside(u.object, door.hinge)));
   for (const unit of cutUnits) if (unit.bulkhead && !unit.attachedTo) unit.cameraWall = true;
 
@@ -281,9 +287,23 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     cameraWalls: cutUnits.filter((u) => u.bulkhead && !u.attachedTo),
     shellUnits: cutUnits.filter((u) => u.shell),
     doors,
+    entities,
+    rampState: {
+      paused: false,
+      get open() {
+        return settings.cargoRampOpen;
+      },
+      set open(open: boolean) {
+        settings.cargoRampOpen = open;
+      },
+      get amount() {
+        return ship.rampAmount;
+      },
+    },
     ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
     interiorMovingCasters: [],
   };
+  entities.of(rampDoor)?.components.push(ship.rampState);
   // Left casting by mergeShadowCasters: the moving parts.
   ship.interiorMovingCasters = cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes).filter((m) => m.castShadow);
   scene.add(ship.shadowCaster, ship.interiorShadowCaster, ship.glassShadowCaster);
@@ -557,6 +577,7 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   for (const mesh of ship.interiorMovingCasters) mesh.castShadow = interiorShown;
   if (pusher) updateAutoDoors(ship.doors, pusher.feet(), settings.zamboniHeight);
   for (const door of ship.doors) door.update(dt, force, pusher);
+  if (ship.rampState.paused && !force) return;
   const target = settings.cargoRampOpen ? 1 : 0;
   if (!force && ship.rampAmount === target) {
     ship.rampWaiting = false;

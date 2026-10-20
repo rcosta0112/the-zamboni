@@ -87,7 +87,24 @@ function take(w, files, lines) {
   const p = paths(w);
   for (const name of files) copyFileSync(join(p.waiting, name), join(ASSETS, name));
   writeFileSync(p.lines, lines);
+  if (w === 'ship') writeIds(lines);
   rmSync(p.pending, { force: true });
+}
+
+/** `ID: <id> = <kind>, '<name>' in '<collection>'` → [id, { kind, name, collection }]. */
+const idOf = (line) => {
+  const m = /^ID: (\S+) = (\S+), '(.*)' in '(.*)'$/.exec(line);
+  return m ? [m[1], { kind: m[2], name: m[3], collection: m[4] }] : null;
+};
+
+/** ids.json (the game's structure, *Ids*): every id the taken ship export carries, its kind and where it is in the file. */
+function writeIds(lines) {
+  const ids = { _note: "Written by the ship export when it's taken (export.mjs): each id, its kind, its object's name and collection in the file. Don't edit: set ids in the .blend." };
+  for (const line of lines.split('\n')) {
+    const entry = idOf(line);
+    if (entry) ids[entry[0]] = entry[1];
+  }
+  writeFileSync(join(PROTO, 'tools', 'ids.json'), `${JSON.stringify(ids, null, 1)}\n`);
 }
 
 /** The after-export check (after-export.js), when the dev server is up. */
@@ -143,7 +160,7 @@ if (blender.error || !/^EXPORTED /m.test(log)) {
   console.error(log.split(/\r?\n/).filter((l) => /^(SCALE|STOP):|Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);
 }
-const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE)\b/.test(l));
+const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE|ID)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
 // 2. Resize, dedup, compress, into the waiting folder.
@@ -201,6 +218,19 @@ for (const [name, line] of crewNow) {
   }
 }
 for (const name of crewBefore.keys()) if (!crewNow.has(name)) reasons.push(`STOP: ${name} was in the last taken export and isn't now`);
+// The ids: one gone, or on another kind, stops it (scenes, Ink and cutscenes name them); a new one,
+// or one whose object was renamed or moved to another collection, is only flagged.
+const idsOf = (all) => new Map(all.map(idOf).filter(Boolean));
+const idsBefore = idsOf([...before]);
+const idsNow = idsOf(lines);
+for (const [id, was] of idsBefore) {
+  const now = idsNow.get(id);
+  if (!now) reasons.push(`STOP: the id ${id} ('${was.name}') was in the last taken export and isn't now`);
+  else if (now.kind !== was.kind) reasons.push(`STOP: the id ${id} was a ${was.kind} and is now a ${now.kind}`);
+  else if (now.name !== was.name || now.collection !== was.collection) flags.push(`the id ${id}: '${was.name}' in '${was.collection}' is now '${now.name}' in '${now.collection}'`);
+}
+const newIds = [...idsNow.keys()].filter((id) => !idsBefore.has(id));
+if (newIds.length) flags.push(`${newIds.length} new id(s): ${newIds.slice(0, 8).join(', ')}${newIds.length > 8 ? ' …' : ''}`);
 const changedFiles = [];
 const report = [];
 for (const name of Object.keys(job.files)) {

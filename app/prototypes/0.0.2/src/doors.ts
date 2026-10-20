@@ -9,11 +9,15 @@
 // Sliding doors (`door: {slide, auto}`): the bulkhead doors' two leaves, the engineering window's two
 // halves and the lever beside it move along a vector instead of turning. The bulkhead doors (`auto`)
 // open when she's near and close when she leaves, unless they were shut from a panel.
-// Plans: doc/plans/features/interaction-doors.md, doc/plans/features/interaction-clearance.md,
+// Each door is a component of its entity (entities.ts): its kind (kinds.ts) says how it moves, whether
+// it opens to the ground or by itself, and its sounds; the tag gives the instance's axis, angle or slide.
+// Plans: doc/plans/architecture/game-architecture/game-structure.md, doc/plans/features/interaction-doors.md, doc/plans/features/interaction-clearance.md,
 // doc/plans/features/bulkhead-doors.md, doc/plans/features/interaction-sounds.md (their sounds)
 
 import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
+import type { Entities, Openable } from './entities';
+import { DOOR_KINDS, isDoorKind, type DoorKind } from './kinds';
 import { named } from './names';
 import { prepareRaycasts, type CutUnit } from './visibility';
 import { CONTACT_GAP, type MovingCollider, type Physics } from './physics';
@@ -107,10 +111,12 @@ export function awayFromDoors(doors: Door[], margin: number): THREE.Vector3 {
   return away;
 }
 
-export class Door {
+export class Door implements Openable {
   /** 0 = closed, 1 = open. */
   amount = 0;
   open = false;
+  /** A cutscene's timeline owns it: it doesn't move by itself. */
+  paused = false;
   /** Stopped against her: waiting until she's clear. */
   blocked = false;
   readonly units: CutUnit[] = [];
@@ -145,6 +151,9 @@ export class Door {
 
   constructor(
     readonly name: string,
+    /** Its id (the file's `id`) and what kind of door it is (kinds.ts). */
+    readonly id: string,
+    readonly kind: DoorKind,
     /** The door's own object (what's tagged in the file). */
     readonly object: THREE.Object3D,
     /** The hinge: rotating it swings the door. */
@@ -163,6 +172,7 @@ export class Door {
    * at load).
    */
   update(dt: number, force = false, pusher?: Pusher): void {
+    if (this.paused && !force) return;
     const target = this.open ? 1 : 0;
     if (!force && this.amount === target) {
       this.blocked = false;
@@ -257,31 +267,43 @@ export function updateAutoDoors(doors: Door[], feet: THREE.Vector3, height: numb
  * The doors in the ship: a hinge for each (the part attached to it), its open angle (for `toGround`,
  * the first angle at which it touches the ground), and a collider for the big ones.
  */
-export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (ship: THREE.Object3D, part: THREE.Object3D) => THREE.Object3D): Door[] {
+export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (ship: THREE.Object3D, part: THREE.Object3D) => THREE.Object3D, entities: Entities): Door[] {
   const tagged: THREE.Object3D[] = [];
   ship.traverse((o) => {
     if (o.userData.door) tagged.push(o);
   });
   const doors = tagged.map((object) => {
+    // The file's `door` tag carries the instance (its axis and angle, or the way it slides) and,
+    // until the tags are retired (pass 6), the behaviour too: the kind's is used, a difference warned.
     const data = object.userData.door as { axis: [number, number, number]; angle: number; toGround: boolean; startOpen?: boolean; slide?: [number, number, number]; auto?: boolean };
+    const entity = entities.of(object);
+    const kindName = entity && isDoorKind(entity.kind) ? entity.kind : data.slide ? 'sliding-window' : 'door';
+    const kind = DOOR_KINDS[kindName];
+    if (!entity) console.warn(`[0.0.2] the door "${object.name}" has no id or isn't a door's kind: taken as a ${kindName}`);
+    else if ((kind.moves === 'slide') !== Boolean(data.slide) || kind.toGround !== Boolean(data.toGround) || kind.auto !== Boolean(data.auto)) {
+      console.warn(`[0.0.2] the door "${object.name}" is tagged unlike its kind (${kindName}): the kind is used`);
+    }
     // A lever on its panel is the panel's handle (below, it's attached to a pivot of its own).
     const device = object.parent && object.parent.userData.interact === 'use' ? object.parent : null;
     const hinge = hingeAt(ship, object);
-    if (data.slide) {
+    const id = entity?.id ?? object.name;
+    if (kind.moves === 'slide' && data.slide) {
       // A handle doesn't collide: it's a few centimetres on the wall.
-      const door = new Door(object.name, object, hinge, new THREE.Vector3(0, 1, 0), 0, device ? null : physics.addMovingConvex(hinge));
+      const door = new Door(object.name, id, kind, object, hinge, new THREE.Vector3(0, 1, 0), 0, device ? null : physics.addMovingConvex(hinge));
       door.slides(new THREE.Vector3(...data.slide));
-      door.auto = data.auto === true;
+      door.auto = kind.auto;
       door.device = device;
+      entity?.components.push(door);
       return door;
     }
     const axis = new THREE.Vector3(...data.axis).normalize();
-    const openAngle = data.toGround ? angleToGround(hinge, axis, data.angle) : data.angle;
-    const walkway = data.toGround ? physics.addStaticTriangles(...walkwayTriangles(hinge, axis, physics)) : null;
+    const openAngle = kind.toGround ? angleToGround(hinge, axis, data.angle) : data.angle;
+    const walkway = kind.toGround ? physics.addStaticTriangles(...walkwayTriangles(hinge, axis, physics)) : null;
     hinge.quaternion.identity();
     hinge.updateMatrixWorld(true);
     const collider = physics.addMovingConvex(hinge);
-    const door = new Door(object.name, object, hinge, axis, openAngle, collider);
+    const door = new Door(object.name, id, kind, object, hinge, axis, openAngle, collider);
+    entity?.components.push(door);
     door.walkway = walkway;
     // A hatch lying in a floor (it's shut here): its top as a fixed lid. Off until the door's first
     // update, so nothing that measures the ship with the doors left out sees it.
@@ -345,9 +367,8 @@ export function motorSound(audio: DoorAudio, at: THREE.Object3D, moving: () => b
  * - A sliding door (the bulkhead doors, the engineering window): `sfx_door_slide` when it starts to
  *   move, opening or closing (as in the UE prototype).
  * - A door that opens down to the ground (the side door): a motor, see `motorSound`.
- * - The other hinged doors: one sound when it starts to open, one when it reaches closed. A hinge
- *   that stands upright is a small door's (lockers, the fridge, the cupboard: a latch); one that
- *   lies flat is a hatch's (the trapdoor, the roof hatch: the same sounds, lower).
+ * - The other hinged doors: one sound when it starts to open, one when it reaches closed: a latch
+ *   for a `door` (lockers, the fridge, the cupboard), lower for a `hatch` (kinds.ts).
  */
 export function createDoorSounds(ship: THREE.Object3D, doors: Door[], audio: DoorAudio): () => void {
   const groups = [...new Set(doors.filter((d) => !d.device).map((d) => d.group))];
@@ -367,8 +388,8 @@ export function createDoorSounds(ship: THREE.Object3D, doors: Door[], audio: Doo
         audio.play('sfx_door_slide', at);
       };
     }
-    if (first.walkway) return motorSound(audio, at, () => first.moving && !first.blocked, () => !first.moving);
-    const hatch = Math.abs(first.axis.y) < 0.7;
+    if (first.kind.sound === 'motor') return motorSound(audio, at, () => first.moving && !first.blocked, () => !first.moving);
+    const hatch = first.kind.sound === 'hatch';
     let closed = first.amount === 0;
     return () => {
       if (first.open && !open) audio.play(hatch ? 'sfx_hatch_open' : 'sfx_latch_open', at);

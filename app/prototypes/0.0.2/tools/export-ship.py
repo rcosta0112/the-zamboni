@@ -337,14 +337,14 @@ for collection in groups.values():
         big = largest_side(ob) >= BIG
         # Something she can use (a rack's jetpack) stays an object of its own, whatever its size,
         # so the game can find it and hide it.
-        if (big or 'interact' in ob) and ob.type == 'MESH':
+        if (big or 'interact' in ob or 'id' in ob) and ob.type == 'MESH':
             mesh = baked_mesh(ob)
             name = ob.name
             ob.name = name + ' (source)'
             ob['export'] = False  # nothing is saved: so an object in two collections is baked once
             prop = add_prop(name, mesh, collection)
             hang_on(prop, anchor)
-            for key in ('interact', 'device'):
+            for key in ('interact', 'device', 'id', 'kind'):
                 if key in ob:
                     prop[key] = ob[key]
             big_props.append(prop)
@@ -425,6 +425,23 @@ bpy.context.scene.collection.objects.link(collider)
 # The collision boxes go into the same file as objects of their own (the game makes each a convex
 # collider: joined, boxes that touch would become one hull).
 colliders = [collider] + through
+
+# Ids (the game's structure, pass 1): an ``ID:`` line for each, which export.mjs compares with the last
+# taken export (one gone or changed stops it) and writes to ids.json; a duplicate stops it here, and a
+# thing the game uses (a door, something to use, a moving part) without an id is flagged.
+USED = ('door', 'interact', 'device', 'moving', 'opensWith', 'controls')
+seen = {}
+for ob in objects + props:
+    if 'id' in ob:
+        seen.setdefault(ob['id'], []).append(ob)
+    elif any(key in ob for key in USED):
+        print(f'NOTE: {ob.name!r} is used by the game but has no id')
+for id_, obs in sorted(seen.items()):
+    if len(obs) > 1:
+        print(f'STOP: the id {id_!r} is on {len(obs)} objects: {", ".join(repr(o.name) for o in obs)} (a duplicated object keeps its tags)')
+    ob = obs[0]
+    collection = ob.users_collection[0].name if ob.users_collection else ''
+    print(f'ID: {id_} = {ob.get("kind", "?")}, {ob.name!r} in {collection!r}')
 
 for ob in objects + markers:
     for key in EXPORT_ONLY:

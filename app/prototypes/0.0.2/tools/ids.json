@@ -1,0 +1,168 @@
+{
+ "_note": "Written by the ship export when it's taken (export.mjs): each id, its kind, its object's name and collection in the file. Don't edit: set ids in the .blend.",
+ "boombox": {
+  "kind": "boombox",
+  "name": "Boombox",
+  "collection": "Scene Collection"
+ },
+ "cargo-hold-ladder": {
+  "kind": "ladder",
+  "name": "Cargo Hold Ladder",
+  "collection": "Cargo Bay"
+ },
+ "cargo-locker-door": {
+  "kind": "door",
+  "name": "Cargo Locker Door",
+  "collection": "Fixtures"
+ },
+ "cargo-ramp": {
+  "kind": "ramp",
+  "name": "Cargo Ramp",
+  "collection": "Parts"
+ },
+ "cargo-ramp-keypad": {
+  "kind": "keypad",
+  "name": "Cargo Ramp Keypad",
+  "collection": "Fixtures"
+ },
+ "cockpit-door-left": {
+  "kind": "sliding-door",
+  "name": "Cockpit Door Left",
+  "collection": "Parts"
+ },
+ "cockpit-door-panel-back": {
+  "kind": "door-panel",
+  "name": "Cockpit Door Panel Back",
+  "collection": "Crew Quarters"
+ },
+ "cockpit-door-panel-front": {
+  "kind": "door-panel",
+  "name": "Cockpit Door Panel Front",
+  "collection": "Cockpit"
+ },
+ "cockpit-door-right": {
+  "kind": "sliding-door",
+  "name": "Cockpit Door Right",
+  "collection": "Parts"
+ },
+ "crew-locker-door-1": {
+  "kind": "door",
+  "name": "Crew Locker Door 1",
+  "collection": "Crew Quarters"
+ },
+ "crew-locker-door-2": {
+  "kind": "door",
+  "name": "Crew Locker Door 2",
+  "collection": "Crew Quarters"
+ },
+ "engineering-door-left": {
+  "kind": "sliding-door",
+  "name": "Engineering Door Left",
+  "collection": "Parts"
+ },
+ "engineering-door-panel-back": {
+  "kind": "door-panel",
+  "name": "Engineering Door Panel Back",
+  "collection": "Fixtures"
+ },
+ "engineering-door-panel-front": {
+  "kind": "door-panel",
+  "name": "Engineering Door Panel Front",
+  "collection": "Engineering"
+ },
+ "engineering-door-right": {
+  "kind": "sliding-door",
+  "name": "Engineering Door Right",
+  "collection": "Parts"
+ },
+ "engineering-window-left": {
+  "kind": "sliding-window",
+  "name": "Engineering Window Left",
+  "collection": "Parts"
+ },
+ "engineering-window-lever": {
+  "kind": "lever",
+  "name": "Engineering Window Lever",
+  "collection": "Engineering"
+ },
+ "engineering-window-lever-handle": {
+  "kind": "lever-handle",
+  "name": "Engineering Window Lever Handle",
+  "collection": "Engineering"
+ },
+ "engineering-window-right": {
+  "kind": "sliding-window",
+  "name": "Engineering Window Right",
+  "collection": "Parts"
+ },
+ "floor-hatch": {
+  "kind": "hatch",
+  "name": "Floor Hatch",
+  "collection": "Cargo.001"
+ },
+ "galley-door-1": {
+  "kind": "door",
+  "name": "Galley Door 1",
+  "collection": "Galley"
+ },
+ "galley-door-2": {
+  "kind": "door",
+  "name": "Galley Door 2",
+  "collection": "Crew Quarters"
+ },
+ "galley-door-3": {
+  "kind": "door",
+  "name": "Galley Door 3",
+  "collection": "Crew Quarters"
+ },
+ "jetpack-1": {
+  "kind": "jetpack",
+  "name": "Jetpack 1",
+  "collection": "Scene Collection"
+ },
+ "jetpack-2": {
+  "kind": "jetpack",
+  "name": "Jetpack 2",
+  "collection": "Scene Collection"
+ },
+ "jetpack-3": {
+  "kind": "jetpack",
+  "name": "Jetpack 3",
+  "collection": "Scene Collection"
+ },
+ "jetpack-4": {
+  "kind": "jetpack",
+  "name": "Jetpack 4",
+  "collection": "Scene Collection"
+ },
+ "jetpack-rack-lower": {
+  "kind": "jetpack-rack",
+  "name": "Jetpack Rack Lower",
+  "collection": "Fixtures"
+ },
+ "jetpack-rack-upper": {
+  "kind": "jetpack-rack",
+  "name": "Jetpack Rack Upper",
+  "collection": "Fixtures"
+ },
+ "side-door": {
+  "kind": "drop-door",
+  "name": "Side Door",
+  "collection": "Parts"
+ },
+ "side-door-keypad": {
+  "kind": "keypad",
+  "name": "Side Door Keypad",
+  "collection": "Fixtures"
+ },
+ "top-hatch-lower": {
+  "kind": "hatch",
+  "name": "Top Hatch Lower",
+  "collection": "Parts"
+ },
+ "top-hatch-upper": {
+  "kind": "hatch",
+  "name": "Top Hatch Upper",
+  "collection": "Parts"
+ }
+}
