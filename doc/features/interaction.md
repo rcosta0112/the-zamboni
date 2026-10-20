@@ -76,7 +76,7 @@ Built 2026-10-13 (owner's backlog of 2026-10-12, items 6 to 8; until then the bu
 | Engineering window | `Lab Window`, `Lab Window.001` | **from its lever**; the two halves slide apart, each by its own width. There's glass behind them |
 | The lever | `Level`, on `Level Panel` | slides 0.06 (Blender units) along its own Y axis, toward the window, when the window opens (owner, 2026-10-13: as in the UE prototype) |
 
-- **Closed, the two leaves fit into each other:** their meeting edges are S-shaped, so their bounds overlap by 0.11 (1.19's Blender units; 0.16 m since the file took the game's scale, 2026-10-19). The leaves are scaled 1.02 across and up so they reach into the doorway's frame: at their modelled size a line of light showed between door and frame (owner, 2026-10-13). Done by [`app/tools/fit-bulkhead-doors.py`](../../app/tools/fit-bulkhead-doors.py): see [`asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
+- **Closed, the two leaves fit into each other:** their meeting edges are S-shaped, so their bounds overlap by 0.11 (1.19's Blender units; 0.16 m since the file took the game's scale, 2026-10-19). The leaves are scaled 1.02 across and up so they reach into the doorway's frame: at their modelled size a line of light showed between door and frame (owner, 2026-10-13). Done by [`app/prototypes/0.0.2/tools/fit-bulkhead-doors.py`](../../app/prototypes/0.0.2/tools/fit-bulkhead-doors.py): see [`asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
 - **Near** (owner, 2026-10-13): she's on the door's deck and within **1.5 m** of the closed door, measured on the floor to the door's bounds (*...when she is within*, tuning panel). The distance and the slide time go together: the door has to be open before she reaches it at a run (3.5 m/s indoors). At 0.6 s she ran into the leaves, was pushed aside by them and ended against the bulkhead. A longer distance isn't the fix: at 2 m the cockpit's door stays open for most of the cockpit. It closes when she's 0.3 m further away than that, so it doesn't flutter at the edge. Only she opens doors: the crew don't walk yet.
 - **Panels** (`Door Panel - Cockpit`, `- Crew Quarters`, `- Engineering`, `- Cargo Hold`: one on each side of each bulkhead). **A panel shuts its door and keeps it shut** (owner, 2026-10-13): *Close door* shuts it, whoever is near; *Open door*, from either panel, makes it automatic again, and since she's standing at it, it opens. A door can't be held open.
 - **The lever** is one target with its panel: *Open window* / *Close window*. It isn't used while it or the window is moving (as in the UE prototype). **The lever moves first; the window starts, with its sound, 0.6 s after the lever is used** (*window after its lever*, tuning panel): together, the window's sound covered the lever's (owner, 2026-10-13; first 0.3 s, then doubled).
@@ -103,7 +103,7 @@ Built 2026-10-13 ([plan](../plans/features/interaction-sounds.md)). **Placeholde
 
 - A door that stops against her and waits: the motor stops with it and starts again; the small doors make their closing sound only once closed.
 - Which sound a hinged door gets comes from what's already known of it, not a new tag: it opens down to the ground (a motor), its hinge stands upright (a latch) or lies flat (a hatch).
-- **Her footsteps** aren't an interaction: see [prototype 01's README](../../app/prototypes/01-walk/README.md#sound) and [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13).
+- **Her footsteps** aren't an interaction: see [0.0.2's README](../../app/prototypes/0.0.2/README.md#sound) and [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13).
 - **Not built:** a sound when a target comes into reach (owner, 2026-10-13: no).
 
 ## The boombox
@@ -190,7 +190,7 @@ Ladders are found from their bounds at load: she stands on the more open side, t
 
 ## Data
 
-From the ship file's custom properties (glTF extras). Since 2026-10-12 they're set in Blender, in the reference file (`doorAxis`, `doorAngle`, `doorToGround`, `doorStartOpen`, which [`app/tools/export-ship.py`](../../app/tools/export-ship.py) writes as `door`; naming contract: [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#naming-contract-proposed)):
+From the ship file's custom properties (glTF extras). Since 2026-10-12 they're set in Blender, in the reference file (`doorAxis`, `doorAngle`, `doorToGround`, `doorStartOpen`, which [`app/prototypes/0.0.2/tools/export-ship.py`](../../app/prototypes/0.0.2/tools/export-ship.py) writes as `door`; naming contract: [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#naming-contract-proposed)):
 
 - `door: {axis, angle, toGround, startOpen}` and `interact: "open"` on each door; `hinge` (its hinge point).
 - `door: {slide, auto}` on a sliding door (in the file: `doorSlide`, `doorDistance`, `doorAuto`): the way and distance it slides to open, as a vector in the ship's space; `auto`: it opens when she's near.
@@ -202,7 +202,7 @@ From the ship file's custom properties (glTF extras). Since 2026-10-12 they're s
 
 ## Code
 
-In prototype 01: [`interaction.ts`](../../app/prototypes/01-walk/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place), [`doors.ts`](../../app/prototypes/01-walk/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/01-walk/src/boombox.ts), [`jetpack.ts`](../../app/prototypes/01-walk/src/jetpack.ts) (the rack; what she wears is in `model.ts`, flying only with one in `character.ts`), [`audio.ts`](../../app/prototypes/01-walk/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/01-walk/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/tools/make-placeholder-sounds.mjs`](../../app/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
+In 0.0.2: [`interaction.ts`](../../app/prototypes/0.0.2/src/interaction.ts) (what's a target, what a device does, targeting, the prompt's place), [`doors.ts`](../../app/prototypes/0.0.2/src/doors.ts) (hinged and sliding doors, opening on approach, where a sliding door's sound comes from), [`boombox.ts`](../../app/prototypes/0.0.2/src/boombox.ts), [`jetpack.ts`](../../app/prototypes/0.0.2/src/jetpack.ts) (the rack; what she wears is in `model.ts`, flying only with one in `character.ts`), [`audio.ts`](../../app/prototypes/0.0.2/src/audio.ts) (see [`audio.md`](../architecture/audio.md#what-exists-prototype-01-2026-10-13)), [`ladders.ts`](../../app/prototypes/0.0.2/src/ladders.ts); the sounds' cues in `cues.json`, made by [`app/prototypes/0.0.2/tools/make-placeholder-sounds.mjs`](../../app/prototypes/0.0.2/tools/make-placeholder-sounds.mjs); the interact action in `input.ts`; the overlap test, rays and teleport in `physics.ts`.
 
 ## Open questions
 

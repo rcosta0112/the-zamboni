@@ -1,13 +1,13 @@
 """Export the Zamboni from its reference file: the ship, its props and room lights, plus a collision mesh.
 
-Normally run by ``npm run export:ship`` (app/tools/export.mjs), which does all of the below and
+Normally run by ``npm run export:ship`` (app/prototypes/0.0.2/tools/export.mjs), which does all of the below and
 prints what changed. By hand: with Blender from the command line. The .blend is opened read-only:
 nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.21.blend" --python app/tools/export-ship.py -- \
+    blender -b "resources/models/The Zamboni 1.21.blend" --python app/prototypes/0.0.2/tools/export-ship.py -- \
         --out <raw>/zamboni-ship.glb --collider-out <raw>/zamboni-ship-col.glb
 
-then cap the textures at 512 px and compress both (Meshopt) into app/assets, from app/:
+then cap the textures at 512 px and compress both (Meshopt) into public/test/, from app/prototypes/0.0.2/:
 
     npx gltf-transform resize <raw>/zamboni-ship.glb <raw>/zamboni-ship-512.glb --width 512 --height 512
     npx gltf-transform meshopt <raw>/zamboni-ship-512.glb assets/test/zamboni-ship.glb

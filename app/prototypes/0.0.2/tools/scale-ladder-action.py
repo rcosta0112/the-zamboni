@@ -1,6 +1,6 @@
 """The ladder clip made 1.25 times as big in its moves (owner, 2026-10-19): a record script.
 
-    blender -b --python app/tools/scale-ladder-action.py -- --src "<1.21.blend>" --out "<file.blend>"
+    blender -b --python app/prototypes/0.0.2/tools/scale-ladder-action.py -- --src "<1.21.blend>" --out "<file.blend>"
 
 `Dr. Green - Ladder` was animated with her at the ship file's old size (1.033), 1.25 times as big
 next to the ladder as the game shows her (doc/plans/features/scale-normalization.md). In 1.21 the

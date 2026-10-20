@@ -6,7 +6,7 @@ The first thing the player sees: the title, a progress bar while the game loads,
 
 - **Mockup:** [The Zamboni, *Desktop - 4*](https://www.figma.com/design/3x6wVCPPBUmzOp6IucXxsh/The-Zamboni?node-id=1-19) (1440 × 1024).
 - **The button's states:** from [Eigodojo's *AnswerButton*](https://www.figma.com/design/vYxN400FtsLyLYiRTzvlCg/Eigodojo?node-id=274-838), in the Zamboni mockup's colours.
-- **Code:** the screen is [`StartScreen.svelte`](../../app/prototypes/01-walk/src/StartScreen.svelte) in prototype 01; the button, the bar and the tokens are in [`app/packages/ui`](../../app/packages/ui/README.md); images and fonts in `app/assets/ui/`.
+- **Code:** the screen is [`StartScreen.svelte`](../../app/prototypes/0.0.2/src/StartScreen.svelte) in 0.0.2; the button, the bar and the tokens are in [`app/packages/ui`](../../app/packages/ui/README.md); images and fonts in `app/prototypes/0.0.2/public/ui/`.
 
 ## Layout
 
@@ -40,7 +40,7 @@ The hover fill is the agent's proposal: the mockup has only white and the blues,
 
 Not in either mockup; the agent's proposal. The button's outer outline, in the same place, with a white fill at 26 % growing from the left. When the load ends, the bar fades out and the button fades in over it (0.3 s): the outline doesn't move.
 
-What it measures ([`loading.ts`](../../app/prototypes/01-walk/src/loading.ts)): each part of the load has a fixed share of the bar.
+What it measures ([`loading.ts`](../../app/prototypes/0.0.2/src/loading.ts)): each part of the load has a fixed share of the bar.
 
 | Part | Share | How it reports |
 |---|---|---|

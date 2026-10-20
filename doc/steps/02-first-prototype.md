@@ -12,7 +12,7 @@ Set up the git repo with a workspace where several prototypes can be built in pa
 |---|---|
 | [Repo and prototype workspace](../plans/architecture/repo-and-prototypes.md) | Done |
 | [Prototype 01: walk](../plans/prototypes/01-walk.md) | Built; owner play-test pending |
-| [Prototype 02: low-resolution rendering](../plans/prototypes/02-low-res.md) | Draft, for review |
+| [Prototype 02: low-resolution rendering](../plans/prototypes/low-res.md) | Draft, for review |
 
 ## Deliverables
 

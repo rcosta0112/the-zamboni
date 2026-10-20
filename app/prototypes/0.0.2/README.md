@@ -1,4 +1,6 @@
-# Prototype 01 — Walk
+# 0.0.2 (prototype 01: Walk)
+
+> **[Agent note]** **The current version** (port 5202; the plain root scripts: `npm run dev`, `smoke`, `probe`, `see-through`, `export:ship|crew|player`). Started 2026-10-20 as a copy of [0.0.1](../0.0.1/README.md) (frozen, prototype 01), for the architecture (item 49) and the exports (item 48); otherwise it looks and plays the same. Its own game files (`public/`) and tools (`tools/`); it exports from the working file `resources/models/The Zamboni 1.21.blend`. Plan: [`archive-01-start-02.md`](../../../doc/plans/prototypes/archive-01-start-02.md). The sections below were written for prototype 01 and still describe this version.
 
 A character walking around a 200 × 200 m floor, seen from a third-person camera: **Part 1's Dr. Green** with walk, run and jump animations (switchable back to a capsule). Proves the stack (Three.js r186 `WebGPURenderer`, TSL, Vite, TypeScript) and gives a first feel for movement and camera. Plan: [`doc/plans/prototypes/01-walk.md`](../../../doc/plans/prototypes/01-walk.md).
 
@@ -10,7 +12,7 @@ Which file owns what, and where to start reading: [`CODE-MAP.md`](CODE-MAP.md).
 
 ```sh
 cd app
-npm run dev:01     # → http://localhost:5201
+npm run dev     # → http://localhost:5202
 ```
 
 ## Scripted check
@@ -21,7 +23,7 @@ npm run smoke                # everything, about three and a half minutes
 npm run probe -- <file.js>   # one question (about 20 s): see tools/probe-01.mjs
 ```
 
-Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, the jetpack (rise, fall, the hull stops her, onto the roof), the bulkhead doors (walking through each, shutting each from both panels), the window from its lever, the sounds (the door sound once per door each way, the boombox round its ring, the ship's noise and where it repeats: what plays and when, not what it sounds like), every door, the start screen (a bar and no button while it loads, then the button; its click and its music), console errors. About three and a half minutes. It uses the dev server on port 5201 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
+Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, the jetpack (rise, fall, the hull stops her, onto the roof), the bulkhead doors (walking through each, shutting each from both panels), the window from its lever, the sounds (the door sound once per door each way, the boombox round its ring, the ship's noise and where it repeats: what plays and when, not what it sounds like), every door, the start screen (a bar and no button while it loads, then the button; its click and its music), console errors. About three and a half minutes. It uses the dev server on port 5202 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
 
 ## Controls
 
@@ -59,7 +61,7 @@ Two models, switchable in the tuning panel (*Character model → model*); the ca
 
 ### Zamboni Dr. Green (default)
 
-The parka Dr. Green, **driven by Part 1's animations**. Since 2026-10-14 from the ship file's `Player` collection (`resources/models/The Zamboni 1.19.blend`): the crew file's model (`The Crew 1.09 Dr. Green.blend`, the same rig and body) with a jetpack and the hood's shape key. Exported to `app/assets/test/green-parka.glb` (540 KB, uncompressed) with [`app/tools/export-crew-character.py`](../../tools/export-crew-character.py), in one command (in `app/`):
+The parka Dr. Green, **driven by Part 1's animations**. Since 2026-10-14 from the ship file's `Player` collection (`resources/models/The Zamboni 1.19.blend`): the crew file's model (`The Crew 1.09 Dr. Green.blend`, the same rig and body) with a jetpack and the hood's shape key. Exported to `app/prototypes/0.0.2/public/test/green-parka.glb` (540 KB, uncompressed) with [`app/prototypes/0.0.2/tools/export-crew-character.py`](tools/export-crew-character.py), in one command (in `app/`):
 
 ```sh
 npm run export:player   # body, gadgets, little backpack, jetpack; no binoculars; at the crew file's scale (0.826)
@@ -75,10 +77,10 @@ The script exports in the rest pose at the origin, applies modifiers (the mesh i
 
 ### Part 1 Dr. Green
 
-Part 1's Dr. Green (*Big Moon Tiny Moon*) with its own animations: `app/assets/test/part1-dr-green.glb` (272 KB), exported from `C:\Users\31658\Projects\Big Moon Tiny Moon\Assets\Models\Characters\Dr.Green.fbx` with [`app/tools/export-part1-character.py`](../../tools/export-part1-character.py):
+Part 1's Dr. Green (*Big Moon Tiny Moon*) with its own animations: `app/prototypes/0.0.2/public/test/part1-dr-green.glb` (272 KB), exported from `C:\Users\31658\Projects\Big Moon Tiny Moon\Assets\Models\Characters\Dr.Green.fbx` with [`app/prototypes/0.0.2/tools/export-part1-character.py`](tools/export-part1-character.py):
 
 ```sh
-blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx" app/assets/test/part1-dr-green.glb
+blender -b --python app/prototypes/0.0.2/tools/export-part1-character.py -- "<path>/Dr.Green.fbx" app/prototypes/0.0.2/public/test/part1-dr-green.glb
 ```
 
 1,236 triangles + jetpack, flat colours, **1.23 m tall** as authored. Animations: `standing` (a single pose), `walking` (1.46 s), `running` (0.88 s), `jumping`, `jumping_2`, `flying`.
@@ -91,14 +93,14 @@ blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx"
 
 ## The ship and collisions
 
-**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (3.7 MB) and its collider `zamboni-ship-col.glb` (160 KB), exported from the reference file `resources/models/The Zamboni 1.19.blend` (see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md#the-ships-reference-file)) with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
+**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/prototypes/0.0.2/public/test/zamboni-ship.glb` (3.7 MB) and its collider `zamboni-ship-col.glb` (160 KB), exported from the reference file `resources/models/The Zamboni 1.19.blend` (see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md#the-ships-reference-file)) with [`app/prototypes/0.0.2/tools/export-ship.py`](tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
 
 ```sh
 cd app
 npm run export:ship   # Blender export, textures capped at 512 px, dedup, Meshopt; prints what changed
 ```
 
-The steps it runs are in [`app/tools/export.mjs`](../../tools/export.mjs); every tool is listed in [`app/tools/README.md`](../../tools/README.md).
+The steps it runs are in [`app/prototypes/0.0.2/tools/export.mjs`](tools/export.mjs); every tool is listed in [`app/prototypes/0.0.2/tools/README.md`](tools/README.md).
 
 - **What's in it (77 objects):** the exterior (hull, windshield, engine pods, landing gear, side door, top hatch, lab windows, the cargo ramp) and the **large interior elements**: floors, bulkheads, walls and ceilings, consoles and dashboards, interior doors, ceiling lights; crew quarters (bunks, couch, table, galley, stove, lockers, ladder); cockpit (seats, dials, monitors); engineering (benches, cabinets, 3D printer, power supplies, the Contraption); cargo bay (sledge, pallet, locker, head, jetpack racks, ladder). Collections excluded from the view layer in the file are included for the export only. **Small props** (mugs, books, chests, computers…) are left for a later step.
 - **Size:** 10 MB uncompressed (the Contraption alone is 21,500 triangles) → 1.53 MB with Meshopt; three.js decodes it with its `MeshoptDecoder`.
@@ -107,7 +109,7 @@ The steps it runs are in [`app/tools/export.mjs`](../../tools/export.mjs); every
 - **See-through hull:** structure (tagged `structure: true`: hull, walls, ceilings, floors, doors…) is cut by the hole while something solid hides her; furniture is cut near the camera above her waist, and near her only while it hides her head or a third of her. Exceptions: `seeThrough: "keep"` (the 3D printer), `seeThrough: "solid"` (all cockpit furniture, the engineering ceiling machine, the red sled: always visible on her deck), objects attached to a bulkhead behave like it (and with *bulkheads always visible*, on by default, bulkheads and what's attached to them are never cut while she's on their deck), `divider: true` (bulkheads and inner walls: solid while the camera is inside, unless they hide her). Raycasts use `three-mesh-bvh`. The cargo ramp is cut like the hull while closed or moving, never while open. Never cut: `cuttable: false` (the landing gear). Tags are set by the export script until they're set in Blender. Upward-facing surfaces below her feet are never cut, so the floors stay. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md).
 - **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `hinge` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). "Closed" is the door object with no rotation of its own: the current file has the ramp lying open (turned 88°), which the game undoes (before 2026-10-12 it took the file's pose for closed, and the ramp only moved 4°). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
 - **Doors, keypads, ladders** (2026-10-09): the side door, the trapdoor, the roof hatches, the fridge, cupboard and locker doors open and close (all start closed but the trapdoor); the open side door is a ramp; the upper keypad by the side door works the ramp, the lower one the side door; the cargo bay ladder can be climbed. Point the camera at a door within her reach and press E / Circle. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md). A moving door pushes her out of its way (or stops, if she's pinned). Tuning panel: *Interaction* folder (reach, how far from the screen centre, highlight, door time, doors push her, climb speed).
-- **Added 2026-10-13** (backlog pass 4): the **bulkhead doors** slide open when she's within 1.5 m and close behind her; the panel on each side shuts its door and keeps it shut (used again: automatic again). The **engineering window** opens from the lever beside it. Tuning panel, Interaction folder: *sliding door time*, *bulkhead doors open by themselves*, *...when she is within (m)*. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md#sliding-doors). The tags are in the ship file since the same day ([`tag-ship-pass4.py`](../../tools/tag-ship-pass4.py) set them). So is the doors' fit ([`fit-bulkhead-doors.py`](../../tools/fit-bulkhead-doors.py): closed edge to edge, the leaves reaching into their frames). The export command is unchanged.
+- **Added 2026-10-13** (backlog pass 4): the **bulkhead doors** slide open when she's within 1.5 m and close behind her; the panel on each side shuts its door and keeps it shut (used again: automatic again). The **engineering window** opens from the lever beside it. Tuning panel, Interaction folder: *sliding door time*, *bulkhead doors open by themselves*, *...when she is within (m)*. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md#sliding-doors). The tags are in the ship file since the same day ([`tag-ship-pass4.py`](tools/tag-ship-pass4.py) set them). So is the doors' fit ([`fit-bulkhead-doors.py`](tools/fit-bulkhead-doors.py): closed edge to edge, the leaves reaching into their frames). The export command is unchanged.
 - **Changed 2026-10-12** (backlog pass 1): the side door has no prompt of its own (its keypad only); the roof hatch's two parts are one target; ladders go up only (down is through the trapdoor); the prompt sits next to the target on screen and the highlight is off by default.
 - **Changed 2026-10-12** (backlog pass 2): exported from the reference file, where every tag now lives. The cargo ramp is closed in the file (the game opens it at the start, as before). The engineering display is on its arm, not inside the wall. She can't get under the hull or the front thrusters (collision boxes in the file's `Game Collision` collection: resize them in Blender). The ship's materials are single-sided, with a switch back (*single-sided materials*, tuning panel → see-through).
 - **Lighting inside, changed 2026-10-12** (backlog pass 3; all in the tuning panel's *Look* folder):
@@ -129,11 +131,11 @@ The steps it runs are in [`app/tools/export.mjs`](../../tools/export.mjs); every
 
 - **Props** (2026-10-09): everything else in the ship file's rooms (books, mugs, jars, test tubes, the chess set, crates, jetpacks, keyboards, the `KEEP CLEAR` stencil…). Big ones (≥ ~0.4 m) are separate objects with colliders; small ones are merged into one object per room collection (`Props Galley`, `Props Shelf`…). Props don't cast shadows. Props in the cockpit are always visible.
 - **Room lights:** point lights at 7 markers from the ship file: two each in the cargo bay, engineering and crew quarters (positions of the file's lights there), one new one in the cockpit (it has none in the file). The **4 nearest her** are on (the budget), moving and fading as she walks; tuning panel → *Room lights*: *all* (all 7; rebuilds every shader once), brightness, range. Flagged and not imported: `Area.004`, `Area.005`, `Area.006`, `Area.008`, `Area.009` (crew quarters ceiling panels, 1–2 W), `Area.010` (dim blue fill), `Area.011` (the laptop's glow), `Area.012` (3 W, crew quarters), `Area.014` (20 W side light, crew quarters).
-- **The crew** (`app/assets/test/zamboni-crew.glb`, from [`app/tools/export-ship-crew.py`](../../tools/export-ship-crew.py)): Dr. Kaufman on the crew quarters couch with her idle loop (13.4 s); both Adam bodies and Dr. Ogawa in the cockpit, static poses. Never cut by the see-through hull; a box collider each.
+- **The crew** (`app/prototypes/0.0.2/public/test/zamboni-crew.glb`, from [`app/prototypes/0.0.2/tools/export-ship-crew.py`](tools/export-ship-crew.py)): Dr. Kaufman on the crew quarters couch with her idle loop (13.4 s); both Adam bodies and Dr. Ogawa in the cockpit, static poses. Never cut by the see-through hull; a box collider each.
 
 ## Sound
 
-Since 2026-10-13 (backlog pass 4.5): the UE prototype's eight sounds, **all placeholders** (`app/assets/test/audio/`, with [`SOURCES.md`](../../assets/test/audio/SOURCES.md)). What exists and how: [`doc/architecture/audio.md`](../../../doc/architecture/audio.md#what-exists-prototype-01-2026-10-13).
+Since 2026-10-13 (backlog pass 4.5): the UE prototype's eight sounds, **all placeholders** (`app/prototypes/0.0.2/public/test/audio/`, with [`SOURCES.md`](public/test/audio/SOURCES.md)). What exists and how: [`doc/architecture/audio.md`](../../../doc/architecture/audio.md#what-exists-prototype-01-2026-10-13).
 
 - **The sound is off until a key, a click or a gamepad button** (a stick doesn't count): the game starts on *Press any button* for that.
 - **Sliding doors:** one sound per door when it starts to move. **The boombox:** see *Controls*; it shakes while a track plays, and gets quieter with distance from the camera.
@@ -141,7 +143,7 @@ Since 2026-10-13 (backlog pass 4.5): the UE prototype's eight sounds, **all plac
 - **The interactions** (since 2026-10-13, [plan](../../../doc/plans/features/interaction-sounds.md)): a latch for lockers, the fridge and the cupboard; the same, lower, for the trapdoor and the roof hatch; two tones for the keypads and the bulkhead doors' panels (up for open, down for close); the lever (a recording), with the window starting once the lever has moved; an electric motor over a hydraulic hiss while the side door or the cargo ramp moves, and the press letting go when it stops; a tap for each hand on the ladder. All quiet; made by a script, the lever apart.
 - **Footsteps:** one step per footfall of the walk/run animation, quieter at a walk; snow outside, the ship's floor inside and on its ramps; a heavier step when she lands. **Inside the ship the steps come as often as outside** (owner, 2026-10-13), though she moves at half the speed there and her feet at half the pace: they don't follow her feet indoors. Both sets are single steps cut from recordings: Part 1's running loop on grass for the snow, the owner's metal footsteps file (`resources/audio/`) for the ship.
 - **Tuning panel → *Sound*:** mute, a volume for everything, music, ambience and effects; *interaction sounds* and *footsteps* (a level for each set, up to 3×); the boombox's falloff and vibration.
-- **To make the game files again:** `node tools/encode-audio.mjs` in `app/` (needs ffmpeg and the masters in `resources/audio/ue-prototype/`); `node tools/make-placeholder-sounds.mjs` for the interactions and the footsteps (needs ffmpeg, Part 1's Unity project and `resources/audio/`).
+- **To make the game files again:** `node tools/encode-audio.mjs` in `app/prototypes/0.0.2/` (needs ffmpeg and the masters in `resources/audio/ue-prototype/`); `node tools/make-placeholder-sounds.mjs` for the interactions and the footsteps (needs ffmpeg, Part 1's Unity project and `resources/audio/`).
 
 ## See-through hull and camera collision
 
@@ -154,7 +156,7 @@ Tuning panel → *Rendering*:
 - **Pixelated upscale** (on by default): the browser stretches a small render with hard, square pixels instead of smoothing it.
 - **Anti-aliasing** (MSAA, on by default): smooths edges; it's fixed when the renderer is created, so switching it reloads the page (remembered in the browser's local storage).
 
-Together these give the low-resolution look planned for [prototype 02](../../../doc/plans/prototypes/02-low-res.md) on this scene.
+Together these give the low-resolution look planned for [prototype 02](../../../doc/plans/prototypes/low-res.md) on this scene.
 
 ## The look
 

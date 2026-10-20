@@ -1,5 +1,5 @@
 // Makes the placeholder sounds of the interactions and the footsteps (`node tools/make-placeholder-sounds.mjs`,
-// in app/), with ffmpeg (on the PATH), into app/assets/test/audio/. Two kinds:
+// in app/), with ffmpeg (on the PATH), into app/prototypes/0.0.2/public/test/audio/. Two kinds:
 // - Made here from tones and noise (the latches, the panels' two tones, the ramp's motor and its
 //   stop, the ladder): the recipe below is the source, there's no master. To change a sound,
 //   change its numbers and run this again.

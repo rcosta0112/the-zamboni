@@ -4,7 +4,7 @@ How these were set in The Zamboni 1.19.blend on 2026-10-15 (owner: the clamps an
 contents should be cut with what holds them): a record. Nothing moves. Run from the project root;
 with ``--save`` it writes a copy of the file next to it, then saves.
 
-    blender -b --python app/tools/hang-props.py -- [--save]
+    blender -b --python app/prototypes/0.0.2/tools/hang-props.py -- [--save]
 
 - The fire extinguishers' clamps are tagged ``part`` (each extinguisher is already a child of a
   clamp); where two clamps hold one extinguisher, the second becomes a child of the first.

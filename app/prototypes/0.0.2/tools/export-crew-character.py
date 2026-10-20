@@ -1,13 +1,13 @@
 """Export one character (an armature and the meshes that belong to it) from a .blend to glTF.
 
-Normally run by ``npm run export:player`` (app/tools/export.mjs): Dr. Green from the ship file's
+Normally run by ``npm run export:player`` (app/prototypes/0.0.2/tools/export.mjs): Dr. Green from the ship file's
 ``Player`` collection. By hand, with Blender from the command line. The .blend is opened read-only:
 nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.21.blend" --python app/tools/export-crew-character.py -- \
+    blender -b "resources/models/The Zamboni 1.21.blend" --python app/prototypes/0.0.2/tools/export-crew-character.py -- \
         --armature "Dr. Green Parka" \
         --objects "Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack" \
-        --out app/assets/test/green-parka.glb
+        --out app/prototypes/0.0.2/public/test/green-parka.glb
 
 - Exports mesh + skeleton, and no animation but ``--clip`` (the ladder clip since 2026-10-19:
   baked with its IK solved, from the armature it was made on; ``--clip-start`` tags where it

@@ -1,4 +1,4 @@
-# Prototype 01: code map
+# 0.0.2: code map
 
 > **[Agent note]** Read this before opening source files; nothing else is needed to find code. All paths are in `src/`. Keep it to what each file owns: details belong in the file's header comment and in [`README.md`](README.md).
 
@@ -33,6 +33,6 @@
 | `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; wearing a jetpack (hers shown, the little backpack hidden, the hood's shape key); retargeting Part 1's animations; the ladder's climbing animation played in place, its root motion handed to the climb (`Climbing`), and the `climb` tag | `loadModels`, `AnimatedModel.update`, `AnimatedModel.climb` |
 | `names.ts`, `stats.ts` | Blender names as GLTFLoader gives them; the frame-time readout | `named` |
 
-Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. The button, the progress bar and the tokens (colours, fonts) are in [`app/packages/ui`](../../packages/ui/README.md); the screen's images and fonts in `app/assets/ui/`. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/tools/README.md`](../../tools/README.md).
+Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. The button, the progress bar and the tokens (colours, fonts) are in [`app/packages/ui`](../../packages/ui/README.md); the screen's images and fonts in `app/prototypes/0.0.2/public/ui/`. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/prototypes/0.0.2/tools/README.md`](tools/README.md).
 
 Until the start button is used, nothing is simulated: the frame stops after the sound while loading, then is made in full under the start screen. Per frame, in order (`main.ts`): input → sound (volumes, the ship's noise) → fixed steps (ladders or character, then doors and ramp) → door and ramp sounds, the boombox, the jetpack rack, the ladder's sound → her animation, footsteps → camera → the jetpack's glow → see-through rules → see-through shader values → interaction → world, crew, lights → render.

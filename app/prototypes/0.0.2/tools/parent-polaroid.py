@@ -4,7 +4,7 @@ How `Polaroid` was made a child of `Locker Door.003` (crew quarters) in The Zamb
 2026-10-13 (owner: "parent the polaroid to the locker door"): a record. It stays where it is. Run
 from the project root; with ``--save`` it writes a copy of the file next to it, then saves.
 
-    blender -b --python app/tools/parent-polaroid.py -- [--save]
+    blender -b --python app/prototypes/0.0.2/tools/parent-polaroid.py -- [--save]
 """
 
 import os

@@ -22,8 +22,8 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 |---|---|---|
 | [Game architecture (levels, loading, budgets, characters, performance, saving, offline)](architecture/game-architecture/README.md) | [Step 1](../steps/01-docs-and-architecture.md) | Draft, for review |
 | [Repo and prototype workspace](architecture/repo-and-prototypes.md) | [Step 2](../steps/02-first-prototype.md) | Done |
-| [Prototype 01: walk](prototypes/01-walk.md) | [Step 2](../steps/02-first-prototype.md) | Built; owner play-test pending |
-| [Prototype 02: low-resolution rendering](prototypes/02-low-res.md) | [Step 2](../steps/02-first-prototype.md) | Draft, for review |
+| [Prototype 01: walk](prototypes/01-walk.md) | [Step 2](../steps/02-first-prototype.md) | Built; frozen as 0.0.1 (2026-10-20) |
+| [Low-resolution rendering (was prototype 02)](prototypes/low-res.md) | [Step 2](../steps/02-first-prototype.md) | Set aside 2026-10-20; its features later (item 52) |
 | [See-through hull](features/see-through-hull.md) | [Step 3](../steps/03-see-through-hull.md) | Built; owner play-test pending |
 | [See-through rules (what gets cut, and when)](features/see-through-rules.md) | [Step 3](../steps/03-see-through-hull.md) | Built (four passes); fifth pass drafted 2026-10-14, for review; rule table later |
 | [The rest of the ship (props, interior lights, Dr. Kaufman)](features/ship-contents.md) | Prototype 01 | Built; owner play-test pending |
@@ -46,7 +46,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [Exports that don't break when the file is worked on (item 48)](features/robust-exports.md) | Prototype 01 | Draft, saved for later |
 | [The ladder with a climbing animation (item 44)](features/ladder-climb-animation.md) | Prototype 01 | Draft; pass 2, after the owner re-keys the animation |
 | [A faster load, and a bar that tells the truth (item 50)](features/faster-load.md) | Prototype 01 | Stages 2 and 3 built 2026-10-20; unused UVs out of the export later |
-| [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | In progress: passes 1 and 2 done 2026-10-20 |
+| [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format
 

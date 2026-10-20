@@ -43,7 +43,7 @@ The owner controls the story and script, and is open to changing them when that 
 ## Checking the estimates
 
 1. **Budget script** (`npm run budget`): sizes, triangles, draw calls, materials, texture memory and collision size of every exported file, against the [budgets](budgets.md).
-2. **[Prototype 02](../../prototypes/02-low-res.md)**: the real ship on both test machines, at native and low resolution; first real frame times.
+2. **[Prototype 02](../../prototypes/low-res.md)**: the real ship on both test machines, at native and low resolution; first real frame times.
 3. **A measurement prototype** (later): the ship through the full export pipeline (palette material, Meshopt, KTX2) and the tiered loader, measured on throttled connections; checks Vercel's compression and range requests.
 
 ## Trade-offs at a glance

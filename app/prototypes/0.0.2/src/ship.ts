@@ -1,6 +1,6 @@
 // The Zamboni: exterior, cargo bay and the large interior elements (walls, bunks, couch, galley,
 // cockpit seats and consoles, engineering benches...), landed a few metres from the start.
-// Exported by app/tools/export-ship.py and compressed with Meshopt: the ship, and its collider
+// Exported by tools/export-ship.py and compressed with Meshopt: the ship, and its collider
 // (`zamboni_col`, positions only) in a separate file, with the collision boxes as objects of their
 // own (`*_col` objects tagged `reach: "through"`; they stop her, the reach test passes through them). Everything gets the see-through hull except
 // what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear.

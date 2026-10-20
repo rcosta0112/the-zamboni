@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-20 | Prototypes numbered by version; 01 frozen as 0.0.1; each version isolated | process | Folders, packages, scripts and tags by version; the current one takes the plain script names; each has its own game files, tools and source `.blend` (a frozen one from its packed archive) and Vercel project |
 | 2026-10-20 | Fewer GPU pipelines, made at load | tech | Unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical: 116 → 78 pipelines; reloads compile in about 2 s instead of 11 |
 | 2026-10-19 | What the ship export takes is a list | pipeline | `ship-export-list.json`, made from what the game had (1.19), not the collections switched on in the file; new or missing objects are flagged |
 | 2026-10-19 | One scale: the ship file is the game 1:1 | pipeline | 1 Blender unit = 1 m; Dr. Green 1.23 tall at armature scale 1; the game's proportions kept; no correction factor in any export; the exports stop if her size is off |
@@ -44,6 +45,27 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-20] — Prototypes numbered by version; 01 frozen as 0.0.1; each version isolated (process)
+
+**Context:** Prototype 01 grew into the whole game so far (the ship, the crew, doors, ladders, the jetpack, sound, the start screen). The next work (the ship's things as components, item 49; robust exports, item 48) changes its architecture. The owner wanted the current state kept working as a reference, with its own link, while the next one is built, and the two unable to affect each other: code, game files, export scripts, checks and source art (backlog item 51).
+
+**Decision:**
+- **Prototypes are numbered by version** (`0.0.1`, `0.0.2`…) instead of `NN-<slug>`: folder `app/prototypes/<version>`, package `@zamboni/prototype-<version>`, git tag `v<version>` when frozen, console prefix `[<version>]`, the version at the top of the tuning panel. **The current version takes the plain root scripts** (`dev`, `smoke`, `probe`, `export:ship`…); a frozen one gets a suffix (`dev:0.0.1`, `export:0.0.1:ship`…).
+- **Prototype 01 is 0.0.1, frozen** (tag `v0.0.1` on be0ffae; port 5201 kept). Changed only if it stops running; all open work goes to 0.0.2 (port 5202), which starts as an exact copy.
+- **Each version is isolated:** its own game files (`public/`) and tools (`tools/`); a frozen one keeps its own copy of shared code (0.0.1: `@zamboni/ui` in `src/ui/`) and exports from **its archive**, the `.blend` at the freeze with its images and font packed (`resources/archive/0.0.1/The Zamboni 1.21 (0.0.1).blend`). Replaces rule 5 of `prototypes.md` (*assets are shared through `app/assets/`*) and the shared `app/tools/`.
+- **One Vercel project per version**; a frozen one has the ignored build step `git diff --quiet HEAD^ HEAD -- .`.
+- **The low-resolution prototype (02) is skipped:** its plan is `low-res.md`, set aside, backlog item 52.
+
+**Alternatives considered:**
+- **Keep `01-walk` and add the version beside it:** no Vercel change, but two naming schemes side by side.
+- **Share game files and tools between versions** (as before): no copies, but a change for 0.0.2 (an export, a script) would reach 0.0.1. Git stores identical files once, so the copies cost nothing until they change.
+- **0.0.1 exporting from the working `.blend`:** the owner keeps editing it; 0.0.1's export would drift. The packed archive exports byte-identical files (ship, collider, crew).
+- **Freeze after building ladder 2b:** not chosen; 0.0.1 is frozen with its 8 known smoke failures, written into its README.
+
+**Rationale:** A working reference that nothing can disturb, at the cost of one copy of the code and files, and the plain commands keep working on whatever is current.
+
+**Status:** Built 2026-10-20 in four passes. Plan: [`plans/prototypes/archive-01-start-02.md`](plans/prototypes/archive-01-start-02.md). See [`architecture/prototypes.md`](architecture/prototypes.md). Waiting on the owner: 0.0.2's Vercel project and 0.0.1's ignored build step.
 
 ## [2026-10-20] — Fewer GPU pipelines, made at load (tech)
 

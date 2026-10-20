@@ -12,7 +12,7 @@
 // click or gamepad button. One-shots asked for before that are dropped; the ship's noise follows
 // its switch, so it starts once the sound is on; so does a cue that repeats (`setLoop`: the start
 // screen's music).
-// The files are placeholders (app/assets/test/audio/, SOURCES.md there).
+// The files are placeholders (app/prototypes/0.0.2/public/test/audio/, SOURCES.md there).
 // Plans: doc/plans/features/audio-from-ue.md, interaction-sounds.md, start-screen.md. Proposal they follow:
 // doc/architecture/audio.md
 

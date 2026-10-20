@@ -40,7 +40,7 @@ def check_scale():
     height = rest_height(armature)
     if scale > 1e-3 or abs(height - HEIGHT) > TOLERANCE:
         print(f'SCALE: {PLAYER} has scale {tuple(round(s, 4) for s in armature.scale)} and stands {height:.4f} tall; '
-              f'the game needs scale 1 and {HEIGHT} (1 unit = 1 m): fix the file (app/tools/normalize-scale.py), nothing exported')
+              f'the game needs scale 1 and {HEIGHT} (1 unit = 1 m): fix the file (app/prototypes/0.0.2/tools/normalize-scale.py), nothing exported')
         sys.exit(1)
     print(f'SCALE: {PLAYER} at scale 1, {height:.3f} tall: ok')
     return height

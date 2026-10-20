@@ -10,7 +10,7 @@ wall, is tagged ``collider: "none"`` (out of the ship's collider). Run again, it
 "0 changes". Run from the project root; with ``--save`` it writes a copy of the file next to it,
 then saves.
 
-    blender -b --python app/tools/add-collision-boxes-2.py -- [--save]
+    blender -b --python app/prototypes/0.0.2/tools/add-collision-boxes-2.py -- [--save]
 """
 
 import os

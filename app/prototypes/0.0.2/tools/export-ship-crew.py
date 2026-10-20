@@ -1,14 +1,14 @@
 """Export the crew placed in the Zamboni: Dr. Kaufman sitting with her animation, and the other
 characters in the scene as static poses.
 
-Normally run by ``npm run export:crew`` (app/tools/export.mjs), which does all of the below and
+Normally run by ``npm run export:crew`` (app/prototypes/0.0.2/tools/export.mjs), which does all of the below and
 prints what changed. By hand: with Blender from the command line. The .blend is opened read-only:
 nothing is saved back.
 
-    blender -b "resources/models/The Zamboni 1.19.blend" --python app/tools/export-ship-crew.py -- \
+    blender -b "resources/models/The Zamboni 1.19.blend" --python app/prototypes/0.0.2/tools/export-ship-crew.py -- \
         --out <raw>/zamboni-crew.glb
 
-then cap the textures at 512 px and compress (Meshopt) into app/assets, from app/:
+then cap the textures at 512 px and compress (Meshopt) into public/test/, from app/prototypes/0.0.2/:
 
     npx gltf-transform resize <raw>/zamboni-crew.glb <raw>/zamboni-crew-512.glb --width 512 --height 512
     npx gltf-transform meshopt <raw>/zamboni-crew-512.glb assets/test/zamboni-crew.glb

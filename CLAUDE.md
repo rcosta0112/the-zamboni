@@ -11,7 +11,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 ## Picking the work up
 
 1. **Read `doc/steps/current.md` first.** It says what's in progress, what's next, what's waiting on the owner and which files are involved. **Rewrite it at the end of every session** (60 lines at most; not a log).
-2. Open other docs and source files only when the task needs them. For code, start from the **code map**, `app/prototypes/01-walk/CODE-MAP.md`; for export and check scripts, from `app/tools/README.md`; for decisions, from the **index** at the top of `doc/decision-log.md`.
+2. Open other docs and source files only when the task needs them. For code, start from the **code map** of the current version, `app/prototypes/0.0.2/CODE-MAP.md`; for export and check scripts, from `app/prototypes/0.0.2/tools/README.md`; for decisions, from the **index** at the top of `doc/decision-log.md`.
 3. Open items are tracked in `doc/plans/backlog.md`, one line each: keep each item's status current.
 
 ## Rules from the owner
@@ -25,7 +25,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 6. **Record decisions** in `doc/decision-log.md`: Context → Decision → Alternatives → Rationale → Status. Add dated *Update* notes instead of rewriting entries.
 7. **Commit only when the owner asks.**
 8. **Flag a stale page after every edit** (owner, 2026-10-20): say when the running dev page needs a reload (or a server restart) to show the change truly, e.g. a Svelte or CSS change swapped in on top of old state, a re-exported file, `vite.config.ts`. **No flag means the owner tests without reloading.**
-9. **Give the dev server's link** (http://localhost:5201/ for prototype 01) whenever there's something to look at.
+9. **Give the dev server's link** (http://localhost:5202/ for 0.0.2, the current version; 5201 for the frozen 0.0.1) whenever there's something to look at.
 
 ## Keeping the work cheap (owner, 2026-10-13)
 
@@ -50,25 +50,27 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 
 ## Workspace rules (`app/`)
 
-- Each prototype is a self-contained Vite app in `app/prototypes/NN-<slug>/`, package `@zamboni/prototype-NN-<slug>`, root script `dev:NN`, dev port `5200 + NN`.
+- **Prototypes are numbered by version** (owner, 2026-10-20): each is a self-contained Vite app in `app/prototypes/<version>/`, package `@zamboni/prototype-<version>`, its own dev port (table in `doc/architecture/prototypes.md`). **The current version (0.0.2) takes the plain root scripts** (`dev`, `smoke`, `probe`…); a frozen one gets a suffix (`dev:0.0.1`, `export:0.0.1:ship`…).
+- **0.0.1 is frozen** (tag `v0.0.1`): reference only; all work goes to 0.0.2; 0.0.1 is changed only if it stops running. **Versions are isolated:** each has its own game files (`public/`), tools (`tools/`) and source `.blend` (a frozen one exports from its archive in `resources/archive/<version>/`), and a frozen one its own copy of shared code.
 - **Promote on second use:** code stays in its prototype until a second prototype (or the game) needs it unchanged; then it moves to `app/packages/`. Exception: `packages/ui` (the design system's code version) exists from the start.
 - **Each prototype lists the build tools it uses** (`vite`, `typescript`…) in its own `devDependencies`, pinned to the root's versions: Vercel installs from the prototype folder, which installs only that workspace's dependencies.
 - Shared packages are imported as source. Before keeping a change to shared code, `npm run check` must pass in every workspace.
-- Shared production assets go in `app/assets/`; test-only assets in `app/assets/test/`.
+- Game files go in the version's `public/`; test-only ones in `public/test/`.
 - **Prototypes default to inverted Y** (vertical look); production builds default to normal.
 
 ## Commands (run in `app/`)
 
 ```sh
 npm install          # once
-npm run dev:01       # prototype 01 → http://localhost:5201
+npm run dev          # 0.0.2, the current version → http://localhost:5202
 npm run check        # type-check every workspace
 npm run build        # build every workspace
-npm run smoke        # the whole scripted check of prototype 01
+npm run smoke        # the whole scripted check of the current version
 npm run probe -- f.js  # one question to the running prototype
 npm run see-through  # screenshots of every room: the check while the see-through is rebuilt
 npm run export:ship  # the ship: Blender → compressed game files, with a summary
 npm run export:crew  # the same for the crew placed in the ship
+npm run dev:0.0.1    # the frozen 0.0.1 → http://localhost:5201 (also smoke:0.0.1, probe:0.0.1, export:0.0.1:ship…)
 ```
 
 ## Checking your work

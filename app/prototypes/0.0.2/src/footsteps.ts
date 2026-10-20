@@ -6,7 +6,7 @@
 // Part 1, waits until there's a second surface outside). Quieter at a walk. A landing after a jump
 // or a fall is a heavier step. Not placed in the world: she's always the same distance from the
 // camera. The sounds are single steps cut from recordings: Part 1's running loop on grass for the
-// snow, the owner's metal footsteps file for the ship (app/tools/make-placeholder-sounds.mjs).
+// snow, the owner's metal footsteps file for the ship (tools/make-placeholder-sounds.mjs).
 // Plan: doc/plans/features/interaction-sounds.md
 
 import * as THREE from 'three/webgpu';

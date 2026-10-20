@@ -9,7 +9,7 @@ coordinates are the code's, converted in the running game (``ship.object.worldTo
 Blender's axes). Run again, it reports "0 changes". Run from the project root; with ``--save`` it
 writes a copy of the file next to it, then saves.
 
-    blender -b --python app/tools/add-collision-boxes.py -- [--save]
+    blender -b --python app/prototypes/0.0.2/tools/add-collision-boxes.py -- [--save]
 """
 
 import os

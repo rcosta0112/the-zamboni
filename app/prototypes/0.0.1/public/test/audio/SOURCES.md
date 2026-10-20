@@ -1,8 +1,8 @@
 # Audio: where each file came from
 
-> **[Agent note]** Every file here is a **placeholder** from the UE prototype (owner, 2026-10-13). **None is licensed for a release.** Licensing isn't raised until a production-ready build; this list is what that reminder will be made from. Plan: [`doc/plans/features/audio-from-ue.md`](../../../../doc/plans/features/audio-from-ue.md). Inventory: [`doc/reference/ue-prototype.md`](../../../../doc/reference/ue-prototype.md#audio-read-2026-10-13).
+> **[Agent note]** Every file here is a **placeholder** from the UE prototype (owner, 2026-10-13). **None is licensed for a release.** Licensing isn't raised until a production-ready build; this list is what that reminder will be made from. Plan: [`doc/plans/features/audio-from-ue.md`](../../../../../../doc/plans/features/audio-from-ue.md). Inventory: [`doc/reference/ue-prototype.md`](../../../../../../doc/reference/ue-prototype.md#audio-read-2026-10-13).
 
-Made by [`app/tools/encode-audio.mjs`](../../../tools/encode-audio.mjs) from the masters in `resources/audio/ue-prototype/` (outside git): AAC in `.m4a`, 22 kHz as the masters are.
+Made by [`app/prototypes/0.0.1/tools/encode-audio.mjs`](../../../tools/encode-audio.mjs) from the masters in `resources/audio/ue-prototype/` (outside git): AAC in `.m4a`, 22 kHz as the masters are.
 
 | Game file | Master | Author, where known | Where it came from | License |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@ Made by [`app/tools/encode-audio.mjs`](../../../tools/encode-audio.mjs) from the
 
 ## The interactions and the footsteps (2026-10-13)
 
-Made by [`app/tools/make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs). Plan: [`doc/plans/features/interaction-sounds.md`](../../../../doc/plans/features/interaction-sounds.md). **Placeholders too.**
+Made by [`app/prototypes/0.0.1/tools/make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs). Plan: [`doc/plans/features/interaction-sounds.md`](../../../../../../doc/plans/features/interaction-sounds.md). **Placeholders too.**
 
 | Game file | Source | Author | License |
 |---|---|---|---|
@@ -32,7 +32,7 @@ Made by [`app/tools/make-placeholder-sounds.mjs`](../../../tools/make-placeholde
 
 ## The start screen (2026-10-13)
 
-Plan: [`doc/plans/features/start-screen.md`](../../../../doc/plans/features/start-screen.md). **Placeholders too.**
+Plan: [`doc/plans/features/start-screen.md`](../../../../../../doc/plans/features/start-screen.md). **Placeholders too.**
 
 | Game file | Source | Author | License |
 |---|---|---|---|

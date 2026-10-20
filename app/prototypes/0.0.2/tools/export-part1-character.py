@@ -2,7 +2,7 @@
 
 Run with Blender from the command line (nothing is saved back to the source):
 
-    blender -b --python app/tools/export-part1-character.py -- <input.fbx> <output.glb>
+    blender -b --python app/prototypes/0.0.2/tools/export-part1-character.py -- <input.fbx> <output.glb>
 
 The FBX carries each animation twice (``Dr. Green|Walking`` and ``Dr. Green|Dr. Green|Walking``).
 This keeps one copy of each, renamed to lowercase (standing, walking, running, jumping,

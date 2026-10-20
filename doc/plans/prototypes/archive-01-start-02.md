@@ -1,6 +1,6 @@
 # Plan: Archive prototype 01 as 0.0.1, start 0.0.2 (item 51)
 
-**Status:** *in progress*: pass 1 done 2026-10-20 (3efdd2e); pass 2 done 2026-10-20; pass 3 done 2026-10-20 (*As built* below); pass 4 next. Drafted 2026-10-20; owner's answers of 2026-10-20 folded in (versions as the numbering, the low-res prototype skipped, the version in the tuning panel, the archive is the latest `.blend` with its textures packed). Two questions left (below). A big task (CLAUDE.md, *Keeping the work cheap* 5): four passes, a stop to assess after each.
+**Status:** *built* 2026-10-20, four passes (*As built* below): pass 1 3efdd2e, pass 2 be0ffae (tagged `v0.0.1`), pass 3 77b6e1b, pass 4 the docs. **Waiting on the owner:** 0.0.1's ignored build step and 0.0.2's Vercel project; both pages side by side. Drafted 2026-10-20; owner's answers of 2026-10-20 folded in (versions as the numbering, the low-res prototype skipped, the version in the tuning panel, the archive is the latest `.blend` with its textures packed, `main` frozen as it was, all open work in 0.0.2).
 
 ## Goal
 
@@ -92,9 +92,15 @@ A Blender script, tried on a scratch copy first, opens 1.21 (only read; the owne
 1. **Which state is frozen as 0.0.1.** *Merged first* (owner, 2026-10-20): `see-through-from-scratch` fast-forwarded into `main` at a4ae02b and pushed. Still to confirm: freeze `main` as it is (ladder 2b not built; 7 known smoke failures, written into 0.0.1's README), or build ladder 2b first.
 2. **What happens to the open work** after the freeze: all of it in 0.0.2, 0.0.1 changed only if it stops running (recommended), or fixes carried back to 0.0.1.
 
+> **[Agent note]** Both answered (owner, 2026-10-20): `main` frozen as it was (ladder 2b not built; 8 known smoke failures, in 0.0.1's README); all open work in 0.0.2, 0.0.1 changed only if it stops running.
+
 ## As built
 
 **Pass 2 (2026-10-20).** A Blender script opened 1.21 (not saved), packed 35 images (4 were already packed) and the font, and saved `resources/archive/0.0.1/The Zamboni 1.21 (0.0.1).blend` (21 MB; the script is kept beside it as `pack_archive.py`, with a `README.md`). Tried first into the scratchpad. Reopened: 35 images, 1 font, 458 objects, nothing missing. **The node library's path is stored absolute** (Blender 5.2's install): a relative one breaks as soon as the archive sits at another depth (it did in the trial). `BLEND` in `0.0.1/tools/export.mjs` points at the archive. **Exported from it: the ship, its collider and the crew are byte-identical to 0.0.1's game files.** The player's file differs, but so does every export of it, from either file: four runs gave four different files, her mesh at 5286 or 5287 vertices (the player export isn't deterministic; item 48's subject). The committed `green-parka.glb` is kept.
+
+**Pass 3 (2026-10-20, 77b6e1b).** `app/prototypes/0.0.2/` copied from 0.0.1 (without `node_modules`, `dist`, `.export`): port 5202, prefix `[0.0.2]`, back on `@zamboni/ui`, exports from the working file `resources/models/The Zamboni 1.21.blend` into its own `public/`. The root's plain scripts moved to it; 0.0.1's got the suffix. Check and build pass; its smoke matches 0.0.1's line for line (82 passed, the same 8 failed; `0.0.2/.export/smoke-pass3.txt`); both servers run together; a file in 0.0.2's `public/` doesn't reach 0.0.1. Owner: 0.0.2 runs fine. No export run from 0.0.2 yet.
+
+**Pass 4 (2026-10-20).** Tag `v0.0.1` on be0ffae (local until the next push). Docs: `prototypes.md` (structure, rules 4, 5 and 8, the naming table, the versions table), `app/README.md` (layout, running, starting a new version, deploying), CLAUDE.md (code map and tools paths, the dev link, workspace rules, commands), both versions' READMEs, code maps and tools READMEs (banners *frozen* / *current*; paths to their own `tools/` and `public/`; 0.0.1's with its suffixed commands), the audio `SOURCES.md` files, the living docs in `doc/` repointed from `01-walk` and `app/tools/` to 0.0.2 (`asset-pipeline.md` also gets the archive), the low-res plan renamed `low-res.md` and set aside (item 52), the decision log, the backlog, `current.md`. The comments in 0.0.2's scripts that named `app/tools/` or `app/assets/` too; 0.0.1's code untouched. Finished plans and step logs keep the paths of their day. Vercel is the owner's.
 
 ## After
 

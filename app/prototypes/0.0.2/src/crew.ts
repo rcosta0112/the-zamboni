@@ -1,4 +1,4 @@
-// The crew placed in the ship (exported by app/tools/export-ship-crew.py, in the ship's space):
+// The crew placed in the ship (exported by tools/export-ship-crew.py, in the ship's space):
 // Dr. Kaufman sitting on the crew quarters couch with her idle animation, and the other characters
 // in the scene as static poses. Never cut by the see-through hull (owner, 2026-10-09: all
 // characters visible all the time, for now). Each gets a box collider so Dr. Green can't walk

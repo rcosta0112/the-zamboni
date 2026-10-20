@@ -1,6 +1,6 @@
 # Plan: Prototype 02 — Low-resolution rendering
 
-**Status:** *draft*, 2026-10-08, for owner review. Part of [Step 2](../../steps/02-first-prototype.md). Depends on [Repo and prototype workspace](../architecture/repo-and-prototypes.md); independent of prototype 01, so the two can be built in parallel.
+**Status:** *set aside; its features later* (owner, 2026-10-20, item 51: no prototype is built for it; backlog item 52). Drafted 2026-10-08. Part of [Step 2](../../steps/02-first-prototype.md). Depends on [Repo and prototype workspace](../architecture/repo-and-prototypes.md); independent of prototype 01, so the two can be built in parallel.
 
 > **[Agent note]** Since 2026-10-08, prototype 01 can render at a pixel ratio down to 0.1 with pixelated upscaling and anti-aliasing switchable, on the real ship and characters. That covers much of this plan's look test; what's left here is mainly the side-by-side measurements on both machines.
 

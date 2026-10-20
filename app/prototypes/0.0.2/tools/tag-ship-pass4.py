@@ -3,7 +3,7 @@
 Applied to The Zamboni 1.19.blend and saved on 2026-10-13: kept as the record of what was changed.
 It changes the open scene and saves nothing itself; run again on the saved file, it reports
 "0 changes". (In Blender: Scripting tab, open this file, Run Script. Or before the export, in
-memory: ``--python app/tools/tag-ship-pass4.py --python app/tools/export-ship.py``.)
+memory: ``--python app/prototypes/0.0.2/tools/tag-ship-pass4.py --python app/prototypes/0.0.2/tools/export-ship.py``.)
 
 What it does (doc/plans/features/bulkhead-doors.md; the tags are in doc/architecture/asset-pipeline.md):
 

@@ -1,7 +1,7 @@
 """What the ship export takes from a .blend, as a list (owner, 2026-10-19: what goes into the game is
 a list, not what's switched on in the file; the owner turns collections on and off while working).
 
-    blender -b "<file.blend>" --python app/tools/ship-export-list.py -- --out <list.json> [--everything]
+    blender -b "<file.blend>" --python app/prototypes/0.0.2/tools/ship-export-list.py -- --out <list.json> [--everything]
 
 Lists the objects ``export-ship.py`` exported until 2026-10-19, by the rules it had then:
 

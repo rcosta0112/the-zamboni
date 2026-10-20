@@ -19,7 +19,7 @@ Integrated GPUs struggle with many Three.js scenes, as they do with UE5 games. I
 
 | Limit | Why it hurts on integrated GPUs | What we do |
 |---|---|---|
-| **Pixels (fill rate)** | High-DPI screens: the MacBook renders 2560×1600, about 2× the pixels of 1080p, at the default pixel ratio. The single biggest cost | Cap the 3D render's pixel ratio; **dynamic resolution** (lower the 3D resolution when frame times rise); or **low-resolution rendering** as a style (being tested in [prototype 02](../../prototypes/02-low-res.md)). The Svelte UI is HTML, so it stays sharp at native resolution regardless |
+| **Pixels (fill rate)** | High-DPI screens: the MacBook renders 2560×1600, about 2× the pixels of 1080p, at the default pixel ratio. The single biggest cost | Cap the 3D render's pixel ratio; **dynamic resolution** (lower the 3D resolution when frame times rise); or **low-resolution rendering** as a style (being tested in [prototype 02](../../prototypes/low-res.md)). The Svelte UI is HTML, so it stays sharp at native resolution regardless |
 | **Cost per pixel** | Real-time lights, realistic materials, transparency, overdraw | Baked lighting, one palette material, few lights, little transparency |
 | **Shadows** | Each shadow map is another render of the scene | No real-time shadows indoors (baked); one cascaded sun shadow outdoors, lower resolution on the low tier |
 | **Post-processing** | Each pass reads and writes the whole screen | Bloom only, at half or quarter resolution; off on the low tier |
@@ -74,4 +74,4 @@ On the web, the biggest threat to "smooth" isn't download time but **hitches**: 
 ## Open questions
 
 - Lightmaps or vertex lighting: after the side-by-side test.
-- Low-resolution rendering as the game's style: after [prototype 02](../../prototypes/02-low-res.md).
+- Low-resolution rendering as the game's style: after [prototype 02](../../prototypes/low-res.md).

@@ -3,7 +3,7 @@
 Run with Blender, from the project folder. The file opened is never written to; the result is
 saved as a new file, and an existing file is never overwritten.
 
-    blender -b "resources/models/The Zamboni 1.18.blend" --python app/tools/build-ship-reference.py -- \
+    blender -b "resources/models/The Zamboni 1.18.blend" --python app/prototypes/0.0.2/tools/build-ship-reference.py -- \
         --out "resources/models/The Zamboni 1.19.blend"
 
 A one-off: once the reference file exists it is edited in Blender, and export-ship.py reads

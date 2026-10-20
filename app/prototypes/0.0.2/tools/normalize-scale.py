@@ -2,7 +2,7 @@
 doc/plans/features/scale-normalization.md). A record script: run on the owner's file, it writes a
 new version and leaves the file it read as it was.
 
-    blender -b --python app/tools/normalize-scale.py -- --src "<1.20.blend>" --out "<1.21.blend>"
+    blender -b --python app/prototypes/0.0.2/tools/normalize-scale.py -- --src "<1.20.blend>" --out "<1.21.blend>"
 
 (From the project root, through a node script: resources/ isn't named in a shell command.)
 

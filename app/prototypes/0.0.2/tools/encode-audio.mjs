@@ -1,7 +1,7 @@
 // Turns the audio masters into game files (`node tools/encode-audio.mjs`, in app/): AAC in .m4a,
 // with ffmpeg (on the PATH). Masters: resources/audio/ue-prototype/ (outside git), and Part 1's
 // soundtrack, which stays in Part 1's project (its folder: BMTM_AUDIO, or the path below). Game
-// files: app/assets/test/audio/ (placeholders, so test assets). Each file's source is in SOURCES.md
+// files: app/prototypes/0.0.2/public/test/audio/ (placeholders, so test assets). Each file's source is in SOURCES.md
 // there. `--only <name>` encodes one file and leaves the others alone.
 // Plans: doc/plans/features/audio-from-ue.md, start-screen.md. Names: doc/architecture/audio.md.
 
