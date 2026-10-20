@@ -9,13 +9,13 @@
 // above she drops through the opening, and the ladder doesn't collide while she's above its foot.
 // Not yet (pass 2b): the trapdoor opening as her head reaches it, the rung sounds on her hands.
 // The climb with the stick (2026-10-09 to 10-19) is kept, not in use: ladders-free.ts.
-// Ladders: `Cargo Hold Ladder` (through the trapdoor).
+// Ladders: the things of kind `ladder` (today `cargo-hold-ladder`, through the trapdoor).
 
 import * as THREE from 'three/webgpu';
 import type { Character } from './character';
+import type { Entities } from './entities';
 import type { Input } from './input';
 import type { Interactable } from './interaction';
-import { named } from './names';
 import type { Physics } from './physics';
 import { settings } from './settings';
 
@@ -57,17 +57,13 @@ export interface Ladder {
   collider: { setEnabled: (on: boolean) => void } | null;
 }
 
-/** The ship's ladders. */
-export function shipLadders(ship: THREE.Object3D, physics: Physics, colliders: Record<string, { setEnabled: (on: boolean) => void } | null> = {}): Ladder[] {
-  const ladders: Ladder[] = [];
-  for (const name of ['Cargo Hold Ladder']) {
-    let object: THREE.Object3D | undefined;
-    ship.traverse((o) => {
-      if (named(o, name)) object = o;
-    });
-    if (object) ladders.push({ ...fixedLadder(name, object, physics), collider: colliders[name] ?? null });
-    else console.warn(`[0.0.2] no ladder "${name}" in the ship`);
-  }
+/**
+ * The ship's ladders: its things of kind `ladder`.
+ * @param colliders each ladder's own collider, by its id (ship.ts)
+ */
+export function shipLadders(entities: Entities, physics: Physics, colliders: Record<string, { setEnabled: (on: boolean) => void } | null> = {}): Ladder[] {
+  const ladders: Ladder[] = entities.ofKind('ladder').map((l) => ({ ...fixedLadder(l.object.name, l.object, physics), collider: colliders[l.id] ?? null }));
+  if (ladders.length === 0) console.warn('[0.0.2] no ladder (kind "ladder") in the ship');
   console.info(`[0.0.2] ladders: ${ladders.map((l) => `${l.name} (${l.topExit ? 'floor at the top' : 'no way off at the top'})`).join(', ')}`);
   return ladders;
 }

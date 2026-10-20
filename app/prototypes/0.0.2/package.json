@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "check": "svelte-check --tsconfig ./tsconfig.json && node tools/check-ids.mjs",
     "smoke": "node tools/smoke-01.mjs",
     "probe": "node tools/probe-01.mjs",
     "see-through": "node tools/probe-01.mjs tools/see-through-views.js --shots .export/see-through",

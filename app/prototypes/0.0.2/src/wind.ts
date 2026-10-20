@@ -16,7 +16,7 @@ const RAMP_AREA = 8.8;
 const SIDE_DOOR_AREA = 1.5;
 /** Going in or out, or into or out of the cargo bay, the wind changes over this long (s). */
 const FADE = 0.5;
-const BULKHEAD = 'Engineering_Door_Right';
+const BULKHEAD = 'engineering-door-right';
 
 /** What the wind needs of the audio (`GameAudio`). */
 interface WindAudio {
@@ -42,7 +42,7 @@ export class Wind {
   setShip(ship: Ship): void {
     // The side door is the one door that opens down to the ground (the ramp isn't a door in the code).
     this.sideDoor = ship.doors.find((d) => d.walkway !== null) ?? null;
-    const bulkhead = ship.doors.find((d) => d.name === BULKHEAD);
+    const bulkhead = ship.doors.find((d) => d.object.userData.id === BULKHEAD);
     if (!this.sideDoor || !bulkhead) console.warn('[0.0.2] wind: no side door or engineering bulkhead found; no louder wind in the cargo bay');
     if (!bulkhead) return;
     this.bulkhead = bulkhead.zone.getCenter(new THREE.Vector3());

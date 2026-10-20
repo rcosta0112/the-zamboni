@@ -25,11 +25,8 @@ import { settings } from './settings';
 
 const SHIP_URL = '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
-/** The ladder whose collision is switched off while she's above it (ladders.ts). */
-const LADDER = 'Cargo Hold Ladder';
 /** The ship's collider in its file; every other mesh there is a collision box. */
 const COLLIDER = 'zamboni_col';
-const RAMP = ['Cargo Ramp', 'Cargo_Ramp']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 
 const RAMP_SECONDS = 1.5; // time to open or close
@@ -98,7 +95,7 @@ export interface Ship {
   rampAmount: number;
   /** Stopped against her: waiting until she's clear. */
   rampWaiting: boolean;
-  /** Each ladder's own collider, by the ladder's name (null: it's part of the ship's). */
+  /** Each ladder's own collider, by the ladder's id (null: it's part of the ship's). */
   ladderColliders: Record<string, { setEnabled: (on: boolean) => void } | null>;
   /** While moving or closed: a convex collider that follows the ramp. */
   rampCollider: MovingCollider;
@@ -156,11 +153,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   object.position.set(4, 0, -17);
   object.rotation.y = Math.PI;
 
-  let ramp: THREE.Object3D | null = null;
+  // The ship's things by id and kind (entities.ts): the ramp and the ladders are found by kind.
+  const entities = new Entities(object);
+  const ramp: THREE.Object3D | null = entities.ofKind('ramp')[0]?.object ?? null;
   let cargoFloor: THREE.Object3D | null = null;
   const cuttable: THREE.Mesh[] = [];
   object.traverse((o) => {
-    if (RAMP.includes(o.name)) ramp = o;
     if (CARGO_FLOOR.includes(o.name)) cargoFloor = o;
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh && !neverCut(mesh, object)) cuttable.push(mesh);
@@ -177,7 +175,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   const collider = meshes.find((m) => named(m, COLLIDER)) ?? null;
   const boxes = meshes.filter((m) => m !== collider);
   if (!collider) throw new Error(`${COLLIDER_URL} has no mesh`);
-  if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Cargo Ramp")`);
+  if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp (kind "ramp")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
 
   // Fewer GPU pipelines (pipelines.ts): before the BVHs, which are built from the geometry.
@@ -207,15 +205,13 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
 
   scene.add(object);
   object.updateMatrixWorld(true);
-  // The ladder's triangles become a collider of their own, which ladders.ts switches off while she's
+  // Each ladder's triangles become a collider of their own, which ladders.ts switches off while she's
   // above its foot. (Found by its bounds, until the export leaves it out of the ship's collider.)
   const ladderColliders: Record<string, { setEnabled: (on: boolean) => void } | null> = {};
-  let ladderBox: THREE.Box3 | undefined;
-  object.traverse((o) => {
-    if (named(o, LADDER)) ladderBox = new THREE.Box3().setFromObject(o).expandByScalar(0.02);
-  });
-  ladderColliders[LADDER] = physics.addStaticMesh(col, ladderBox);
-  if (!ladderColliders[LADDER]) console.warn(`[0.0.2] no collision triangles found for "${LADDER}": it can't be switched off`);
+  for (const ladder of entities.ofKind('ladder')) {
+    ladderColliders[ladder.id] = physics.addStaticMesh(col, new THREE.Box3().setFromObject(ladder.object).expandByScalar(0.02));
+    if (!ladderColliders[ladder.id]) console.warn(`[0.0.2] no collision triangles found for "${ladder.id}": it can't be switched off`);
+  }
 
   // Inside the ship = within the hull's bounds (both decks), from just below the cargo floor up.
   // (The hull is roughly box-shaped; a proper trigger-volume system comes later.)
@@ -256,7 +252,6 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   rampNode.rotation.x = 0;
   rampNode.updateWorldMatrix(true, true);
   const rampCollider = physics.addMovingConvex(rampNode);
-  const entities = new Entities(object);
   const doors = createDoors(object, physics, hingeAt, entities);
   for (const door of doors) door.units.push(...cutUnits.filter((u) => isInside(u.object, door.hinge)));
   for (const unit of cutUnits) if (unit.bulkhead && !unit.attachedTo) unit.cameraWall = true;

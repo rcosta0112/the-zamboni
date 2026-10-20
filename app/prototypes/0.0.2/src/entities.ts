@@ -71,6 +71,11 @@ export class Entities {
     return id ? this.get(id) : null;
   }
 
+  /** Every entity of a kind, in the file's order. */
+  ofKind(kind: Kind): Entity[] {
+    return [...this.byId.values()].filter((e) => e.kind === kind);
+  }
+
   all(): IterableIterator<Entity> {
     return this.byId.values();
   }

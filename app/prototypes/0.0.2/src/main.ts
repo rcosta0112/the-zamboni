@@ -18,7 +18,7 @@ import { CutscenePlayer } from './cutscene';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
-import { findDevice, Interaction, respectLocks, shipInteractables } from './interaction';
+import { Interaction, respectLocks, shipInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
@@ -163,7 +163,7 @@ async function start(): Promise<void> {
         if (saved && !asked) saved = null;
         await director.start(asked ?? FIRST_SCENE).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
       }
-      const box = findDevice(s.object, 'boombox');
+      const box = s.entities.ofKind('boombox')[0]?.object;
       if (box) boombox = new Boombox(box, audio);
       else console.warn('[0.0.2] the ship has no boombox');
       // The doors' sounds, and the cargo ramp's motor (the ramp isn't a door in the code).
@@ -174,11 +174,11 @@ async function start(): Promise<void> {
         doors();
         ramp();
       };
-      rack = new JetpackRack(s.object, (id, at) => audio.play(id, at));
+      rack = new JetpackRack(s.entities, (id, at) => audio.play(id, at));
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
-      ladders = new LadderClimb(shipLadders(s.object, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
+      ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
-      const items = shipInteractables(s.object, s.doors, others, (id, at) => audio.play(id, at), s.rampState);
+      const items = shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState);
       interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target)), physics, document.querySelector<HTMLElement>('#prompt')!);
       interaction.disabled = disabled;
       // After everything that measures the ship with rays (the ladders, the doors' ramp).

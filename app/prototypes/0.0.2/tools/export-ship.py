@@ -442,6 +442,11 @@ for id_, obs in sorted(seen.items()):
     ob = obs[0]
     collection = ob.users_collection[0].name if ob.users_collection else ''
     print(f'ID: {id_} = {ob.get("kind", "?")}, {ob.name!r} in {collection!r}')
+# The tags that name another thing do it by id (pass 6b): one naming no id stops the export.
+for ob in objects + props:
+    for key in ('controls', 'opensWith'):
+        if key in ob and ob[key] not in seen:
+            print(f'STOP: {ob.name!r} {key} {ob[key]!r}, which is no id')
 
 for ob in objects + markers:
     for key in EXPORT_ONLY:

@@ -74,6 +74,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 *Update 2026-10-20 (pass 5b, the cutscene's checkpoint; agent's choice, for the owner's review):* **the checkpoint at a cutscene's end saves the scene it played in** (its id, with the story as it is after the cutscene), as the save format allows only a scene as checkpoint. So *Continue* after it starts that scene again from its setup and her start, not where she stood when it ended; the story makes the difference (here: the side door unlocked). A checkpoint that resumes after a cutscene at its own spot would need the cutscene's end to name a scene (or a mark) to start: possible later, when a real cutscene needs it.
 
+*Update 2026-10-20 (pass 6):* **the tags that name another thing say its id** (owner: option A): `controls` and `opensWith` were rewritten from Blender names to ids in 1.21, and the ship export stops on one naming no id (rather than a table of links in the game's code, option B: everything about an instance stays on it in the file). The game finds everything it uses by `kind` (the `interact` and `device` tags are no longer read; `UNTAGGED` gone); static scenery stays found by name. `npm run check` checks every id named by the scenes, cutscene tracks and Ink against `ids.json` and the crew (`tools/check-ids.mjs`).
+
 ---
 
 ## [2026-10-20] — The export puts moving parts at their recorded rest pose (pipeline)

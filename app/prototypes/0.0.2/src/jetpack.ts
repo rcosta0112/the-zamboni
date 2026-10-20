@@ -1,12 +1,12 @@
 // The jetpack rack in the cargo hold (owner, 2026-10-14): she takes a jetpack from it, and puts it
-// back there. The rack's jetpacks are tagged `interact: "pickup"`, `device: "jetpack"` in the ship
-// file. Taken, that one hides on the rack and `settings.wearingJetpack` turns on: hers shows, her
+// back there. The rack's jetpacks are the ship's things of kind `jetpack`. Taken, that one hides on the rack and `settings.wearingJetpack` turns on: hers shows, her
 // little backpack hides, the hood moves (model.ts), and she can fly (character.ts). Pointing at the
 // empty spot puts it back. The tuning panel's switch moves the same setting; the rack follows it.
 // Plan: doc/plans/features/dr-green-jetpack-model.md
 
 import type * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
+import type { Entities } from './entities';
 import type { Interactable } from './interaction';
 import { settings } from './settings';
 
@@ -17,10 +17,8 @@ export class JetpackRack {
   taken: THREE.Object3D | null = null;
   readonly interactables: Interactable[];
 
-  constructor(ship: THREE.Object3D, sound: (id: CueId, at: THREE.Object3D) => void = () => undefined) {
-    ship.traverse((o) => {
-      if (o.userData.device === 'jetpack') this.slots.push(o);
-    });
+  constructor(entities: Entities, sound: (id: CueId, at: THREE.Object3D) => void = () => undefined) {
+    this.slots.push(...entities.ofKind('jetpack').map((e) => e.object));
     // One target each: "Take" while she has none, "Put back" on the spot she took hers from.
     this.interactables = this.slots.map((slot) => ({
       name: slot.name,

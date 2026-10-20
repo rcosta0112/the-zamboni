@@ -132,6 +132,18 @@ Names stay free for the owner; the gate checks ids are present and unique. Kinds
 
 Passes 1–5 are the slice. Pass 6 can come later without blocking anything.
 
+> **[Agent note]** **Pass 6 in three parts (proposed 2026-10-20; owner: started right after the slice).** A stop after each. **Out of scope:** static scenery the code finds by name (`Hull_Merged`, `Floor Top.001`, `Floor Bottom`, the collider, the shell and the cockpit floor lists, `Bulkhead…`): it never gets an id (*Ids*, above).
+> - **6a: things found by kind, not by tag or name (about 1 hour; no change to the file).** The ramp (`RAMP` names, ship.ts), the ladder (`LADDER`, ship.ts and ladders.ts), the jetpacks (`device: "jetpack"`), the boombox (`UNTAGGED`, retired), the devices (`interact: "use"`, `device: "lever" | "panel"` → the kinds `keypad`, `door-panel`, `lever`), wind's bulkhead door (by id). The `interact` and `device` tags stay in the file, unread (the export can drop them later). *Check:* the probes of the slice, `npm run check`.
+> - **6b: what names another thing, by id (about 1 hour).** Two tags hold Blender names today: `controls` (a keypad, a panel or the lever → its door, or the ramp) and `opensWith` (a door → its partner). A rename breaks them silently. **The owner's choice:** (A, recommended) a Blender script rewrites their values to ids in 1.21 (scratch copy first, the save announced, a backup), then `export:ship`, and the gate checks the id they name exists; (B) a table in the game's data (`kinds.ts` or a location file) by id, and the tags are no longer read. A keeps everything about an instance in the file, beside it; B needs no export.
+> - **6c: the ids named in data checked (about 45 minutes).** A script in `npm run check`: every id in the scenes, the cutscene tracks' commands and the Ink story's `command(…)` calls (and the knots `use_<id>`) must be in `tools/ids.json` or be a character's id.
+> - *Check at the end:* the smoke script, unchanged (82 passed, the 8 known failures).
+
+> **[Agent note]** **6a as built (2026-10-20).** `Entities.ofKind`; `DEVICE_KINDS` and `isDeviceKind` (kinds.ts). Found by kind now: the ramp (ship.ts, the entities made first), each ladder and its own collider (keyed by id), the jetpacks (`JetpackRack` takes the entities), the boombox (`findDevice` and `UNTAGGED` gone), the devices (`shipInteractables` takes the entities; the lever's verb and sound by kind; doors.ts's handle by its parent's kind); wind's bulkhead door by id. The `interact` and `device` tags are no longer read by the game (the smoke script still reads them). Check: a one-off probe (the 21 targets as before, every device, the ladder, 4 jetpacks, the boombox, wind's door, the ladder's collider), `scenes-probe` 14 and `story-probe` 11 pass, `npm run check`.
+
+> **[Agent note]** **6b as built (2026-10-20), option A (owner).** [`ids-in-tags-pass6.py`](../../../../app/prototypes/0.0.2/tools/ids-in-tags-pass6.py) rewrote the 15 tags (7 `controls`, 8 `opensWith`) to ids, saved into 1.21 (before: `The Zamboni 1.21 (before ids in tags, 2026-10-20).blend`); the export differed only in those 15 properties, taken; after-export check passes. The game matches them against `Door.id` (and `cargo-ramp`); `export-ship.py` stops (`STOP:`) on a tag naming no id; the smoke script's four lookups read ids.
+
+> **[Agent note]** **6c as built (2026-10-20).** [`tools/check-ids.mjs`](../../../../app/prototypes/0.0.2/tools/check-ids.mjs), run by `npm run check` after the type-check: every command in the scenes' setups and the tracks' events and end states, and every `command(…)` call in `story.ink` (only those Ink can call: `fromInk`, story.ts), names a thing in `ids.json` or the crew (`CREW_IDS`, `export-ship-crew.py`) of a kind it acts on (`set`/`lock`/`unlock`: a door's kind or the ramp; `place`: a character); also cutscene tracks, sound cues, story knots, the variables of `if` / `unless`, and each knot `use_<id>`'s thing. 12 ids today, all found; three made-up mistakes in a scene were each caught. **Pass 6 checks:** smoke 82 passed, the 8 known failures; `npm run check`, `npm run build`.
+
 ## Done when
 
 - Each pass: its probe, `npm run check`, `npm run build`; the smoke script once at the end of each pass; the owner plays the result.
@@ -141,7 +153,7 @@ Passes 1–5 are the slice. Pass 6 can come later without blocking anything.
 
 1. ~~The id in the file~~: B, after pass 0's names (owner, 2026-10-20).
 2. ~~Pass 5's animation~~: a placeholder (owner, 2026-10-20), the three shots above.
-3. Pass 6 straight after the slice, or later?
+3. ~~Pass 6 straight after the slice, or later?~~ Straight after (owner, 2026-10-20).
 
 ## After
 

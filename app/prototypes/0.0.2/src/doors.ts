@@ -17,8 +17,7 @@
 import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
 import type { Entities, Openable } from './entities';
-import { DOOR_KINDS, isDoorKind, type DoorKind } from './kinds';
-import { named } from './names';
+import { DOOR_KINDS, isDeviceKind, isDoorKind, type DoorKind } from './kinds';
 import { prepareRaycasts, type CutUnit } from './visibility';
 import { CONTACT_GAP, type MovingCollider, type Physics } from './physics';
 import { settings } from './settings';
@@ -286,7 +285,7 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
       console.warn(`[0.0.2] the door "${object.name}" is tagged unlike its kind (${kindName}): the kind is used`);
     }
     // A lever on its panel is the panel's handle (below, it's attached to a pivot of its own).
-    const device = object.parent && object.parent.userData.interact === 'use' ? object.parent : null;
+    const device = object.parent && isDeviceKind(object.parent.userData.kind) ? object.parent : null;
     const hinge = hingeAt(ship, object);
     const id = entity?.id ?? object.name;
     if (kind.moves === 'slide' && data.slide) {
@@ -318,11 +317,11 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
     door.device = device;
     return door;
   });
-  // Doors that open together (`opensWith`: the roof hatch's two parts, a bulkhead door's two leaves).
+  // Doors that open together (`opensWith: "<id>"`: the roof hatch's two parts, a bulkhead door's two leaves).
   for (const door of doors) {
     const other = door.object.userData.opensWith as string | undefined;
     if (!other) continue;
-    const partner = doors.find((d) => d !== door && named(d.object, other));
+    const partner = doors.find((d) => d !== door && d.id === other);
     if (!partner) console.warn(`[0.0.2] "${door.name}" opens with "${other}", which isn't a door`);
     else if (partner.group.includes(door)) door.group = partner.group;
     else door.group = [door, partner].sort((a, b) => a.name.localeCompare(b.name));

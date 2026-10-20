@@ -3,9 +3,9 @@
 // something solid), the one nearest the centre of the screen. No crosshair. A prompt next to the
 // target on screen names the action, with the button of the last device used (owner, 2026-10-12;
 // the highlight that came first is gone, 2026-10-14).
-// Targets come from the ship file's tags: `interact: "open"` (doors), `interact: "use"` with
-// `controls: "<object name>"` (the keypads by the side door, the bulkhead doors' panels, the
-// engineering window's lever). A door that a device controls isn't offered itself (the side door,
+// Targets: the doors, and the devices (the kinds `keypad`, `door-panel`, `lever`: the keypads by the
+// side door and the ramp, the bulkhead doors' panels, the engineering window's lever), each naming
+// what it opens by id with its `controls` tag. A door that a device controls isn't offered itself (the side door,
 // the cargo ramp, the bulkhead doors, the window). Doors that open together are one target (the
 // roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
 // Other devices (the boombox) make their own target and are handed in (`others`).
@@ -19,9 +19,9 @@ import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
 import type { Command } from './commands';
 import type { Door } from './doors';
-import type { Openable } from './entities';
+import type { Entities, Openable } from './entities';
 import type { Device } from './input';
-import { named } from './names';
+import { isDeviceKind } from './kinds';
 import type { Physics } from './physics';
 import { settings } from './settings';
 import type { GameStory } from './story';
@@ -41,22 +41,6 @@ export interface Interactable {
 }
 
 /**
- * Devices that aren't tagged in the ship file yet, by their Blender name: a name check, until the
- * next export tags them `interact: "use"` and `device` (doc/architecture/asset-pipeline.md).
- */
-const UNTAGGED: Record<string, string> = { boombox: 'Boombox' };
-
-/** The object tagged `device: "<device>"` in the ship file (or listed in UNTAGGED). */
-export function findDevice(ship: THREE.Object3D, device: string): THREE.Object3D | null {
-  let found: THREE.Object3D | null = null;
-  const name = UNTAGGED[device];
-  ship.traverse((o) => {
-    if (!found && (o.userData.device === device || (name !== undefined && named(o, name)))) found = o;
-  });
-  return found;
-}
-
-/**
  * The ship's interactables: its doors, and the devices that control something (`controls`): the
  * keypads of the ramp and the side door, the bulkhead doors' panels, the engineering window's lever.
  * @param others targets that are made elsewhere (the boombox)
@@ -64,14 +48,18 @@ export function findDevice(ship: THREE.Object3D, device: string): THREE.Object3D
  *   for close), the lever's clunk
  * @param ramp the cargo ramp's state (what its keypad controls)
  */
-export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: Interactable[] = [], sound: (id: CueId, at: THREE.Object3D) => void = () => undefined, ramp?: Openable): Interactable[] {
+export function shipInteractables(entities: Entities, doors: Door[], others: Interactable[] = [], sound: (id: CueId, at: THREE.Object3D) => void = () => undefined, ramp?: Openable): Interactable[] {
   const list: Interactable[] = [...others];
   // The devices first: a door with a keypad, a panel or a lever is used from there only.
   const withKeypad = new Set<Door>();
-  ship.traverse((o) => {
+  for (const { object: o, kind } of entities.all()) {
+    if (!isDeviceKind(kind)) continue;
     const target = o.userData.controls as string | undefined;
-    if (o.userData.interact !== 'use' || !target) return;
-    if (target === 'Cargo Ramp') {
+    if (!target) {
+      console.warn(`[0.0.2] the ${kind} "${o.name}" controls nothing (no \`controls\` tag)`);
+      continue;
+    }
+    if (target === 'cargo-ramp') {
       list.push({
         name: o.name,
         objects: [o],
@@ -83,12 +71,12 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
           sound(settings.cargoRampOpen ? 'sfx_panel_open' : 'sfx_panel_close', o);
         },
       });
-      return;
+      continue;
     }
-    const door = doors.find((d) => named(d.object, target));
+    const door = doors.find((d) => d.id === target);
     if (!door) {
       console.warn(`[0.0.2] "${o.name}" controls "${target}", which isn't a door`);
-      return;
+      continue;
     }
     // What it moves: the door with everything that opens with it (a bulkhead door's two leaves),
     // and the device's own handle (the lever), which goes to its other position with it.
@@ -97,7 +85,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     for (const d of [...group, ...handles]) withKeypad.add(d);
     // The handle moves first, then what it controls.
     for (const d of group) d.waitsFor = handles;
-    const what = o.userData.device === 'lever' ? 'window' : 'door';
+    const what = kind === 'lever' ? 'window' : 'door';
     // A door that opens by itself: the panel shuts it and keeps it shut; used again, the door is
     // automatic again (owner, 2026-10-13). With the automatic opening off, the panel just toggles.
     const automatic = () => door.auto && settings.autoDoors;
@@ -123,10 +111,10 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
           opens = open;
         }
         for (const h of handles) h.open = door.open;
-        sound(o.userData.device === 'lever' ? 'sfx_lever' : opens ? 'sfx_panel_open' : 'sfx_panel_close', o);
+        sound(kind === 'lever' ? 'sfx_lever' : opens ? 'sfx_panel_open' : 'sfx_panel_close', o);
       },
     });
-  });
+  }
   const grouped = new Set<Door>();
   for (const all of new Set(doors.filter((d) => d.group.length > 1).map((d) => d.group))) {
     const group = all.filter((d) => !withKeypad.has(d));

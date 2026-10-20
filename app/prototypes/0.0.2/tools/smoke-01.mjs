@@ -130,13 +130,13 @@ async function checks() {
   report(cameIn && Math.abs(view.distance - settings.cameraDistanceIndoors) < 0.01 && midway !== outdoors && Math.abs(midway - settings.cameraDistanceIndoors) > 0.01, 'camera distance changes at the ramp, eased', `${outdoors.toFixed(2)} â†’ ${midway.toFixed(2)} (0.25 s in) â†’ ${view.distance.toFixed(2)} m (setting ${settings.cameraDistanceIndoors})`);
 
   // --- The cargo ramp, from its keypad (9) -----------------------------------------------------
-  const rampPad = items.find((i) => i.objects[0].userData.controls === 'Cargo Ramp');
-  const sidePad = items.find((i) => i.objects[0].userData.controls === 'Side Door');
+  const rampPad = items.find((i) => i.objects[0].userData.controls === 'cargo-ramp');
+  const sidePad = items.find((i) => i.objects[0].userData.controls === 'side-door');
   const rampTop = () => new T.Box3().setFromObject(ship.ramp).max.y;
   // On the side wall, nearer the rack than the ship's middle: from in front of it, not along the wall
   // (there she stands beside the rack, and its jetpacks are nearer).
   if (!rampPad || !(await aimAt(rampPad, 'x'))) {
-    report(false, 'the ramp keypad can be aimed at', rampPad ? `target: ${interaction.target?.name ?? 'none'}` : 'no keypad controls "Cargo Ramp"');
+    report(false, 'the ramp keypad can be aimed at', rampPad ? `target: ${interaction.target?.name ?? 'none'}` : 'no keypad controls "cargo-ramp"');
   } else {
     const openTop = rampTop();
     const shown = prompt.textContent;
@@ -784,7 +784,7 @@ async function checks() {
     }
     report(walked.ok, `${label}: opens as she walks up, she goes through, it closes behind her`, walked.detail);
 
-    const panels = items.filter((i) => i.objects[0].userData.device === 'panel' && leaves.some((d) => d.name === i.objects[0].userData.controls || d.object.userData.name === i.objects[0].userData.controls));
+    const panels = items.filter((i) => i.objects[0].userData.device === 'panel' && leaves.some((d) => d.id === i.objects[0].userData.controls));
     report(panels.length === 2, `${label}: a panel on each side`, panels.map((p) => p.name).join(', '));
     for (const [n, panel] of panels.entries()) {
       const name = panel.name.replace(/_/g, ' ');
@@ -1033,7 +1033,7 @@ async function checks() {
       const heard = await twice(lever, [...halves, handle]);
       report(heard.every((h) => h.started === 'sfx_lever Ã—1'), 'the lever: its clunk each way, and no tones', said(heard));
     }
-    const panel = items.find((i) => i.objects[0].userData.device === 'panel' && bulkheadDoors.some((leaves) => leaves.some((d) => d.object.name === String(i.objects[0].userData.controls).replace(/ /g, '_'))));
+    const panel = items.find((i) => i.objects[0].userData.device === 'panel' && bulkheadDoors.some((leaves) => leaves.some((d) => d.id === i.objects[0].userData.controls)));
     if (panel) {
       const heard = await twice(panel, []);
       report(heard[0].started === 'sfx_panel_close Ã—1' && heard[1].started === 'sfx_panel_open Ã—1', "a bulkhead door's panel: down for close, up for open", said(heard));

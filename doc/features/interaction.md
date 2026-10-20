@@ -194,11 +194,11 @@ From the ship file's custom properties (glTF extras). Since 2026-10-12 they're s
 
 - `door: {axis, angle, toGround, startOpen}` and `interact: "open"` on each door; `hinge` (its hinge point).
 - `door: {slide, auto}` on a sliding door (in the file: `doorSlide`, `doorDistance`, `doorAuto`): the way and distance it slides to open, as a vector in the ship's space; `auto`: it opens when she's near.
-- `interact: "use"`, `device: "panel"`, `controls: "<object name>"` on the keypads and the bulkhead doors' panels; `device: "lever"` on the window's lever panel. `controls` names one door: everything that opens with it moves too.
+- **What a thing is comes from its `kind`, and the game finds it by kind** (since 2026-10-20; the game's structure, pass 6): the devices (`keypad`, `door-panel`, `lever`), `ladder`, `jetpack`, `boombox`, `ramp`. Each also has its stable `id`.
+- `controls: "<id>"` on the keypads, the bulkhead doors' panels and the window's lever: the id of one door (or `cargo-ramp`); everything that opens with it moves too.
 - **A device's child that's tagged as a door is its handle** (the lever on its panel): it goes to its other position with what the device controls.
-- `opensWith: "<object name>"` on doors that open together (the roof hatch's parts, a bulkhead door's leaves, the window's halves).
-- `interact: "pickup"`, `device: "jetpack"` on the rack's jetpacks (set 2026-10-14). The export keeps every prop tagged `interact` as an object of its own, with these two tags.
-- Ladders are listed by name in the code for now. So is the boombox (`UNTAGGED` in `interaction.ts`), until the next export tags it `interact: "use"`, `device: "boombox"`.
+- `opensWith: "<id>"` on doors that open together (the roof hatch's parts, a bulkhead door's leaves, the window's halves).
+- The `interact` and `device` tags are still in the file but no longer read by the game. The export keeps every prop tagged `interact` or with an `id` as an object of its own.
 
 ## Code
 
