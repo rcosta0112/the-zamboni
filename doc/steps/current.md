@@ -4,7 +4,7 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-20 (trapdoor fix); before that 2026-10-19, end of the sixteenth session. **On the branch `see-through-from-scratch`**, pushed up to 3ff61ba (ladder pass 2a, trapdoor fixes). `The Zamboni 1.21.blend` written by the agent (not in git).*
+*Updated 2026-10-20 (trapdoor fix); before that 2026-10-19, end of the sixteenth session. **On the branch `see-through-from-scratch`**, pushed up to c41854e (item 50: faster load, the bar; before it 3ff61ba, ladder pass 2a). `The Zamboni 1.21.blend` written by the agent (not in git).*
 
 ## Next session, in this order (owner)
 
