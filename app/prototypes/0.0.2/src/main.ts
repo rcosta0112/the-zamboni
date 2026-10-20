@@ -14,6 +14,7 @@ import { loadModels, type ClimbTag } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
+import { CutscenePlayer } from './cutscene';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
@@ -84,6 +85,7 @@ async function start(): Promise<void> {
   let doorSounds: (() => void) | null = null;
   let director: SceneDirector | null = null;
   let story: GameStory | null = null;
+  let cutscene: CutscenePlayer | null = null;
   let saved: SaveData | null = null; // the checkpoint save read at load: *Continue*
   let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
@@ -118,7 +120,14 @@ async function start(): Promise<void> {
       console.info(`[0.0.2] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
       // The first scene (or `?scene=<id>` in dev builds), before the doors' sounds start listening.
       const disabled = new Set<string>();
-      const target: CommandTarget = { entities: s.entities, disabled, play: (id, at) => audio.play(id, at), story: null };
+      const target: CommandTarget = {
+        entities: s.entities,
+        disabled,
+        play: (id, at) => audio.play(id, at),
+        story: null,
+        cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
+      };
+      cutscene = new CutscenePlayer(s.object, (command) => run(command, target));
       // The story first: a scene's setup reads it.
       target.story = await GameStory.load('/test/story.json', (command) => run(command, target)).catch((err: unknown) => {
         console.warn('[0.0.2] story not loaded:', err);
@@ -184,7 +193,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __story: () => story, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
@@ -219,6 +228,7 @@ async function start(): Promise<void> {
   let insideAmount = 0;
   let indoorLight = 0; // 0..1, eased: she's inside the ship (whether or not the see-through hull is on)
   let holeAmount = 0;
+  let wasWatching = false; // a cutscene played last frame
   const chest = new THREE.Vector3();
   const stepChest = new THREE.Vector3();
 
@@ -342,9 +352,18 @@ async function start(): Promise<void> {
       input.consumeJump();
       input.consumeInteract();
       input.consumeLook(dt);
-      renderer.render(scene, view.camera);
+      renderer.render(scene, cutscene?.playing ? cutscene.camera : view.camera);
       return;
     }
+
+    // A cutscene: its own camera; she stands still, nothing can be used, the see-through is off.
+    const watching = cutscene?.playing ?? false;
+    if (cutscene && watching) {
+      if (input.consumeSkip()) cutscene.skip();
+      else cutscene.update(dt, view.camera.aspect);
+      input.consumeJump();
+      input.consumeLook(dt);
+    } else input.consumeSkip(); // what's pressed in play isn't a skip later
 
     if (begun) accumulator += dt;
     let steps = 0;
@@ -352,7 +371,7 @@ async function start(): Promise<void> {
       // Indoors: the same "inside" test as the see-through hull, on the simulated position.
       stepChest.copy(character.position).y += settings.cutTargetHeight;
       const indoors = ship !== null && ship.interior.containsPoint(stepChest);
-      if (!ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
+      if (!watching && !ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
       // Doors and the ramp after her own move: a moving door pushes her out of its way.
       if (ship) updateShip(ship, STEP, false, pusher);
       accumulator -= STEP;
@@ -409,11 +428,12 @@ async function start(): Promise<void> {
           }
         : null;
     // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
-    view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
+    // Not during a cutscene: the game's camera waits behind her for the hand-back.
+    if (!watching) view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
     // The jetpack's glow, at its nozzles as the animation left them, facing the camera.
     exhaust.update(dt, character.jetpack, character.flying || character.parachuting, character.flyTrigger, view.camera);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
-    const active = inside && settings.seeThrough;
+    const active = inside && settings.seeThrough && !watching;
     let holeOpen = active;
     if (ship) {
       const feet = character.root.position;
@@ -432,6 +452,12 @@ async function start(): Promise<void> {
     // frame when already at the target, which made the hole flicker).
     insideAmount = easeTo(insideAmount, active ? 1 : 0, dt / 0.3);
     holeAmount = easeTo(holeAmount, holeOpen ? 1 : 0, dt / 0.3);
+    // A cut into or out of a cutscene doesn't fade the see-through: it's there or not at once.
+    if (watching !== wasWatching) {
+      insideAmount = active ? 1 : 0;
+      holeAmount = holeOpen ? 1 : 0;
+      wasWatching = watching;
+    }
     setSingleSided(settings.singleSided);
     updateCutaway(view.camera.position, chest, character.root.position.y, holeAmount, insideAmount, {
       radius: settings.cutRadius,
@@ -451,7 +477,7 @@ async function start(): Promise<void> {
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
     // While she climbs nothing else can be used (owner: control is taken, but not the camera).
-    interaction?.update(chest, view.camera, input.lastDevice, pressed, ladders?.climbing ?? false);
+    interaction?.update(chest, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);
@@ -459,13 +485,13 @@ async function start(): Promise<void> {
     // upstairs, can't be cut, and would stand in the hole's way.
     if (crew) {
       const hullOnly = settings.seeThrough && settings.seeThroughStage === 'hull only';
-      crew.object.visible = !(hullOnly && active && character.root.position.y < (ship?.upperFloorY ?? 0) - 0.5);
+      crew.object.visible = watching || !(hullOnly && active && character.root.position.y < (ship?.upperFloorY ?? 0) - 0.5);
     }
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];
 
-    renderer.render(scene, view.camera);
+    renderer.render(scene, cutscene?.playing ? cutscene.camera : view.camera);
     renderer.getDrawingBufferSize(size);
     stats.frame(dt, size.x, size.y);
   });

@@ -25,7 +25,7 @@ export type Command = (
   | { do: 'swap-exterior'; site: string }
   /** Run a knot of the story (story.ts). */
   | { do: 'story'; knot: string }
-  /** Pass 5. */
+  /** Play a cutscene (cutscene.ts), by its track's id. */
   | { do: 'cutscene'; id: string }
 ) & {
   /** Only if this story variable is true (set, not zero, not empty). */
@@ -42,6 +42,8 @@ export interface CommandTarget {
   play: (cue: CueId, at?: THREE.Object3D) => void;
   /** Null until it's loaded (or if it couldn't be): `if` / `unless` then count as false. */
   story: GameStory | null;
+  /** Plays a cutscene by id. */
+  cutscene: (id: string) => void;
 }
 
 const isOpenable = (c: object): c is Openable => 'open' in c && 'amount' in c;
@@ -92,8 +94,10 @@ export function run(command: Command, target: CommandTarget): void {
       target.play(command.cue, at);
       return;
     }
-    case 'swap-exterior':
     case 'cutscene':
-      console.warn(`[0.0.2] ${command.do} isn't built yet (${'site' in command ? command.site : command.id})`);
+      target.cutscene(command.id);
+      return;
+    case 'swap-exterior':
+      console.warn(`[0.0.2] swap-exterior isn't built yet (${command.site})`);
   }
 }

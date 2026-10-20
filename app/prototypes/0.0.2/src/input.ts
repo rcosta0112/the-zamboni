@@ -43,6 +43,7 @@ export class Input {
   private mouseDY = 0;
   private jumpLatched = false;
   private interactLatched = false;
+  private skipLatched = false;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
   private menuStick = 0;
@@ -64,6 +65,8 @@ export class Input {
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
       if (e.code === 'KeyC') this.jumpLatched = true;
       if (e.code === 'KeyE') this.interactLatched = true;
+      // A cutscene's skip: Enter, Esc (which also releases the mouse: the game pauses), E, Space, C.
+      if (['Enter', 'NumpadEnter', 'Escape', 'KeyE', 'Space', 'KeyC'].includes(e.code)) this.skipLatched = true;
       if (e.code === 'KeyY') settings.invertY = !settings.invertY;
       if (e.code === 'Backquote') this.onTogglePanel();
     });
@@ -109,6 +112,8 @@ export class Input {
       if (justPressed(PAD_B)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
+      // Any button skips a cutscene but pause and the tuning panel's.
+      if (pressed.some((_, i) => justPressed(i) && i !== PAD_START && i !== PAD_VIEW)) this.skipLatched = true;
       // The stick steps once each time it's pushed past halfway, again only after it comes back.
       const stick = (pad.axes[1] ?? 0) > MENU_PUSH ? 1 : (pad.axes[1] ?? 0) < -MENU_PUSH ? -1 : 0;
       if (justPressed(PAD_UP)) this.menuStep = -1;
@@ -173,6 +178,13 @@ export class Input {
     const i = this.interactLatched;
     this.interactLatched = false;
     return i;
+  }
+
+  /** True once per press that skips a cutscene (any pad button but Start and View; Enter, Esc, E, Space, C). */
+  consumeSkip(): boolean {
+    const s = this.skipLatched;
+    this.skipLatched = false;
+    return s;
   }
 
   /** True once per jump press; stays latched until a fixed update consumes it. */

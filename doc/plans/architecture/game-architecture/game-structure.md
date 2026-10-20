@@ -107,6 +107,25 @@ Names stay free for the owner; the gate checks ids are present and unique. Kinds
 
 **Pass 5: a tiny cutscene (about 3 hours).** The cutscene player: tracks by id, the timeline owning what it animates, the event track (commands, the see-through per shot), the declared end state, *skip*, the hand-back to the player generalised from the ladder, a checkpoint at its end. The cutscene: the camera moving while the ramp opens, then control back. Its animation: made by the owner in Blender, or by an agent script as a placeholder (owner's choice). *Check:* a probe plays it, skips it, and compares its end with the next scene's setup.
 
+**Pass 5's cutscene (owner, 2026-10-20): a placeholder, three shots, 9 s.** Replaces *the camera moving while the ramp opens* above.
+
+1. **The ship from outside, far away in the distance;** the camera slowly pans right. 3 s.
+2. **Cut to the cockpit,** the camera outside, showing both pilot seats and the navigation and signal stations. 3 s.
+3. **Cut back to the first shot,** still panning right. 3 s.
+
+**Approved as the agent reads it below (owner, 2026-10-20):** "this is just a placeholder, use your best judgement"; the ship partly hidden by the haze is fine, and so is the glass making the cockpit shot a bit dark. The agent's open choice, settled: **nothing visible on the event track** beyond the per-shot settings (see-through off, the camera's far plane): no door moves, no sound.
+
+> **[Agent note]** How the agent reads it, and what it builds:
+> - **"Pans" = the camera turning** (yaw) from a fixed spot, not sliding sideways. Slowly: about 2° a second (a guess, tunable).
+> - **Shot 3 picks up where shot 1 ended** (the pan's seconds 3–6, as if it had kept going off screen it would be seconds 6–9: say if you'd rather have that).
+> - **Shot 2 looks in through the cockpit's front windows** from just outside the nose, framing the two pilot seats, the navigation station and the signal receiver (`Signal Receiver.001`); the camera holds still (nothing was said about movement). The see-through off in all three shots (the camera is authored: plan, *Cutscenes*).
+> - **The placeholder is data written by a script, not a Blender file:** a small track file (`public/test/cutscenes/<id>.json`: the shots, each a camera's keys in the ship file's Blender coordinates, the cuts, the event track) in the shape the player will also read from a `cs-<id>.glb` when you author one. Id: `test-ship-shots`.
+> - **When it plays:** from the test story (the side door's keypad knot in `locked` calls `command("cutscene", "test-ship-shots", "")` after unlocking), and `__cutscene()` in dev builds. At its end: control back to her where she stood, the camera behind her as before, and a checkpoint (the scene's, with the story as it is then). *Skip*: any pad button or Esc/Enter jumps to the end state.
+> - **Its end state** changes nothing in the ship (no door moves in these shots), so the check compares the end with the scene as it was. If you want the event track exercised by something visible (e.g. the ramp opening during shot 1, or a sound at the cut), say so.
+> - **Possible snags:** the far shot depends on the camera's far plane and the haze (the ship may fade or clip at distance: they'd be set per shot); the cockpit glass may draw dark or reflect from outside.
+
+> **[Agent note]** **Pass 5a as built (2026-10-20).** [`src/cutscene.ts`](../../../../app/prototypes/0.0.2/src/cutscene.ts): the track (`Track`: `duration`; `shots`, each with camera keys `{ t, at, heading, pitch, fov }` in the ship file's Blender coordinates (heading in degrees about Blender's Z, from +X), eased linearly, a `far` plane and `seeThrough: "off"`; `events` `{ t, command }`; `end`, the commands of its end state) and `CutscenePlayer` (`play(id)`, `update`, `skip`, `onEnded`). **It draws through its own camera,** so the game's camera stays behind her and the hand-back is that camera again (no move, no snap). While one plays (main.ts): she isn't simulated (no input reaches her), nothing can be used, the see-through is off (cut in and out at once, no fade), the crew are shown. **Skip** (`Input.consumeSkip`): any pad button but Start and View; Enter, Esc, E, Space, C (Esc also releases the mouse, so the game pauses as well); a press made before the cutscene starts doesn't count. The `cutscene` command now plays one (it was a stub). The track: [`tools/test-cutscene.mjs`](../../../../app/prototypes/0.0.2/tools/test-cutscene.mjs) → `public/test/cutscenes/test-ship-shots.json`: shot 1 from about 78 m off the ship's left front quarter (fov 35, far plane 300), **the camera circling the ship at that distance, looking at it, moving to its right at 2°/s** (owner, 2026-10-20; it first turned on the spot), a key every 0.25 s; shot 2 from 1.5 m off the nose looking in (fov 50), held still; shot 3 the pan's seconds 3–6. Dev hook: `__cutscene()` (`play('<id>')`, `skip()`, `time`, `playing`). Check: [`tools/cutscene-probe.js`](../../../../app/prototypes/0.0.2/tools/cutscene-probe.js), 9 pass. **Not built yet (pass 5b):** the trigger from the test story, the checkpoint at its end, the end state compared with the scene's. **Not built (nothing in this cutscene needs it):** the timeline owning (pausing) the components it animates: these tracks animate only the camera.
+
 **Pass 6: the rest of today's kinds (about 3 hours).** Keypads and panels, the lever, the engineering window, ladders, the jetpack rack, the boombox, the crew; the remaining tags and name lookups (`UNTAGGED`) retired. *Check:* the smoke script, unchanged.
 
 Passes 1–5 are the slice. Pass 6 can come later without blocking anything.
@@ -119,7 +138,7 @@ Passes 1–5 are the slice. Pass 6 can come later without blocking anything.
 ## Open questions for the owner
 
 1. ~~The id in the file~~: B, after pass 0's names (owner, 2026-10-20).
-2. Pass 5's animation: yours in Blender, or a placeholder from a script?
+2. ~~Pass 5's animation~~: a placeholder (owner, 2026-10-20), the three shots above.
 3. Pass 6 straight after the slice, or later?
 
 ## After
