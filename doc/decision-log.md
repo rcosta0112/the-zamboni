@@ -8,7 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
-| 2026-10-20 | The export puts moving parts at their recorded rest pose | pipeline | `rest-poses.json` records each door's local transform; the exports drop the doors' animation, put them at rest and run at the start frame, whatever the file has; `POSE:` lines for each correction |
+| 2026-10-20 | The export puts moving parts at their recorded rest pose; a gate on what reaches the game | pipeline | `rest-poses.json` records each door's local transform; the exports drop the doors' animation, put them at rest and run at the start frame; the game's files are replaced only when nothing differs from the last taken export (exceptions one by one), else `npm run export:accept` |
 | 2026-10-20 | Prototypes numbered by version; 01 frozen as 0.0.1; each version isolated | process | Folders, packages, scripts and tags by version; the current one takes the plain script names; each has its own game files, tools and source `.blend` (a frozen one from its packed archive) and Vercel project |
 | 2026-10-20 | Fewer GPU pipelines, made at load | tech | Unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical: 116 → 78 pipelines; reloads compile in about 2 s instead of 11 |
 | 2026-10-19 | What the ship export takes is a list | pipeline | `ship-export-list.json`, made from what the game had (1.19), not the collections switched on in the file; new or missing objects are flagged |
@@ -57,7 +57,9 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Rationale:** the export gives the game the ship as it's meant to be whatever state the working file is in; nothing is saved to the `.blend`; the record is what item 49's component definitions will take over.
 
-**Status:** Built 2026-10-20 (item 48, pass A; [`plans/features/robust-exports.md`](plans/features/robust-exports.md), *As built*). Pass B (the gate on what reaches the game) next.
+**Status:** Built 2026-10-20 (item 48, pass A; [`plans/features/robust-exports.md`](plans/features/robust-exports.md), *As built*).
+
+**Update (2026-10-20, pass B):** **a gate on what reaches the game.** The game's files are replaced only when nothing differs from the last taken export (objects, animations, bytes, a new `PERF:` / `NODES:` / `NOTE:` / `POSE:` line, any `STOP:` line; owner: "start broad and add exceptions as we go"); otherwise the files wait and `npm run export:accept -- <what>` takes them, refused if the `.blend` was saved since. Exceptions so far: the frame line, the crew's places, poses and actions (owner). Movement of the crew that makes no sense, a lost animation and a missing part of the player stop it. An after-export check runs on a taken change. *Alternatives:* `export:ship -- --accept` running Blender again (you'd take what you hadn't seen); a tolerance for "moved" above compare-glb's 2 mm (not needed so far). Rules: [`architecture/asset-pipeline.md`](architecture/asset-pipeline.md), *The gate*.
 
 ---
 

@@ -70,6 +70,7 @@ npm run probe -- f.js  # one question to the running prototype
 npm run see-through  # screenshots of every room: the check while the see-through is rebuilt
 npm run export:ship  # the ship: Blender → compressed game files, with a summary
 npm run export:crew  # the same for the crew placed in the ship
+npm run export:accept -- ship  # take the files of an export the gate stopped (also crew, player)
 npm run rest-poses   # the doors' recorded rest poses vs the file; -- --accept "<name>" takes a door's new pose
 npm run dev:0.0.1    # the frozen 0.0.1 → http://localhost:5201 (also smoke:0.0.1, probe:0.0.1, export:0.0.1:ship…)
 ```

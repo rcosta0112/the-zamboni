@@ -52,8 +52,21 @@ args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 switch_collections()  # as export-collections.json says, whatever the file has
 check_scale()
 
-armature = bpy.data.objects[args.armature]
-parts = [bpy.data.objects[name.strip()] for name in args.objects.split(',')]
+armature = bpy.data.objects.get(args.armature)
+if armature is None:
+    sys.exit(f'STOP: no armature {args.armature!r} in the file: nothing exported')
+# Anything listed for her that's missing stops the export (``STOP:``; export.mjs keeps the files
+# waiting): the game would get her without it.
+parts = []
+for name in (n.strip() for n in args.objects.split(',')):
+    if name in bpy.data.objects:
+        parts.append(bpy.data.objects[name])
+    else:
+        print(f'STOP: {name!r} is listed for {args.armature!r} but not in the file (renamed or deleted?): exported without it')
+for option, name in (('--clip', args.clip), ('--clip-start', args.clip_start)):
+    if name and name not in (bpy.data.actions if option == '--clip' else bpy.data.objects):
+        print(f'STOP: {option} {name!r} is not in the file (renamed or deleted?): exported without the clip')
+        args.clip = args.clip_start = None
 show([armature, *parts] + ([bpy.data.objects[args.clip_start]] if args.clip_start else []), render=True)  # hidden in the file or not
 
 # Which bones actually carry weights, after modifiers (mirror) are applied?

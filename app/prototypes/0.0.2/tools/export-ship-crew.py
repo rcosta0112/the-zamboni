@@ -28,16 +28,22 @@ then cap the textures at 512 px and compress (Meshopt) into public/test/, from a
   ship file than in the crew file, and this script scaled each character around their hips;
   normalize-scale.py put that resize into the file.)
 - Every exported object carries a ``character`` custom property (the character's name).
+- A ``CREW:`` line per character (hips, facing, action): export.mjs flags a change since the last
+  taken export, and stops on a lost action. Movement that makes no sense stops the export
+  (``STOP:``, owner 2026-10-20): an animated character with no action, one at the world origin,
+  outside the ship, below their deck's floor, or two overlapping.
 - Reports every double-sided material ("PERF:"), as the pipeline requires.
 - Materials made by nodes the glTF exporter can't follow are baked to images (bake_materials.py)
   and reported ("NODES:").
 """
 
 import argparse
+import math
 import os
 import sys
 
 import bpy
+from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
@@ -149,10 +155,68 @@ for character, (armature_name, part_names) in ANIMATED.items():
     action = armature.animation_data.action if armature.animation_data else None
     print(f'{character}: action {action.name if action else None}, frames {tuple(action.frame_range) if action else None}')
     if not action:
-        print(f'NOTE: {character} is animated in the game but has no action in the file: exported unposed')
+        print(f'STOP: {character} is animated in the game but has no action in the file: exported unposed')
     for ob in [armature, *parts]:
         ob['character'] = character
         selection.append(ob)
+
+
+# Where each character is (``CREW:`` lines: export.mjs flags a change since the last taken export,
+# and stops if an action is lost), and movement that doesn't make sense stops the export (``STOP:``,
+# owner 2026-10-20): a character at the origin, outside the ship, below its deck's floor, or two
+# characters overlapping.
+FLOORS = ['Floor Bottom', 'Floor Top.001']
+OVERLAP = 0.3  # m between two characters' hips
+BELOW = 0.05  # m below the floor's top
+
+
+def world_bounds(ob):
+    corners = [ob.matrix_world @ Vector(c) for c in ob.bound_box]
+    return Vector([min(c[i] for c in corners) for i in range(3)]), Vector([max(c[i] for c in corners) for i in range(3)])
+
+
+def lowest_point(meshes):
+    """The lowest point of these meshes as posed (world z)."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    low = math.inf
+    for ob in meshes:
+        ev = ob.evaluated_get(dg)
+        mesh = ev.to_mesh()
+        low = min([low] + [(ob.matrix_world @ v.co).z for v in mesh.vertices])
+        ev.to_mesh_clear()
+    return low
+
+
+hull = bpy.data.objects.get('Hull_Merged')
+floor_tops = sorted(world_bounds(bpy.data.objects[n])[1].z for n in FLOORS if n in bpy.data.objects)
+places = {}
+for character in [*STATIC, *ANIMATED]:
+    armature = bpy.data.objects[STATIC.get(character) or ANIMATED[character][0]]
+    body = armature.pose.bones.get('Body')
+    matrix = armature.matrix_world @ (body.matrix if body else Matrix.Identity(4))
+    hips = matrix.translation.copy()
+    yaw = math.degrees(matrix.to_euler().z)
+    lowest = lowest_point([ob for ob in selection if ob.get('character') == character and ob.type == 'MESH'])
+    action = armature.animation_data.action if armature.animation_data else None
+    places[character] = hips
+    print(f'CREW: {character} at ({hips.x:.2f}, {hips.y:.2f}, {hips.z:.2f}), facing {yaw:.0f}°, action {repr(action.name) if action else "none"}')
+    if hips.length < 0.05 or armature.matrix_world.translation.length < 0.01:
+        print(f'STOP: {character} is at the world origin (the file\'s pose lost?)')
+    if hull:
+        low, high = world_bounds(hull)
+        if any(not (low[i] <= hips[i] <= high[i]) for i in range(3)):
+            print(f'STOP: {character} is outside the ship (hips at {tuple(round(v, 2) for v in hips)})')
+    deck = max((t for t in floor_tops if t <= hips.z), default=None)
+    if deck is None:
+        print(f'STOP: {character} is below the lower deck (hips at z {hips.z:.2f})')
+    elif lowest < deck - BELOW:
+        print(f'STOP: {character} reaches {deck - lowest:.2f} m below the floor of their deck (z {deck:.2f})')
+names = list(places)
+for i, a in enumerate(names):
+    for b in names[i + 1 :]:
+        if (places[a] - places[b]).length < OVERLAP:
+            print(f'STOP: {a} and {b} overlap (hips {(places[a] - places[b]).length:.2f} m apart)')
 
 materials = {s.material for ob in selection for s in ob.material_slots if s.material}
 for mat in sorted(materials, key=lambda m: m.name):

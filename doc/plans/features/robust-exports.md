@@ -1,6 +1,6 @@
 # Plan: Exports that don't break when the file is worked on (item 48)
 
-**Status:** *pass A built* 2026-10-20 (see *As built*, at the end); pass B next, after the owner's look. *Approved* (owner, 2026-10-20; rewritten for 0.0.2 the same day). First draft of 2026-10-19 saved with no action while the owner weighed [the ship's things as components](../architecture/game-architecture/components.md) (item 49). On 2026-10-20 the owner chose this plan as the first work in 0.0.2.
+**Status:** *built* 2026-10-20, passes A and B (see *As built*, at the end); the owner's part (an export after the next edit in Blender) open. *Approved* (owner, 2026-10-20; rewritten for 0.0.2 the same day). First draft of 2026-10-19 saved with no action while the owner weighed [the ship's things as components](../architecture/game-architecture/components.md) (item 49). On 2026-10-20 the owner chose this plan as the first work in 0.0.2.
 
 ## Goal
 
@@ -141,7 +141,7 @@ None. Answered 2026-10-20: what stops an export (any difference, exceptions as t
 - **The script is `tools/rest_poses.py`** (not `rest-poses.py`: the exports import it, and Python can't import a name with a hyphen). `npm run rest-poses` (in `app/`) runs it in Blender on the working file through `export.mjs`: it compares the file with the record; `-- --accept "<name>"` takes the file's pose of that part (adds a new part, drops a record with no part). A difference counts below 0.01 mm, 0.006° or a scale of 0.00001.
 - **In the exports:** `export_collections.switch_collections` puts the scene at its start frame (all three exports); `export-ship.py` drops the actions, NLA tracks and drivers on the moving parts, then puts each at rest, before their hinges and axes are worked out. `POSE:` lines go into the summary with the others.
 - **`POSED_OPEN` and `closeInFile` are out of `doors.ts`.**
-- **What 1.21 has:** it was saved on **frame 0** (the start frame is 1), and `Hatch.002` still had an action, `Hatch.002Action`: one key at frame 13, closed. So every export from it prints two `POSE:` lines (the frame, the hatch's action), until the file is saved on frame 1 and the action is removed (the owner's call: both are harmless now).
+- **What 1.21 has:** it was saved on **frame 0** (the start frame is 1), and `Hatch.002` still had an action, `Hatch.002Action`: one key at frame 13, closed. So every export from it printed two `POSE:` lines (the frame, the hatch's action). **Fixed in the file** the same day (owner: "can you fix it? if yes, do it"): saved by the agent on frame 1, without the hatch's action; the file as it was is next to it, `The Zamboni 1.21 (before frame and hatch fix, 2026-10-20).blend`. The ship and crew exports after it: identical files, no `POSE:` line.
 
 **Checked:**
 
@@ -153,3 +153,19 @@ None. Answered 2026-10-20: what stops an export (any difference, exceptions as t
 - `npm run check`, `npm run build`: pass. The smoke script: see `doc/steps/current.md`.
 
 **For pass B:** the frame line will show on every export from a file saved on another frame; under pass B's gate ("any new or changed `POSE:` line stops") that would stop exports for a harmless difference. Suggested: the frame line doesn't stop the export (the first exception), since the export doesn't depend on it any more.
+
+### Pass B (2026-10-20)
+
+- **The gate** (`export.mjs`): the new files go to `.export/<what>/out/`; compared with the game's (compare-glb, which now compares animations too: names, lengths, what they move; then the bytes) and the lines with the last *taken* export's (`.export/<what>-lines.txt`). Stops on any difference, a new `PERF:` / `NODES:` / `NOTE:` / `POSE:` line or any `STOP:` line; `STOPPED:` lists every reason. `npm run export:accept -- <what>` takes the waiting files, refused if the `.blend`'s modified time changed since that export. **Exceptions** (`EXCEPTIONS`, flagged as `FLAG:`): the frame line (owner's answer to the suggestion above); the crew's moved objects and changed animations, folded into one line per file.
+- **The crew** (`export-ship-crew.py`): a `CREW:` line per character (hips from the `Body` bone, facing, action). `STOP:` for an animated character with no action (a `NOTE:` before), at the origin (hips, or the armature), outside `Hull_Merged`'s bounds, below the lower deck, reaching more than 0.05 below their deck's floor (`Floor Bottom` top 1.24, `Floor Top.001` top 3.46), or two hips closer than 0.3. `export.mjs` stops on a character whose action was lost or who is gone since the last taken export, and flags a changed `CREW:` line.
+- **The player** (`export-crew-character.py`): `STOP:` for a listed part, the clip or the clip's start missing (exported without them); no armature: no export.
+- **The after-export check**, `tools/after-export.js` (about 30 s, `npm run probe -- tools/after-export.js`): every door opens and comes back to its rest pose (17: the ramp isn't a door in the code, and the smoke script checks it); ten rays from outside (eight round the sides at mid-height, two from above) meet the collider no further than 0.15 behind where they meet the drawn `Hull_Merged`; the four crew in the ship, Dr. Kaufman touching the couch; the ladder's foot clear (she fits there); she walks from the cargo bay through the engineering door. `export.mjs` runs it after a taken change when the dev server answers on 5202.
+- **`EXPORT_BLEND=<file>`** exports another file (for scratch copies).
+
+**Checked:**
+
+- The real file: ship and crew straight through ("Nothing changed").
+- A scratch copy with the `Shelf` collection renamed (so unknown to the table: off) and `Jetpack.001` moved 0.3 m: **stopped**, 27 reasons (the new collection, the 18 listed objects it held, the 7 objects gone from the file and the jetpack moved by 0.300). `export:accept` with the copy's modified time changed: refused. As exported: taken, and the after-export check passed (5 of 5). The game's file restored from git and the ship re-exported from 1.21: identical.
+- Crew copies: Dr. Kaufman at the origin without her action: **stopped**, 5 `STOP:` reasons (no action, origin, outside the ship, below the lower deck, the action lost since the last taken export); her body's 13 changes only flagged. Moved 1 m: flagged (her `CREW:` line, then and now) and **taken**; the after-export check passed. Restored from git and re-exported from 1.21: identical.
+- **The player export stops on every run:** it isn't deterministic (different bytes each run; 5286 to 5290 vertices in `Dr. Green Mesh.004`, seam duplicates merged or not: one on each leg, two on an arm). Not fixed (owner: leave it for now); the committed `green-parka.glb` is kept, an export waits in `.export/player/out/`.
+- Not run: the smoke script (no game code changed after pass A's run: 82 passed, the same 8 known failures).

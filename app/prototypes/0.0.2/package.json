@@ -14,6 +14,7 @@
     "export:ship": "node tools/export.mjs ship",
     "export:crew": "node tools/export.mjs crew",
     "export:player": "node tools/export.mjs player",
+    "export:accept": "node tools/export.mjs accept",
     "rest-poses": "node tools/export.mjs rest-poses"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 // Compares two .glb files object by object and prints what differs: which objects exist, their
 // parent, triangle and vertex counts, bounds in the file's space, materials and custom properties
-// (glTF extras). Used to prove an export change changes nothing else (in app/):
+// (glTF extras), and the animations (their names, lengths and what they move). Used to prove an
+// export change changes nothing else, and by the exports' gate (export.mjs) (in app/):
 //
 //     node tools/compare-glb.mjs <before.glb> <after.glb> [--tolerance 0.002]
 //
@@ -66,7 +67,18 @@ async function summarise(path) {
       extras: node.getExtras(),
     });
   }
-  return nodes;
+  return { nodes, animations: summariseAnimations(document) };
+}
+
+/** Each animation: its length (s) and what it moves (node and property). */
+function summariseAnimations(document) {
+  const animations = new Map();
+  for (const animation of document.getRoot().listAnimations()) {
+    const length = Math.max(0, ...animation.listSamplers().map((s) => s.getInput()?.getMax([])[0] ?? 0));
+    const targets = new Set(animation.listChannels().map((c) => `${c.getTargetNode()?.getName()}.${c.getTargetPath()}`));
+    animations.set(animation.getName(), { length, targets });
+  }
+  return animations;
 }
 
 function sameValue(a, b) {
@@ -79,8 +91,8 @@ function sameValue(a, b) {
   return a === b;
 }
 
-const before = await summarise(beforePath);
-const after = await summarise(afterPath);
+const { nodes: before, animations: clipsBefore } = await summarise(beforePath);
+const { nodes: after, animations: clipsAfter } = await summarise(afterPath);
 let differences = 0;
 const differ = (name, what) => {
   differences++;
@@ -110,6 +122,19 @@ for (const [name, a] of [...before].sort()) {
       differ(name, `property ${key}: ${JSON.stringify(a.extras[key])} -> ${JSON.stringify(b.extras[key])}`);
     }
   }
+}
+
+for (const name of [...new Set([...clipsBefore.keys(), ...clipsAfter.keys()])].sort()) {
+  const a = clipsBefore.get(name);
+  const b = clipsAfter.get(name);
+  if (!a || !b) {
+    differ(`animation "${name}"`, `only in the ${a ? 'first' : 'second'} file`);
+    continue;
+  }
+  if (Math.abs(a.length - b.length) > 1e-3) differ(`animation "${name}"`, `length ${a.length.toFixed(3)} -> ${b.length.toFixed(3)} s`);
+  const gone = [...a.targets].filter((t) => !b.targets.has(t));
+  const added = [...b.targets].filter((t) => !a.targets.has(t));
+  if (gone.length || added.length) differ(`animation "${name}"`, `moves ${[...gone.map((t) => `-${t}`), ...added.map((t) => `+${t}`)].slice(0, 6).join(', ')}${gone.length + added.length > 6 ? ' …' : ''}`);
 }
 
 const total = (nodes, key) => [...nodes.values()].reduce((sum, n) => sum + n[key], 0);
