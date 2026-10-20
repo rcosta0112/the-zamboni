@@ -128,6 +128,10 @@ async function start(): Promise<void> {
         cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
       };
       cutscene = new CutscenePlayer(s.object, (command) => run(command, target));
+      // A checkpoint at a cutscene's end: the scene's, with the story as it is then.
+      cutscene.onEnded = () => {
+        if (begun && director?.current) checkpoint(director.current);
+      };
       // The story first: a scene's setup reads it.
       target.story = await GameStory.load('/test/story.json', (command) => run(command, target)).catch((err: unknown) => {
         console.warn('[0.0.2] story not loaded:', err);
@@ -154,7 +158,11 @@ async function start(): Promise<void> {
       // address asks for a scene).
       const asked = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
       if (saved && !asked && (await startFrom(saved))) shown = 'continue';
-      else await director.start(asked ?? FIRST_SCENE).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
+      else {
+        // A save that can't be continued isn't offered.
+        if (saved && !asked) saved = null;
+        await director.start(asked ?? FIRST_SCENE).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
+      }
       const box = findDevice(s.object, 'boombox');
       if (box) boombox = new Boombox(box, audio);
       else console.warn('[0.0.2] the ship has no boombox');
@@ -337,7 +345,8 @@ async function start(): Promise<void> {
         if (smooth >= WARM_FRAMES || warmTime > WARM_LIMIT) {
           ready = true;
           loading.finish();
-          startScreen.setReady(shown === 'continue');
+          // CONTINUE whenever there's a save, also when `?scene=` put another scene under the screen.
+          startScreen.setReady(saved !== null);
         }
       }
     } else if (paused && input.padPressed) setPaused(false);

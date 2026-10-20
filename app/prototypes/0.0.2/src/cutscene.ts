@@ -55,7 +55,7 @@ export class CutscenePlayer {
   track: Track | null = null;
   /** Seconds into it. */
   time = 0;
-  /** Called once a cutscene has ended (played out or skipped): the checkpoint, later. */
+  /** Called once a cutscene has ended (played out or skipped): the checkpoint (main.ts). */
   onEnded: ((id: string) => void) | null = null;
   private nextEvent = 0;
 

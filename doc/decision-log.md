@@ -72,6 +72,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 *Update 2026-10-20 (pass 4, the save; agent's choices, for the owner's review):* **one checkpoint save**, written at every scene start once the game has begun (the open question in [saving](plans/architecture/game-architecture/saving.md), slots, stays open). **The save's scene is set up under the start screen at load**, so what shows behind the screen as it fades is what *Continue* gives; **CONTINUE is the chosen button** when there's a save, NEW GAME below it. **NEW GAME overwrites the save without asking** (a confirmation can come with a real menu). The second button's place is a placeholder, not in the mockup.
 
+*Update 2026-10-20 (pass 5b, the cutscene's checkpoint; agent's choice, for the owner's review):* **the checkpoint at a cutscene's end saves the scene it played in** (its id, with the story as it is after the cutscene), as the save format allows only a scene as checkpoint. So *Continue* after it starts that scene again from its setup and her start, not where she stood when it ended; the story makes the difference (here: the side door unlocked). A checkpoint that resumes after a cutscene at its own spot would need the cutscene's end to name a scene (or a mark) to start: possible later, when a real cutscene needs it.
+
 ---
 
 ## [2026-10-20] — The export puts moving parts at their recorded rest pose (pipeline)

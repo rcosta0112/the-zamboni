@@ -17,6 +17,7 @@ VAR side_door_unlocked = false
 ~ side_door_unlocked = true
 ~ command("unlock", "side-door", "")
 ~ command("sound", "side-door-keypad", "sfx_panel_open")
+~ command("cutscene", "test-ship-shots", "")
 -> DONE
 
 === function command(name, id, value) ===
