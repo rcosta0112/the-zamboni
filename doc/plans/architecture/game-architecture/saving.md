@@ -35,6 +35,10 @@ A save is small, roughly 10–200 KB of JSON *(estimate)*.
 
 **The risk:** browsers can still clear a site's stored data: when the user clears browsing data, and in Safari possibly after a long period without visiting. Installing the game as an app (see [offline](offline.md)) makes storage more durable. As a safety net: **export and import a save file** from the settings menu.
 
+## As built (0.0.2, 2026-10-20)
+
+> **[Agent note]** The game's structure, pass 4 ([game-structure.md](game-structure.md), *As built*): one save in IndexedDB, written at every scene start; the format as in the table above (`format`, `game`, `checkpoint`, `location`, `story`, empty `missionData` and `chat`, `savedAt`). CONTINUE on the start screen when there's a save, NEW GAME below it. Not built yet: export and import of a save file; saves after key story moments other than a scene start.
+
 ## Open questions
 
 - One automatic save, or also a few manual save slots?

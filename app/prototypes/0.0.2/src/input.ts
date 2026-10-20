@@ -13,6 +13,10 @@ const PAD_VIEW = 8;
 /** A trigger value this far from both 0 and 1 shows the trigger is analog. */
 const ANALOG_MARGIN = 0.02;
 const PAD_START = 9; // Options on a PlayStation controller
+const PAD_UP = 12; // the D-pad
+const PAD_DOWN = 13;
+/** How far the left stick goes before it moves a menu's choice. */
+const MENU_PUSH = 0.5;
 
 export class Input {
   /** Movement on the ground plane: x = right, y = forward, length 0..1. */
@@ -31,6 +35,8 @@ export class Input {
   padPressed = false;
   /** The gamepad's pause button (Start / Options) went down this frame. */
   pausePressed = false;
+  /** A menu's choice moved this frame: -1 up, 1 down, 0 not (the D-pad, or the left stick pushed past halfway). */
+  menuStep = 0;
 
   private keys = new Set<string>();
   private mouseDX = 0;
@@ -39,6 +45,7 @@ export class Input {
   private interactLatched = false;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
+  private menuStick = 0;
   /**
    * The pad whose R2 has been seen between 0 and 1: it's analog. A digital trigger only ever reports
    * 0 or 1; an analog one passes through values between as it goes down, so it shows itself on its
@@ -83,6 +90,7 @@ export class Input {
     this.padLook.y = 0;
     this.padPressed = false;
     this.pausePressed = false;
+    this.menuStep = 0;
     let padFly = false;
     let trigger: number | null = null;
 
@@ -101,6 +109,12 @@ export class Input {
       if (justPressed(PAD_B)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
+      // The stick steps once each time it's pushed past halfway, again only after it comes back.
+      const stick = (pad.axes[1] ?? 0) > MENU_PUSH ? 1 : (pad.axes[1] ?? 0) < -MENU_PUSH ? -1 : 0;
+      if (justPressed(PAD_UP)) this.menuStep = -1;
+      else if (justPressed(PAD_DOWN)) this.menuStep = 1;
+      else if (stick !== this.menuStick) this.menuStep = stick;
+      this.menuStick = stick;
       const rt = pad.buttons[PAD_RT];
       if (rt) {
         if (rt.value > ANALOG_MARGIN && rt.value < 1 - ANALOG_MARGIN) this.analogPad = pad.id;

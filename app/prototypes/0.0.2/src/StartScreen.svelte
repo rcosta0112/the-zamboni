@@ -1,18 +1,24 @@
 <!--
   The start screen: the mockup's layout (Figma, "The Zamboni", Desktop - 4), covering the 3D view.
-  A progress bar while the game loads, then the start button in its place. Everything is placed on
-  the mockup's 1440 × 1024 frame, which is scaled to fit the window (--ui-unit: one mockup pixel).
-  The button is used with a click, Enter or Space, or any gamepad button (main.ts calls `press`:
-  the gamepad is read in the frame loop).
-  Plan: doc/plans/features/start-screen.md
+  A progress bar while the game loads, then the buttons in its place: START, or CONTINUE (the
+  checkpoint save) above NEW GAME when there's a save. Everything is placed on the mockup's
+  1440 × 1024 frame, which is scaled to fit the window (--ui-unit: one mockup pixel).
+  A button is used with a click, or Enter or Space on the chosen one; the arrows (or W / S) choose.
+  The gamepad: any button uses the chosen one, the D-pad or the left stick chooses (main.ts calls
+  `press` and `move`: the gamepad is read in the frame loop).
+  Plan: doc/plans/features/start-screen.md; *Continue*: doc/plans/architecture/game-architecture/game-structure.md (pass 4)
 -->
+<script module lang="ts">
+  export type StartChoice = 'new' | 'continue';
+</script>
+
 <script lang="ts">
   import { fade } from 'svelte/transition';
   import { Button, ProgressBar } from '@zamboni/ui';
 
   interface Props {
-    /** The button was used. `byPointer`: with a click or a touch (then the mouse can be captured). */
-    onstart: (byPointer: boolean) => void;
+    /** A button was used. `byPointer`: with a click or a touch (then the mouse can be captured). */
+    onstart: (byPointer: boolean, choice: StartChoice) => void;
   }
   let { onstart }: Props = $props();
 
@@ -21,7 +27,10 @@
   let used = $state(false);
   let pressed = $state(false);
   let leaving = $state(false);
-  // With a gamepad or the keyboard the button is always the one they're on: it looks hovered until
+  // The buttons, top to bottom, and the one chosen (the first: CONTINUE when there's a save).
+  let buttons = $state<{ choice: StartChoice; label: string }[]>([]);
+  let chosen = $state(0);
+  // With a gamepad or the keyboard the chosen button is the one they're on: it looks hovered until
   // the mouse moves.
   let highlighted = $state(true);
 
@@ -33,36 +42,53 @@
     progress = share;
   }
 
-  /** Everything is loaded: the button takes the bar's place. */
-  export function setReady(): void {
+  /** Everything is loaded: the buttons take the bar's place. `canContinue`: there's a save. */
+  export function setReady(canContinue: boolean): void {
+    buttons = canContinue
+      ? [
+          { choice: 'continue', label: 'CONTINUE' },
+          { choice: 'new', label: 'NEW GAME' },
+        ]
+      : [{ choice: 'new', label: 'START' }];
+    chosen = 0;
     ready = true;
   }
 
-  /** A key or a gamepad button uses the button: it goes down, then the game starts. */
+  /** A key or a gamepad button uses the chosen button: it goes down, then the game starts. */
   export function press(): void {
     if (!ready || used) return;
     used = true;
     highlighted = true;
     pressed = true;
-    setTimeout(() => leave(false), PRESS);
+    setTimeout(() => leave(false, buttons[chosen]!.choice), PRESS);
   }
 
-  function click(event: MouseEvent): void {
+  /** Choose the button above (-1) or below (1). */
+  export function move(step: number): void {
+    if (!ready || used) return;
+    highlighted = true;
+    chosen = Math.min(buttons.length - 1, Math.max(0, chosen + step));
+  }
+
+  function click(event: MouseEvent, index: number): void {
     // A click made by Enter or Space on the focused button has no detail: `press` has it already.
     if (!ready || used || event.detail === 0) return;
     used = true;
-    leave(true);
+    chosen = index;
+    leave(true, buttons[index]!.choice);
   }
 
-  function leave(byPointer: boolean): void {
+  function leave(byPointer: boolean, choice: StartChoice): void {
     leaving = true;
-    onstart(byPointer);
+    onstart(byPointer, choice);
   }
 
   function keydown(event: KeyboardEvent): void {
     if (event.repeat) return;
     highlighted = true;
     if (event.code === 'Enter' || event.code === 'NumpadEnter' || event.code === 'Space') press();
+    else if (event.code === 'ArrowUp' || event.code === 'KeyW') move(-1);
+    else if (event.code === 'ArrowDown' || event.code === 'KeyS') move(1);
   }
 </script>
 
@@ -80,9 +106,11 @@
   </div>
   <div class="control">
       {#if ready}
-        <div class="slot" in:fade={{ duration: 300 }}>
-          <Button {highlighted} {pressed} onclick={click}>START</Button>
-        </div>
+        {#each buttons as button, i (button.choice)}
+          <div class="slot" style:top="calc({i} * var(--button-step))" in:fade={{ duration: 300 }}>
+            <Button highlighted={highlighted && i === chosen} pressed={pressed && i === chosen} onclick={(e) => click(e, i)}>{button.label}</Button>
+          </div>
+        {/each}
       {:else}
         <div class="slot" out:fade={{ duration: 300 }}>
           <ProgressBar value={progress} />
@@ -181,9 +209,17 @@
     height: round(calc(55 * var(--ui-unit)), 1px);
   }
 
-  /* The bar going and the button coming are both there for a moment: one over the other. */
+  /* The bar going and the first button coming are both there for a moment: one over the other.
+     A second button (NEW GAME) goes below the first: not in the mockup, a placeholder gap of 20. */
+  .control {
+    --button-step: round(calc(75 * var(--ui-unit)), 1px);
+  }
+
   .slot {
     position: absolute;
-    inset: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 100%;
   }
 </style>

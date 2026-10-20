@@ -1,6 +1,6 @@
 // One question to the running prototype 01, instead of the whole scripted check (in app/):
 //
-//     node tools/probe-01.mjs <file.js> [--shot <out.png>] [--shots <folder>] [--stay]
+//     node tools/probe-01.mjs <file.js> [--shot <out.png>] [--shots <folder>] [--stay] [--reload <then.js>]
 //     npm run probe -- <file.js>
 //
 // The file is the body of an async function run in the page once the ship is loaded; what it
@@ -10,7 +10,9 @@
 // nothing). With `--shot`, a screenshot of the page is saved after it has run. A key is pressed first (Q, which the
 // game doesn't use): the browser keeps the sound off until then. Then the start screen's button is
 // used, once it's there; with `--stay` it isn't, and the file runs with the start screen up.
-// Console errors are printed.
+// With `--reload`, the page is then reloaded (the browser's storage kept: a save survives), the
+// start screen's button used again (Enter: CONTINUE when there's a save) and the second file run the
+// same way; both results are printed. Console errors are printed.
 // Uses the dev server already on port 5202, or starts one. For trying a check out before it goes
 // into smoke-01.mjs, and for looking at one thing after a change.
 
@@ -32,6 +34,8 @@ const soundAt = args.indexOf('--sound'); // from before the key was always press
 if (soundAt >= 0) args.splice(soundAt, 1);
 const stayAt = args.indexOf('--stay');
 if (stayAt >= 0) args.splice(stayAt, 1);
+const reloadAt = args.indexOf('--reload');
+const reloadFile = reloadAt >= 0 ? args.splice(reloadAt, 2)[1] : null;
 if (!args[0]) {
   console.error('probe: node tools/probe-01.mjs <file.js> [--shot <out.png>] [--stay]');
   process.exit(2);
@@ -69,39 +73,48 @@ try {
   await send('Runtime.enable');
   await send('Page.enable');
   if (shots) await send('Runtime.addBinding', { name: '__probeShot' });
+  // The page loaded (or reloaded), a key pressed, the start screen's button used, the file run.
+  const runFile = async (body) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    for (let i = 0; i < 80; i++) {
+      const ready = await send('Runtime.evaluate', { expression: 'Boolean(window.__audio)', returnByValue: true });
+      if (ready.result.result.value) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81, text: type === 'keyDown' ? 'q' : undefined });
+    if (stayAt < 0 && !(await useStartButton(send))) throw new Error('the start button never came, or the game did not begin');
+    const expression = `(async () => {
+      const w = window;
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const until = async (test, ms) => {
+        const start = performance.now();
+        while (!test() && performance.now() - start < ms) await wait(30);
+        return test();
+      };
+      const shot = async (name) => {
+        if (!w.__probeShot) return;
+        w.__probeShot(name);
+        await until(() => w.__probeShotDone === name, 10000);
+      };
+      if (!(await until(() => w.__ship?.() && w.__crew?.() && w.__interaction?.(), 60000))) throw new Error('no ship after 60 s');
+      const T = w.__THREE;
+      const ship = w.__ship();
+      ${body}
+    })()`;
+    const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+    if (result.result.exceptionDetails) {
+      console.log('FAILED', result.result.exceptionDetails.exception?.description ?? result.result.exceptionDetails.text);
+      code = 1;
+    } else {
+      console.log(JSON.stringify(result.result.result.value, null, 1));
+    }
+  };
   await send('Page.navigate', { url: URL_01 });
-  await new Promise((r) => setTimeout(r, 1500));
-  for (let i = 0; i < 80; i++) {
-    const ready = await send('Runtime.evaluate', { expression: 'Boolean(window.__audio)', returnByValue: true });
-    if (ready.result.result.value) break;
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  for (const type of ['keyDown', 'keyUp']) await send('Input.dispatchKeyEvent', { type, key: 'q', code: 'KeyQ', windowsVirtualKeyCode: 81, text: type === 'keyDown' ? 'q' : undefined });
-  if (stayAt < 0 && !(await useStartButton(send))) throw new Error('the start button never came, or the game did not begin');
-  const expression = `(async () => {
-    const w = window;
-    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    const until = async (test, ms) => {
-      const start = performance.now();
-      while (!test() && performance.now() - start < ms) await wait(30);
-      return test();
-    };
-    const shot = async (name) => {
-      if (!w.__probeShot) return;
-      w.__probeShot(name);
-      await until(() => w.__probeShotDone === name, 10000);
-    };
-    if (!(await until(() => w.__ship?.() && w.__crew?.() && w.__interaction?.(), 60000))) throw new Error('no ship after 60 s');
-    const T = w.__THREE;
-    const ship = w.__ship();
-    ${body}
-  })()`;
-  const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
-  if (result.result.exceptionDetails) {
-    console.log('FAILED', result.result.exceptionDetails.exception?.description ?? result.result.exceptionDetails.text);
-    code = 1;
-  } else {
-    console.log(JSON.stringify(result.result.result.value, null, 1));
+  await runFile(body);
+  if (reloadFile) {
+    console.log('--- reloaded ---');
+    await send('Page.reload', {});
+    await runFile(readFileSync(reloadFile, 'utf8'));
   }
   if (shot) {
     const image = await send('Page.captureScreenshot', { format: 'png' });

@@ -3,8 +3,9 @@
 // runs a knot when something the story cares about is used (`use_<id>`, dashes as underscores); the
 // knots act on the game through the external function `command(name, id, value)`, which runs one of
 // the commands (commands.ts). No dialogue on screen yet: a knot's lines go to the console.
-// The slice's story is a test one, `public/test/story.ink` (compiled by `npm run ink`).
-// Plan: doc/plans/architecture/game-architecture/game-structure.md (pass 3)
+// The slice's story is a test one, `public/test/story.ink` (compiled by `npm run ink`). Its whole
+// state is what a save keeps of the story (save.ts).
+// Plan: doc/plans/architecture/game-architecture/game-structure.md (passes 3, 4)
 
 import { Story } from 'inkjs';
 import type { Command } from './commands';
@@ -51,6 +52,21 @@ export class GameStory {
 
   set(name: string, value: boolean | number | string): void {
     this.ink.variablesState.$(name, value);
+  }
+
+  /** Ink's whole state (variables, visited knots, where it is) as JSON: what a save keeps. */
+  state(): string {
+    return this.ink.state.ToJson();
+  }
+
+  /** Back to a saved state (`state()`'s JSON). */
+  restore(json: string): void {
+    this.ink.state.LoadJson(json);
+  }
+
+  /** Back to the story's start: a new game. */
+  reset(): void {
+    this.ink.ResetState();
   }
 
   /** The knot run when the thing with this id is used, if the story has one. */

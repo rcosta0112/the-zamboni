@@ -22,11 +22,12 @@ import { JetpackRack } from './jetpack';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
+import { readSave, clearSave, writeSave, type SaveData } from './save';
 import { FIRST_SCENE, SceneDirector } from './scenes';
 import { GameStory } from './story';
 import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
-import StartScreen from './StartScreen.svelte';
+import StartScreen, { type StartChoice } from './StartScreen.svelte';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
 import { updateVisibility } from './visibility';
@@ -48,7 +49,7 @@ const WARM_LIMIT = 6;
 async function start(): Promise<void> {
   const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
   // The start screen first: it covers the view while everything below loads, with a bar for it.
-  const startScreen = mount(StartScreen, { target: document.querySelector<HTMLElement>('#start')!, props: { onstart: (byPointer: boolean) => begin(byPointer) } });
+  const startScreen = mount(StartScreen, { target: document.querySelector<HTMLElement>('#start')!, props: { onstart: (byPointer: boolean, choice: StartChoice) => begin(byPointer, choice) } });
   const loading = new LoadProgress((share) => startScreen.setProgress(share));
 
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
@@ -83,6 +84,8 @@ async function start(): Promise<void> {
   let doorSounds: (() => void) | null = null;
   let director: SceneDirector | null = null;
   let story: GameStory | null = null;
+  let saved: SaveData | null = null; // the checkpoint save read at load: *Continue*
+  let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
   loadModels((share) => loading.set('models', share))
     .then(({ models, climbTag: tag }) => {
@@ -130,8 +133,19 @@ async function start(): Promise<void> {
         character.velocity.set(0, 0, 0);
         view.yaw = yaw;
       });
+      // A save at each scene start, once the game has begun (not the scene under the start screen).
+      director.onStarted = (id) => {
+        if (begun) checkpoint(id);
+      };
+      saved = await readSave().catch((err: unknown) => {
+        console.warn('[0.0.2] save not read:', err);
+        return null;
+      });
+      // Under the start screen: the save's scene, as *Continue* will find it (a new game's if the
+      // address asks for a scene).
       const asked = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
-      await director.start(asked ?? FIRST_SCENE).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
+      if (saved && !asked && (await startFrom(saved))) shown = 'continue';
+      else await director.start(asked ?? FIRST_SCENE).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
       const box = findDevice(s.object, 'boombox');
       if (box) boombox = new Boombox(box, audio);
       else console.warn('[0.0.2] the ship has no boombox');
@@ -170,7 +184,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __story: () => story, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share }) });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __story: () => story, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
@@ -218,6 +232,26 @@ async function start(): Promise<void> {
     feet: () => character.position,
   };
 
+  /** The saved checkpoint started again: the story as it was, then its scene. False if it couldn't be. */
+  async function startFrom(save: SaveData): Promise<boolean> {
+    if (!director || !story) return false;
+    try {
+      story.restore(save.story);
+      await director.start(save.checkpoint);
+      return true;
+    } catch (err: unknown) {
+      console.warn('[0.0.2] the save could not be continued:', err);
+      story.reset();
+      return false;
+    }
+  }
+
+  /** The checkpoint save: the scene just started and the story's state. */
+  function checkpoint(id: string): void {
+    if (!story) return;
+    void writeSave({ checkpoint: id, location: 'ship', story: story.state(), missionData: [], chat: [] }).catch((err: unknown) => console.warn('[0.0.2] not saved:', err));
+  }
+
   let last = performance.now();
   let accumulator = 0;
 
@@ -241,9 +275,18 @@ async function start(): Promise<void> {
   let begun = false;
   let warmTime = 0; // s of frames made since the load ended
   let smooth = 0; // how many of them in a row were quick
-  function begin(byPointer: boolean): void {
+  function begin(byPointer: boolean, choice: StartChoice): void {
     if (begun) return;
     begun = true;
+    // The scene under the screen is the one chosen, or it starts now (and saves, as every scene start does).
+    if (choice === 'continue' && shown !== 'continue' && saved) {
+      void startFrom(saved).then(async (ok) => {
+        if (!ok) await director?.start(FIRST_SCENE);
+      });
+    } else if (choice === 'new' && shown !== 'new') {
+      story?.reset();
+      void director?.start(FIRST_SCENE).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
+    } else if (director?.current) checkpoint(director.current);
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));
     audio.setLoop('mus_part1_theme', false, THEME_FADE);
@@ -264,7 +307,8 @@ async function start(): Promise<void> {
     if (!begun) {
       // The start screen covers the view, and nothing is simulated.
       loading.set('sounds', audio.loadedShare);
-      if (input.padPressed) startScreen.press();
+      if (input.menuStep) startScreen.move(input.menuStep);
+      else if (input.padPressed) startScreen.press();
       // What was pressed to start isn't a jump or a use.
       input.consumeJump();
       input.consumeInteract();
@@ -283,7 +327,7 @@ async function start(): Promise<void> {
         if (smooth >= WARM_FRAMES || warmTime > WARM_LIMIT) {
           ready = true;
           loading.finish();
-          startScreen.setReady();
+          startScreen.setReady(shown === 'continue');
         }
       }
     } else if (paused && input.padPressed) setPaused(false);
