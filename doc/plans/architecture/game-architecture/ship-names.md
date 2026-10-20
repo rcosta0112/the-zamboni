@@ -1,6 +1,6 @@
 # The ship's names (pass 0 of the game's structure)
 
-**Status:** *approved* (owner, 2026-10-20, with the answers at the end). Part of [the game's structure](game-structure.md), pass 0. Edit the *Proposed name* column freely; the id is written from it (`Cockpit Door Left` → `cockpit-door-left`).
+**Status:** *done* (2026-10-20, pass 0b: renamed in `The Zamboni 1.21.blend` by [`rename-ship-pass0b.py`](../../../../app/prototypes/0.0.2/tools/rename-ship-pass0b.py); meshes take ` Mesh`, owner; the stray `Boombox` model deleted, owner). Approved by the owner on 2026-10-20, with the answers at the end. Part of [the game's structure](game-structure.md), pass 0. Edit the *Proposed name* column freely; the id is written from it (`Cockpit Door Left` → `cockpit-door-left`).
 
 > **[Agent note]** Made from the last ship export (`The Zamboni 1.21.blend`): every object the game finds by tag or by name, or that another object names. Static scenery isn't here: it needs no id. **Sides** are as seen facing the cockpit (the ship's front; +x in Blender is left). **Numbers** go top to bottom, then left to right as you face the objects. Kinds are a first guess: pass 1 settles them.
 

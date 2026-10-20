@@ -9,7 +9,7 @@
 // above she drops through the opening, and the ladder doesn't collide while she's above its foot.
 // Not yet (pass 2b): the trapdoor opening as her head reaches it, the rung sounds on her hands.
 // The climb with the stick (2026-10-09 to 10-19) is kept, not in use: ladders-free.ts.
-// Ladders: `Ladder Cargo Bay` (through the trapdoor).
+// Ladders: `Cargo Hold Ladder` (through the trapdoor).
 
 import * as THREE from 'three/webgpu';
 import type { Character } from './character';
@@ -60,7 +60,7 @@ export interface Ladder {
 /** The ship's ladders. */
 export function shipLadders(ship: THREE.Object3D, physics: Physics, colliders: Record<string, { setEnabled: (on: boolean) => void } | null> = {}): Ladder[] {
   const ladders: Ladder[] = [];
-  for (const name of ['Ladder Cargo Bay']) {
+  for (const name of ['Cargo Hold Ladder']) {
     let object: THREE.Object3D | undefined;
     ship.traverse((o) => {
       if (named(o, name)) object = o;

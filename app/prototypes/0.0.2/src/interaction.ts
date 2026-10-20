@@ -37,7 +37,7 @@ export interface Interactable {
  * Devices that aren't tagged in the ship file yet, by their Blender name: a name check, until the
  * next export tags them `interact: "use"` and `device` (doc/architecture/asset-pipeline.md).
  */
-const UNTAGGED: Record<string, string> = { boombox: 'Boombox.001' };
+const UNTAGGED: Record<string, string> = { boombox: 'Boombox' };
 
 /** The object tagged `device: "<device>"` in the ship file (or listed in UNTAGGED). */
 export function findDevice(ship: THREE.Object3D, device: string): THREE.Object3D | null {
@@ -63,7 +63,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
   ship.traverse((o) => {
     const target = o.userData.controls as string | undefined;
     if (o.userData.interact !== 'use' || !target) return;
-    if (target === 'Door Cargo') {
+    if (target === 'Cargo Ramp') {
       list.push({
         name: o.name,
         objects: [o],

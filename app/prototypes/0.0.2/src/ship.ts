@@ -5,7 +5,7 @@
 // own (`*_col` objects tagged `reach: "through"`; they stop her, the reach test passes through them). Everything gets the see-through hull except
 // what's tagged `cuttable: false` in the file (glTF extras → userData): the ramp, the landing gear.
 // Objects tagged `structure: true` are cut by the hole; the rest is furniture (visibility.ts), with
-// exceptions tagged `seeThrough: "keep"` and `divider: true`. The cargo ramp ("Door Cargo") is a separate
+// exceptions tagged `seeThrough: "keep"` and `divider: true`. The cargo ramp ("Cargo Ramp") is a separate
 // object hinged at its bottom edge; it opens down to the ground and has its own collider. The other
 // doors (side door, hatches, fridge, galley and lockers) are in doors.ts.
 
@@ -25,10 +25,10 @@ import { settings } from './settings';
 const SHIP_URL = '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 /** The ladder whose collision is switched off while she's above it (ladders.ts). */
-const LADDER = 'Ladder Cargo Bay';
+const LADDER = 'Cargo Hold Ladder';
 /** The ship's collider in its file; every other mesh there is a collision box. */
 const COLLIDER = 'zamboni_col';
-const RAMP = ['Door Cargo', 'Door_Cargo']; // as exported / as sanitised by GLTFLoader
+const RAMP = ['Cargo Ramp', 'Cargo_Ramp']; // as exported / as sanitised by GLTFLoader
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 
 const RAMP_SECONDS = 1.5; // time to open or close
@@ -39,7 +39,7 @@ const RAMP_SECONDS = 1.5; // time to open or close
  * only these are drawn; everything inside is hidden while the see-through hull is on.
  */
 const SHELL = [
-  'Hull_Merged', 'Windshield', 'Door', 'Top Hatch', 'Door Cargo', 'Lab Window', 'Lab Window.001',
+  'Hull_Merged', 'Windshield', 'Side Door', 'Top Hatch Upper', 'Cargo Ramp', 'Engineering Window Left', 'Engineering Window Right',
   'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002',
 ];
 /** The cockpit's floor is part of `Dashboard Body`: its meshes with these materials (owner, 2026-10-14). */
@@ -172,7 +172,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   const collider = meshes.find((m) => named(m, COLLIDER)) ?? null;
   const boxes = meshes.filter((m) => m !== collider);
   if (!collider) throw new Error(`${COLLIDER_URL} has no mesh`);
-  if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
+  if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Cargo Ramp")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
 
   // Fewer GPU pipelines (pipelines.ts): before the BVHs, which are built from the geometry.
@@ -401,17 +401,20 @@ function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
   };
   // Along the ship: Blender's y (front negative), from the ship's own space.
   const along = (u: CutUnit) => -ship.worldToLocal(boxOf(u).getCenter(new THREE.Vector3())).z;
+  const inChain = (unit: CutUnit, names: string[]) => {
+    for (let n: THREE.Object3D | null = unit.object; n && n !== ship; n = n.parent) if (names.some((name) => named(n!, name))) return true;
+    return false;
+  };
+  // The bulkhead's own unit, or one of its children's: whether the loader groups a child's mesh
+  // under the bulkhead depends on the order of its children (it changed with the renames, 2026-10-20).
+  const moves = (o: THREE.Object3D) => ['doorAxis', 'doorSlide', 'moving'].some((k) => o.userData[k] !== undefined);
   const bulkheadAt = (name: string) => {
-    const unit = units.find((u) => named(u.object, name));
+    const unit = units.find((u) => named(u.object, name)) ?? units.find((u) => !moves(u.object) && inChain(u, [name]));
     if (!unit) throw new Error(`The ship has no "${name}"`);
     return along(unit);
   };
   const bulkheads = [bulkheadAt('Bulkhead Cargo'), bulkheadAt('Bulkhead Cockpit')];
   const rooms = [['engineering', 'cargo hold'], ['cockpit', 'crew quarters']];
-  const inChain = (unit: CutUnit, names: string[]) => {
-    for (let n: THREE.Object3D | null = unit.object; n && n !== ship; n = n.parent) if (names.some((name) => named(n!, name))) return true;
-    return false;
-  };
   const blockers = units.filter((u) => inChain(u, KEEP_WITH_CONTENTS)).map((u) => boxOf(u).expandByScalar(0.05));
   // The sitting area: across and along a little wider than its walls, not below the floor (the
   // cargo hold's ceiling lights hang under it).

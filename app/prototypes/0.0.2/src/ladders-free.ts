@@ -13,7 +13,7 @@
 // while she's above its foot, so she doesn't land on it.
 // A closed hatch above stops her (a ray from her head), and she can open it from the ladder. While
 // climbing she's placed directly, without collisions. No climbing animation yet: she's shown standing.
-// Ladders: `Ladder Cargo Bay` (through the trapdoor). (The rungs on the cockpit bulkhead were removed
+// Ladders: `Cargo Hold Ladder` (through the trapdoor). (The rungs on the cockpit bulkhead were removed
 // on 2026-10-09; the side door, open, is a ramp: doors.ts.)
 // Plans: doc/plans/features/interaction-doors.md, doc/plans/features/movement-and-ladder.md
 

@@ -442,7 +442,9 @@ def export(selection, path, **options):
         ob.select_set(True)
     bpy.ops.export_scene.gltf(
         filepath=path, export_format='GLB', use_selection=True, export_animations=False,
-        export_apply=True, export_yup=True, **options,
+        # Only the active scene: another scene's name (the file's 'Boombox') would take the name
+        # of the object called the same in the game (GLTFLoader gives it 'Boombox_1').
+        use_active_scene=True, export_apply=True, export_yup=True, **options,
     )
 
 

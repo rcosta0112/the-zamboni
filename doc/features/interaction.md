@@ -29,7 +29,7 @@ The prompt shows the button of the last device used (◯ or E).
 - **A door that a keypad, a panel or a lever controls** (owner, 2026-10-12): the side door and the cargo ramp are used from their keypads only; the bulkhead doors from their panels; the engineering window from its lever.
 - A door she's standing on (see *Doors*).
 
-**Doors that open together are one target:** the roof hatch's two parts (`Top Hatch`, `Top Hatch Bottom`). Aiming at either shows one prompt; one press moves both to the same state. Each part is tagged `opensWith: "<the other's name>"` in the ship file (since the export of 2026-10-12; until then the pair was listed in the code).
+**Doors that open together are one target:** the roof hatch's two parts (`Top Hatch Upper`, `Top Hatch Lower`). Aiming at either shows one prompt; one press moves both to the same state. Each part is tagged `opensWith: "<the other's name>"` in the ship file (since the export of 2026-10-12; until then the pair was listed in the code).
 
 **No highlight:** the first version lifted the target toward white; the prompt replaced it, and the slider and its shader code were removed on 2026-10-14 (owner).
 
@@ -37,13 +37,13 @@ The prompt shows the button of the last device used (◯ or E).
 
 | Door | Object in `The Zamboni 1.19.blend` | Hinge | Opens |
 |---|---|---|---|
-| Side door (cargo hold): **from its keypad only** | `Door` | bottom edge | outward and down until it rests on the ground (126°): **open, it's a ramp** |
-| Trapdoor to the crew quarters | `Hatch.002` | one edge | up, 90° |
-| Roof hatch, outer (**one target with the inner**) | `Top Hatch` | one edge | up, 100° |
-| Roof hatch, inner | `Top Hatch Bottom` | one edge | down, 90° |
-| Fridge doors | `Galley Door`, `Galley Door.001` | vertical edge | 100° |
-| Galley cupboard | `Galley Door.002` | vertical edge | 100° |
-| Lockers | `Locker Door` (cargo bay), `Locker Door.001`, `Locker Door.003` (crew quarters) | vertical edge | 100° |
+| Side door (cargo hold): **from its keypad only** | `Side Door` | bottom edge | outward and down until it rests on the ground (126°): **open, it's a ramp** |
+| Trapdoor to the crew quarters | `Floor Hatch` | one edge | up, 90° |
+| Roof hatch, outer (**one target with the inner**) | `Top Hatch Upper` | one edge | up, 100° |
+| Roof hatch, inner | `Top Hatch Lower` | one edge | down, 90° |
+| Fridge doors | `Galley Door 2`, `Galley Door 1` | vertical edge | 100° |
+| Galley cupboard | `Galley Door 3` | vertical edge | 100° |
+| Lockers | `Cargo Locker Door` (cargo bay), `Crew Locker Door 2`, `Crew Locker Door 1` (crew quarters) | vertical edge | 100° |
 
 - **All start closed except the trapdoor**, which starts open for now (owner, 2026-10-09: from below, the camera angle makes it hard to aim at; to be worked out later). The trapdoor and two galley doors are modelled open in the file; the export closes the galley doors (`MODELLED_OPEN`) and tags the trapdoor `startOpen`.
 - **The side door, fully open, is a ramp** (owner): as for the cargo ramp, a smooth walkable slope stands in for its steps, and its own collider is off. The doorway has a sill 0.13 m above the cargo floor (and above the door's hinge), so the slope climbs to the sill's top at no more than 42° (her controller takes up to 45°), then runs flat across it into the hold; its foot lies about 0.1 m past the door's far end. The door can't be closed while she's on it.
@@ -71,14 +71,14 @@ Built 2026-10-13 (owner's backlog of 2026-10-12, items 6 to 8; until then the bu
 
 | What | Objects in `The Zamboni 1.19.blend` | Opens |
 |---|---|---|
-| Bulkhead door, upper deck (crew quarters ↔ cockpit) | `Door Cockpit`, `Door Cockpit 2` | **by itself** when she's near; its two leaves slide apart into the bulkhead, each by its own width |
-| Bulkhead door, lower deck (cargo hold ↔ engineering) | `Door Engineering`, `Door Engineering 2` | the same. Its doorway is off-centre on purpose (owner: to make space for the locker) |
-| Engineering window | `Lab Window`, `Lab Window.001` | **from its lever**; the two halves slide apart, each by its own width. There's glass behind them |
-| The lever | `Level`, on `Level Panel` | slides 0.06 (Blender units) along its own Y axis, toward the window, when the window opens (owner, 2026-10-13: as in the UE prototype) |
+| Bulkhead door, upper deck (crew quarters ↔ cockpit) | `Cockpit Door Right`, `Cockpit Door Left` | **by itself** when she's near; its two leaves slide apart into the bulkhead, each by its own width |
+| Bulkhead door, lower deck (cargo hold ↔ engineering) | `Engineering Door Right`, `Engineering Door Left` | the same. Its doorway is off-centre on purpose (owner: to make space for the locker) |
+| Engineering window | `Engineering Window Left`, `Engineering Window Right` | **from its lever**; the two halves slide apart, each by its own width. There's glass behind them |
+| The lever | `Engineering Window Lever Handle`, on `Engineering Window Lever` | slides 0.06 (Blender units) along its own Y axis, toward the window, when the window opens (owner, 2026-10-13: as in the UE prototype) |
 
 - **Closed, the two leaves fit into each other:** their meeting edges are S-shaped, so their bounds overlap by 0.11 (1.19's Blender units; 0.16 m since the file took the game's scale, 2026-10-19). The leaves are scaled 1.02 across and up so they reach into the doorway's frame: at their modelled size a line of light showed between door and frame (owner, 2026-10-13). Done by [`app/prototypes/0.0.2/tools/fit-bulkhead-doors.py`](../../app/prototypes/0.0.2/tools/fit-bulkhead-doors.py): see [`asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
 - **Near** (owner, 2026-10-13): she's on the door's deck and within **1.5 m** of the closed door, measured on the floor to the door's bounds (*...when she is within*, tuning panel). The distance and the slide time go together: the door has to be open before she reaches it at a run (3.5 m/s indoors). At 0.6 s she ran into the leaves, was pushed aside by them and ended against the bulkhead. A longer distance isn't the fix: at 2 m the cockpit's door stays open for most of the cockpit. It closes when she's 0.3 m further away than that, so it doesn't flutter at the edge. Only she opens doors: the crew don't walk yet.
-- **Panels** (`Door Panel - Cockpit`, `- Crew Quarters`, `- Engineering`, `- Cargo Hold`: one on each side of each bulkhead). **A panel shuts its door and keeps it shut** (owner, 2026-10-13): *Close door* shuts it, whoever is near; *Open door*, from either panel, makes it automatic again, and since she's standing at it, it opens. A door can't be held open.
+- **Panels** (`Cockpit Door Panel Front`, `Cockpit Door Panel Back`, `Engineering Door Panel Front`, `Engineering Door Panel Back`: one on each side of each bulkhead; *Front* is the one on the side toward the ship's front). **A panel shuts its door and keeps it shut** (owner, 2026-10-13): *Close door* shuts it, whoever is near; *Open door*, from either panel, makes it automatic again, and since she's standing at it, it opens. A door can't be held open.
 - **The lever** is one target with its panel: *Open window* / *Close window*. It isn't used while it or the window is moving (as in the UE prototype). **The lever moves first; the window starts, with its sound, 0.6 s after the lever is used** (*window after its lever*, tuning panel): together, the window's sound covered the lever's (owner, 2026-10-13; first 0.3 s, then doubled).
 - **Time:** 0.3 s, a setting of its own (*sliding door time*). *Bulkhead doors open by themselves* (tuning panel) can be turned off: the panels then just open and close them.
   > **[Agent note]** **It is off for now** (owner, 2026-10-13: "disable the proximity trigger on the doors for now"): `autoDoors: false` in `settings.ts`. The bulkhead doors start shut and open and close from their panels only. The code is kept, and the scripted check turns the setting on for itself, so everything above about doors opening by themselves describes what comes back when it's turned on again.
@@ -108,7 +108,7 @@ Built 2026-10-13 ([plan](../plans/features/interaction-sounds.md)). **Placeholde
 
 ## The boombox
 
-Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)). `Boombox.001`, on the crew quarters shelf, plays the UE prototype's four tracks.
+Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)). `Boombox`, on the crew quarters shelf, plays the UE prototype's four tracks.
 
 - **One action, no *Stop*** (owner, 2026-10-13: no interaction in the game has more than one option). Each use moves it one step round a ring: **track 1 → 2 → 3 → 4 → off → track 1**. The prompt names the step it will take: *Play* when it's off, *Next track* while one of the first three is on, *Turn off* on the fourth.
 - **Every use plays the cassette sound first**; the track starts, from 0.1 s, when that ends. Using it stops the track that's on at once. Used again before the cassette sound ends, only the last use counts.
@@ -119,7 +119,7 @@ Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)).
 
 ## The jetpack rack
 
-Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)). On the cargo hold's wall: two shelves (`Jetpack Rack`, `Jetpack Rack.001`) and four jetpacks with straps (`Jetpack.001`, `.002` below, `.003`, `.004` above; `.003` added by the agent on 2026-10-14, item 37: a copy of `.004`, its mesh and tags shared).
+Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)). On the cargo hold's wall: two shelves (`Jetpack Rack Upper`, `Jetpack Rack Lower`) and four jetpacks with straps (`Jetpack 3`, `.002` below, `.003`, `.004` above; `.003` added by the agent on 2026-10-14, item 37: a copy of `.004`, its mesh and tags shared).
 
 - **Pointing at one, *Take jetpack*:** it disappears from the rack and she wears one. Hers (`Jetpack`, no straps) shows on her back, her little backpack (`Backpack.002`) hides, and the hood's shape key `jetpack` is on, so the hood clears it. **She can fly only while she wears one** (Space / R2). Jumping (C / Cross) works with or without it.
 - **While she wears one, only the empty spot is offered, *Put back jetpack*:** it reappears there and everything goes back (owner, 2026-10-14: taken off at the rack only).
@@ -180,7 +180,7 @@ No button: walking into a ladder is enough (owner).
 
 | Ladder | Where | Top |
 |---|---|---|
-| `Ladder Cargo Bay` | cargo bay, up through the trapdoor | the crew quarters floor |
+| `Cargo Hold Ladder` | cargo bay, up through the trapdoor | the crew quarters floor |
 
 The rungs on the cockpit bulkhead by the galley (`Ladder Crew Quarters`) were removed (owner, 2026-10-09).
 

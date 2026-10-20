@@ -130,13 +130,13 @@ async function checks() {
   report(cameIn && Math.abs(view.distance - settings.cameraDistanceIndoors) < 0.01 && midway !== outdoors && Math.abs(midway - settings.cameraDistanceIndoors) > 0.01, 'camera distance changes at the ramp, eased', `${outdoors.toFixed(2)} â†’ ${midway.toFixed(2)} (0.25 s in) â†’ ${view.distance.toFixed(2)} m (setting ${settings.cameraDistanceIndoors})`);
 
   // --- The cargo ramp, from its keypad (9) -----------------------------------------------------
-  const rampPad = items.find((i) => i.objects[0].userData.controls === 'Door Cargo');
-  const sidePad = items.find((i) => i.objects[0].userData.controls === 'Door');
+  const rampPad = items.find((i) => i.objects[0].userData.controls === 'Cargo Ramp');
+  const sidePad = items.find((i) => i.objects[0].userData.controls === 'Side Door');
   const rampTop = () => new T.Box3().setFromObject(ship.ramp).max.y;
   // On the side wall, nearer the rack than the ship's middle: from in front of it, not along the wall
   // (there she stands beside the rack, and its jetpacks are nearer).
   if (!rampPad || !(await aimAt(rampPad, 'x'))) {
-    report(false, 'the ramp keypad can be aimed at', rampPad ? `target: ${interaction.target?.name ?? 'none'}` : 'no keypad controls "Door Cargo"');
+    report(false, 'the ramp keypad can be aimed at', rampPad ? `target: ${interaction.target?.name ?? 'none'}` : 'no keypad controls "Cargo Ramp"');
   } else {
     const openTop = rampTop();
     const shown = prompt.textContent;
@@ -153,9 +153,9 @@ async function checks() {
   }
 
   // --- The side door (3) -----------------------------------------------------------------------
-  const side = door('Door');
+  const side = door('Side_Door');
   const offered = items.filter((i) => i.objects.includes(side?.object));
-  report(side !== undefined && offered.length === 0, 'the side door is not a target itself', side ? `${offered.length} targets on it` : 'no door named "Door"');
+  report(side !== undefined && offered.length === 0, 'the side door is not a target itself', side ? `${offered.length} targets on it` : 'no door named "Side_Door"');
   if (side && sidePad && (await aimAt(sidePad))) {
     // Look around from the keypad: whatever is targeted, it's never the door.
     const seen = new Set();
@@ -284,8 +284,8 @@ async function checks() {
   }
 
   // --- The roof hatch (22) ---------------------------------------------------------------------
-  const top = door('Top_Hatch');
-  const bottom = door('Top_Hatch_Bottom');
+  const top = door('Top_Hatch_Upper');
+  const bottom = door('Top_Hatch_Lower');
   const hatch = items.filter((i) => i.objects.includes(top?.object) || i.objects.includes(bottom?.object));
   if (!top || !bottom || hatch.length !== 1) {
     report(false, 'the roof hatch is one target', `${hatch.length} targets for its two parts`);
@@ -1017,9 +1017,9 @@ async function checks() {
     await wait(1000);
     report(since(quiet) === 'nothing', 'standing still, no step sounds', since(quiet));
 
-    const locker = await twice(items.find((i) => i.name === 'Locker_Door001'), [door('Locker_Door001')]);
+    const locker = await twice(items.find((i) => i.name === 'Crew_Locker_Door_2'), [door('Crew_Locker_Door_2')]);
     report(both(locker, 'sfx_latch_open Ã—1', 'sfx_latch_close Ã—1'), 'a locker: a latch sound as it opens, another once closed', said(locker));
-    const trap = await twice(items.find((i) => i.name === 'Hatch002'), [door('Hatch002')]);
+    const trap = await twice(items.find((i) => i.name === 'Floor_Hatch'), [door('Floor_Hatch')]);
     report(both(trap, 'sfx_hatch_open Ã—1', 'sfx_hatch_close Ã—1'), 'the trapdoor: the hatch sounds', said(trap));
     const roof = await twice(items.find((i) => i.objects.includes(top.object)), [top, bottom]);
     report(both(roof, 'sfx_hatch_open Ã—1', 'sfx_hatch_close Ã—1'), 'the roof hatch: one sound for its two parts', said(roof));
@@ -1108,8 +1108,8 @@ async function checks() {
   }
 
   // What hangs on a locker door (the polaroid, the poster) swings with it.
-  for (const [doorName, hanging] of [['Locker Door.003', 'Polaroid'], ['Locker Door.001', 'Gojira poster']]) {
-    // Names as the loader gives them ("Locker_Door003"): compared without spaces, dots or underscores.
+  for (const [doorName, hanging] of [['Crew Locker Door 1', 'Polaroid'], ['Crew Locker Door 2', 'Gojira poster']]) {
+    // Names as the loader gives them ("Crew_Locker_Door_1"): compared without spaces, dots or underscores.
     const plain = (name) => name.replace(/[ ._]/g, '');
     const locker = ship.doors.find((d) => plain(d.name) === plain(doorName));
     let thing = null;

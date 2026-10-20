@@ -139,7 +139,7 @@ const autoDoors = settings.autoDoors;
 // --- She walks from the cargo bay into engineering ----------------------------------------------
 {
   const leaves = ship.doors.filter((d) => /Engineering/.test(d.name) && d.auto);
-  const ramp = part('Door Cargo');
+  const ramp = part('Cargo Ramp');
   if (leaves.length !== 2 || !ramp) {
     report(false, 'she walks from the cargo bay into engineering', `engineering's door leaves: ${leaves.map((d) => d.name).join(', ') || 'none'}; ramp: ${!!ramp}`);
   } else {

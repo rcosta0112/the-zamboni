@@ -16,7 +16,7 @@ const RAMP_AREA = 8.8;
 const SIDE_DOOR_AREA = 1.5;
 /** Going in or out, or into or out of the cargo bay, the wind changes over this long (s). */
 const FADE = 0.5;
-const BULKHEAD = 'Door_Engineering';
+const BULKHEAD = 'Engineering_Door_Right';
 
 /** What the wind needs of the audio (`GameAudio`). */
 interface WindAudio {

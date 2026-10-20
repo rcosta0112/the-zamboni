@@ -1,6 +1,6 @@
 [
-  {"feet":[5.364,3.461,-16.727],"yaw":2.885,"pitch":0.042,"camera":[6.252,4.61,-20.109],"cargoRampOpen":true,"doorsOpen":["Hatch002"],"wearingJetpack":false},
-  {"feet":[3.982,3.462,-16.069],"yaw":3.63,"pitch":0.607,"camera":[2.633,6.459,-18.607],"cargoRampOpen":true,"doorsOpen":["Hatch002"],"wearingJetpack":false},
-  {"feet":[3.355,3.461,-15.001],"yaw":10.165,"pitch":0.735,"camera":[1.604,6.809,-16.918],"cargoRampOpen":true,"doorsOpen":["Door_Cockpit","Door_Cockpit_2","Hatch002"],"wearingJetpack":false},
-  {"feet":[5.315,1.232,-16.909],"yaw":12.895,"pitch":0.24,"camera":[6.412,3.064,-13.691],"cargoRampOpen":true,"doorsOpen":["Door_Cockpit","Door_Cockpit_2","Hatch002"],"wearingJetpack":false}
+  {"feet":[5.364,3.461,-16.727],"yaw":2.885,"pitch":0.042,"camera":[6.252,4.61,-20.109],"cargoRampOpen":true,"doorsOpen":["Floor_Hatch"],"wearingJetpack":false},
+  {"feet":[3.982,3.462,-16.069],"yaw":3.63,"pitch":0.607,"camera":[2.633,6.459,-18.607],"cargoRampOpen":true,"doorsOpen":["Floor_Hatch"],"wearingJetpack":false},
+  {"feet":[3.355,3.461,-15.001],"yaw":10.165,"pitch":0.735,"camera":[1.604,6.809,-16.918],"cargoRampOpen":true,"doorsOpen":["Cockpit_Door_Right","Cockpit_Door_Left","Floor_Hatch"],"wearingJetpack":false},
+  {"feet":[5.315,1.232,-16.909],"yaw":12.895,"pitch":0.24,"camera":[6.412,3.064,-13.691],"cargoRampOpen":true,"doorsOpen":["Cockpit_Door_Right","Cockpit_Door_Left","Floor_Hatch"],"wearingJetpack":false}
 ]

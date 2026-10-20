@@ -62,7 +62,7 @@ try {
         console.log('screenshot:', file);
         return browser.send('Runtime.evaluate', { expression: `window.__probeShotDone = ${JSON.stringify(name)}` });
       });
-    } else if (msg.method === 'Runtime.consoleAPICalled' && msg.params.type === 'error') console.log('CONSOLE ERROR', msg.params.args.map((a) => a.value ?? a.description ?? '').join(' '));
+    } else if (msg.method === 'Runtime.consoleAPICalled' && (msg.params.type === 'error' || msg.params.type === 'warning')) console.log(msg.params.type === 'error' ? 'CONSOLE ERROR' : 'CONSOLE WARN', msg.params.args.map((a) => a.value ?? a.description ?? '').join(' '));
     else if (msg.method === 'Runtime.exceptionThrown') console.log('EXCEPTION', msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text);
   });
   const { send } = browser;
