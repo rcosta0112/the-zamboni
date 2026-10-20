@@ -1,16 +1,22 @@
 {
-  "name": "@zamboni/prototype-01-walk",
+  "name": "@zamboni/prototype-0.0.1",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "smoke": "node tools/smoke-01.mjs",
+    "probe": "node tools/probe-01.mjs",
+    "see-through": "node tools/probe-01.mjs tools/see-through-views.js --shots .export/see-through",
+    "export:ship": "node tools/export.mjs ship",
+    "export:crew": "node tools/export.mjs crew",
+    "export:player": "node tools/export.mjs player"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",
-    "@zamboni/ui": "*",
     "three": "0.186.1",
     "three-mesh-bvh": "0.9.16"
   },

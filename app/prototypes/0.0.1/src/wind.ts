@@ -43,7 +43,7 @@ export class Wind {
     // The side door is the one door that opens down to the ground (the ramp isn't a door in the code).
     this.sideDoor = ship.doors.find((d) => d.walkway !== null) ?? null;
     const bulkhead = ship.doors.find((d) => d.name === BULKHEAD);
-    if (!this.sideDoor || !bulkhead) console.warn('[01-walk] wind: no side door or engineering bulkhead found; no louder wind in the cargo bay');
+    if (!this.sideDoor || !bulkhead) console.warn('[0.0.1] wind: no side door or engineering bulkhead found; no louder wind in the cargo bay');
     if (!bulkhead) return;
     this.bulkhead = bulkhead.zone.getCenter(new THREE.Vector3());
     // The ramp's node is its hinge, at the bottom of the hull's opening; it turns but doesn't move.

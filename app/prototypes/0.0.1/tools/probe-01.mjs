@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { answers, findChrome, openBrowser, useStartButton } from './browser.mjs';
 
 const URL_01 = 'http://localhost:5201/';
-const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '../prototypes/01-walk');
+const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const args = process.argv.slice(2);
 const shotAt = args.indexOf('--shot');

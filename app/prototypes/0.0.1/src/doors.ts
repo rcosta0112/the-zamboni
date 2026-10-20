@@ -322,7 +322,7 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
     const other = door.object.userData.opensWith as string | undefined;
     if (!other) continue;
     const partner = doors.find((d) => d !== door && named(d.object, other));
-    if (!partner) console.warn(`[01-walk] "${door.name}" opens with "${other}", which isn't a door`);
+    if (!partner) console.warn(`[0.0.1] "${door.name}" opens with "${other}", which isn't a door`);
     else if (partner.group.includes(door)) door.group = partner.group;
     else door.group = [door, partner].sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -463,7 +463,7 @@ function walkwayTriangles(hinge: THREE.Object3D, shipAxis: THREE.Vector3, physic
   const run = Math.max(sillY / Math.tan(WALKWAY_SLOPE), new THREE.Vector3(far.x - top.x, 0, far.z - top.z).length());
   const foot = top.clone().addScaledVector(outward, run);
   foot.y = 0;
-  console.info(`[01-walk] side door ramp: sill ${sillY.toFixed(3)} at ${edge.toFixed(2)} m out, hinge ${h.y.toFixed(3)}, foot ${run.toFixed(2)} m out`);
+  console.info(`[0.0.1] side door ramp: sill ${sillY.toFixed(3)} at ${edge.toFixed(2)} m out, hinge ${h.y.toFixed(3)}, foot ${run.toFixed(2)} m out`);
   const corners = [foot, top, inside].flatMap((p) => [p.clone().addScaledVector(axis, minW), p.clone().addScaledVector(axis, maxW)]);
   const vertices = new Float32Array(corners.flatMap((p) => [p.x, p.y, p.z]));
   // Two quads (slope, then flat), both faces: 0-1 foot, 2-3 sill edge, 4-5 inside.

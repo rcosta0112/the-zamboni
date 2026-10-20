@@ -8,7 +8,7 @@
 -->
 <script lang="ts">
   import { fade } from 'svelte/transition';
-  import { Button, ProgressBar } from '@zamboni/ui';
+  import { Button, ProgressBar } from './ui';
 
   interface Props {
     /** The button was used. `byPointer`: with a click or a touch (then the mouse can be captured). */

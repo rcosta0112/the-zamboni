@@ -78,7 +78,7 @@ A Blender script, tried on a scratch copy first, opens 1.21 (only read; the owne
 9. **Check:** both dev servers running together; 0.0.2's smoke matches 0.0.1's; a change to a file in 0.0.2's `public/` or `tools/` doesn't show in 0.0.1.
 
 **Pass 4: freeze, deploy, document**
-10. Git (on the owner's go-ahead, rule 7): the branch merged into `main` (a fast-forward), tag `v0.0.1` on the commit that ends pass 2.
+10. Git (on the owner's go-ahead, rule 7): tag `v0.0.1` on the commit that ends pass 2. (The branch is already in `main`: done 2026-10-20, a4ae02b.)
 11. Vercel (owner): 0.0.1's project keeps its link, *Root Directory* `app/prototypes/0.0.1`, and an **ignored build step** `git diff --quiet HEAD^ HEAD -- .` so pushes for 0.0.2 don't rebuild it. A new project for 0.0.2 (*Root Directory* `app/prototypes/0.0.2`).
 12. Docs: `prototypes.md` (naming, rules 4 and 5, the table), `app/README.md`, CLAUDE.md (commands, ports, paths, the dev link now 5202), `tools/README.md`, both READMEs and code maps ("0.0.1: frozen, reference only"), `asset-pipeline.md` (the archive), the low-res plan, the decision log, the backlog, `current.md`.
 
@@ -89,8 +89,8 @@ A Blender script, tried on a scratch copy first, opens 1.21 (only read; the owne
 
 ## Open questions
 
-1. **Which state is frozen as 0.0.1** (more in the agent's reply of 2026-10-20).
-2. **What happens to the open work** after the freeze.
+1. **Which state is frozen as 0.0.1.** *Merged first* (owner, 2026-10-20): `see-through-from-scratch` fast-forwarded into `main` at a4ae02b and pushed. Still to confirm: freeze `main` as it is (ladder 2b not built; 7 known smoke failures, written into 0.0.1's README), or build ladder 2b first.
+2. **What happens to the open work** after the freeze: all of it in 0.0.2, 0.0.1 changed only if it stops running (recommended), or fixes carried back to 0.0.1.
 
 ## After
 

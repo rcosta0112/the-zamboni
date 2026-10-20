@@ -108,7 +108,7 @@ export class GameAudio {
         .then((response) => response.arrayBuffer())
         .then((data) => context.decodeAudioData(data))
         .then((buffer) => this.buffers.set(file, buffer))
-        .catch((err: unknown) => console.warn(`[01-walk] sound "${file}" not loaded:`, err))
+        .catch((err: unknown) => console.warn(`[0.0.1] sound "${file}" not loaded:`, err))
         .finally(() => this.settled++);
     }
     window.addEventListener('keydown', () => this.unlock());

@@ -16,10 +16,11 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, wr
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const PROTO = resolve(dirname(fileURLToPath(import.meta.url)), '..'); // this version's folder
+const APP = resolve(PROTO, '..', '..');
 const ROOT = resolve(APP, '..');
 const BLEND = join(ROOT, 'resources', 'models', 'The Zamboni 1.21.blend');
-const ASSETS = join(APP, 'assets', 'test');
+const ASSETS = join(PROTO, 'public', 'test');
 const GLTF_TRANSFORM = join(APP, 'node_modules', '@gltf-transform', 'cli', 'bin', 'cli.js');
 const BLENDER = [process.env.BLENDER_PATH, 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe'].find((p) => p && existsSync(p)) ?? 'blender';
 
@@ -61,8 +62,8 @@ const size = (file) => `${(statSync(file).size / 1e6).toFixed(2)} MB`;
 // No __pycache__ next to the export scripts.
 const run = (command, args) => spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
 
-const raw = join(APP, '.export', what);
-const linesFile = join(APP, '.export', `${what}-lines.txt`);
+const raw = join(PROTO, '.export', what);
+const linesFile = join(PROTO, '.export', `${what}-lines.txt`);
 const lastLines = existsSync(linesFile) ? readFileSync(linesFile, 'utf8') : '';
 rmSync(raw, { recursive: true, force: true });
 mkdirSync(join(raw, 'before'), { recursive: true });
@@ -70,7 +71,7 @@ for (const name of Object.keys(job.files)) if (existsSync(join(ASSETS, name))) c
 
 // 1. Blender.
 const started = Date.now();
-const blender = run(BLENDER, ['-b', BLEND, '--python', join(APP, 'tools', job.script), '--', ...job.args(raw)]);
+const blender = run(BLENDER, ['-b', BLEND, '--python', join(PROTO, 'tools', job.script), '--', ...job.args(raw)]);
 const log = `${blender.stdout ?? ''}\n${blender.stderr ?? ''}`;
 writeFileSync(join(raw, 'export.log'), log);
 if (blender.error || !/^EXPORTED /m.test(log)) {
@@ -103,7 +104,7 @@ for (const [name, steps] of Object.entries(job.files)) {
 console.log(`exported the ${what} from ${BLEND.slice(ROOT.length + 1)} in ${Math.round((Date.now() - started) / 1000)} s`);
 if (counts) console.log(counts.replace(/, convex hulls:.*/, ''));
 const text = lines.join('\n');
-if (text === lastLines) console.log(`${lines.length} PERF / NODES / NOTE lines, the same as the last export (${linesFile.slice(APP.length + 1)})`);
+if (text === lastLines) console.log(`${lines.length} PERF / NODES / NOTE lines, the same as the last export (${linesFile.slice(PROTO.length + 1)})`);
 else console.log(text || 'no PERF / NODES / NOTE lines');
 writeFileSync(linesFile, text);
 let changed = false;
@@ -120,7 +121,7 @@ for (const name of Object.keys(job.files)) {
     continue;
   }
   changed = true;
-  const compared = run(process.execPath, [join(APP, 'tools', 'compare-glb.mjs'), before, after]);
+  const compared = run(process.execPath, [join(PROTO, 'tools', 'compare-glb.mjs'), before, after]);
   const differences = compared.stdout.split(/\r?\n/).filter((l) => l.startsWith('DIFF'));
   console.log(`${name}: ${size(before)} → ${size(after)}; ${differences.length ? `${differences.length} difference(s) in its objects:` : 'same objects, triangles, bounds and tags (the difference is in materials, textures or the order of the data)'}`);
   for (const line of differences.slice(0, 25)) console.log(`  ${line}`);

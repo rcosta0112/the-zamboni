@@ -3,7 +3,7 @@
 
 import * as THREE from 'three/webgpu';
 import { mount, unmount } from 'svelte';
-import '@zamboni/ui/tokens.css';
+import './ui/tokens.css';
 import { GameAudio } from './audio';
 import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
@@ -53,7 +53,7 @@ async function start(): Promise<void> {
   await renderer.init();
 
   const backend = (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL2';
-  console.info(`[01-walk] rendering with ${backend}`);
+  console.info(`[0.0.1] rendering with ${backend}`);
 
   const scene = new THREE.Scene();
   const world = createWorld(scene);
@@ -96,7 +96,7 @@ async function start(): Promise<void> {
       const markers = findLightMarkers(s.object);
       roomLights = new RoomLights(scene, markers);
       roomLights.update(character.position, 0);
-      console.info(`[01-walk] room lights: ${markers.map((m) => m.name).join(', ')}`);
+      console.info(`[0.0.1] room lights: ${markers.map((m) => m.name).join(', ')}`);
       // Build the ship's shaders now, not the first time each part comes into view (that stalled
       // the first frames). compileAsync skips what's outside the view, so culling is off meanwhile.
       const culled: THREE.Object3D[] = [];
@@ -107,10 +107,10 @@ async function start(): Promise<void> {
       const start = performance.now();
       await renderer.compileAsync(scene, view.camera, null, (e) => loading.set('shaders', e.loaded / e.total));
       for (const o of culled) o.frustumCulled = true;
-      console.info(`[01-walk] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
+      console.info(`[0.0.1] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
       const box = findDevice(s.object, 'boombox');
       if (box) boombox = new Boombox(box, audio);
-      else console.warn('[01-walk] the ship has no boombox');
+      else console.warn('[0.0.1] the ship has no boombox');
       // The doors' sounds, and the cargo ramp's motor (the ramp isn't a door in the code).
       const doors = createDoorSounds(s.object, s.doors, audio);
       const rampTarget = () => (settings.cargoRampOpen ? 1 : 0);
@@ -120,7 +120,7 @@ async function start(): Promise<void> {
         ramp();
       };
       rack = new JetpackRack(s.object, (id, at) => audio.play(id, at));
-      if (rack.slots.length === 0) console.warn('[01-walk] the ship has no jetpack rack');
+      if (rack.slots.length === 0) console.warn('[0.0.1] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.object, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
       interaction = new Interaction(shipInteractables(s.object, s.doors, others, (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
@@ -129,7 +129,7 @@ async function start(): Promise<void> {
       wind.setShip(s);
       ship = s;
     })
-    .catch((err: unknown) => console.warn('[01-walk] models or ship not loaded (the capsule stays):', err))
+    .catch((err: unknown) => console.warn('[0.0.1] models or ship not loaded (the capsule stays):', err))
     .finally(() => (loaded = true));
 
   const view = new FollowCamera(window.innerWidth / window.innerHeight);

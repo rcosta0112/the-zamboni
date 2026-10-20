@@ -179,7 +179,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   const layouts = sameLayouts(object);
   object.updateMatrixWorld(true);
   const mirrored = unmirror(object);
-  console.info(`[01-walk] vertex layouts: ${layouts.dropped} unused UV sets dropped, ${layouts.converted} made floats; ${mirrored.fixed} mirrored meshes unmirrored${mirrored.left ? `, ${mirrored.left} left` : ''}`);
+  console.info(`[0.0.1] vertex layouts: ${layouts.dropped} unused UV sets dropped, ${layouts.converted} made floats; ${mirrored.fixed} mirrored meshes unmirrored${mirrored.left ? `, ${mirrored.left} left` : ''}`);
 
   // See-through hull: cuttable copies of the materials (one per source material), and a BVH per
   // mesh so the see-through rules' raycasts are fast (the hull and the Contraption are dense).
@@ -210,7 +210,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     if (named(o, LADDER)) ladderBox = new THREE.Box3().setFromObject(o).expandByScalar(0.02);
   });
   ladderColliders[LADDER] = physics.addStaticMesh(col, ladderBox);
-  if (!ladderColliders[LADDER]) console.warn(`[01-walk] no collision triangles found for "${LADDER}": it can't be switched off`);
+  if (!ladderColliders[LADDER]) console.warn(`[0.0.1] no collision triangles found for "${LADDER}": it can't be switched off`);
 
   // Inside the ship = within the hull's bounds (both decks), from just below the cargo floor up.
   // (The hull is roughly box-shaped; a proper trigger-volume system comes later.)
@@ -246,7 +246,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   // modelled ramp has a lip where it meets the ground).
   const rampClosedAngle = closedAngle(rampDoor);
   const rampOpenAngle = findRampOpenAngle(rampNode, rampClosedAngle);
-  console.info(`[01-walk] cargo ramp: closed at ${THREE.MathUtils.radToDeg(rampClosedAngle).toFixed(1)}°, open at ${THREE.MathUtils.radToDeg(rampOpenAngle).toFixed(1)}° (0° = as in the file)`);
+  console.info(`[0.0.1] cargo ramp: closed at ${THREE.MathUtils.radToDeg(rampClosedAngle).toFixed(1)}°, open at ${THREE.MathUtils.radToDeg(rampOpenAngle).toFixed(1)}° (0° = as in the file)`);
   const rampWalkway = physics.addStaticTriangles(...walkwayTriangles(object, rampNode, cargoFloor, physics));
   rampNode.rotation.x = 0;
   rampNode.updateWorldMatrix(true, true);
@@ -296,7 +296,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
  * ladders, the ramp's walkway), as each box is convex and the rays would stop at it.
  */
 export function addCollisionBoxes(ship: Ship, physics: Physics): void {
-  if (ship.boxes.length === 0) console.warn("[01-walk] the ship's collider file has no collision boxes");
+  if (ship.boxes.length === 0) console.warn("[0.0.1] the ship's collider file has no collision boxes");
   ship.boxColliders = physics.addStaticConvex(ship.boxes, false);
 }
 
@@ -360,9 +360,9 @@ function groupCutUnits(
   const list = (f: (u: CutUnit) => boolean) => units.filter(f).map((u) => `${u.object.name || `(part of ${u.object.parent?.name})`}${named(u.object, COCKPIT_FLOOR.object) && u.lining ? ' (its floor)' : ''}`);
   const shell = list((u) => u.shell === true);
   const lining = list((u) => u.lining === true);
-  console.info(`[01-walk] the hull (${shell.length + lining.length} of ${units.length} see-through objects): shell ${shell.join(', ')}; inner parts ${lining.join(', ')}`);
-  console.info(`[01-walk] never cut on their deck: ${list((u) => u.keepOnDeck === true).join(', ')}`);
-  console.info(`[01-walk] brought back (${units.filter((u) => u.back).length}): ${list((u) => u.back === true).join(', ')}`);
+  console.info(`[0.0.1] the hull (${shell.length + lining.length} of ${units.length} see-through objects): shell ${shell.join(', ')}; inner parts ${lining.join(', ')}`);
+  console.info(`[0.0.1] never cut on their deck: ${list((u) => u.keepOnDeck === true).join(', ')}`);
+  console.info(`[0.0.1] brought back (${units.filter((u) => u.back).length}): ${list((u) => u.back === true).join(', ')}`);
   return units;
 }
 
@@ -373,7 +373,7 @@ function cameraBoxes(ship: THREE.Object3D): THREE.Box3[] {
     ship.traverse((o) => {
       if (!found && named(o, name)) found = o;
     });
-    if (!found) console.warn(`[01-walk] camera box: the ship has no "${name}"`);
+    if (!found) console.warn(`[0.0.1] camera box: the ship has no "${name}"`);
     return found;
   };
   return CAMERA_BOXES.map(({ around, across }) => {
@@ -468,7 +468,7 @@ function markAttachedToBulkheads(units: CutUnit[], ship: THREE.Object3D): void {
     }
   }
   const attached = units.filter((u) => u.attachedTo).map((u) => `${u.object.name || `(part of ${u.object.parent?.name})`} → ${u.attachedTo}`);
-  console.info(`[01-walk] attached to bulkheads (behave like them): ${attached.join(', ') || 'none'}`);
+  console.info(`[0.0.1] attached to bulkheads (behave like them): ${attached.join(', ') || 'none'}`);
 }
 
 function bulkheadName(unit: CutUnit, ship: THREE.Object3D): string {
@@ -632,7 +632,7 @@ function mergeShadowCasters(ship: THREE.Object3D, moving: THREE.Object3D[], inte
     mesh.layers.set(SHADOW_LAYER);
     return mesh;
   };
-  console.info(`[01-walk] ship shadow: ${solid.length / 9} triangles, inside ${inner.length / 9}, glass ${glass.length / 9}`);
+  console.info(`[0.0.1] ship shadow: ${solid.length / 9} triangles, inside ${inner.length / 9}, glass ${glass.length / 9}`);
   return {
     shadowCaster: caster('ship shadow caster', solid),
     interiorShadowCaster: caster('ship shadow caster (inside)', inner),
@@ -704,7 +704,7 @@ function walkwayTriangles(ship: THREE.Object3D, ramp: THREE.Object3D, floor: THR
   const end = hs[last]!;
   zs.push(zs[last]! + (out * end) / slope);
   hs.push(0);
-  console.info(`[01-walk] cargo ramp walkway: ${zs.length} points from ${hs[0]!.toFixed(2)} m at z ${zs[0]!.toFixed(2)} to the ground at z ${zs[zs.length - 1]!.toFixed(2)}; at the ramp's end (z ${zs[last]!.toFixed(2)}) ${end.toFixed(2)} m`);
+  console.info(`[0.0.1] cargo ramp walkway: ${zs.length} points from ${hs[0]!.toFixed(2)} m at z ${zs[0]!.toFixed(2)} to the ground at z ${zs[zs.length - 1]!.toFixed(2)}; at the ramp's end (z ${zs[last]!.toFixed(2)}) ${end.toFixed(2)} m`);
   const vertices = new Float32Array(zs.flatMap((z, n) => [r.min.x, hs[n]!, z, r.max.x, hs[n]!, z]));
   const indices: number[] = [];
   for (let n = 0; n < zs.length - 1; n++) {
@@ -728,7 +728,7 @@ const WALKWAY_STEP = 0.1;
 function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
   // `hinge`, not `pivot`: three's GLTFLoader consumes a `pivot` extra on a node with children.
   const p = part.userData.hinge as [number, number, number] | undefined;
-  if (!p) throw new Error(`"${part.name}" has no hinge recorded (re-export with app/tools/export-ship.py)`);
+  if (!p) throw new Error(`"${part.name}" has no hinge recorded (re-export with tools/export-ship.py)`);
   ship.updateMatrixWorld(true);
   const pivot = new THREE.Object3D();
   pivot.name = `${part.name} hinge`;
@@ -749,7 +749,7 @@ function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
 function closedAngle(door: THREE.Object3D): number {
   const q = door.quaternion;
   if (Math.abs(q.y) > 0.01 || Math.abs(q.z) > 0.01) {
-    console.warn(`[01-walk] "${door.name}" is turned about more than its hinge axis in the file: taking its pose as closed`);
+    console.warn(`[0.0.1] "${door.name}" is turned about more than its hinge axis in the file: taking its pose as closed`);
     return 0;
   }
   return -2 * Math.atan2(q.x, q.w);

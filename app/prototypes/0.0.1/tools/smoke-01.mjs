@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { answers, findChrome, openBrowser, useStartButton } from './browser.mjs';
 
 const URL_01 = 'http://localhost:5201/';
-const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '../prototypes/01-walk');
+const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // ---------------------------------------------------------------------------------------------
 // The checks. This function runs in the page: it can't use anything from this file.
@@ -1176,7 +1176,7 @@ async function main() {
         const text = msg.params.args.map((a) => a.value ?? a.description ?? '').join(' ');
         if (text.startsWith('[smoke] ')) console.log(text.slice(8));
         else if (msg.params.type === 'error') errors.push(text);
-        else if (text.startsWith('[01-walk] rendering') || text.startsWith('[01-walk] cargo ramp')) console.log(`      ${text}`);
+        else if (text.startsWith('[0.0.1] rendering') || text.startsWith('[0.0.1] cargo ramp')) console.log(`      ${text}`);
       } else if (msg.method === 'Runtime.exceptionThrown') {
         errors.push(msg.params.exceptionDetails.exception?.description ?? msg.params.exceptionDetails.text);
       }

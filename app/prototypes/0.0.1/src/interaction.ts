@@ -78,7 +78,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     }
     const door = doors.find((d) => named(d.object, target));
     if (!door) {
-      console.warn(`[01-walk] "${o.name}" controls "${target}", which isn't a door`);
+      console.warn(`[0.0.1] "${o.name}" controls "${target}", which isn't a door`);
       return;
     }
     // What it moves: the door with everything that opens with it (a bulkhead door's two leaves),

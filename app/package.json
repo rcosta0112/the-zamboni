@@ -10,15 +10,15 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev:01": "npm run dev -w prototypes/01-walk",
+    "dev:0.0.1": "npm run dev -w prototypes/0.0.1",
     "check": "npm run check --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "smoke": "node tools/smoke-01.mjs",
-    "probe": "node tools/probe-01.mjs",
-    "see-through": "node tools/probe-01.mjs tools/see-through-views.js --shots .export/see-through",
-    "export:ship": "node tools/export.mjs ship",
-    "export:crew": "node tools/export.mjs crew",
-    "export:player": "node tools/export.mjs player"
+    "smoke:0.0.1": "npm run smoke -w prototypes/0.0.1",
+    "probe:0.0.1": "npm run probe -w prototypes/0.0.1 --",
+    "see-through:0.0.1": "npm run see-through -w prototypes/0.0.1",
+    "export:0.0.1:ship": "npm run export:ship -w prototypes/0.0.1",
+    "export:0.0.1:crew": "npm run export:crew -w prototypes/0.0.1",
+    "export:0.0.1:player": "npm run export:player -w prototypes/0.0.1"
   },
   "devDependencies": {
     "@gltf-transform/cli": "4.5.1",

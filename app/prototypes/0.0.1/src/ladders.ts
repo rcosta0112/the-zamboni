@@ -66,9 +66,9 @@ export function shipLadders(ship: THREE.Object3D, physics: Physics, colliders: R
       if (named(o, name)) object = o;
     });
     if (object) ladders.push({ ...fixedLadder(name, object, physics), collider: colliders[name] ?? null });
-    else console.warn(`[01-walk] no ladder "${name}" in the ship`);
+    else console.warn(`[0.0.1] no ladder "${name}" in the ship`);
   }
-  console.info(`[01-walk] ladders: ${ladders.map((l) => `${l.name} (${l.topExit ? 'floor at the top' : 'no way off at the top'})`).join(', ')}`);
+  console.info(`[0.0.1] ladders: ${ladders.map((l) => `${l.name} (${l.topExit ? 'floor at the top' : 'no way off at the top'})`).join(', ')}`);
   return ladders;
 }
 
@@ -174,7 +174,7 @@ export class LadderClimb {
   ) {
     const ladder = list[0];
     this.interactables = ladder && start ? [{ name: ladder.name, objects: [ladder.object], verb: () => 'Climb', act: () => this.begin(), available: () => this.offered(ladder) }] : [];
-    if (ladder && !start) console.warn('[01-walk] no `climb` tag on her model: the ladder has no animation to play');
+    if (ladder && !start) console.warn('[0.0.1] no `climb` tag on her model: the ladder has no animation to play');
   }
 
   get climbing(): boolean {

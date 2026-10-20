@@ -22,10 +22,11 @@ import { mkdirSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = join(APP, 'assets', 'test', 'audio');
+const PROTO = resolve(dirname(fileURLToPath(import.meta.url)), '..'); // this version's folder
+const ROOT = resolve(PROTO, '..', '..', '..');
+const OUT = join(PROTO, 'public', 'test', 'audio');
 const PART1 = process.env.BMTM_AUDIO ?? 'C:/Users/31658/Projects/Big Moon Tiny Moon/Assets/Audio';
-const MASTERS = resolve(APP, '..', 'resources', 'audio');
+const MASTERS = resolve(ROOT, 'resources', 'audio');
 const RATE = 44100;
 
 // In the expressions: t = time (s); random(n) = noise, 0..1; a filter chain follows each.

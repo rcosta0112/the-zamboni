@@ -10,9 +10,10 @@ import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const MASTERS = resolve(APP, '..', 'resources', 'audio', 'ue-prototype');
-const OUT = join(APP, 'assets', 'test', 'audio');
+const PROTO = resolve(dirname(fileURLToPath(import.meta.url)), '..'); // this version's folder
+const ROOT = resolve(PROTO, '..', '..', '..');
+const MASTERS = resolve(ROOT, 'resources', 'audio', 'ue-prototype');
+const OUT = join(PROTO, 'public', 'test', 'audio');
 const PART1 = process.env.BMTM_AUDIO ?? 'C:/Users/31658/Projects/Big Moon Tiny Moon/Assets/Audio';
 
 // [game file, the start of the master's name, bit rate, channels]. The masters are 22 kHz: the

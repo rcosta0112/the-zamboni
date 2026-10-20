@@ -17,7 +17,7 @@ export function antialiasEnabled(): boolean {
 }
 
 export function createTuningPanel(onChange: { pixelRatio: () => void }, describeView: () => object) {
-  const gui = new GUI({ title: 'Tuning  ( ` or View button )' });
+  const gui = new GUI({ title: `Tuning · ${__VERSION__}  ( \` or View button )` });
 
   const move = gui.addFolder('Movement');
   move.add(settings, 'walkSpeed', 0.5, 4, 0.1).name('walk speed (m/s)');

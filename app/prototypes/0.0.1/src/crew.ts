@@ -55,6 +55,6 @@ export async function loadCrew(shipObject: THREE.Object3D, physics: Physics, onP
     boxes.set(name, box);
   });
   for (const box of boxes.values()) physics.addStaticBox(box);
-  console.info(`[01-walk] crew: ${[...boxes.keys()].join(', ')}; animations: ${gltf.animations.map((a) => `${a.name} (${a.duration.toFixed(1)} s)`).join(', ') || 'none'}`);
+  console.info(`[0.0.1] crew: ${[...boxes.keys()].join(', ')}; animations: ${gltf.animations.map((a) => `${a.name} (${a.duration.toFixed(1)} s)`).join(', ') || 'none'}`);
   return { object, mixer, names: [...boxes.keys()] };
 }
