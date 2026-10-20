@@ -13,7 +13,8 @@
     "see-through": "node tools/probe-01.mjs tools/see-through-views.js --shots .export/see-through",
     "export:ship": "node tools/export.mjs ship",
     "export:crew": "node tools/export.mjs crew",
-    "export:player": "node tools/export.mjs player"
+    "export:player": "node tools/export.mjs player",
+    "rest-poses": "node tools/export.mjs rest-poses"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",

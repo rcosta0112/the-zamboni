@@ -39,10 +39,14 @@ properties (doc/architecture/asset-pipeline.md, "Naming contract"):
   ``seeThrough`` tag from the list (the cockpit's props are never cut).
 - Lights: glTF can't carry area lights, so the room lights are marker empties in the file
   (``lightRoom``, ``lightColor``, ``lightEnergy``), written with one ``light`` property.
-- Doors (``doorAxis``, ``doorAngle``, ``doorToGround``, ``doorStartOpen``; closed in the file) are
+- Moving parts (doors, hatches, sliding doors, the window, the lever, what's tagged ``moving``) are
+  exported in their rest poses, recorded in ``rest-poses.json`` (rest_poses.py), whatever pose the
+  file has them in, and their actions are dropped; a ``POSE:`` line for each correction, for a
+  moving part with no record and for a record with no part.
+- Doors (``doorAxis``, ``doorAngle``, ``doorToGround``, ``doorStartOpen``; at rest, so closed) are
   written with one ``door`` property: the hinge axis (glTF axes, in the ship's space), the open
   angle (radians), ``toGround`` and ``startOpen``.
-- Sliding doors (``doorSlide``, ``doorDistance``, ``doorAuto``; closed in the file): the bulkhead
+- Sliding doors (``doorSlide``, ``doorDistance``, ``doorAuto``; at rest, so closed): the bulkhead
   doors, the engineering window, the lever. Written as ``door: {slide, auto}``: the way and the
   distance it slides to open, as one vector (glTF axes, in the ship's space), and whether it opens
   when she's near.
@@ -76,6 +80,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
 from export_collections import show, switch_collections
+from rest_poses import drop_actions, is_moving, put_at_rest
 from scale_check import check_scale
 
 # What's exported (ship-export-list.py made it; edit it to add or remove things).
@@ -134,6 +139,10 @@ for door in doors:
         if c not in objects and not c.get('part'):
             print(f'NOTE: {c.name!r} hangs on the door {door.name!r} but is not in the list: not exported')
 moving = doors + door_children + [ob for ob in objects if ob.get('moving')]
+
+# Every moving part at its rest pose, whatever the file has (rest_poses.py): nothing animated.
+drop_actions([ob for ob in objects if is_moving(ob)])
+put_at_rest([ob for ob in objects if is_moving(ob)], in_scene)
 
 for mat in sorted({s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:

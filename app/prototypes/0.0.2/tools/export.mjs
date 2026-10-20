@@ -3,6 +3,7 @@
 //     npm run export:ship       ship + collider → assets/test/zamboni-ship.glb, zamboni-ship-col.glb
 //     npm run export:crew       crew → assets/test/zamboni-crew.glb
 //     npm run export:player     the player's Dr. Green → assets/test/green-parka.glb (not compressed)
+//     npm run rest-poses        the moving parts' rest poses, checked or taken (rest_poses.py); no export
 //
 // Runs the Blender export script (nothing is saved to the .blend: Blender may be open), caps the
 // textures at 512 px, removes duplicates (ship), compresses (Meshopt), then compares with the
@@ -54,14 +55,23 @@ const JOBS = {
   },
 };
 const job = JOBS[what];
+// No __pycache__ next to the export scripts.
+const run = (command, args) => spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
+
+// `npm run rest-poses [-- --accept <name>]`: the moving parts' rest poses (rest_poses.py), checked
+// against the file or taken from it; no export.
+if (what === 'rest-poses') {
+  const done = run(BLENDER, ['-b', BLEND, '--python', join(PROTO, 'tools', 'rest_poses.py'), '--', ...process.argv.slice(3)]);
+  const out = `${done.stdout ?? ''}\n${done.stderr ?? ''}`.split(/\r?\n/).filter((l) => /^(POSE|REST POSES)\b/.test(l));
+  console.log(out.join('\n') || `rest-poses: Blender printed nothing${done.error ? ` (${done.error.message})` : ''}`);
+  process.exit(done.status ?? 1);
+}
 if (!job) {
-  console.error('export: npm run export:ship | npm run export:crew | npm run export:player');
+  console.error('export: npm run export:ship | npm run export:crew | npm run export:player | npm run rest-poses');
   process.exit(2);
 }
 
 const size = (file) => `${(statSync(file).size / 1e6).toFixed(2)} MB`;
-// No __pycache__ next to the export scripts.
-const run = (command, args) => spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
 
 const raw = join(PROTO, '.export', what);
 const linesFile = join(PROTO, '.export', `${what}-lines.txt`);
@@ -80,7 +90,7 @@ if (blender.error || !/^EXPORTED /m.test(log)) {
   console.error(log.split(/\r?\n/).filter((l) => /^SCALE:|Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);
 }
-const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|BAKED|SHAPE KEY|SCALE)\b/.test(l));
+const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|BAKED|SHAPE KEY|SCALE)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
 // 2. Resize, dedup, compress.
@@ -105,8 +115,8 @@ for (const [name, steps] of Object.entries(job.files)) {
 console.log(`exported the ${what} from ${BLEND.slice(ROOT.length + 1)} in ${Math.round((Date.now() - started) / 1000)} s`);
 if (counts) console.log(counts.replace(/, convex hulls:.*/, ''));
 const text = lines.join('\n');
-if (text === lastLines) console.log(`${lines.length} PERF / NODES / NOTE lines, the same as the last export (${linesFile.slice(PROTO.length + 1)})`);
-else console.log(text || 'no PERF / NODES / NOTE lines');
+if (text === lastLines) console.log(`${lines.length} PERF / NODES / NOTE / POSE lines, the same as the last export (${linesFile.slice(PROTO.length + 1)})`);
+else console.log(text || 'no PERF / NODES / NOTE / POSE lines');
 writeFileSync(linesFile, text);
 let changed = false;
 for (const name of Object.keys(job.files)) {

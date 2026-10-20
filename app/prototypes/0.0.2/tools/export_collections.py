@@ -5,12 +5,17 @@ file doesn't matter: every export switches them as the table says, in memory (no
 A collection that isn't in the table stays off, and is flagged (``NOTE:``): add it to the table to
 export what's in it. A collection on under one that's off stays off (Blender switches children off
 with their parent).
+
+It also puts the scene at its start frame (``rest_poses.start_frame``): the frame the file was left
+on doesn't pose anything in an export.
 """
 
 import json
 import os
 
 import bpy
+
+from rest_poses import start_frame
 
 TABLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'export-collections.json')
 
@@ -39,6 +44,7 @@ def switch_collections():
             bpy.ops.object.mode_set(mode='OBJECT')
         except RuntimeError:
             bpy.context.view_layer.objects.active = None
+    start_frame()
 
 
 def show(objects, render=False):

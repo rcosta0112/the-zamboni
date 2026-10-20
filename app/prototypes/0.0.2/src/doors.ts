@@ -228,28 +228,6 @@ export class Door {
   }
 }
 
-/**
- * Doors left open in the ship file (1.21: the trapdoor, rotated out of the way for the ladder
- * animation). The game takes the file's pose as closed, so it opened a further turn, the wrong way.
- * Until the export closes them (robust-exports.md, backlog 48), they're turned back here.
- */
-const POSED_OPEN = ['Hatch.002'];
-
-/**
- * Turns a door posed open in the file back about its hinge, if it's still turned by its open angle
- * (a file with it closed is left alone). Call after hingeAt: the part is then relative to its hinge.
- */
-function closeInFile(part: THREE.Object3D, axis: THREE.Vector3, openAngle: number): void {
-  const q = part.quaternion;
-  const along = q.x * axis.x + q.y * axis.y + q.z * axis.z;
-  const turned = 2 * Math.atan2(along, q.w);
-  if (Math.abs(turned - openAngle) > 0.1) return;
-  const back = new THREE.Quaternion().setFromAxisAngle(axis, -openAngle);
-  part.position.applyQuaternion(back);
-  part.quaternion.premultiply(back);
-  part.updateMatrixWorld(true);
-}
-
 /** A hinged door that lies flatter than this when shut (m) is a hatch in a floor: it gets a lid. */
 const LID_THICK = 0.4;
 
@@ -298,7 +276,6 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
       return door;
     }
     const axis = new THREE.Vector3(...data.axis).normalize();
-    if (POSED_OPEN.some((name) => named(object, name))) closeInFile(object, axis, data.angle);
     const openAngle = data.toGround ? angleToGround(hinge, axis, data.angle) : data.angle;
     const walkway = data.toGround ? physics.addStaticTriangles(...walkwayTriangles(hinge, axis, physics)) : null;
     hinge.quaternion.identity();

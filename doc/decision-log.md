@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-20 | The export puts moving parts at their recorded rest pose | pipeline | `rest-poses.json` records each door's local transform; the exports drop the doors' animation, put them at rest and run at the start frame, whatever the file has; `POSE:` lines for each correction |
 | 2026-10-20 | Prototypes numbered by version; 01 frozen as 0.0.1; each version isolated | process | Folders, packages, scripts and tags by version; the current one takes the plain script names; each has its own game files, tools and source `.blend` (a frozen one from its packed archive) and Vercel project |
 | 2026-10-20 | Fewer GPU pipelines, made at load | tech | Unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical: 116 → 78 pipelines; reloads compile in about 2 s instead of 11 |
 | 2026-10-19 | What the ship export takes is a list | pipeline | `ship-export-list.json`, made from what the game had (1.19), not the collections switched on in the file; new or missing objects are flagged |
@@ -43,6 +44,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-20] — The export puts moving parts at their recorded rest pose (pipeline)
+
+**Context:** the game takes a door's pose in the exported file as closed. A door posed in Blender for an animation (the trapdoor, turned out of the way for the ladder, 2026-10-19) reached the game and opened the wrong way; earlier the ramp's single keyframe held it open. The rule "doors closed and not animated in the file" depended on the owner remembering it, and the current frame decided the pose of anything animated.
+
+**Decision:** each moving part's rest pose (local transform, by name) is recorded in `app/prototypes/0.0.2/tools/rest-poses.json`, from 1.21. The ship export drops the moving parts' animation and puts each at rest, in memory; all three exports run at the scene's start frame. Every correction prints a `POSE:` line. A door moved on purpose is taken with `npm run rest-poses -- --accept "<name>"`.
+
+**Alternatives considered:** correcting the pose when the game loads (the same data, but the game's files would be wrong and the game more complex); keeping the rule as a checklist line (it broke twice); the stopgap in `doors.ts` for named doors (removed).
+
+**Rationale:** the export gives the game the ship as it's meant to be whatever state the working file is in; nothing is saved to the `.blend`; the record is what item 49's component definitions will take over.
+
+**Status:** Built 2026-10-20 (item 48, pass A; [`plans/features/robust-exports.md`](plans/features/robust-exports.md), *As built*). Pass B (the gate on what reaches the game) next.
 
 ---
 
