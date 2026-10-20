@@ -66,6 +66,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** Approved (owner, 2026-10-20); the passes are for review ([`plans/architecture/game-architecture/game-structure.md`](plans/architecture/game-architecture/game-structure.md), item 54). For the cutscenes, later (owner): the game's camera (see-through hole radius, clipping) and lighting replicated in Blender; depth of field.
 
+*Update 2026-10-20 (pass 1):* **the rest poses stay with the export** (owner: yes). The plan had the game take each moving part's rest pose from `rest-poses.json`; instead the export keeps putting them at rest from it and its gate stops on a pose change, as before. Why: the game can't reapply Blender's local transforms safely (compression moves node origins; hinges are built from the `hinge` tag), and the export already guarantees it.
+
 ---
 
 ## [2026-10-20] — The export puts moving parts at their recorded rest pose (pipeline)

@@ -52,6 +52,12 @@ export class Entities {
     });
   }
 
+  /** One made by its feature (the crew's grouped characters). A taken id is warned about, not replaced. */
+  add(entity: Entity): void {
+    if (this.byId.has(entity.id)) console.warn(`[0.0.2] the id "${entity.id}" is taken`);
+    else this.byId.set(entity.id, entity);
+  }
+
   get(id: string): Entity | null {
     return this.byId.get(id) ?? null;
   }

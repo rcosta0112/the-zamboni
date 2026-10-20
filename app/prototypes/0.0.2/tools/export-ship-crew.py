@@ -27,7 +27,9 @@ then cap the textures at 512 px and compress (Meshopt) into public/test/, from a
   HEIGHTS and a ``NOTE:`` printed when it's 2% off. (Until then the crew was modelled bigger in the
   ship file than in the crew file, and this script scaled each character around their hips;
   normalize-scale.py put that resize into the file.)
-- Every exported object carries a ``character`` custom property (the character's name).
+- Every exported object carries a ``character`` custom property (the character's name) and the
+  character's ``id`` (``CREW_IDS``; the game's structure: scenes place a character by it), and the
+  ``kind`` ``character``.
 - A ``CREW:`` line per character (hips, facing, action): export.mjs flags a change since the last
   taken export, and stops on a lost action. Movement that makes no sense stops the export
   (``STOP:``, owner 2026-10-20): an animated character with no action, one at the world origin,
@@ -51,6 +53,8 @@ from export_collections import show, switch_collections
 from scale_check import check_scale
 
 ANIMATED = {'Dr. Kaufman': ('Dr. Kaufman.002', ['Dr. KaufmanMesh.003', 'Mug.003'])}
+# Each character's stable id (the game's structure, *Ids*: doc/plans/architecture/game-architecture/ship-names.md).
+CREW_IDS = {'Dr. Kaufman': 'kaufman', 'Dr. Ogawa': 'ogawa', 'Adam (Red)': 'adam-red', 'Adam (Blue)': 'adam-blue'}
 STATIC = {
     'Adam (Red)': 'Adam',
     'Adam (Blue)': 'Adam Blue.001',
@@ -129,6 +133,8 @@ for character, armature_name in STATIC.items():
             mesh.flip_normals()
         baked = bpy.data.objects.new(f'{character} - {part.name}', mesh)
         baked['character'] = character
+        baked['id'] = CREW_IDS[character]
+        baked['kind'] = 'character'
         bpy.context.scene.collection.objects.link(baked)
         selection.append(baked)
 
@@ -158,6 +164,8 @@ for character, (armature_name, part_names) in ANIMATED.items():
         print(f'STOP: {character} is animated in the game but has no action in the file: exported unposed')
     for ob in [armature, *parts]:
         ob['character'] = character
+        ob['id'] = CREW_IDS[character]
+        ob['kind'] = 'character'
         selection.append(ob)
 
 

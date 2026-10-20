@@ -2,7 +2,7 @@
 // galley and locker doors. Each is tagged in the ship file (export-ship.py) with a `door` property:
 // the hinge axis (ship space), the open angle, `toGround` (the side door drops outward until it rests
 // on the ground; fully open, it's a ramp: a smooth walkable slope stands in for its steps, as for the
-// cargo ramp) and `startOpen` (the trapdoor, for now). The hinge is at the recorded `hinge` point.
+// cargo ramp). Every door starts closed: a scene's setup opens it (scenes.ts). The hinge is at the recorded `hinge` point.
 // A moving door pushes her out of its way, sideways, through her character controller (so never into
 // a wall). If she can't be pushed (pinned, on a ladder, or it would have to lift her), it stops and
 // waits until she's clear.
@@ -312,7 +312,7 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
       door.lid = physics.addStaticBox(shut);
       door.lid.setEnabled(false);
     }
-    door.open = data.startOpen === true; // posed by the ship's first (forced) update
+    // Closed: a scene opens it (the floor hatch: `opening`); the `startOpen` tag is no longer read.
     door.device = device;
     return door;
   });

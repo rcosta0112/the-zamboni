@@ -39,7 +39,7 @@ export const DOOR_KINDS = {
 } satisfies Record<string, DoorKind>;
 
 /** The kinds with no component yet: found by their features as before (pass 6 moves them over). */
-const OTHER_KINDS = ['ramp', 'keypad', 'door-panel', 'lever', 'ladder', 'jetpack', 'jetpack-rack', 'boombox'] as const;
+const OTHER_KINDS = ['character', 'ramp', 'keypad', 'door-panel', 'lever', 'ladder', 'jetpack', 'jetpack-rack', 'boombox'] as const;
 
 export type DoorKindName = keyof typeof DOOR_KINDS;
 export type Kind = DoorKindName | (typeof OTHER_KINDS)[number];

@@ -166,6 +166,8 @@ export class Interaction {
   private toTarget = new THREE.Vector3();
   private forward = new THREE.Vector3();
   private ray = new THREE.Ray();
+  /** The ids switched off by a scene or a command (any of an item's objects): not offered. */
+  disabled = new Set<string>();
 
   constructor(
     private items: Interactable[],
@@ -192,6 +194,7 @@ export class Interaction {
     let bestDistance = Infinity;
     for (const item of this.items) {
       if (item.available && !item.available()) continue;
+      if (this.disabled.size && item.objects.some((o) => this.disabled.has(o.userData.id as string))) continue;
       this.bounds(item);
       const distance = this.box.distanceToPoint(chest);
       if (distance > settings.interactReach) continue;
