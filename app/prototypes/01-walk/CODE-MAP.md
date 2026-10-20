@@ -6,7 +6,7 @@
 |---|---|---|
 | `main.ts` | Start-up and load order; when the start button comes and what using it does; the fixed 60 Hz step; the frame loop (who is called, in what order); dev hooks on `window` | `start`, `begin` |
 | `StartScreen.svelte` | The start screen: the mockup's layout, the bar then the button, which keys use it | `press`, `setProgress`, `setReady` |
-| `loading.ts` | What the start screen's bar measures: the load's parts and their shares | `LoadProgress`, `downloads` |
+| `loading.ts` | What the start screen's bar measures: the load's parts (downloads, the shaders object by object, the warm-up frames) and their shares | `LoadProgress`, `downloads` |
 | `settings.ts` | Every tunable value and its starting point | `settings` |
 | `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |
 | `input.ts` | Actions from gamepad and keyboard: move, look, jump, interact, last device used | `Input.poll`, `consume*` |
@@ -24,6 +24,7 @@
 | `exhaust.ts` | The jetpack's exhaust glow: a sprite per nozzle (halo painted in, TSL), where the nozzles are, following R2, the flicker | `Exhaust.update` |
 | `ladders.ts` | Finding ladders; the climb by button: the *Climb* target, the slide to the animation's start, the animation moving her (its root motion), the end on the floor above; when the ladder collides | `shipLadders`, `LadderClimb.update`, `updateLadderColliders`, `ClimbClip` |
 | `ladders-free.ts` | **Not in use:** the climb with the stick until 2026-10-19 (attaching at the foot, up and down, held at the top, the float), kept to roll back to | `FreeLadders.update` |
+| `pipelines.ts` | Fewer GPU pipelines at load: unused UV sets dropped, the rest as floats; mirrored meshes unmirrored (their geometry mirrored instead) | `sameLayouts`, `unmirror` |
 | `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays). Branch `see-through-from-scratch`: `hullOnly` (the shell drawn, the rest hidden) replaces the rules while `settings.seeThroughStage` is `'hull only'` | `updateVisibility`, `hullOnly`, `prepareRaycasts` |
 | `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
 | `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |

@@ -23,7 +23,7 @@
 
 ## Waiting on the owner
 
-- **Two plans saved, no action** (owner, 2026-10-19/20): [robust exports](../plans/features/robust-exports.md) (item 48) and [the ship's things as components](../plans/architecture/game-architecture/components.md) (item 49).
+- **Two plans saved, no action** (owner, 2026-10-19/20): [robust exports](../plans/features/robust-exports.md) (item 48) and [the ship's things as components](../plans/architecture/game-architecture/components.md) (item 49). **2026-10-20:** [a faster load](../plans/features/faster-load.md) (item 50): **stage 2 built** (`pipelines.ts`: unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical; 116 → 78 pipelines; reloads compile in about 2 s instead of 11, the button at 4 s; first load still about 12 s). **The bar built too** (option A: shaders report object by object, a warm-up share; never still more than about 2 s). Not committed. Later: drop the unused UVs in the export (owner, for the file's size).
 
 - The clipping fix of objects in the hull's wall (asked 2026-10-15): by hand, or a semi-automatic Blender script (Shrinkwrap on the offending vertices; `npm run probe -- tools/hull-clipping.js` lists them). The crew quarters need a modelling decision first (no inner skin there).
 - **The start screen:** not checked with a gamepad. **Lighting** for a later pass; camera distances placeholders.
@@ -52,7 +52,7 @@
 - **In the Bash tool, heredocs with apostrophes fail:** write the script to the scratchpad with the Write tool, then run it.
 - **A dev server may already be running on 5201** (the owner's): the smoke script uses it, and `npm run dev:01` then fails (port taken). **After `vite.config.ts` or a dependency changes it restarts by itself**; if the page is blank, restart it by hand.
 - **Dev hooks** on `window` in dev builds: `__settings`, `__character`, `__physics`, `__ship()`, `__view`, `__scene`, `__world`, `__interaction()`, `__ladders()`, `__boxes()` (`count`), `__audio` (`started`, `playing()`), `__boombox()`, `__rack()`, `__exhaust` (`shown`), `__wind` (`level`), `__start()` (`ready`, `begun`, `share`), `__THREE`.
-- **No gamepad in the test browser.** Headless Chrome is capped at 60 fps unless it gets `--disable-frame-rate-limit --disable-gpu-vsync`. **Sound in a check:** a key sent through DevTools (`Input.dispatchKeyEvent`, not Shift) turns it on. **The start screen in a check:** the probe and the smoke script press Q, wait for the button and press Enter (`useStartButton` in `browser.mjs`); `--stay` leaves the screen up and the file runs **before the button is there** (wait on `__start().ready`). The load takes about 18 s. **A gamepad in a check:** replace `navigator.getGamepads` with a made-up pad.
+- **No gamepad in the test browser.** Headless Chrome is capped at 60 fps unless it gets `--disable-frame-rate-limit --disable-gpu-vsync`. **Sound in a check:** a key sent through DevTools (`Input.dispatchKeyEvent`, not Shift) turns it on. **The start screen in a check:** the probe and the smoke script press Q, wait for the button and press Enter (`useStartButton` in `browser.mjs`); `--stay` leaves the screen up and the file runs **before the button is there** (wait on `__start().ready`). The load takes about 16 s in a fresh profile, 4 s on a reload. **A gamepad in a check:** replace `navigator.getGamepads` with a made-up pad.
 - **Before any export:** read *Before the next export* in [`../architecture/asset-pipeline.md`](../architecture/asset-pipeline.md#before-the-next-export).
 
 ## How to verify

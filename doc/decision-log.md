@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-20 | Fewer GPU pipelines, made at load | tech | Unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical: 116 → 78 pipelines; reloads compile in about 2 s instead of 11 |
 | 2026-10-19 | What the ship export takes is a list | pipeline | `ship-export-list.json`, made from what the game had (1.19), not the collections switched on in the file; new or missing objects are flagged |
 | 2026-10-19 | One scale: the ship file is the game 1:1 | pipeline | 1 Blender unit = 1 m; Dr. Green 1.23 tall at armature scale 1; the game's proportions kept; no correction factor in any export; the exports stop if her size is off |
 | 2026-10-14 | See-through from scratch: the shell only, then the rules one by one | feature | On a branch: every rule removed; only the hull and what closes its openings is drawn, cut by the hole; everything inside hidden on both decks; rules come back one at a time |
@@ -41,6 +42,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-20] — Fewer GPU pipelines, made at load (tech)
+
+**Context:** The load took about 18 s, 14 of them the GPU building 116 pipelines. Chrome caches them on disk, but in practice only the first load of a browser session got the cache: reloads, the usual way of working, built everything again (owner's Chrome: 5.5 s, then 11.2 s).
+
+**Decision:** In the game, at load (`pipelines.ts`): UV sets no texture reads are dropped, the rest stored as floats, so the ship has one vertex layout per kind of mesh; mirrored meshes get mirrored geometry instead of a negative scale; every see-through material copy is physical (a standard one is a physical one at its defaults). 116 → 78 pipelines.
+
+**Alternatives considered:** saving compiled shaders in the page's storage (WebGPU gives a page no access to them); fewer materials or applied scales in the ship file (the owner's work, not needed for this); dropping unused UVs in the export (wanted too, for the file's size: later, item 50).
+
+**Rationale:** nothing to change in the file, no visible change (screenshots of every room compared), and reloads went from about 11 s of compiling to about 2 s (the button at 4 s instead of 15).
+
+**Status:** Built 2026-10-20 ([`plans/features/faster-load.md`](plans/features/faster-load.md), *As built*).
 
 ---
 

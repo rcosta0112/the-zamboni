@@ -24,6 +24,8 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 5. **Story levers:** the owner controls the story and script. When a story/script change could relieve a performance or loading problem, flag it as an option (never apply it yourself).
 6. **Record decisions** in `doc/decision-log.md`: Context → Decision → Alternatives → Rationale → Status. Add dated *Update* notes instead of rewriting entries.
 7. **Commit only when the owner asks.**
+8. **Flag a stale page after every edit** (owner, 2026-10-20): say when the running dev page needs a reload (or a server restart) to show the change truly, e.g. a Svelte or CSS change swapped in on top of old state, a re-exported file, `vite.config.ts`. **No flag means the owner tests without reloading.**
+9. **Give the dev server's link** (http://localhost:5201/ for prototype 01) whenever there's something to look at.
 
 ## Keeping the work cheap (owner, 2026-10-13)
 

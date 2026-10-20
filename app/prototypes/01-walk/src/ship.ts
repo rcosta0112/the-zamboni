@@ -17,6 +17,7 @@ import { fillBackFaces, makeCuttable } from './cutaway';
 import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
 import { downloads } from './loading';
 import { named } from './names';
+import { sameLayouts, unmirror } from './pipelines';
 import { isDrawn, isHullPart, newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
 import { settings } from './settings';
@@ -173,6 +174,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   if (!collider) throw new Error(`${COLLIDER_URL} has no mesh`);
   if (!ramp) throw new Error(`${SHIP_URL} has no cargo ramp ("Door Cargo")`);
   if (!cargoFloor) throw new Error(`${SHIP_URL} has no cargo floor ("Floor Bottom")`);
+
+  // Fewer GPU pipelines (pipelines.ts): before the BVHs, which are built from the geometry.
+  const layouts = sameLayouts(object);
+  object.updateMatrixWorld(true);
+  const mirrored = unmirror(object);
+  console.info(`[01-walk] vertex layouts: ${layouts.dropped} unused UV sets dropped, ${layouts.converted} made floats; ${mirrored.fixed} mirrored meshes unmirrored${mirrored.left ? `, ${mirrored.left} left` : ''}`);
 
   // See-through hull: cuttable copies of the materials (one per source material), and a BVH per
   // mesh so the see-through rules' raycasts are fast (the hull and the Contraption are dense).

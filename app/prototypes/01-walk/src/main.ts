@@ -105,8 +105,7 @@ async function start(): Promise<void> {
         o.frustumCulled = false;
       });
       const start = performance.now();
-      loading.creep('shaders', 4);
-      await renderer.compileAsync(scene, view.camera);
+      await renderer.compileAsync(scene, view.camera, null, (e) => loading.set('shaders', e.loaded / e.total));
       for (const o of culled) o.frustumCulled = true;
       console.info(`[01-walk] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
       const box = findDevice(s.object, 'boombox');
@@ -238,7 +237,6 @@ async function start(): Promise<void> {
     audio.update(dt, indoorLight);
     if (!begun) {
       // The start screen covers the view, and nothing is simulated.
-      loading.update();
       loading.set('sounds', audio.loadedShare);
       if (input.padPressed) startScreen.press();
       // What was pressed to start isn't a jump or a use.
@@ -254,6 +252,8 @@ async function start(): Promise<void> {
       if (!ready) {
         warmTime += dt;
         smooth = warmTime > dt && dt < 0.1 ? smooth + 1 : 0;
+        // The bar's last part: quick frames in a row, or the time limit, whichever is further.
+        loading.set('warm', Math.max(smooth / WARM_FRAMES, warmTime / WARM_LIMIT));
         if (smooth >= WARM_FRAMES || warmTime > WARM_LIMIT) {
           ready = true;
           loading.finish();

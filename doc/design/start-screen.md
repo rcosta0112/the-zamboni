@@ -44,14 +44,15 @@ What it measures ([`loading.ts`](../../app/prototypes/01-walk/src/loading.ts)): 
 
 | Part | Share | How it reports |
 |---|---|---|
-| Physics (Rapier) | 5 % | Done or not |
-| The decoded sounds | 5 % | The share of the files that have arrived |
-| The two character models | 15 % | Bytes downloaded |
-| The ship and its collider | 30 % | Bytes downloaded |
-| The crew | 10 % | Bytes downloaded |
-| Shaders | 35 % | **Can't report.** Its share creeps toward nine tenths with time, and completes when the work is done |
+| Physics (Rapier) | 3 % | Done or not |
+| The decoded sounds | 4 % | The share of the files that have arrived |
+| The two character models | 5 % | Bytes downloaded |
+| The ship and its collider | 12 % | Bytes downloaded |
+| The crew | 4 % | Bytes downloaded |
+| Shaders | 62 % | The share of the scene's objects built (three's `compileAsync` reports each one) |
+| Warm-up | 10 % | The first frames made under the screen: quick frames in a row out of five, or the time out of six seconds, whichever is further |
 
-"Shaders" is two things: building the ship's shaders (one call), then **the first frames of the game made under the screen**. Those first frames stall for a couple of seconds (the see-through shaders are built when first used); before this screen that stall came right after *Press any button*. The button comes after five quick frames in a row (or six seconds, on a machine where no frame is quick), so the game moves as soon as it's used. On the owner's PC in headless Chrome the whole load took about 18 s, most of it this last part; the downloads are a second or two from the dev server.
+The shares follow time: the downloads take a second or two from the dev server, the shaders about 2 s when Chrome has them cached (a reload) and about 12 s when it hasn't (headless Chrome on the owner's PC, 2026-10-20). **The warm-up:** the first frames stall (the see-through shaders are built when first used); before this screen that stall came right after *Press any button*. The button comes after five quick frames in a row (or six seconds, on a machine where no frame is quick), so the game moves as soon as it's used. The bar moves unevenly through the shaders (an object whose pipeline already exists is instant), but it doesn't stand still for more than about 2 s (2026-10-20).
 
 If the models or the ship fail to load, the button still comes (the game starts with what it has, as before) and the console says why.
 

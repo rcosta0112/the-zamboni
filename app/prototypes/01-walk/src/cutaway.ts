@@ -172,9 +172,9 @@ export function makeCuttable(mesh: THREE.Mesh): void {
 }
 
 function cuttableCopy(source: THREE.MeshStandardMaterial, label: string): THREE.MeshStandardNodeMaterial {
-  const material = (source as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial
-    ? new THREE.MeshPhysicalNodeMaterial()
-    : new THREE.MeshStandardNodeMaterial();
+  // Always physical: at its defaults (ior 1.5, specular 1) it shades as a standard material does,
+  // and one kind of material means fewer shaders (pipelines.ts; most of the file's are physical).
+  const material = new THREE.MeshPhysicalNodeMaterial();
   // As three's own conversion does (NodeLibrary.fromMaterial), minus the identity.
   const target = material as unknown as Record<string, unknown>;
   for (const key in source) {
@@ -190,7 +190,9 @@ function cuttableCopy(source: THREE.MeshStandardMaterial, label: string): THREE.
   material.colorNode = source.transparent && source.map ? vec4(surface, texture(source.map).a) : surface;
   material.maskNode = keep;
   // Not glass: it's see-through, and in the ship file it's fully metallic too.
-  if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections);
+  // Only the texture is used (three samples it by direction); the coordinate keeps it from asking
+  // for the mesh's UVs, which untextured meshes no longer have (pipelines.ts).
+  if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections, vec2(0));
   material.maskShadowNode = bool(true);
   return material;
 }
