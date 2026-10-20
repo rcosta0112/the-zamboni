@@ -1,0 +1,73 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #7cc7da;
+  font: 12px/1.4 ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  color: #fff;
+}
+
+#view {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  outline: none;
+}
+
+#stats,
+#help {
+  position: fixed;
+  left: 8px;
+  padding: 6px 8px;
+  background: rgb(0 0 0 / 0.45);
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: pre;
+}
+
+#stats {
+  top: 8px;
+}
+
+#help {
+  bottom: 8px;
+}
+
+#paused {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  text-align: center;
+  font-size: 28px;
+  background: rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+
+#paused[hidden] {
+  display: none;
+}
+
+#paused small {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Placed next to the interaction target each frame (interaction.ts sets the transform). */
+#prompt {
+  position: fixed;
+  left: 0;
+  top: 0;
+  padding: 6px 12px;
+  background: rgb(0 0 0 / 0.55);
+  border-radius: 4px;
+  font-size: 15px;
+  pointer-events: none;
+  white-space: pre;
+}
+
+#prompt[hidden] {
+  display: none;
+}

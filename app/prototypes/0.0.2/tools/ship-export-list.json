@@ -1,0 +1,854 @@
+{
+ "parts": [
+  "Door",
+  "Door Cargo",
+  "Landing Gear Front",
+  "Lab Window",
+  "Door Cockpit",
+  "Door Cockpit 2",
+  "Top Hatch",
+  "Top Hatch Bottom",
+  "Door Engineering",
+  "Door Engineering 2",
+  "Turbine Left",
+  "Turbine Right",
+  "Landing Gear Back Left",
+  "Landing Gear Back Right",
+  "Turbine.001",
+  "Turbine.002",
+  "Lab Window.001",
+  "Bulkhead Cargo",
+  "Bulkhead Cockpit",
+  "Bunks",
+  "Couch",
+  "Crew Quarters Ceiling",
+  "Crew Quarters Sitting Area Walls",
+  "Dashboard Body",
+  "Dashboard Body.002",
+  "Door Frame Bottom",
+  "Floor Bottom",
+  "Floor Top.001",
+  "Galley",
+  "Lockers",
+  "Table",
+  "Windshield",
+  "Hull_Merged",
+  "Dashboard Body.001",
+  "Door Frame Cockpit",
+  "Stove",
+  "Galley Door.001",
+  "Fire Extinguisher Clamp.003",
+  "Fire Extinguisher Clamp.004",
+  "Locker Door.003",
+  "Locker Door.001",
+  "Walls and seat.002",
+  "Walls and seat.001",
+  "Galley Door.002",
+  "Galley Door",
+  "Bunks.001",
+  "Bunks.002",
+  "Hatch.002",
+  "Contraption",
+  "Power Supply",
+  "3d Printer",
+  "Ceiling Light.003",
+  "Bench",
+  "Power Supply.001",
+  "Monitor Arm.031",
+  "Stand",
+  "Fire Extinguisher Clamp",
+  "Cabinet",
+  "Ceiling Light.004",
+  "Level Panel",
+  "Cabinet.001",
+  "Level",
+  "Bench.001",
+  "Sledge",
+  "Fire Extinguisher Clamp.001",
+  "Ceiling Light.002",
+  "Ceiling Light.001",
+  "Fire Extinguisher Clamp.005",
+  "Plane.002",
+  "Jetpack Rack",
+  "Jetpack Rack.001",
+  "Door Panel - Side door",
+  "Door Panel - Cargo Hold",
+  "Pallet",
+  "Head",
+  "Locker",
+  "Locker Door",
+  "Ladder Cargo Bay",
+  "Door Panel - Cargo Ramp",
+  "Door Panel - Engineering",
+  "Door Panel - Crew Quarters",
+  "Seat",
+  "Seat.002",
+  "Dials.002",
+  "Monitor.001",
+  "Back seat",
+  "Seat.001",
+  "Back seat.001",
+  "Seat.004",
+  "Back seat.002",
+  "Monitor.003",
+  "Signal Receiver.001",
+  "Fire Extinguisher Clamp.002",
+  "Door Panel - Cockpit",
+  "Polaroid",
+  "Gojira poster"
+ ],
+ "props": [
+  {
+   "name": "Fridge Grate.002",
+   "group": "Hull"
+  },
+  {
+   "name": "Fridge Grate.003",
+   "group": "Hull"
+  },
+  {
+   "name": "DS Lite",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Pillow",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Pillow.002",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Lockers.001",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Parka.001",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Parka.002",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Parka.003",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Boot.001",
+   "group": "Stuff"
+  },
+  {
+   "name": "Boot",
+   "group": "Stuff"
+  },
+  {
+   "name": "Mug.001",
+   "group": "Stuff"
+  },
+  {
+   "name": "Cup Ramen Closed",
+   "group": "Stuff"
+  },
+  {
+   "name": "Coffee Can.001",
+   "group": "Stuff"
+  },
+  {
+   "name": "Cup Ramen Closed.001",
+   "group": "Stuff"
+  },
+  {
+   "name": "Coffee Can.002",
+   "group": "Stuff"
+  },
+  {
+   "name": "Coffee Can.003",
+   "group": "Stuff"
+  },
+  {
+   "name": "Cassete Case",
+   "group": "Stuff"
+  },
+  {
+   "name": "Cassete Case.001",
+   "group": "Stuff"
+  },
+  {
+   "name": "Braun KF20",
+   "group": "Galley"
+  },
+  {
+   "name": "Cup Holder",
+   "group": "Galley"
+  },
+  {
+   "name": "Mug.005",
+   "group": "Galley"
+  },
+  {
+   "name": "Pot",
+   "group": "Galley"
+  },
+  {
+   "name": "Grinder",
+   "group": "Galley"
+  },
+  {
+   "name": "Grinder Holder",
+   "group": "Galley"
+  },
+  {
+   "name": "Container.005",
+   "group": "Galley"
+  },
+  {
+   "name": "Container.006",
+   "group": "Galley"
+  },
+  {
+   "name": "Jar.004",
+   "group": "Galley"
+  },
+  {
+   "name": "Jar.006",
+   "group": "Galley"
+  },
+  {
+   "name": "Container.011",
+   "group": "Galley"
+  },
+  {
+   "name": "Pot.001",
+   "group": "Galley"
+  },
+  {
+   "name": "Fridge Grate",
+   "group": "Galley"
+  },
+  {
+   "name": "Fridge Grate.001",
+   "group": "Galley"
+  },
+  {
+   "name": "Boombox.001",
+   "group": "Shelf"
+  },
+  {
+   "name": "Tape.001",
+   "group": "Shelf"
+  },
+  {
+   "name": "TRS-80.001",
+   "group": "Shelf"
+  },
+  {
+   "name": "Fire Extinguisher.003",
+   "group": "Shelf"
+  },
+  {
+   "name": "Dials.007",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.001",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.002",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.003",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.004",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.005",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.006",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.007",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.008",
+   "group": "Shelf"
+  },
+  {
+   "name": "Book.009",
+   "group": "Shelf"
+  },
+  {
+   "name": "Tape.002",
+   "group": "Shelf"
+  },
+  {
+   "name": "Chess Board",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.001",
+   "group": "Table"
+  },
+  {
+   "name": "Rook White",
+   "group": "Table"
+  },
+  {
+   "name": "Bishop White",
+   "group": "Table"
+  },
+  {
+   "name": "Bishop White.001",
+   "group": "Table"
+  },
+  {
+   "name": "Rook White.001",
+   "group": "Table"
+  },
+  {
+   "name": "Queen White",
+   "group": "Table"
+  },
+  {
+   "name": "King White",
+   "group": "Table"
+  },
+  {
+   "name": "Rook Black.001",
+   "group": "Table"
+  },
+  {
+   "name": "Bishop Black",
+   "group": "Table"
+  },
+  {
+   "name": "Rook Black",
+   "group": "Table"
+  },
+  {
+   "name": "Queen Black",
+   "group": "Table"
+  },
+  {
+   "name": "King Black",
+   "group": "Table"
+  },
+  {
+   "name": "Knight White",
+   "group": "Table"
+  },
+  {
+   "name": "Knight Black",
+   "group": "Table"
+  },
+  {
+   "name": "Knight Black.001",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.002",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.003",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.005",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.006",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.007",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.008",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.009",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.010",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.012",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.013",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.014",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.015",
+   "group": "Table"
+  },
+  {
+   "name": "Knight White.001",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.004",
+   "group": "Table"
+  },
+  {
+   "name": "Pawn.011",
+   "group": "Table"
+  },
+  {
+   "name": "Bishop Black.001",
+   "group": "Table"
+  },
+  {
+   "name": "Cup Ramen Open.001",
+   "group": "Table"
+  },
+  {
+   "name": "Comm",
+   "group": "Table"
+  },
+  {
+   "name": "Laptop.002",
+   "group": "Table"
+  },
+  {
+   "name": "Laptop.001",
+   "group": "Table"
+  },
+  {
+   "name": "Test Tube.006",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.005",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.004",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.003",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.002",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube",
+   "group": "Engineering"
+  },
+  {
+   "name": "Mug.002",
+   "group": "Engineering"
+  },
+  {
+   "name": "Cylinder.004",
+   "group": "Engineering"
+  },
+  {
+   "name": "Centrifuge",
+   "group": "Engineering"
+  },
+  {
+   "name": "Slide",
+   "group": "Engineering"
+  },
+  {
+   "name": "Slide.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "Microscope",
+   "group": "Engineering"
+  },
+  {
+   "name": "Cube.010",
+   "group": "Engineering"
+  },
+  {
+   "name": "Osciloscope",
+   "group": "Engineering"
+  },
+  {
+   "name": "Comm.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "iPod",
+   "group": "Engineering"
+  },
+  {
+   "name": "Hand",
+   "group": "Engineering"
+  },
+  {
+   "name": "Crate.005",
+   "group": "Engineering"
+  },
+  {
+   "name": "Power Cell.007",
+   "group": "Engineering"
+  },
+  {
+   "name": "Power Cell.006",
+   "group": "Engineering"
+  },
+  {
+   "name": "Power Cell.005",
+   "group": "Engineering"
+  },
+  {
+   "name": "Power Cell.004",
+   "group": "Engineering"
+  },
+  {
+   "name": "Power Cell.002",
+   "group": "Engineering"
+  },
+  {
+   "name": "Power Cell.003",
+   "group": "Engineering"
+  },
+  {
+   "name": "TRS-80",
+   "group": "Engineering"
+  },
+  {
+   "name": "Keyboard.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "TRS-80.025",
+   "group": "Engineering"
+  },
+  {
+   "name": "Kaypro",
+   "group": "Engineering"
+  },
+  {
+   "name": "Fire Extinguisher",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.007",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.002",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.008",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.004",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.003",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.002",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.002",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.003",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.001",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.003",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.009",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.004",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.010",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.005",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.011",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.006",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube.012",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.005",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.007",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.008",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.007",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.008",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.009",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.010",
+   "group": "Engineering"
+  },
+  {
+   "name": "Container.012",
+   "group": "Engineering"
+  },
+  {
+   "name": "Jar.009",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.007",
+   "group": "Engineering"
+  },
+  {
+   "name": "Test Tube Rack.008",
+   "group": "Engineering"
+  },
+  {
+   "name": "Fire Extinguisher.001",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Power Cell",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Power Cell.001",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Chest Closed.003",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Chest Closed.002",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Camping Light",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Crate.001",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Crate.003",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Jetpack.001",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Jetpack.002",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Jetpack.004",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Text.001",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Chest Closed.001",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Chest Closed.005",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Chest Closed.006",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Jetpack.003",
+   "group": "Cargo Bay"
+  },
+  {
+   "name": "Seat.003",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Plane.003",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Plane.005",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Seat.006",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Dial",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Switch",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Switch.001",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Dial.001",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Keyboard.003",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  },
+  {
+   "name": "Fire Extinguisher.002",
+   "group": "Cockpit",
+   "seeThrough": "solid"
+  }
+ ],
+ "collision": [
+  "Bulkhead Cargo Left_col",
+  "Bulkhead Cargo Right_col",
+  "Bulkhead Cargo Top_col",
+  "Bulkhead Cockpit Left_col",
+  "Bulkhead Cockpit Top_col",
+  "Hull Underside_col",
+  "Thruster Front Left_col",
+  "Thruster Front Right_col",
+  "Bulkhead Cockpit Right_col",
+  "Box Sledge_col",
+  "Box Chests_col",
+  "Box Lamp_col",
+  "Box Window Slope_col",
+  "Box Crew Galley_col",
+  "Box Crew Lockers_col",
+  "Box Crew Table_col",
+  "Box Crew Trapdoor Wall_col",
+  "Box Crew Bulkhead Galley_col",
+  "Box Crew Bulkhead Trapdoor_col",
+  "Box Jetpack Rack_col",
+  "Box Cargo Locker_col",
+  "Box Head_col",
+  "Box Bench Left_col",
+  "Box Bench Right_col",
+  "Box Cabinet_col",
+  "Box Cabinet.001_col",
+  "Box Extinguisher Engineering_col",
+  "Box Console Left_col",
+  "Box Console Right_col",
+  "Box Pilot Seat Right_col",
+  "Box Pilot Seat Left_col"
+ ],
+ "lights": [
+  "light cargo bay (Area.002)",
+  "light cargo bay (Area.003)",
+  "light engineering (Area.001)",
+  "light engineering (Area.015)",
+  "light crew quarters (Area.013)",
+  "light crew quarters (Area.007)",
+  "light cockpit (new)"
+ ]
+}

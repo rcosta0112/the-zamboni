@@ -1,6 +1,6 @@
 # Plan: Archive prototype 01 as 0.0.1, start 0.0.2 (item 51)
 
-**Status:** *in progress*: pass 1 done 2026-10-20 (3efdd2e); pass 2 done 2026-10-20 (*As built* below); pass 3 next. Drafted 2026-10-20; owner's answers of 2026-10-20 folded in (versions as the numbering, the low-res prototype skipped, the version in the tuning panel, the archive is the latest `.blend` with its textures packed). Two questions left (below). A big task (CLAUDE.md, *Keeping the work cheap* 5): four passes, a stop to assess after each.
+**Status:** *in progress*: pass 1 done 2026-10-20 (3efdd2e); pass 2 done 2026-10-20; pass 3 done 2026-10-20 (*As built* below); pass 4 next. Drafted 2026-10-20; owner's answers of 2026-10-20 folded in (versions as the numbering, the low-res prototype skipped, the version in the tuning panel, the archive is the latest `.blend` with its textures packed). Two questions left (below). A big task (CLAUDE.md, *Keeping the work cheap* 5): four passes, a stop to assess after each.
 
 ## Goal
 

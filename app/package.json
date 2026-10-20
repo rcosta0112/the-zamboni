@@ -10,9 +10,16 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev:0.0.1": "npm run dev -w prototypes/0.0.1",
+    "dev": "npm run dev -w prototypes/0.0.2",
     "check": "npm run check --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
+    "smoke": "npm run smoke -w prototypes/0.0.2",
+    "probe": "npm run probe -w prototypes/0.0.2 --",
+    "see-through": "npm run see-through -w prototypes/0.0.2",
+    "export:ship": "npm run export:ship -w prototypes/0.0.2",
+    "export:crew": "npm run export:crew -w prototypes/0.0.2",
+    "export:player": "npm run export:player -w prototypes/0.0.2",
+    "dev:0.0.1": "npm run dev -w prototypes/0.0.1",
     "smoke:0.0.1": "npm run smoke -w prototypes/0.0.1",
     "probe:0.0.1": "npm run probe -w prototypes/0.0.1 --",
     "see-through:0.0.1": "npm run see-through -w prototypes/0.0.1",

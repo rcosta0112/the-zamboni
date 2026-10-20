@@ -1,0 +1,202 @@
+# Prototype 01 — Walk
+
+A character walking around a 200 × 200 m floor, seen from a third-person camera: **Part 1's Dr. Green** with walk, run and jump animations (switchable back to a capsule). Proves the stack (Three.js r186 `WebGPURenderer`, TSL, Vite, TypeScript) and gives a first feel for movement and camera. Plan: [`doc/plans/prototypes/01-walk.md`](../../../doc/plans/prototypes/01-walk.md).
+
+## Code map
+
+Which file owns what, and where to start reading: [`CODE-MAP.md`](CODE-MAP.md).
+
+## Run
+
+```sh
+cd app
+npm run dev:01     # → http://localhost:5201
+```
+
+## Scripted check
+
+```sh
+cd app
+npm run smoke                # everything, about three and a half minutes
+npm run probe -- <file.js>   # one question (about 20 s): see tools/probe-01.mjs
+```
+
+Drives the prototype in headless Chrome and prints a `PASS` / `FAIL` line per check (the *Done when* list of pass 1 in [`doc/plans/backlog-passes.md`](../../../doc/plans/backlog-passes.md)): camera distances, no zoom, pitch, the ramp and the side door from their keypads, the ladder ten times, the drop through the trapdoor, the roof hatch, the prompt's place, the jetpack (rise, fall, the hull stops her, onto the roof), the bulkhead doors (walking through each, shutting each from both panels), the window from its lever, the sounds (the door sound once per door each way, the boombox round its ring, the ship's noise and where it repeats: what plays and when, not what it sounds like), every door, the start screen (a bar and no button while it loads, then the button; its click and its music), console errors. About three and a half minutes. It uses the dev server on port 5201 if one is running, otherwise starts its own; it needs Chrome (or Edge) installed (`CHROME_PATH` to point at one) and adds no dependency. It uses the keyboard only: **the gamepad isn't checked**. The checks go through the dev hooks on `window` (`main.ts`).
+
+## Controls
+
+| Action | Gamepad | Keyboard / mouse |
+|---|---|---|
+| Move | Left stick (speed follows how far it's pushed) | W A S D (run), hold Shift to walk |
+| Camera | Right stick | Mouse (click the view to capture it; Esc releases) |
+| Jump | A / Cross | C |
+| Fly (jetpack, anywhere for now; **only while she wears one**: take it from the rack in the cargo hold, or *wearing a jetpack* in the tuning panel) | R2, analog: past two thirds she climbs, the middle third hovers, the lower third descends, released she falls; the stick flies her level. (A digital R2 flies like Space) | Hold Space: the stick flies her where the camera points (pull the camera below her to climb); at rest she rises. Let go and she falls |
+| Interact (open, close, use the target) | B / Circle | E |
+| The boombox (crew quarters shelf) | B / Circle: *Play*, *Next track* (three times), *Turn off* | E |
+| Go through a bulkhead door | Walk up to it: it opens by itself and closes behind her. The panel beside it shuts it and keeps it shut | Same |
+| Climb a ladder (up only) | Walk into its foot; push toward it to climb; she steps off at the top by herself. Pushing away or A lets go (she drops) | Same; C lets go (so does flying) |
+| Go down a deck | Walk into the open trapdoor (she falls through) | Same |
+| Invert vertical look (on by default in prototypes) | (tuning panel) | Y |
+| Tuning panel | View/Back | ` (backtick) |
+
+**Camera distance:** fixed, with no zoom (owner, 2026-10-12): *distance indoors* and *distance outdoors* in the tuning panel's Camera folder (starting at 3.5 m and 4.5 m; the owner is setting them). The camera eases from one to the other in about half a second when she crosses the "inside" test (her chest inside the ship's interior box). *Min pitch* starts at 0: the camera doesn't go below her.
+
+**Jetpack** (backlog 21, 39; anywhere for now): **with momentum** (owner, 2026-10-14: "similar to the ship in Asteroids"), from Part 1's values where they exist. The rule is in [`doc/features/interaction.md`](../../../doc/features/interaction.md#flying): slow, she **hovers** (R2 sets her height, a part push on the stick drifts her up to 1.5 m/s); fast, she **flies** (thrust where the stick points, forward being where the camera looks, top speed 20 m/s); R2 let go at speed, she **glides**; on the ground at speed with the jet off, she **skids** to a stop. Space and a digital R2 count as R2 held fully. **Sound:** Part 1's `Thrusters.mp3`, looped while the jet is on (`sfx_jetpack_loop`); no steps while flying or skidding. **Animation:** Part 1's *Flying* clip while the jet is on, blended in and out. *Jetpack* folder in the tuning panel.
+
+**The gamepad's R2** (owner, 2026-10-14). The trigger is **analog or digital, found by itself**: a value seen between 0 and 1 means analog (an analog trigger shows itself on its first press); until then, and on a pad that only ever reports 0 or 1, R2 counts as held fully, like Space. Hovering, below 5% the jetpack is off; 5–33% she descends (up to 5 m/s); **33–67% she holds her height** (the band widens by 3% each side once she's in it); 67–100% she climbs (up to 5 m/s, Part 1's rise). In flight its depth doesn't matter. The jet sound gets quieter and lower toward the bottom of the trigger and full at the top (*jet sound follows R2*), to hear the hover band, and full in flight: its level goes with the trigger squared, from 8% at the bottom (about 31% half-way) to full; its pitch from 0.75× to 1.15× (owner, 2026-10-14: stronger, quieter at the lower end). The three ends are in the tuning panel. Space held wins over R2.
+
+**Indoor speeds:** inside the ship (the same test as the see-through hull: her chest inside the ship's interior box) she uses the *indoor walk speed* and *indoor run speed* sliders (Movement folder) instead of the outdoor ones. Starting values: walk 1.5 m/s, run 3.5 m/s; the owner is tuning them. The walk/run animation blend follows whichever pair is in use. Going in at a full run, she drops to the indoor speed almost instantly (the normal deceleration).
+
+**Start:** the game opens on the **start screen** ([`doc/design/start-screen.md`](../../../doc/design/start-screen.md)): a progress bar while everything loads, then the *START* button in its place. A click on it, Enter, Space or any gamepad button starts the game. That's also what turns the sound on: browsers keep it off until a button, a key or a click, and moving a stick isn't one (owner's report, 2026-10-13: with a gamepad, her steps were silent until a jump). The tuning panel is hidden until the game starts.
+
+**Pause:** the game pauses when the mouse is released (Esc, or the browser taking it back), or with the gamepad's Start (Options on a PlayStation controller). Click the view to capture the mouse again and resume, or press any gamepad button. The sound stops with the game and goes on from where it was. The tuning panel still works while paused.
+
+The **Copy values** button in the tuning panel copies all settings as JSON.
+
+## The character models
+
+Two models, switchable in the tuning panel (*Character model → model*); the capsule is still available.
+
+### Zamboni Dr. Green (default)
+
+The parka Dr. Green, **driven by Part 1's animations**. Since 2026-10-14 from the ship file's `Player` collection (`resources/models/The Zamboni 1.19.blend`): the crew file's model (`The Crew 1.09 Dr. Green.blend`, the same rig and body) with a jetpack and the hood's shape key. Exported to `app/assets/test/green-parka.glb` (540 KB, uncompressed) with [`app/tools/export-crew-character.py`](../../tools/export-crew-character.py), in one command (in `app/`):
+
+```sh
+npm run export:player   # body, gadgets, little backpack, jetpack; no binoculars; at the crew file's scale (0.826)
+```
+
+**Wearing a jetpack** (taken from the rack: [interaction](../../../doc/features/interaction.md#the-jetpack-rack)) shows `Jetpack`, hides her little backpack (`Backpack.002`) and sets the hood's shape key `jetpack` to 1. The ship file has her armature at scale 1.033; the export sets the crew file's 0.826, so she and the ship (scaled from her height) are the size they were (owner, 2026-10-14).
+
+The script exports in the rest pose at the origin, applies modifiers (the mesh is mirrored and subdivided) **keeping shape keys** (the glTF exporter would drop them), leaves out bones that are flagged as deforming but carry no weights (`Elbow_r`, the IK pointer, plus `Foot_l` and `Foot_r`), and reports double-sided materials (a performance cost, to be fixed in Blender). This model uses `--force-double-sided` as a **temporary** workaround: the hood is a single surface on materials with backface culling on (`Black`, `Teal`, `White`, `Brown`, `Dark Brown`), so its back was invisible. Drop the flag once the hood is fixed in Blender.
+
+**Retargeting** ([`src/retarget.ts`](src/retarget.ts)): both rigs use the same bone names, but the bones are rolled differently, so Part 1's tracks can't be copied across directly. At load time, each Part 1 clip is sampled at 30 fps; for every bone, its rotation away from rest (in world space) is applied to the Zamboni bone of the same name on top of that bone's own rest pose, and `Body`'s movement is scaled by the ratio of hip heights. The result is ordinary animation clips, so playback costs nothing extra. Bones Part 1 doesn't have (`Hood`) stay at rest.
+
+**Size:** about 0.75 m tall in the crew file; scaled to Part 1's 1.23 m by default so the movement speeds compare like for like (*Zamboni height* in the tuning panel).
+
+### Part 1 Dr. Green
+
+Part 1's Dr. Green (*Big Moon Tiny Moon*) with its own animations: `app/assets/test/part1-dr-green.glb` (272 KB), exported from `C:\Users\31658\Projects\Big Moon Tiny Moon\Assets\Models\Characters\Dr.Green.fbx` with [`app/tools/export-part1-character.py`](../../tools/export-part1-character.py):
+
+```sh
+blender -b --python app/tools/export-part1-character.py -- "<path>/Dr.Green.fbx" app/assets/test/part1-dr-green.glb
+```
+
+1,236 triangles + jetpack, flat colours, **1.23 m tall** as authored. Animations: `standing` (a single pose), `walking` (1.46 s), `running` (0.88 s), `jumping`, `jumping_2`, `flying`.
+
+### Animation playback (both models)
+
+- **Blending:** standing → walking → running by speed; walk and run share one cycle position, so the feet stay on the same step while blending. Each cycle plays at normal speed when the character moves at its reference speed (*walk cycle at* / *run cycle at*); faster or slower movement speeds the cycle up or down.
+- **Starting and stopping:** the movement stops almost instantly (Part 1's deceleration), but the animation follows a smoothed speed, so the stride eases out and the legs settle instead of snapping. Tunable: *start blend* (0.08 s) and *stop blend* (0.18 s).
+- **Jump:** the jump animation plays from the start on take-off and holds its last frame until landing.
+
+## The ship and collisions
+
+**The Zamboni, outside and in**, landed about 12 m ahead with its back to the start and the **cargo ramp open**: `app/assets/test/zamboni-ship.glb` (3.7 MB) and its collider `zamboni-ship-col.glb` (160 KB), exported from the reference file `resources/models/The Zamboni 1.19.blend` (see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md#the-ships-reference-file)) with [`app/tools/export-ship.py`](../../tools/export-ship.py), then its textures capped at 512 px and both compressed with Meshopt (glTF-Transform):
+
+```sh
+cd app
+npm run export:ship   # Blender export, textures capped at 512 px, dedup, Meshopt; prints what changed
+```
+
+The steps it runs are in [`app/tools/export.mjs`](../../tools/export.mjs); every tool is listed in [`app/tools/README.md`](../../tools/README.md).
+
+- **What's in it (77 objects):** the exterior (hull, windshield, engine pods, landing gear, side door, top hatch, lab windows, the cargo ramp) and the **large interior elements**: floors, bulkheads, walls and ceilings, consoles and dashboards, interior doors, ceiling lights; crew quarters (bunks, couch, table, galley, stove, lockers, ladder); cockpit (seats, dials, monitors); engineering (benches, cabinets, 3D printer, power supplies, the Contraption); cargo bay (sledge, pallet, locker, head, jetpack racks, ladder). Collections excluded from the view layer in the file are included for the export only. **Small props** (mugs, books, chests, computers…) are left for a later step.
+- **Size:** 10 MB uncompressed (the Contraption alone is 21,500 triangles) → 1.53 MB with Meshopt; three.js decodes it with its `MeshoptDecoder`.
+- **Scale:** the same factor as the Zamboni Dr. Green (crew and ship share units in the Blender files).
+- **Collider:** its own file, positions only: everything except the ramp, joined at full detail (29,139 triangles); the four densest pieces of furniture (dials, 3D printer, Contraption, sledge) as convex hulls. A decimated version closed the cargo opening. Ladders block like walls: no climbing yet.
+- **See-through hull:** structure (tagged `structure: true`: hull, walls, ceilings, floors, doors…) is cut by the hole while something solid hides her; furniture is cut near the camera above her waist, and near her only while it hides her head or a third of her. Exceptions: `seeThrough: "keep"` (the 3D printer), `seeThrough: "solid"` (all cockpit furniture, the engineering ceiling machine, the red sled: always visible on her deck), objects attached to a bulkhead behave like it (and with *bulkheads always visible*, on by default, bulkheads and what's attached to them are never cut while she's on their deck), `divider: true` (bulkheads and inner walls: solid while the camera is inside, unless they hide her). Raycasts use `three-mesh-bvh`. The cargo ramp is cut like the hull while closed or moving, never while open. Never cut: `cuttable: false` (the landing gear). Tags are set by the export script until they're set in Blender. Upward-facing surfaces below her feet are never cut, so the floors stay. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md).
+- **Cargo ramp** (`Door Cargo`): hinged on **its origin in the Blender file**, at the bottom of the hull opening. Meshopt compression moves node origins, so the export records the hinge as a `hinge` custom property and the game builds the hinge there (closed = exactly as modelled). Opens outward until its far end touches the ground (92° from closed; it leans outward when closed, so it ends ~25° below horizontal). "Closed" is the door object with no rotation of its own: the current file has the ramp lying open (turned 88°), which the game undoes (before 2026-10-12 it took the file's pose for closed, and the ramp only moved 4°). *Cargo ramp open* in the tuning panel animates it (1.5 s). Convex collider while moving or closed; fully open, a walkable slope from where it meets the ground to the cargo floor (the ramp has a lip on the ground).
+- **Doors, keypads, ladders** (2026-10-09): the side door, the trapdoor, the roof hatches, the fridge, cupboard and locker doors open and close (all start closed but the trapdoor); the open side door is a ramp; the upper keypad by the side door works the ramp, the lower one the side door; the cargo bay ladder can be climbed. Point the camera at a door within her reach and press E / Circle. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md). A moving door pushes her out of its way (or stops, if she's pinned). Tuning panel: *Interaction* folder (reach, how far from the screen centre, highlight, door time, doors push her, climb speed).
+- **Added 2026-10-13** (backlog pass 4): the **bulkhead doors** slide open when she's within 1.5 m and close behind her; the panel on each side shuts its door and keeps it shut (used again: automatic again). The **engineering window** opens from the lever beside it. Tuning panel, Interaction folder: *sliding door time*, *bulkhead doors open by themselves*, *...when she is within (m)*. Details: [`doc/features/interaction.md`](../../../doc/features/interaction.md#sliding-doors). The tags are in the ship file since the same day ([`tag-ship-pass4.py`](../../tools/tag-ship-pass4.py) set them). So is the doors' fit ([`fit-bulkhead-doors.py`](../../tools/fit-bulkhead-doors.py): closed edge to edge, the leaves reaching into their frames). The export command is unchanged.
+- **Changed 2026-10-12** (backlog pass 1): the side door has no prompt of its own (its keypad only); the roof hatch's two parts are one target; ladders go up only (down is through the trapdoor); the prompt sits next to the target on screen and the highlight is off by default.
+- **Changed 2026-10-12** (backlog pass 2): exported from the reference file, where every tag now lives. The cargo ramp is closed in the file (the game opens it at the start, as before). The engineering display is on its arm, not inside the wall. She can't get under the hull or the front thrusters (collision boxes in the file's `Game Collision` collection: resize them in Blender). The ship's materials are single-sided, with a switch back (*single-sided materials*, tuning panel → see-through).
+- **Lighting inside, changed 2026-10-12** (backlog pass 3; all in the tuning panel's *Look* folder):
+  - *sun through glass*: the ship's glass no longer blocks the sun, so it falls into the crew quarters and the cockpit (patches on walls and floor, moving with the sun's direction).
+  - *world light indoors* (0.5): the world's blue light is turned down while she's inside; it was what made the rooms blue (with it off entirely, the rooms are grey).
+  - *warm light: crew q., cockpit* (0.6): those rooms' lights are tinted toward the sun's colour, standing in for bounced sunlight. For good, set the markers' `lightColor` in the ship file (or add markers at the windows).
+  - *shadow map (px)* (4096, was 2048) and *shadow range (m)* (25): one shadow texel is 2 × range / size, 1.2 cm now: the size of the steps on the edge of a sun patch. No measurable cost on the PC (uncapped, crew quarters: 123 fps at 2048, 134 at 4096: noise). A smaller range is sharper still, but the ship's shadow disappears when she's further from it than the range.
+  - The ship's shadow is cast by both faces of its surfaces (it was back faces only): the sun leaked in along the seams between inner walls, the floor and the ceiling.
+  - *metal reflections* (0.5): metallic materials reflect the sky gradient. They were black: metal has no colour of its own, only reflections, and there was nothing to reflect. Not on glass, and not on the parts that are never cut (landing gear, cargo ramp).
+- **Double-sided materials** (export report, to fix in Blender): see [`doc/architecture/asset-pipeline.md`](../../../doc/architecture/asset-pipeline.md).
+
+**Physics:** [Rapier](https://rapier.rs/) 0.21.0 ([`src/physics.ts`](src/physics.ts)). The character is a capsule (radius 0.28 m, 1.23 m tall) moved by Rapier's kinematic character controller: it slides along walls and steps over ledges up to 0.3 m. Gravity and jumping stay in `character.ts`. Animation follows the speed the character *actually* moved, so running into the hull settles into standing.
+
+> **Ground check (2026-10-08):** Rapier's own "grounded" flag also says grounded against steep, leaning walls. That reset her fall speed every step (she slid down walls slowly) and let her jump again off them (she could climb to the top floor). She now counts as grounded only if Rapier says so **and** a ray straight down from her centre finds a surface no steeper than 45° within a few centimetres of her feet. (A downward sphere was tried first: it also touched edges, like the cargo floor's rear edge, and stopped her at the top of the ramp.) Known leftovers: pushing into a wall that leans over her can wedge her a few cm up, and walking under the hull's belly edge outside presses her a few cm into the ground; both settle when she moves away.
+
+> **Rapier note (2026-10-08):** with Rapier 0.19–0.21, the character controller sinks through a very large box collider (a 1000 m ground box); a smaller box or a triangle mesh works. The ground is therefore a flat two-triangle mesh. Also, `@types/three` pulls in an old Rapier (0.12.0) for its type definitions, so two copies are installed; the prototype uses the pinned 0.21.0.
+
+## Props, room lights and the crew
+
+- **Props** (2026-10-09): everything else in the ship file's rooms (books, mugs, jars, test tubes, the chess set, crates, jetpacks, keyboards, the `KEEP CLEAR` stencil…). Big ones (≥ ~0.4 m) are separate objects with colliders; small ones are merged into one object per room collection (`Props Galley`, `Props Shelf`…). Props don't cast shadows. Props in the cockpit are always visible.
+- **Room lights:** point lights at 7 markers from the ship file: two each in the cargo bay, engineering and crew quarters (positions of the file's lights there), one new one in the cockpit (it has none in the file). The **4 nearest her** are on (the budget), moving and fading as she walks; tuning panel → *Room lights*: *all* (all 7; rebuilds every shader once), brightness, range. Flagged and not imported: `Area.004`, `Area.005`, `Area.006`, `Area.008`, `Area.009` (crew quarters ceiling panels, 1–2 W), `Area.010` (dim blue fill), `Area.011` (the laptop's glow), `Area.012` (3 W, crew quarters), `Area.014` (20 W side light, crew quarters).
+- **The crew** (`app/assets/test/zamboni-crew.glb`, from [`app/tools/export-ship-crew.py`](../../tools/export-ship-crew.py)): Dr. Kaufman on the crew quarters couch with her idle loop (13.4 s); both Adam bodies and Dr. Ogawa in the cockpit, static poses. Never cut by the see-through hull; a box collider each.
+
+## Sound
+
+Since 2026-10-13 (backlog pass 4.5): the UE prototype's eight sounds, **all placeholders** (`app/assets/test/audio/`, with [`SOURCES.md`](../../assets/test/audio/SOURCES.md)). What exists and how: [`doc/architecture/audio.md`](../../../doc/architecture/audio.md#what-exists-prototype-01-2026-10-13).
+
+- **The sound is off until a key, a click or a gamepad button** (a stick doesn't count): the game starts on *Press any button* for that.
+- **Sliding doors:** one sound per door when it starts to move. **The boombox:** see *Controls*; it shakes while a track plays, and gets quieter with distance from the camera.
+- **The ship's noise:** tuning panel → *Sound* → *ship flying* (off at the start: the ship stands on the ground). Two sounds loop together, with a level each (*flight sound*, *landing sound*) to find the mix; quieter outside the ship.
+- **The interactions** (since 2026-10-13, [plan](../../../doc/plans/features/interaction-sounds.md)): a latch for lockers, the fridge and the cupboard; the same, lower, for the trapdoor and the roof hatch; two tones for the keypads and the bulkhead doors' panels (up for open, down for close); the lever (a recording), with the window starting once the lever has moved; an electric motor over a hydraulic hiss while the side door or the cargo ramp moves, and the press letting go when it stops; a tap for each hand on the ladder. All quiet; made by a script, the lever apart.
+- **Footsteps:** one step per footfall of the walk/run animation, quieter at a walk; snow outside, the ship's floor inside and on its ramps; a heavier step when she lands. **Inside the ship the steps come as often as outside** (owner, 2026-10-13), though she moves at half the speed there and her feet at half the pace: they don't follow her feet indoors. Both sets are single steps cut from recordings: Part 1's running loop on grass for the snow, the owner's metal footsteps file (`resources/audio/`) for the ship.
+- **Tuning panel → *Sound*:** mute, a volume for everything, music, ambience and effects; *interaction sounds* and *footsteps* (a level for each set, up to 3×); the boombox's falloff and vibration.
+- **To make the game files again:** `node tools/encode-audio.mjs` in `app/` (needs ffmpeg and the masters in `resources/audio/ue-prototype/`); `node tools/make-placeholder-sounds.mjs` for the interactions and the footsteps (needs ffmpeg, Part 1's Unity project and `resources/audio/`).
+
+## See-through hull and camera collision
+
+Inside the ship, a round, dither-edged hole is cut through everything between the camera and her chest (hull, walls, ceiling, furniture); outside, the camera collides with the ship instead. Details: [`doc/features/see-through-hull.md`](../../../doc/features/see-through-hull.md). Code: [`src/cutaway.ts`](src/cutaway.ts) (TSL), wired up in `src/ship.ts` (which surfaces, the cargo bay volume) and `src/main.ts`; camera collision in `src/camera.ts` + `Physics.castRay`. Tuning panel → *See-through hull*.
+
+## Resolution and anti-aliasing
+
+Tuning panel → *Rendering*:
+- **Max pixel ratio** from 0.1 to 3: below 1, the 3D is rendered with fewer pixels than the window has (0.25 on a 1280×720 window = 320×180).
+- **Pixelated upscale** (on by default): the browser stretches a small render with hard, square pixels instead of smoothing it.
+- **Anti-aliasing** (MSAA, on by default): smooths edges; it's fixed when the renderer is created, so switching it reloads the page (remembered in the browser's local storage).
+
+Together these give the low-resolution look planned for [prototype 02](../../../doc/plans/prototypes/02-low-res.md) on this scene.
+
+## The look
+
+Lit like Part 1's Blender scenes, from `Big Moon Tiny Moon/Models/Props/Camp Site 1.01.blend` (tuning panel → *Look*), and checked side by side against the owner's reference render:
+
+| | Blender (Camp Site 1.01) | Here |
+|---|---|---|
+| World (ambient + background) | Gradient by direction: light cyan `(0.205, 0.831, 1)` at and below the horizon → blue `(0, 0.468, 1)` → deep blue `(0, 0.209, 1)` overhead; Ease interpolation; strength 1 | Same gradient as the background texture. Its lighting is a **hemisphere light** whose colours are computed from the gradient (cosine-weighted average facing up; the cyan facing down), intensity π × strength |
+| Sun | Yellow `(0.993, 1, 0.377)`, strength 7.5, angle 0.5°, ~20° elevation | Directional light, same colour and strength (same units), small shadow blur |
+| Colour management | Filmic | **ACES, exposure 0.85**: three.js has no Filmic; compared with the reference, AgX came out grey with salmon reds and Neutral over-saturated. Selectable in the panel |
+
+- **Mist removed** (owner, 2026-10-08). A distance haze in the horizon colour remains, to hide the floor's edge (*distance haze*).
+- **Why a hemisphere light and not an environment map:** setting the gradient as `scene.environment` (directly, and pre-filtered with PMREM) didn't light anything in this setup: the shaded side came out black. For these matte, flat-colour materials the diffuse part is what matters, and the hemisphere light gives it exactly. Worth revisiting if shiny materials need sky reflections.
+- **Ground:** near-white snow with faint variation; optional speed *grid*.
+
+## Starting values
+
+From Part 1 (*Big Moon Tiny Moon*, `Main.unity`): walk 1.5 m/s, run 7 m/s, acceleration ≈ 6 m/s², deceleration ≈ 120 m/s², turn smoothing 0.2 s. Jump (1 m, gravity 20 m/s²) is new: Part 1's jump was switched off.
+
+## Results
+
+| Date | Machine | Browser | Backend | Result |
+|---|---|---|---|---|
+| 2026-10-08 | Owner's PC (GTX 1070), headless Chrome at 1280×720 | Chrome | WebGPU | 60 fps (vsync-limited), no errors. Walking, turning and jumping checked with simulated keys; gamepad not tested (no gamepad in headless mode) |
+| 2026-10-08 | Same, with Part 1's Dr. Green | Chrome | WebGPU | 60 fps, no errors. Standing, walking (Shift), running and jumping checked in screenshots; facing correct. Camera defaults changed to 4.5 m / aim height 1.0 m for the smaller character |
+| 2026-10-08 | Same, with the reference look and mist | Chrome | WebGPU | 60 fps once shaders had compiled, no errors. A screenshot 4 s after loading read 7 fps while the new noise shaders compiled: first-use stutter, as predicted in the performance plan |
+| 2026-10-08 | Same, with the interior | Chrome | WebGPU | 60 fps once shaders compiled (the first second after loading read 11 fps: 159 cuttable meshes compiling), no errors. All four areas visible through the hull; collision with furniture checked (walking into the crew quarters' furniture stops her) |
+| 2026-10-09 | Same, frame time from clear spots | Chrome | WebGPU | 1920×1080 uncapped: crew quarters 9.7 ms median (95th 11.9), engineering 6.1 (7.5), cargo bay 11.1 (12.9). Earlier crew quarters numbers were inflated: the test teleport put her inside the couch (physics controller ~20 ms per step there; one engineering spot ~200 ms, read as 1 fps); at clear floor spots a physics step averages 0.1 ms |
+| 2026-10-09 | Same, audit at 1920×1080 uncapped; merged shadow caster; crew resized | Chrome | WebGPU | CPU-bound on draw calls (half resolution: no change). See-through materials ~5 ms/frame of per-draw overhead; props ~3 ms; shadow pass draws ~0.7 ms. Merged shadow caster: crew quarters 835 → 556 draws, 14.9 → 9.9 ms (92–100 fps uncapped); identical shadow. Opaque glass: no difference. Owner: Chrome a solid 60 fps, Firefox under 30 at 1080p. Crew scaled to the crew file's proportions (Kaufman ×0.65, Ogawa ×0.78, Adams ×0.79) |
+| 2026-10-12 | Same, backlog pass 1 (camera, ramp, ladder, side door, roof hatch, prompt), headless Chrome 1264×569, `npm run smoke` | Chrome | WebGPU | 60 fps, no console errors; 20 of 20 checks pass. Ramp from its keypad: turns 92°, top edge 1.09 → 3.19 m, and back. Ladder: 10 climbs, off at the top each time; drops through the trapdoor; pushing away and jump let go. Side door: never a target; opens and closes from its keypad. Roof hatch: one press, both parts. Prompt: stays 95 px right of the keypad's centre as the camera turns. Camera: 4.5 m outdoors, 3.5 m indoors, eased; wheel does nothing; pitch stops at 0. Doors with her in the way: pushed aside or the door waits, and finishes once she's gone. Gamepad not tested |
+| 2026-10-09 | Same, props, room lights, crew | Chrome | WebGPU | **60 fps** steady, no errors. Draw calls 743–941 per view (with the shadow pass; props cast no shadows), ship 547 primitives, 54 materials, 2.58 MB. Shader build at load ~8 s (was ~2.5 s). Dr. Kaufman animating on the couch; Adams and Dr. Ogawa in the cockpit. *All* lights: a stall of a few seconds while every shader rebuilds, then 60 fps. See-through rays 0.11 ms (140 objects) |
+| 2026-10-09 | Same, cargo ramp cut while closed; bulkheads always visible | Chrome | WebGPU | 60 fps, no errors. Ramp closed, camera behind the ship: the hole opens through it and she's visible in the cargo bay (with the cut off, only the ramp's window shows); ramp open: whole, on the ground. Bulkheads always visible: from outside the cargo bay, the cargo bulkhead stays as a column seen edge-on; from the crew quarters, the cockpit doorway is unchanged |
+| 2026-10-09 | Same, always-visible objects, objects on bulkheads, pause | Chrome | WebGPU | 60 fps, no errors; rays 0.16 ms/frame. Sled, ceiling machine and chair backs stay solid with her behind them (behind a chair back, only her hair shows). Attached to bulkheads (found at load): `Galley`, `Head`, both ladders, part of `Locker`. Then all cockpit furniture made always visible: nothing in the cockpit is cut; with the camera in front, the seat stays and she shows beside it. Pause: shown when the mouse is released, nothing moves while paused, a click resumes |
+| 2026-10-08 | Same, dividers solid while the camera is inside | Chrome | WebGPU | 60 fps, no errors; rays 0.17 ms/frame. Crew quarters looking into the cockpit: the doorway stays clean (no cut slabs); the inner wall between camera and her is cut. First version (always solid from inside) turned the screen black when the camera trailed behind an inner wall: fixed by "unless it hides her". Cargo bay from the side (camera outside): unchanged |
+| 2026-10-08 | Same, see-through rules second pass | Chrome | WebGPU | 60 fps, no errors; rays 0.2 ms/frame with BVHs (15 ms without). 3D printer in front of her: stays. Crew-quarters table between camera and her: stays. Locker/head beside her: cut from the angles where they cover her. Through the windshield from outside: no hole, hull whole, she's seen through the glass. Cockpit bulkhead: cut as a whole (toggle) removes the odd slab in the doorway; own-colour cut surface makes little difference there (the dark parts are the bulkhead's black material). Not staged exactly: the owner's chair-back and bench-near-camera views |
+| 2026-10-08 | Same, see-through rules (structure / furniture) | Chrome | WebGPU | 60 fps, no errors; occlusion rays 0.09 ms/frame. Cargo bay: the bench in front of her stays whole (doesn't hide her). Cockpit, camera behind her: front panels whole. Crew quarters: galley and lockers cut only from angles where they hide her; table near her whole; bunk end near the camera cut (near-camera rule, added after the first test showed near-camera furniture filling the view). Debug tint confirms per-object values with shared materials. A wall cabinet at the near-camera boundary comes out half-dithered: tunable |
+| 2026-10-08 | Same, see-through hull on everything inside | Chrome | WebGPU | 60 fps, no errors. Cargo bay: the bench in front of her is cut (before: whole, in the way); floor solid. Upper deck: couch, table and cockpit seats cut with no stubs; floor under her solid in the crew quarters and the cockpit (whose floor is part of `Dashboard Body`). Ship shaders compiled during loading (2.2–2.6 s): the 0.57 s freeze after the ship appeared is gone; total load stall unchanged (~3 s) |
+| 2026-10-08 | Same, see-through hull + camera collision | Chrome | WebGPU | 60 fps, no errors. In the cargo bay: hole through the hull from the side and through the ceiling from above, floor solid; off: hull opaque. Ship's shadow identical with the cut on and off. Outside with the ship in the way: camera came in from 8 m to 2.96 m |
+| 2026-10-08 | Same, Zamboni Dr. Green with retargeted animations | Chrome | WebGPU | No errors. Standing (back and front), walking, running checked in screenshots: legs stride correctly, arms not twisted, facing correct |
+
+**Build size:** 5.35 MB minified, **1.95 MB gzipped** with Rapier (was 278 KB before). The `-compat` Rapier package embeds its WebAssembly as base64 inside the JavaScript (~1.4 MB of wasm becomes ~1.9 MB of text). It fits the 3 MB boot budget but takes most of it; the non-compat package (`@dimforge/rapier3d`) loads the `.wasm` as a separate, smaller file that the browser can compile while it downloads, and is worth switching to before the game ships.
+
+## Tuned values
+
+*To be filled in after the owner's play-test.*

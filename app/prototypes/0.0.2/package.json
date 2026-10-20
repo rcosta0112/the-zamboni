@@ -1,0 +1,32 @@
+{
+  "name": "@zamboni/prototype-0.0.2",
+  "version": "0.0.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "smoke": "node tools/smoke-01.mjs",
+    "probe": "node tools/probe-01.mjs",
+    "see-through": "node tools/probe-01.mjs tools/see-through-views.js --shots .export/see-through",
+    "export:ship": "node tools/export.mjs ship",
+    "export:crew": "node tools/export.mjs crew",
+    "export:player": "node tools/export.mjs player"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "0.21.0",
+    "@zamboni/ui": "*",
+    "three": "0.186.1",
+    "three-mesh-bvh": "0.9.16"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@types/three": "0.186.0",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3",
+    "vite": "8.3.3"
+  }
+}
