@@ -1,6 +1,6 @@
 # Plan: Exports that don't break when the file is worked on (item 48)
 
-**Status:** *built* 2026-10-20, passes A and B (see *As built*, at the end); the owner's part (an export after the next edit in Blender) open. *Approved* (owner, 2026-10-20; rewritten for 0.0.2 the same day). First draft of 2026-10-19 saved with no action while the owner weighed [the ship's things as components](../architecture/game-architecture/components.md) (item 49). On 2026-10-20 the owner chose this plan as the first work in 0.0.2.
+**Status:** *done* 2026-10-20, passes A and B (see *As built*, at the end); closed by the owner the same day (the export works). The player export's randomness is backlog item 53. *Approved* (owner, 2026-10-20; rewritten for 0.0.2 the same day). First draft of 2026-10-19 saved with no action while the owner weighed [the ship's things as components](../architecture/game-architecture/components.md) (item 49). On 2026-10-20 the owner chose this plan as the first work in 0.0.2.
 
 ## Goal
 
