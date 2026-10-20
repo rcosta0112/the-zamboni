@@ -1,0 +1,8 @@
+{
+  "location": "ship",
+  "player": { "at": [-0.12, 2.18, 1.4], "yaw": 180 },
+  "setup": [
+    { "do": "set", "id": "cargo-ramp", "state": "closed" },
+    { "do": "lock", "id": "side-door", "unless": "side_door_unlocked" }
+  ]
+}

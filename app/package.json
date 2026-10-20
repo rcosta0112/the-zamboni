@@ -21,6 +21,7 @@
     "export:player": "npm run export:player -w prototypes/0.0.2",
     "export:accept": "npm run export:accept -w prototypes/0.0.2 --",
     "rest-poses": "npm run rest-poses -w prototypes/0.0.2 --",
+    "ink": "npm run ink -w prototypes/0.0.2",
     "dev:0.0.1": "npm run dev -w prototypes/0.0.1",
     "smoke:0.0.1": "npm run smoke -w prototypes/0.0.1",
     "probe:0.0.1": "npm run probe -w prototypes/0.0.1 --",

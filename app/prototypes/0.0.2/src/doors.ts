@@ -115,6 +115,8 @@ export class Door implements Openable {
   /** 0 = closed, 1 = open. */
   amount = 0;
   open = false;
+  /** She can't open it (a scene or Ink locked it). */
+  locked = false;
   /** A cutscene's timeline owns it: it doesn't move by itself. */
   paused = false;
   /** Stopped against her: waiting until she's clear. */
@@ -259,7 +261,7 @@ export function updateAutoDoors(doors: Door[], feet: THREE.Vector3, height: numb
     const dx = Math.max(zone.min.x - feet.x, 0, feet.x - zone.max.x);
     const dz = Math.max(zone.min.z - feet.z, 0, feet.z - zone.max.z);
     const reach = settings.autoDoorDistance + (door.open ? AUTO_CLOSE_MARGIN : 0);
-    door.open = !door.shut && onDeck && Math.hypot(dx, dz) <= reach;
+    door.open = !door.shut && !door.locked && onDeck && Math.hypot(dx, dz) <= reach;
   }
 }
 

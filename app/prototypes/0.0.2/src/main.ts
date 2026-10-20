@@ -8,6 +8,7 @@ import { GameAudio } from './audio';
 import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
 import { Character } from './character';
+import { run, type CommandTarget } from './commands';
 import { Input } from './input';
 import { loadModels, type ClimbTag } from './model';
 import { Physics } from './physics';
@@ -16,12 +17,13 @@ import { loadCrew, type Crew } from './crew';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
-import { findDevice, Interaction, shipInteractables } from './interaction';
+import { findDevice, Interaction, respectLocks, shipInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
 import { FIRST_SCENE, SceneDirector } from './scenes';
+import { GameStory } from './story';
 import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import StartScreen from './StartScreen.svelte';
@@ -80,6 +82,7 @@ async function start(): Promise<void> {
   let rack: JetpackRack | null = null;
   let doorSounds: (() => void) | null = null;
   let director: SceneDirector | null = null;
+  let story: GameStory | null = null;
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
   loadModels((share) => loading.set('models', share))
     .then(({ models, climbTag: tag }) => {
@@ -112,7 +115,14 @@ async function start(): Promise<void> {
       console.info(`[0.0.2] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
       // The first scene (or `?scene=<id>` in dev builds), before the doors' sounds start listening.
       const disabled = new Set<string>();
-      director = new SceneDirector(s, { entities: s.entities, disabled, play: (id, at) => audio.play(id, at) }, (at, yaw) => {
+      const target: CommandTarget = { entities: s.entities, disabled, play: (id, at) => audio.play(id, at), story: null };
+      // The story first: a scene's setup reads it.
+      target.story = await GameStory.load('/test/story.json', (command) => run(command, target)).catch((err: unknown) => {
+        console.warn('[0.0.2] story not loaded:', err);
+        return null;
+      });
+      story = target.story;
+      director = new SceneDirector(s, target, (at, yaw) => {
         physics.teleport(at);
         character.position.copy(at);
         character.verticalVelocity = 0;
@@ -137,7 +147,8 @@ async function start(): Promise<void> {
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.object, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
-      interaction = new Interaction(shipInteractables(s.object, s.doors, others, (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
+      const items = shipInteractables(s.object, s.doors, others, (id, at) => audio.play(id, at), s.rampState);
+      interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target)), physics, document.querySelector<HTMLElement>('#prompt')!);
       interaction.disabled = disabled;
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
       addCollisionBoxes(s, physics);
@@ -159,7 +170,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share }) });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __story: () => story, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share }) });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({

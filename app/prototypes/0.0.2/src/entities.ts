@@ -13,12 +13,15 @@ export interface Component {
   paused: boolean;
 }
 
-/** Something that opens and closes: a door, a hatch, the ramp. What scenes and Ink set. */
+/** Something that opens and closes (and locks): a door, a hatch, the ramp. What scenes and Ink set. */
 export interface Openable extends Component {
   /** Where it's going: open or closed. */
   open: boolean;
   /** Where it is: 0 = closed, 1 = open. */
   readonly amount: number;
+  /** She can't open it, from it or from its keypad (scenes and Ink still set it). Not saved: a scene
+   * locks it again unless the story says otherwise (`unless`). */
+  locked: boolean;
 }
 
 export class Entity {

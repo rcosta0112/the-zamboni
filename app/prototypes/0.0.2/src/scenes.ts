@@ -45,6 +45,7 @@ export class SceneDirector {
       for (const c of entity.components) {
         if (c instanceof Door) c.shut = false;
         if ('open' in c) c.open = false;
+        if ('locked' in c) c.locked = false;
         if (c instanceof Placement) c.reset();
       }
     }

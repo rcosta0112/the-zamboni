@@ -290,6 +290,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     entities,
     rampState: {
       paused: false,
+      locked: false,
       get open() {
         return settings.cargoRampOpen;
       },

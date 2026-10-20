@@ -1,16 +1,20 @@
-// The one set of commands: what scene setups say now, and Ink and cutscene event tracks will say
-// (passes 3 and 5), each addressed by id. Positions are in the ship file's Blender coordinates (read
-// off an object in Blender), turns in degrees.
+// The one set of commands: what scene setups and Ink's knots say, and cutscene event tracks will say
+// (pass 5), each addressed by id. Positions are in the ship file's Blender coordinates (read off an
+// object in Blender), turns in degrees. Any command can depend on the story: `if` / `unless` name an
+// Ink variable, read when it runs (a scene's setup: when the scene starts).
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (*One set of commands*)
 
 import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
 import { Placement } from './crew';
 import type { Entities, Openable } from './entities';
+import type { GameStory } from './story';
 
-export type Command =
+export type Command = (
   /** Open or close a door, a hatch, the ramp. */
   | { do: 'set'; id: string; state: 'open' | 'closed' }
+  /** Lock or unlock one: locked, she can't open it (nor from its keypad); scenes and Ink still can. */
+  | { do: 'lock' | 'unlock'; id: string }
   /** Offer or stop offering something to use (its prompt), by its id. */
   | { do: 'enable' | 'disable'; id: string }
   /** Put a character's feet at `at`, turned `turn` degrees from how it was exported. */
@@ -19,8 +23,16 @@ export type Command =
   | { do: 'sound'; cue: CueId; at?: string }
   /** Defined, not built: no landing site exists yet. */
   | { do: 'swap-exterior'; site: string }
+  /** Run a knot of the story (story.ts). */
+  | { do: 'story'; knot: string }
   /** Pass 5. */
-  | { do: 'cutscene'; id: string };
+  | { do: 'cutscene'; id: string }
+) & {
+  /** Only if this story variable is true (set, not zero, not empty). */
+  if?: string;
+  /** Only if it isn't. */
+  unless?: string;
+};
 
 /** What the commands act on. */
 export interface CommandTarget {
@@ -28,6 +40,8 @@ export interface CommandTarget {
   /** The ids whose interactions are off (`Interaction.disabled`). */
   disabled: Set<string>;
   play: (cue: CueId, at?: THREE.Object3D) => void;
+  /** Null until it's loaded (or if it couldn't be): `if` / `unless` then count as false. */
+  story: GameStory | null;
 }
 
 const isOpenable = (c: object): c is Openable => 'open' in c && 'amount' in c;
@@ -37,6 +51,9 @@ export const fromBlender = ([x, y, z]: [number, number, number]) => new THREE.Ve
 
 /** Runs one command; what it can't do is warned about (a missing id, a stub). */
 export function run(command: Command, target: CommandTarget): void {
+  const truth = (name: string) => Boolean(target.story?.get(name));
+  if (command.if !== undefined && !truth(command.if)) return;
+  if (command.unless !== undefined && truth(command.unless)) return;
   const entity = 'id' in command && command.do !== 'cutscene' ? target.entities.get(command.id) : null;
   const missing = () => console.warn(`[0.0.2] ${command.do}: no "${'id' in command ? command.id : ''}" that can do it`);
   switch (command.do) {
@@ -46,6 +63,17 @@ export function run(command: Command, target: CommandTarget): void {
       openable.open = command.state === 'open';
       return;
     }
+    case 'lock':
+    case 'unlock': {
+      const openable = entity?.find(isOpenable);
+      if (!openable) return missing();
+      openable.locked = command.do === 'lock';
+      return;
+    }
+    case 'story':
+      if (!target.story) return console.warn(`[0.0.2] story: not loaded (${command.knot})`);
+      target.story.run(command.knot);
+      return;
     case 'enable':
     case 'disable':
       if (!entity) return missing();

@@ -9,17 +9,22 @@
 // the cargo ramp, the bulkhead doors, the window). Doors that open together are one target (the
 // roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
 // Other devices (the boombox) make their own target and are handed in (`others`).
+// Locked (a scene or Ink): a door, or its keypad or panel, offers its story knot (`use_<id>`, its
+// `# verb:` tag as the prompt) if the story has one, otherwise "Locked" (`respectLocks`).
 // Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1),
 // doc/plans/features/bulkhead-doors.md, doc/plans/features/audio-from-ue.md,
 // doc/plans/features/interaction-sounds.md (the panels' two tones, the lever's clunk)
 
 import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
+import type { Command } from './commands';
 import type { Door } from './doors';
+import type { Openable } from './entities';
 import type { Device } from './input';
 import { named } from './names';
 import type { Physics } from './physics';
 import { settings } from './settings';
+import type { GameStory } from './story';
 
 export interface Interactable {
   /** A name for checks and logs. */
@@ -31,6 +36,8 @@ export interface Interactable {
   act: () => void;
   /** Offered right now (default: yes). */
   available?: () => boolean;
+  /** What it opens: while any is locked, it does what `respectLocks` says instead. */
+  controls?: Openable[];
 }
 
 /**
@@ -55,8 +62,9 @@ export function findDevice(ship: THREE.Object3D, device: string): THREE.Object3D
  * @param others targets that are made elsewhere (the boombox)
  * @param sound plays a device's own sound, at the device: a panel's two tones (up for open, down
  *   for close), the lever's clunk
+ * @param ramp the cargo ramp's state (what its keypad controls)
  */
-export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: Interactable[] = [], sound: (id: CueId, at: THREE.Object3D) => void = () => undefined): Interactable[] {
+export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: Interactable[] = [], sound: (id: CueId, at: THREE.Object3D) => void = () => undefined, ramp?: Openable): Interactable[] {
   const list: Interactable[] = [...others];
   // The devices first: a door with a keypad, a panel or a lever is used from there only.
   const withKeypad = new Set<Door>();
@@ -67,6 +75,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
       list.push({
         name: o.name,
         objects: [o],
+        ...(ramp ? { controls: [ramp] } : {}),
         verb: () => (settings.cargoRampOpen ? 'Close ramp' : 'Open ramp'),
         act: () => {
           settings.cargoRampOpen = !settings.cargoRampOpen;
@@ -95,6 +104,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     list.push({
       name: o.name,
       objects: [o, ...handles.map((h) => h.object)],
+      controls: group,
       verb: () => ((automatic() ? !door.shut : door.open) ? `Close ${what}` : `Open ${what}`),
       act: () => {
         // A lever isn't used while it's moving (as in the UE prototype).
@@ -126,6 +136,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     list.push({
       name: group.map((d) => d.name).join(' + '),
       objects: group.map((d) => d.object),
+      controls: group,
       verb: () => (first.open ? 'Close' : 'Open'),
       // All to the same state, whatever each was.
       act: () => {
@@ -140,6 +151,7 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     list.push({
       name: door.name,
       objects: [door.object],
+      controls: [door],
       verb: () => (door.open ? 'Close' : 'Open'),
       act: () => door.toggle(),
       // Not while she's standing on it (the trapdoor, closed).
@@ -147,6 +159,34 @@ export function shipInteractables(ship: THREE.Object3D, doors: Door[], others: I
     });
   }
   return list;
+}
+
+/**
+ * The targets, minding locks: while what one controls is locked, it runs the story's knot for it
+ * (`use_<id>` of its first object, through the commands), prompted by the knot's `# verb:` tag
+ * ("Use" without one); with no knot, it says "Locked" and does nothing.
+ */
+export function respectLocks(items: Interactable[], story: () => GameStory | null, run: (command: Command) => void): Interactable[] {
+  return items.map((item) => {
+    const controls = item.controls;
+    if (!controls?.length) return item;
+    const id = item.objects[0]?.userData.id as string | undefined;
+    const locked = () => controls.some((c) => c.locked);
+    const knot = () => (id ? (story()?.useKnot(id) ?? null) : null);
+    return {
+      ...item,
+      verb: () => {
+        if (!locked()) return item.verb();
+        const k = knot();
+        return k ? (story()!.tag(k, 'verb') ?? 'Use') : 'Locked';
+      },
+      act: () => {
+        if (!locked()) return item.act();
+        const k = knot();
+        if (k) run({ do: 'story', knot: k });
+      },
+    };
+  });
 }
 
 const GLYPH: Record<Device, string> = { gamepad: '◯', keyboard: 'E' };

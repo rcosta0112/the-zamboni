@@ -68,6 +68,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 *Update 2026-10-20 (pass 1):* **the rest poses stay with the export** (owner: yes). The plan had the game take each moving part's rest pose from `rest-poses.json`; instead the export keeps putting them at rest from it and its gate stops on a pose change, as before. Why: the game can't reapply Blender's local transforms safely (compression moves node origins; hinges are built from the `hinge` tag), and the export already guarantees it.
 
+*Update 2026-10-20 (pass 3, Ink; agent's choices, for the owner's review):* **a scene reads the story through its commands' `if` / `unless`** (an Ink variable), not through a knot run at scene start: the setup stays one readable list. **Using something the story cares about runs a knot named after its id** (`use_<id>`, the prompt from the knot's `# verb:` tag), for now only while what it controls is locked; Ink acts back through one external function, `command(name, id, value)`. **The compiled story is made by a script** (`npm run ink`) and kept in git next to its `.ink`, not compiled in the browser (the compiler stays out of the game). Locks are live state (not saved): a scene locks again unless the story says otherwise.
+
 ---
 
 ## [2026-10-20] — The export puts moving parts at their recorded rest pose (pipeline)

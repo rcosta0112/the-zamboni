@@ -15,11 +15,13 @@
     "export:crew": "node tools/export.mjs crew",
     "export:player": "node tools/export.mjs player",
     "export:accept": "node tools/export.mjs accept",
-    "rest-poses": "node tools/export.mjs rest-poses"
+    "rest-poses": "node tools/export.mjs rest-poses",
+    "ink": "node tools/ink.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.21.0",
     "@zamboni/ui": "*",
+    "inkjs": "2.4.0",
     "three": "0.186.1",
     "three-mesh-bvh": "0.9.16"
   },
