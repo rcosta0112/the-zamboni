@@ -1,6 +1,6 @@
 # Plan: Archive prototype 01 as 0.0.1, start 0.0.2 (item 51)
 
-**Status:** *draft*, 2026-10-20, for owner review; owner's answers of 2026-10-20 folded in (versions as the numbering, the low-res prototype skipped, the version in the tuning panel, the archive is the latest `.blend` with its textures packed). Two questions left (below). A big task (CLAUDE.md, *Keeping the work cheap* 5): four passes, a stop to assess after each.
+**Status:** *in progress*: pass 1 done 2026-10-20 (3efdd2e); pass 2 done 2026-10-20 (*As built* below); pass 3 next. Drafted 2026-10-20; owner's answers of 2026-10-20 folded in (versions as the numbering, the low-res prototype skipped, the version in the tuning panel, the archive is the latest `.blend` with its textures packed). Two questions left (below). A big task (CLAUDE.md, *Keeping the work cheap* 5): four passes, a stop to assess after each.
 
 ## Goal
 
@@ -91,6 +91,10 @@ A Blender script, tried on a scratch copy first, opens 1.21 (only read; the owne
 
 1. **Which state is frozen as 0.0.1.** *Merged first* (owner, 2026-10-20): `see-through-from-scratch` fast-forwarded into `main` at a4ae02b and pushed. Still to confirm: freeze `main` as it is (ladder 2b not built; 7 known smoke failures, written into 0.0.1's README), or build ladder 2b first.
 2. **What happens to the open work** after the freeze: all of it in 0.0.2, 0.0.1 changed only if it stops running (recommended), or fixes carried back to 0.0.1.
+
+## As built
+
+**Pass 2 (2026-10-20).** A Blender script opened 1.21 (not saved), packed 35 images (4 were already packed) and the font, and saved `resources/archive/0.0.1/The Zamboni 1.21 (0.0.1).blend` (21 MB; the script is kept beside it as `pack_archive.py`, with a `README.md`). Tried first into the scratchpad. Reopened: 35 images, 1 font, 458 objects, nothing missing. **The node library's path is stored absolute** (Blender 5.2's install): a relative one breaks as soon as the archive sits at another depth (it did in the trial). `BLEND` in `0.0.1/tools/export.mjs` points at the archive. **Exported from it: the ship, its collider and the crew are byte-identical to 0.0.1's game files.** The player's file differs, but so does every export of it, from either file: four runs gave four different files, her mesh at 5286 or 5287 vertices (the player export isn't deterministic; item 48's subject). The committed `green-parka.glb` is kept.
 
 ## After
 

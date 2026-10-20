@@ -19,7 +19,8 @@ import { fileURLToPath } from 'node:url';
 const PROTO = resolve(dirname(fileURLToPath(import.meta.url)), '..'); // this version's folder
 const APP = resolve(PROTO, '..', '..');
 const ROOT = resolve(APP, '..');
-const BLEND = join(ROOT, 'resources', 'models', 'The Zamboni 1.21.blend');
+// 0.0.1 is frozen: it exports from its archive (1.21, textures and font packed), never the working file.
+const BLEND = join(ROOT, 'resources', 'archive', '0.0.1', 'The Zamboni 1.21 (0.0.1).blend');
 const ASSETS = join(PROTO, 'public', 'test');
 const GLTF_TRANSFORM = join(APP, 'node_modules', '@gltf-transform', 'cli', 'bin', 'cli.js');
 const BLENDER = [process.env.BLENDER_PATH, 'C:/Program Files/Blender Foundation/Blender 5.2/blender.exe'].find((p) => p && existsSync(p)) ?? 'blender';
