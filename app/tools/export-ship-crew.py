@@ -41,6 +41,7 @@ import bpy
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
+from export_collections import show, switch_collections
 from scale_check import check_scale
 
 ANIMATED = {'Dr. Kaufman': ('Dr. Kaufman.002', ['Dr. KaufmanMesh.003', 'Mug.003'])}
@@ -49,7 +50,6 @@ STATIC = {
     'Adam (Blue)': 'Adam Blue.001',
     'Dr. Ogawa': 'Dr. Ogawa Jumpsuit.001',
 }
-INCLUDE_COLLECTIONS = ['Crew']
 
 # Standing height relative to Dr. Green (owner, 2026-10-09: Dr. Kaufman is shorter, Dr. Ogawa about
 # the same): from the crew file's parkas (Kaufman 0.650, Ogawa 0.827, Green 0.828). Checked, not
@@ -62,21 +62,13 @@ parser.add_argument('--out', required=True)
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
 
-def find_layer(layer, name):
-    if layer.collection.name == name:
-        return layer
-    for child in layer.children:
-        found = find_layer(child, name)
-        if found:
-            return found
-    return None
-
-
-for name in INCLUDE_COLLECTIONS:
-    layer = find_layer(bpy.context.view_layer.layer_collection, name)
-    if layer:
-        layer.exclude = False
-bpy.context.view_layer.update()
+# The collections as export-collections.json says, whatever the file has: Blender doesn't evaluate
+# what's switched off, and the crew came out at the origin, unposed and unmirrored, with `Cockpit`
+# switched off (2026-10-19).
+switch_collections()
+# Hidden in the viewport, a character wouldn't be evaluated (posed, mirrored): shown in memory.
+_crew = [bpy.data.objects[n] for n in [*STATIC.values(), *(a for a, _ in ANIMATED.values())] if n in bpy.data.objects]
+show([o for a in _crew for o in (a, *a.children_recursive)] + [bpy.data.objects[n] for _, parts in ANIMATED.values() for n in parts if n in bpy.data.objects])
 depsgraph = bpy.context.evaluated_depsgraph_get()
 
 from mathutils import Matrix
@@ -156,6 +148,8 @@ for character, (armature_name, part_names) in ANIMATED.items():
     bpy.context.view_layer.update()
     action = armature.animation_data.action if armature.animation_data else None
     print(f'{character}: action {action.name if action else None}, frames {tuple(action.frame_range) if action else None}')
+    if not action:
+        print(f'NOTE: {character} is animated in the game but has no action in the file: exported unposed')
     for ob in [armature, *parts]:
         ob['character'] = character
         selection.append(ob)
@@ -178,6 +172,9 @@ bpy.ops.export_scene.gltf(
     export_format='GLB',
     use_selection=True,
     export_animations=True,
+    # Only each character's own action: with none assigned, the exporter took any action whose bones
+    # matched (Dr. Kaufman got the ladder clip, 2026-10-19).
+    export_animation_mode='ACTIVE_ACTIONS',
     export_def_bones=True,
     export_apply=True,
     export_yup=True,

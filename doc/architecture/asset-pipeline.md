@@ -129,9 +129,29 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 - **Bulkheads collide as three pieces each** (owner, 2026-10-09, as in the UE prototype; since 2026-10-12 they are `*_col` objects in the reference file, and the bulkheads are tagged `collider: "none"`): left of, right of and above the doorway, each the convex hull of that part of the bulkhead. The modelled bulkhead keeps a strip under each doorway (5 cm downstairs, 9 cm upstairs) that she bumped into. The doorway frame (`Door Boolean.001`) is left out of the collider. So are the sliding doors: since 2026-10-13 they're moving parts, and the game gives each leaf a collider that follows it.
 - **Colliders: don't decimate around openings.** A decimated collision mesh partly closed the cargo opening; the ship collider is exported at full detail, in its own file with positions only (29k triangles with the interior, 104 KB compressed), dense furniture as convex hulls.
 - **Excluded collections:** the ship file kept the interior (Crew Quarters, Engineering, Cargo Bay…) in collections excluded from the view layer. In the reference file they're included; the export looks for props in every collection under `Ship` that is included and not tagged `export: false`. A collection excluded from the view layer isn't exported. **Superseded 2026-10-19:** the export takes every collection, switched on or not, and exports what's in `ship-export-list.json` (above). The props keep the group and `seeThrough` they had in 1.19, whatever collection they're in now: in 1.20 the owner moved the cargo hold's chests, crates and batteries into `Cargo`, the rack's jetpacks and an extinguisher into `Fixtures`, and two fridge grates into `Galley`.
+- **The file's collections, and which are on for an export** (owner, 2026-10-19, from 1.21). How they're switched in the file doesn't matter: **every export switches them as this table says**, in memory ([`app/tools/export-collections.json`](../../app/tools/export-collections.json)). **A new collection stays off and is flagged** (`NOTE: collection ... is new`): to export what's in it, add it to the file and to this table. Objects hidden in the file are shown for the export too (`NOTE: hidden in the file, shown for the export`): `Hull_Merged` hidden in the viewport had left the collider without the hull, and the galley doors' hinges at the origin (found 2026-10-19). And a file saved in pose or edit mode is put in object mode.
+
+  | Collection | Taken into the game | On for export |
+  |---|---|---|
+  | `Lights Camera` (`Cameras`, `Lights.001`) | nothing: Blender's own cameras and lights | no |
+  | `Ship`, `Body` | hold the rest | yes |
+  | `Booleans` | nothing: the cutters render, and on they'd be exported as props | **no** |
+  | `Parts`, `Hull`, `Cockpit.001`, `Crew Quarters.001`, `Cargo.001` | the ship's parts | yes |
+  | `Crew Quarters`, `Stuff`, `Galley`, `Shelf`, `Table` | parts and props | yes |
+  | `Lights` (under `Crew Quarters`) | nothing (empty) | no |
+  | `Crew` (`export: false`) | Dr. Kaufman (crew export) | yes |
+  | `Engineering`, `Contraption` | parts and props | yes |
+  | `Crew.002` (`export: false`) | nothing: a second Dr. Ogawa | no |
+  | `Cargo Bay`, `Cargo`, `Fixtures` | parts and props (the rack's jetpacks in `Fixtures`) | yes |
+  | `Cockpit` (`seeThrough: solid`) | parts and props | yes |
+  | `Crew.001` (`export: false`) | Dr. Ogawa and both Adams (crew export) | yes |
+  | `Archive`, `Ground` (`Rubble`), `Temple` | nothing | **no** |
+  | `Game`, `Game Lights`, `Game Collision` | the light markers, the collision pieces | yes |
+  | `Player` | her model, and the armature the ladder clip was made on (player export) | yes |
+  | `Signal Receiver` | the receiver and its knobs (in the cockpit) | yes |
 - **To look at in 1.21** (found 2026-10-19, owner's changes in 1.20, not fixed):
-  - **The trapdoor (`Hatch.002`) is rotated open** (90° about X; closed in 1.19). The game takes the file's pose as closed and starts it open, so it opens a further 90° and lies the wrong way. Close it in the file.
-  - **Dr. Kaufman's action (`Dr. Kaufman.002Action`) is gone** from the file (1.19 had it, at frame 201): the crew export writes her un-posed, and she shows on the lower deck. It's still in 1.19: append it and assign it to `Dr. Kaufman.002`.
+  - **The trapdoor (`Hatch.002`) is rotated open** (90° about X; closed in 1.19). The game takes the file's pose as closed and starts it open, so it opens a further 90° and lies the wrong way. Close it in the file. **Fixed 2026-10-20** (owner closed it in 1.21; re-exported). Until the export closes doors itself ([robust exports](../plans/features/robust-exports.md), item 48), prototype 01's `doors.ts` turns a door listed in `POSED_OPEN` back about its hinge when the file has it turned by its open angle.
+  - **Dr. Kaufman's action (`Dr. Kaufman.002Action`) is gone** from the file (1.19 had it, at frame 201): the crew export writes her un-posed, and she shows on the lower deck. It's still in 1.19: append it and assign it to `Dr. Kaufman.002`. **Fixed 2026-10-19** (owner: `Dr. Kaufman.Sitting` added to 1.21). With no action, the exporter had given her the ladder clip: the crew export now takes only each character's own action, and **switches on every collection** in memory (with `Cockpit` switched off, Dr. Ogawa and both Adams came out at the origin, unposed and unmirrored).
   - **`Signal Receiver.001`** (in a new top-level collection, `Signal Receiver`) replaces `Monitor.004` and `Keyboard.002` in the cockpit: put in the list in their place, with its dials and switches. Its four new images add 0.8 MB to the ship (3.67 → 4.52 MB); `Radio Dial`, `Receiver Dial Marks`, `Receiver Tag` and `Color Palette Emission` are double-sided (`PERF:`).
   - **The cargo bay ladder is longer** (its top 0.23 higher in 1.20's units): the game measures which side she stands on at her height now, not at the ladder's middle (prototype 01's `ladders.ts`).
   - **Her seated copies and the crew not in the game** (`Dr. Green Jump suit Baked`…, `Dr. Kaufman`, `Dr. Ogawa.001`, `Adam.002`…) were resized by the same rule as the exported crew; some came out at odd heights (`Adam.002` measures 0.35, `Dr. Kaufman` 1.05): only the exported four were checked.

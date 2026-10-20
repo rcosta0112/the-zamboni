@@ -158,6 +158,12 @@ Built 2026-10-14 (item 38; [plan](../plans/features/jetpack-glow.md)). **Part 1'
 
 ## Ladders
 
+**By button, with the owner's climbing animation** (since 2026-10-19, pass 2a of [`plans/features/ladder-climb-animation.md`](../plans/features/ladder-climb-animation.md)). At the ladder's foot the prompt says **Climb** (E / B, like every target). Pressed, she slides to where the animation starts (0.2 s or more, turning to face the ladder), then it plays (3 s, `Dr. Green - Ladder x1.25` from 1.21) and moves her: its root motion, so the camera follows her up. At its end she stands where its last frame leaves her, on the crew quarters floor beside the opening, turned a quarter to the right, and the stick is hers again; if that leaves her within a few centimetres of a door (the open trapdoor, since the owner moved her closer to the ladder in the animation), she then slides 0.15 clear of it, sideways, over 0.25 s (through her controller, so walls stop her), before the stick is hers: at 0.016 her controller wouldn't move her at all, and pushed only 0.04 clear she still caught on it for a moment (`DOOR_CLEAR` in `ladders.ts`, `awayFromDoors` in `doors.ts`; owner, 2026-10-20). While it plays nothing else can be used, and her movement, jump and the jetpack do nothing; **the camera stays the player's**. **No climbing down** (owner): from the floor above she drops through the opening, as before. Where the animation starts comes from the file: the armature it was made on (`Dr. Green Jump suit`, at the ladder's foot), tagged `climb` on her model by `npm run export:player`.
+- Not yet (pass 2b): the trapdoor opening as her head reaches it (through a closed one she passes), the rung sounds on her hands (one sound as she takes hold).
+- She ends about 9 cm from the opening's edge: walking back toward it, she drops through.
+
+**Kept, not in use** (owner, 2026-10-19: so it can be rolled back), `ladders-free.ts`: the climb with the stick, as below.
+
 No button: walking into a ladder is enough (owner).
 
 **Up and down, and nothing moves her off it** (owner, 2026-10-13; from 2026-10-12 until then ladders went up only, and she stepped off at the top by herself).

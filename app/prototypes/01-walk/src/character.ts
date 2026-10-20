@@ -103,13 +103,21 @@ export class Character {
     return jetpack?.visible ? jetpack : null;
   }
 
+  /** The model shown, if any. */
+  get model(): AnimatedModel | undefined {
+    return settings.showModel ? this.models[settings.characterModel] : undefined;
+  }
+
+  /** Time into the climbing animation while the ladder plays it (s); null otherwise. */
+  clipTime: number | null = null;
+
   /** Per rendered frame: which model is visible, and its animation. */
   animate(dt: number): void {
-    const current = settings.showModel ? this.models[settings.characterModel] : undefined;
+    const current = this.model;
     this.capsule.visible = !current;
     for (const m of Object.values(this.models)) m.object.visible = m === current;
     // Skidding, she's shown standing (there's no skid clip yet).
-    current?.update(dt, this.skidding ? 0 : this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed(), this.flying || this.parachuting);
+    current?.update(dt, this.skidding ? 0 : this.movedSpeed, this.grounded, this.walkSpeed(), this.runSpeed(), this.flying || this.parachuting, this.clipTime);
   }
 
   /**

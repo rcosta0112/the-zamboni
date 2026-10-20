@@ -9,16 +9,16 @@ import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
 import { Character } from './character';
 import { Input } from './input';
-import { loadModels } from './model';
+import { loadModels, type ClimbTag } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
-import { createDoorSounds, motorSound, type Pusher } from './doors';
+import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
 import { findDevice, Interaction, shipInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
-import { Ladders, shipLadders } from './ladders';
+import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
 import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
@@ -73,14 +73,16 @@ async function start(): Promise<void> {
   let crew: Crew | null = null;
   let roomLights: RoomLights | null = null;
   let interaction: Interaction | null = null;
-  let ladders: Ladders | null = null;
+  let ladders: LadderClimb | null = null;
+  let climbTag: ClimbTag | null = null;
   let boombox: Boombox | null = null;
   let rack: JetpackRack | null = null;
   let doorSounds: (() => void) | null = null;
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
   loadModels((share) => loading.set('models', share))
-    .then(({ models }) => {
+    .then(({ models, climbTag: tag }) => {
       loading.set('models', 1);
+      climbTag = tag;
       character.setModels(models);
       return loadShip(scene, physics, (share) => loading.set('ship', share));
     })
@@ -120,9 +122,9 @@ async function start(): Promise<void> {
       };
       rack = new JetpackRack(s.object, (id, at) => audio.play(id, at));
       if (rack.slots.length === 0) console.warn('[01-walk] the ship has no jetpack rack');
-      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables];
+      ladders = new LadderClimb(shipLadders(s.object, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
+      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
       interaction = new Interaction(shipInteractables(s.object, s.doors, others, (id, at) => audio.play(id, at)), physics, document.querySelector<HTMLElement>('#prompt')!);
-      ladders = new Ladders(shipLadders(s.object, physics, s.ladderColliders));
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
       addCollisionBoxes(s, physics);
       wind.setShip(s);
@@ -378,7 +380,8 @@ async function start(): Promise<void> {
     });
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
-    interaction?.update(chest, view.camera, input.lastDevice, pressed);
+    // While she climbs nothing else can be used (owner: control is taken, but not the camera).
+    interaction?.update(chest, view.camera, input.lastDevice, pressed, ladders?.climbing ?? false);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);
@@ -402,12 +405,22 @@ function easeTo(value: number, target: number, step: number): number {
   return value < target ? Math.min(target, value + step) : Math.max(target, value - step);
 }
 
+/** Where the climbing animation starts, in the world: from the `climb` tag on her model (ship space). */
+function climbStart(ship: THREE.Object3D, tag: ClimbTag | null): ClimbStart | null {
+  if (!tag) return null;
+  ship.updateMatrixWorld(true);
+  const feet = ship.localToWorld(new THREE.Vector3(...tag.start));
+  const ahead = ship.localToWorld(new THREE.Vector3(...tag.start).add(new THREE.Vector3(...tag.facing))).sub(feet);
+  ahead.y = 0;
+  return { feet, facing: facingOf(ahead.normalize()) };
+}
+
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
     'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · B/◯ interact · Start/Options pause · View: tuning\n' +
     'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · ` tuning\n' +
-    'Ladders: walk into the foot; push toward the ladder to climb, away to climb down; at the top, push back or sideways to step off\n' +
+    'Ladder: at its foot, E / B to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }
 

@@ -22,13 +22,14 @@
 | `boombox.ts` | The boombox: its ring of steps, the cassette sound then the track, the shake | `Boombox.use`, `update` |
 | `jetpack.ts` | The jetpack rack: its jetpacks (by tag), *Take* / *Put back*, which one is gone; follows `settings.wearingJetpack` | `JetpackRack`, `update` |
 | `exhaust.ts` | The jetpack's exhaust glow: a sprite per nozzle (halo painted in, TSL), where the nozzles are, following R2, the flicker | `Exhaust.update` |
-| `ladders.ts` | Finding ladders; attaching at the foot, climbing up and down, held at the top, leaving it (the float), jump; when the ladder collides | `shipLadders`, `Ladders.update`, `updateColliders` |
+| `ladders.ts` | Finding ladders; the climb by button: the *Climb* target, the slide to the animation's start, the animation moving her (its root motion), the end on the floor above; when the ladder collides | `shipLadders`, `LadderClimb.update`, `updateLadderColliders`, `ClimbClip` |
+| `ladders-free.ts` | **Not in use:** the climb with the stick until 2026-10-19 (attaching at the foot, up and down, held at the top, the float), kept to roll back to | `FreeLadders.update` |
 | `visibility.ts` | See-through **rules**: what is cut and when (per frame, on the CPU, with BVH rays). Branch `see-through-from-scratch`: `hullOnly` (the shell drawn, the rest hidden) replaces the rules while `settings.seeThroughStage` is `'hull only'` | `updateVisibility`, `hullOnly`, `prepareRaycasts` |
 | `cutaway.ts` | See-through **shader** (TSL): the hole, the dither, per-object values, the material copies | `keep`, `makeCuttable`, `setSingleSided`, `setReflections`, `updateCutaway` |
 | `lights.ts` | Room lights from the ship file's markers; the four nearest her | `RoomLights.update` |
 | `world.ts` | Sky, haze, sun and its shadow, the ground | `createWorld`, `updateWorld` |
 | `crew.ts` | The crew placed in the ship: load, idle loop, box colliders | `loadCrew` |
-| `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; wearing a jetpack (hers shown, the little backpack hidden, the hood's shape key); retargeting Part 1's animations | `loadModels`, `AnimatedModel.update` |
+| `model.ts`, `retarget.ts` | Her two models; walk/run/jump blending; wearing a jetpack (hers shown, the little backpack hidden, the hood's shape key); retargeting Part 1's animations; the ladder's climbing animation played in place, its root motion handed to the climb (`Climbing`), and the `climb` tag | `loadModels`, `AnimatedModel.update`, `AnimatedModel.climb` |
 | `names.ts`, `stats.ts` | Blender names as GLTFLoader gives them; the frame-time readout | `named` |
 
 Outside `src/`: `index.html`; `src/style.css` has the prompt, help and pause overlays. The button, the progress bar and the tokens (colours, fonts) are in [`app/packages/ui`](../../packages/ui/README.md); the screen's images and fonts in `app/assets/ui/`. Scripts run outside the browser (exports, the scripted check `npm run smoke`, the one-question `npm run probe`, the records of changes to the ship file) are listed in [`app/tools/README.md`](../../tools/README.md).

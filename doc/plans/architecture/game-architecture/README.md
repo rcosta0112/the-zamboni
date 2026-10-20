@@ -16,6 +16,7 @@ Decide how the game is put together so it **runs smoothly as a web app, with loa
 - **Checkpoint saves** of story state, mission data and chat history; props reset on reload. → [saving](saving.md)
 - **An installable web app** that can download everything and play offline, hosted on Vercel (probably). → [offline](offline.md)
 - **Code outline:** world, asset manager, modes, input, physics, characters, save, offline, Svelte UI and the bridge between game and UI. → [code](code.md)
+- **The ship's things as components** (owner, 2026-10-19; draft, saved for later): kinds with their defaults defined in the game, the file only placing instances; Entity–Component and archetypes, no ECS. → [components](components.md)
 
 ## Constraints from the docs
 

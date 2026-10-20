@@ -9,7 +9,9 @@ nothing is saved back.
         --objects "Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack" \
         --out app/assets/test/green-parka.glb
 
-- Exports mesh + skeleton only, no animations (characters and animations are separate files).
+- Exports mesh + skeleton, and no animation but ``--clip`` (the ladder clip since 2026-10-19:
+  baked with its IK solved, from the armature it was made on; ``--clip-start`` tags where it
+  starts in the ship as ``climb``). Part 1's walk, run, jump and flight come from Part 1's file.
 - Modifiers are applied (mirrored halves, subdivision), **keeping shape keys** (the hood's
   ``jetpack``): the glTF exporter drops shape keys when it applies modifiers itself, so each part's
   modifiers other than the Armature are baked here, once per shape key, and the keys are rebuilt
@@ -32,8 +34,10 @@ import os
 import sys
 
 import bpy
+from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from export_collections import show, switch_collections
 from scale_check import check_scale
 
 parser = argparse.ArgumentParser()
@@ -41,12 +45,16 @@ parser.add_argument('--armature', required=True)
 parser.add_argument('--objects', required=True, help='comma-separated object names to export with the armature')
 parser.add_argument('--out', required=True)
 parser.add_argument('--force-double-sided', action='store_true', help='temporary workaround: export every material double-sided')
+parser.add_argument('--clip', help='an action to export with the model, baked (IK solved into the bones)')
+parser.add_argument('--clip-start', help='the armature posed where the clip starts in the ship (its place and facing go into the `climb` tag)')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
+switch_collections()  # as export-collections.json says, whatever the file has
 check_scale()
 
 armature = bpy.data.objects[args.armature]
 parts = [bpy.data.objects[name.strip()] for name in args.objects.split(',')]
+show([armature, *parts] + ([bpy.data.objects[args.clip_start]] if args.clip_start else []), render=True)  # hidden in the file or not
 
 # Which bones actually carry weights, after modifiers (mirror) are applied?
 depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -80,12 +88,50 @@ for mat in sorted(materials, key=lambda m: m.name):
     elif not mat.use_backface_culling:
         print(f'PERF: material {mat.name!r} is double-sided (backface culling off in Blender)')
 
+# The clip (the ladder: owner, 2026-10-19), made on another armature with the same bones: played
+# on this one and baked with its constraints on, so the IK the game doesn't have is solved into the
+# bones. Only the bones are keyed (her place in the ship comes from --clip-start). Where it starts:
+# that armature's place and facing at the first frame, in the ship's space (glTF axes), tagged
+# `climb` on the armature.
+baked = None
+if args.clip:
+    clip = bpy.data.actions[args.clip]
+    first, last = (int(f) for f in clip.frame_range)
+    ad = armature.animation_data or armature.animation_data_create()
+    ad.action = clip
+    ad.action_slot = clip.slots[0]
+    bpy.ops.object.select_all(action='DESELECT')  # in object mode: switch_collections()
+    armature.hide_set(False)
+    armature.hide_viewport = False
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.nla.bake(frame_start=first, frame_end=last, only_selected=False, visual_keying=True, clear_constraints=False, use_current_action=False, bake_types={'POSE'})
+    bpy.ops.object.mode_set(mode='OBJECT')
+    baked = ad.action
+    baked.name = args.clip + ' (baked)'
+    baked.name = args.clip  # glTF names the animation after its action
+    if args.clip_start:
+        start = bpy.data.objects[args.clip_start]
+        bpy.context.scene.frame_set(first)
+        m = start.matrix_world
+        at, facing = m.translation, (m.to_3x3() @ Vector((0.0, -1.0, 0.0))).normalized()
+        armature['climb'] = {
+            'clip': args.clip,
+            'start': [at.x, at.z, -at.y],
+            'facing': [facing.x, facing.z, -facing.y],
+        }
+    print(f'CLIP: {args.clip!r}: frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked' + (f'; starts at {tuple(round(v, 3) for v in armature["climb"]["start"])}' if args.clip_start else ''))
+
 # Export in the rest pose, standing at the origin (the crew file has characters posed and placed
-# in a layout). Rotation and scale are kept.
-armature.data.pose_position = 'REST'
+# in a layout). Rotation and scale are kept. With a clip, the pose follows it (the mesh and the
+# skin are written in the rest pose all the same).
+armature.data.pose_position = 'POSE' if baked else 'REST'
 armature.location = (0.0, 0.0, 0.0)
 if armature.animation_data:
-    armature.animation_data.action = None
+    armature.animation_data.action = baked
+    if baked:
+        armature.animation_data.action_slot = baked.slots[0]
 for pb in armature.pose.bones:
     pb.location = (0.0, 0.0, 0.0)
     pb.rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
@@ -165,7 +211,10 @@ bpy.ops.export_scene.gltf(
     export_format='GLB',
     use_selection=True,
     use_active_scene=True,
-    export_animations=False,
+    export_animations=baked is not None,
+    export_animation_mode='ACTIVE_ACTIONS',  # only the clip: not every action whose bones match
+    export_force_sampling=True,
+    export_extras=True,  # the `climb` tag
     export_def_bones=True,
     export_apply=False,  # applied above, keeping shape keys
     export_morph=True,

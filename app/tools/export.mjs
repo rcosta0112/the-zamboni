@@ -43,6 +43,9 @@ const JOBS = {
       '--armature', 'Dr. Green Parka',
       '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack',
       '--force-double-sided',
+      // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
+      '--clip', 'Dr. Green - Ladder x1.25',
+      '--clip-start', 'Dr. Green Jump suit',
       '--out', join(raw, 'green-parka.glb'),
     ],
     files: { 'green-parka.glb': ['copy'] },

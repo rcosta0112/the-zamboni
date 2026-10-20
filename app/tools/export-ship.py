@@ -15,7 +15,8 @@ then cap the textures at 512 px and compress both (Meshopt) into app/assets, fro
 
 **What is exported is a list**, ``ship-export-list.json`` (owner, 2026-10-19: the owner turns
 collections on and off while working; until then the collections switched on in the file were the
-criterion). Every collection counts, switched on or not. The list names the parts, the props (each
+criterion). The collections are switched as ``export-collections.json`` says, whatever the file
+has; a new one stays off and is flagged. The list names the parts, the props (each
 with the group it's merged into and its ``seeThrough`` tag, so moving a prop to another collection
 changes nothing in the game), the collision pieces and the light markers. ``NOTE:`` lines flag what
 doesn't fit: listed but not in the file (renamed, deleted), or in the file and not listed (new: add
@@ -74,14 +75,14 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
+from export_collections import show, switch_collections
 from scale_check import check_scale
 
 # What's exported (ship-export-list.py made it; edit it to add or remove things).
 LIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ship-export-list.json')
-# The ship's collections: looked through for props that aren't listed (to flag them), except the
-# boolean cutters' (they render, but they're never exported).
+# The ship's collections: looked through for props that aren't listed (to flag them). The boolean
+# cutters' collection is off for exports (export-collections.json): they render, but never go in.
 SHIP_COLLECTION = 'Ship'
-CUTTERS = {'Booleans'}
 # Props this big or bigger (largest side, Blender units = m) stay separate objects with a
 # collider; smaller ones are merged per room and don't collide. (0.25 before the file took the
 # game's scale, 2026-10-19: x 1.4856.)
@@ -95,20 +96,15 @@ parser.add_argument('--out', required=True)
 parser.add_argument('--collider-out', required=True)
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
-def include(layer):
-    """Every collection, switched on or not in the file (nothing is saved)."""
-    layer.exclude = False
-    for child in layer.children:
-        include(child)
-
-
-include(bpy.context.view_layer.layer_collection)
-bpy.context.view_layer.update()
+switch_collections()  # as export-collections.json says, whatever the file has
 check_scale()
 
 with open(LIST, encoding='utf-8') as f:
     listed = json.load(f)
 in_scene = list(bpy.context.view_layer.objects)
+# What's listed is exported, hidden in the file or not.
+listed_names = set(listed['parts']) | {p['name'] for p in listed['props']} | set(listed['collision']) | set(listed['lights'])
+show([ob for ob in in_scene if ob.name in listed_names], render=True)
 
 
 def find(names, what):
@@ -194,9 +190,9 @@ def largest_side(ob):
 
 
 def prop_collections(layer, inside=False):
-    """The ship's collections (not those tagged ``export: false``), in the outliner's order."""
+    """The ship's collections that are on (not those tagged ``export: false``), in the outliner's order."""
     collection = layer.collection
-    if collection.get('export', True) is False:
+    if layer.exclude or collection.get('export', True) is False:
         return
     inside = inside or collection.name == SHIP_COLLECTION
     if inside:
@@ -233,7 +229,7 @@ for entry in listed['props']:
 prop_names = {entry['name'] for entry in listed['props']}
 for collection in prop_collections(bpy.context.view_layer.layer_collection):
     for ob in collection.objects:
-        if ob.name not in prop_names and is_prop(ob) and collection.name not in CUTTERS:
+        if ob.name not in prop_names and is_prop(ob):
             print(f'NOTE: {ob.name!r} (in {collection.name!r}) would be a prop but is not in the list: not exported')
             prop_names.add(ob.name)
 listed_sources = objects + [ob for g in groups.values() for ob in g.objects]

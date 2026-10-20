@@ -177,7 +177,13 @@ export class Interaction {
    * Per frame: pick the target, show the prompt next to it; act on a press.
    * @param chest her chest (world)
    */
-  update(chest: THREE.Vector3, camera: THREE.Camera, device: Device, pressed: boolean): void {
+  update(chest: THREE.Vector3, camera: THREE.Camera, device: Device, pressed: boolean, off = false): void {
+    // Off (she's climbing the ladder): no target, no prompt.
+    if (off) {
+      this.target = null;
+      this.prompt.hidden = true;
+      return;
+    }
     camera.getWorldDirection(this.forward);
     this.ray.set(camera.position, this.forward);
     const maxAngle = THREE.MathUtils.degToRad(settings.interactMaxAngleDeg);

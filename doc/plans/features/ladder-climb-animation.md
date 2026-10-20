@@ -1,6 +1,6 @@
 # Plan: The ladder with a climbing animation (item 44)
 
-**Status:** *draft*, 2026-10-17; owner's notes 2026-10-19, answered below (`[Agent note]` under each); revised for a second review. **Split in two passes (owner, 2026-10-19):** pass 1, the scale, is done ([scale-normalization.md](scale-normalization.md)): the game's proportions kept, the file 1:1, so option C and stage 0 below are superseded. **This plan is pass 2**, after the owner re-keys the animation in `The Zamboni 1.21.blend` (`Body` rising 2.26, floor to floor; the clip as it is rises 1.81). The ladder is longer since 1.20 (0.2 m below the floor above). Asked by the owner on 2026-10-17, with the new climbing animation in `The Zamboni 1.20.blend`.
+**Status:** *draft*, 2026-10-17; owner's notes 2026-10-19, answered below (`[Agent note]` under each); revised for a second review. **Split in two passes (owner, 2026-10-19):** pass 1, the scale, is done ([scale-normalization.md](scale-normalization.md)): the game's proportions kept, the file 1:1, so option C and stage 0 below are superseded. **Pass 2a built 2026-10-19** (see *As built, 2a* at the end); 2b next. **This plan is pass 2**, after the owner re-keys the animation in `The Zamboni 1.21.blend` (`Body` rising 2.26, floor to floor; the clip as it is rises 1.81). The ladder is longer since 1.20 (0.2 m below the floor above). **2026-10-19:** at the owner's request, `Dr. Green - Ladder x1.25` (a copy, on `Dr. Green Jump suit`; the original kept) moves 1.25 times as far from frame 1 ([`scale-ladder-action.py`](../../../app/tools/scale-ladder-action.py)): she starts as posed, rises 2.252 and ends with her feet on the upper floor (3.500 against 3.503). Limbs keep their length, so the owner touches up the poses where a hand or foot falls short. Asked by the owner on 2026-10-17, with the new climbing animation in `The Zamboni 1.20.blend`.
 
 ## Goal
 
@@ -124,3 +124,14 @@ The free climb moves her by the stick, at any speed, both ways, and stops anywhe
 - `app/tools/README.md` (`export:player`), `CODE-MAP.md` (`ladders.ts`, `ladders-free.ts`, `model.ts`).
 - Decision log: the ladder by button with an animation, the free climb kept (and, if A, her size).
 - `backlog.md` item 44; `steps/current.md`.
+
+## As built, 2a (2026-10-19)
+
+Owner, 2026-10-19: implement it with the current animation (`Dr. Green - Ladder x1.25`); no edits in the file. Split by the agent into **2a** (now) and **2b** (the trapdoor at the computed moment, the rung sounds, the smoke checks), with a stop between.
+
+- **Export** (`npm run export:player`, `--clip`, `--clip-start`): the clip played on the parka's armature and baked (`nla.bake`, visual keying: the IK solved into the bones), 72 frames at 24 fps (3.0 s), exported with her model; `climb` on the armature: the start (`Dr. Green Jump suit` at frame 1) and facing, in the ship's space. The glTF exporter names it `Animation`; it's her model's only one.
+- **The game:** `model.ts` plays it in place and hands `Body`'s translation to `LadderClimb` (`ladders.ts`), which moves her by it, turned to her facing; at the end she's snapped to the floor (a short ray) and turned by `Body`'s turn (a quarter). The interaction is off while she climbs. The free climb is in `ladders-free.ts`, not in use.
+- **Probe** (scratch): she slides from 0.4 m back to the start (5.348, 1.247, −16.764: 2 cm above the floor, as in the file), rises to 3.50 in 3 s, ends at (4.802, 3.462, −16.855) on the floor (3.461), facing turned by 1.571; the camera follows; screenshots at the start, middle and end look right.
+- **Not checked through the prompt:** Dr. Kaufman, exported with the ladder clip and no pose of her own (1.20 lost her action), stands at the ladder's foot, and her box hides the ladder from the target test. In the probe the climb was started as E does. In reach (0.73 m of 1.0) and 4° from the screen centre with the camera behind her, it becomes the target once she's gone.
+- **The crew export** takes only each character's own action since this pass (`export_animation_mode='ACTIVE_ACTIONS'`) and notes one without: the next `export:crew`, after the owner's fix.
+- Found: she ends 9 cm from the opening's edge (walking back toward it, she drops through): the clip's step-off. The smoke script's ladder checks are for the free climb: rewritten in 2b.
