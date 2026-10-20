@@ -23,3 +23,4 @@ __pycache__/
 
 # Raw exports, baked images, Blender logs and check output (each version's .export/)
 .export/
+.claude/usage/

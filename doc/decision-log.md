@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-20 | The game's structure: scenes, state in Ink, ids, components, in-engine cutscenes | architecture | Locations are assets, scenes are story beats set up by id; anything saved lives in Ink; one set of commands; kinds defined in the game, the file carrying kind and id; cutscenes own what they animate and declare their end state |
 | 2026-10-20 | The export puts moving parts at their recorded rest pose; a gate on what reaches the game | pipeline | `rest-poses.json` records each door's local transform; the exports drop the doors' animation, put them at rest and run at the start frame; the game's files are replaced only when nothing differs from the last taken export (exceptions one by one), else `npm run export:accept` |
 | 2026-10-20 | Prototypes numbered by version; 01 frozen as 0.0.1; each version isolated | process | Folders, packages, scripts and tags by version; the current one takes the plain script names; each has its own game files, tools and source `.blend` (a frozen one from its packed archive) and Vercel project |
 | 2026-10-20 | Fewer GPU pipelines, made at load | tech | Unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical: 116 → 78 pipelines; reloads compile in about 2 s instead of 11 |
@@ -44,6 +45,26 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-20] — The game's structure: scenes, state in Ink, ids, components, in-engine cutscenes (architecture)
+
+**Context:** the components plan (item 49) answered why exports broke, but not how the whole game is organised: several scenes with different assets, one story state through the storyline, saving and continuing, cutscenes in the engine. The draft game architecture of 2026-10-08 covered loading and memory, not how a scene sets up the world or who owns each piece of state.
+
+**Decision:**
+- **Locations are assets** (the ship, always loaded, plus the exterior slot); **scenes are story beats**: small data files that set up a location by instance id (states, characters' marks, interactions on or off, cutscenes).
+- **State in layers:** kind defaults (code) → instance (file, `rest-poses.json`) → scene setup (data) → story state (**Ink**) → live state (the component). **Anything that must survive a save is in Ink**; components read it at scene start and report to it. Doors and props reset on reload, as decided on 2026-10-08.
+- **Stable ids** for every instance anything else names; the export gate checks them.
+- **One set of commands** addressed by id, shared by scene setups, cutscene event tracks and Ink.
+- **Components:** kinds with defaults in TypeScript, state per component, no ECS (item 49). The file carries kind and id; behaviour is in the game's definitions. **This changes** principle 3 of `architecture/README.md` and *The ship's reference file* (2026-10-12): those docs change as the work is built.
+- **In-engine cutscenes** target instances by id, own what they animate while they play, and **declare their end state** (hand-back, skip, the checkpoint after, a check against the next scene). No save mid-cutscene.
+
+**Alternatives considered:** behaviour kept in the file's tags (every default then comes from the file's current state: the cause of the export breaks); saving component state alongside Ink (two copies of the story; props reset was already decided); a full ECS (complexity with no gain at a few hundred entities); separate formats for scene setups, cutscene events and Ink commands.
+
+**Rationale:** "reset on reload" needs defaults defined somewhere other than the file; one owner per piece of state keeps saves small and consistent; ids and one command set let scenes, Ink and cutscenes name the same things; a declared end state makes skip, hand-back and checkpoints agree.
+
+**Status:** Approved (owner, 2026-10-20); the passes are for review ([`plans/architecture/game-architecture/game-structure.md`](plans/architecture/game-architecture/game-structure.md), item 54). For the cutscenes, later (owner): the game's camera (see-through hole radius, clipping) and lighting replicated in Blender; depth of field.
 
 ---
 

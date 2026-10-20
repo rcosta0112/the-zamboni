@@ -2,6 +2,8 @@
 
 **Status:** *draft, saved for later* (owner, 2026-10-20: "let's save these plans"; no action). Raised by the owner on 2026-10-19 after a day of export breaks: "this is a question of architecture instead of process or data". Part of the [game architecture plan](README.md). May supersede pass A of [`../../features/robust-exports.md`](../../features/robust-exports.md).
 
+> **[Agent note]** 2026-10-20: **taken into [the game's structure](game-structure.md)** (item 54, approved), which answers this plan's open questions (0.0.2; doors and hatches first; robust exports came first and are done) and places it in passes 1 and 6. `rest-poses.json` is this plan's step 3, already made. *Where we start from* describes prototype 01, now 0.0.2: its code map is [`app/prototypes/0.0.2/CODE-MAP.md`](../../../../app/prototypes/0.0.2/CODE-MAP.md).
+
 ## Goal
 
 **Every element of the ship (and later of the landing sites) is a component-based object with its own properties and default states, defined in the game.** The mesh and the animation data are only one part of it. A door's closed pose, its axis, its sounds, its prompt and its starting state come from its definition, never from how the Blender file happens to be posed, hidden or organised when it's exported.

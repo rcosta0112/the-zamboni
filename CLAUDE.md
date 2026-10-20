@@ -35,6 +35,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 4. **Edits to the `.blend` are announced** (owner, 2026-10-19): the owner says what changed in the file before a task. Before working from a new version, compare it with the last one (objects added, removed or renamed; door poses; actions; collections); **if it looks different from what was said, ask**.
 5. **Big tasks are flagged before starting, and split into passes** (owner, 2026-10-19), with a stop to assess between passes. If something turns out to be more work than expected, flag it then.
 6. **Blender scripts are tried on a scratch copy** first. A long check's whole output goes to a file, never through `tail`. After restoring files from git, re-run every export that touched them.
+7. **A weekly budget** (owner, 2026-10-20): this project gets **50% of the plan's weekly token limit**. Past it, say so and stop for the week. The figure reaches the agent with every message: a hook (`.claude/usage/`, local, not in git) totals this project's tokens from its own session logs since the weekly reset, converted to % of the limit by a calibration (`calibrate.js`; other projects on the account never count). Check it before a big pass. While it says *calibration pending*, ask the owner for `/usage` readings at the start and end of a Zamboni-only stretch.
 
 ## Naming in the game world
 

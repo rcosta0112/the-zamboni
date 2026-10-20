@@ -17,6 +17,7 @@ Decide how the game is put together so it **runs smoothly as a web app, with loa
 - **An installable web app** that can download everything and play offline, hosted on Vercel (probably). → [offline](offline.md)
 - **Code outline:** world, asset manager, modes, input, physics, characters, save, offline, Svelte UI and the bridge between game and UI. → [code](code.md)
 - **The ship's things as components** (owner, 2026-10-19; draft, saved for later): kinds with their defaults defined in the game, the file only placing instances; Entity–Component and archetypes, no ECS. → [components](components.md)
+- **The game's structure** (owner, 2026-10-20; approved, passes for review): locations (assets) vs scenes (story beats, set up by id); anything saved lives in Ink; stable ids; one set of commands for scenes, cutscenes and Ink; components; in-engine cutscenes that own what they animate and declare their end state. → [game structure](game-structure.md)
 
 ## Constraints from the docs
 
