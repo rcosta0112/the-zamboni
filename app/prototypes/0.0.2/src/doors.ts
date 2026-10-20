@@ -26,7 +26,11 @@ import { settings } from './settings';
 export interface Pusher {
   /** Move her by this much, through her character controller (walls stop her). */
   push: (by: THREE.Vector3) => void;
-  /** On a ladder: she can't be pushed. */
+  /**
+   * Climbing the ladder: a door moves through her, neither pushing her nor stopping. The climb is an
+   * animation the trapdoor's opening is timed to (it misses her body, not her capsule), and its end
+   * puts her clear of the doors (ladders.ts). Stopped against her capsule, the lid waited at 0.8 open.
+   */
   climbing: () => boolean;
   /** Where she stands (world). */
   feet: () => THREE.Vector3;
@@ -57,6 +61,7 @@ const STOP_GAP = CONTACT_GAP + 0.04;
  */
 export function advance(collider: MovingCollider, pose: (t: number) => void, from: number, to: number, pusher: Pusher, waiting: boolean, unstoppable = false): { amount: number; waiting: boolean } {
   pose(to);
+  if (pusher.climbing()) return { amount: to, waiting: false };
   const stop = (lifts = false) => {
     if (unstoppable && !lifts) return { amount: to, waiting: false }; // posed at `to` above, and left there
     // Back off (toward where it came from) until it's clear of her by STOP_GAP.
@@ -84,7 +89,7 @@ export function advance(collider: MovingCollider, pose: (t: number) => void, fro
     const sideways = new THREE.Vector3(c.normal.x, 0, c.normal.z);
     const length = sideways.length();
     const lifts = c.normal.y > LIFTS || length < 0.3;
-    if (!settings.doorsPush || pusher.climbing() || lifts) return stop(lifts);
+    if (!settings.doorsPush || lifts) return stop(lifts);
     // Sideways only, far enough to clear the overlap, and the margin, along the normal.
     pusher.push(sideways.divideScalar(length).multiplyScalar((c.depth + PUSH_MARGIN) / length));
   }

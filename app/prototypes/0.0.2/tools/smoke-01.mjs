@@ -179,108 +179,64 @@ async function checks() {
     report(false, 'the side door keypad can be aimed at', `target: ${interaction.target?.name ?? 'none'}`);
   }
 
-  // --- The ladder (4, 5, 31): up and down, held at the top, off it by the player's own push -------
+  // --- The ladder (4, 5, 31, 44): by button, with the climbing animation; the trapdoor opens itself -
   const ladder = ladders.list[0];
-  const foot = ladder.bottom.clone().addScaledVector(ladder.face, -0.45);
-  const keys = (down, ...codes) => codes.forEach((c) => key(c, down));
-  /** From the floor at its foot, up to this share of the way (1: the top), still pushing. */
-  const climbTo = async (share) => {
-    keys(false, 'KeyW', 'KeyA', 'KeyS', 'KeyD');
+  const foot = ladder.bottom.clone().addScaledVector(ladder.face, -0.5);
+  const onDeck = () => character.grounded && Math.abs(character.position.y - ladder.top.y) < 0.05;
+  const onCargoFloor = () => character.grounded && Math.abs(character.position.y - ladder.bottom.y) < 0.15;
+  /** At its foot, facing it, then E: whether the prompt said Climb, when the trapdoor began opening (s into the animation), how long it took (s). */
+  const climb = async () => {
     put(foot);
     view.yaw = yawToward(ladder.face.x, ladder.face.z);
     view.pitch = 0.3;
+    await until(() => character.grounded, 2000);
+    const aimed = await until(() => interaction.target?.name === ladder.name, 1500);
+    const verb = prompt.textContent ?? '';
+    const t0 = performance.now();
+    await tap('KeyE');
+    let opensAt = null;
+    await until(() => {
+      if (opensAt === null && ladder.hatch?.open && ladders.state.is === 'clip') opensAt = ladders.state.t;
+      return ladders.state.is === 'off' && ladders.state.t === 0 && performance.now() - t0 > 500;
+    }, 8000);
     await wait(300);
-    key('KeyW', true);
-    return until(() => ladders.state.is === 'on' && ladders.state.s >= share, 6000);
+    return { aimed, verb, opensAt, took: (performance.now() - t0) / 1000 };
   };
-  const offLadder = () => until(() => ladders.state.is === 'off' && character.grounded && character.floating === 0, 3000);
-  const onDeck = () => character.grounded && Math.abs(character.position.y - ladder.top.y) < 0.15;
-  const onCargoFloor = () => character.grounded && Math.abs(character.position.y - ladder.bottom.y) < 0.15;
   {
-    // Held at the top for as long as she pushes toward the ladder, or doesn't push.
-    const up = await climbTo(1);
-    await wait(800);
-    const pushing = ladders.state.is === 'on' && ladders.state.s === 1 && Math.abs(character.position.y - ladder.top.y) < 0.02;
-    key('KeyW', false);
+    ladder.hatch.open = true;
+    await until(() => ladder.hatch.amount === 1, 3000);
+    const up = await climb();
+    const end = character.position.clone();
+    report(up.aimed && /climb/i.test(up.verb) && onDeck() && up.took < 4.5 && !ladders.state.colliding[0], 'at the foot of the ladder the prompt says Climb; pressed, she climbs onto the floor above', `prompt "${up.verb}"; ${up.took.toFixed(1)} s; ends at ${fmt(end)} (floor ${ladder.top.y.toFixed(3)}); ladder collides ${ladders.state.colliding[0]}`);
+
+    // The trapdoor shut: it opens by itself at its moment, and she ends in the same place.
+    ladder.hatch.open = false;
+    await until(() => ladder.hatch.amount === 0, 3000);
+    const shut = await climb();
+    const sameEnd = character.position.distanceTo(end);
+    report(shut.opensAt !== null && Math.abs(shut.opensAt - ladders.trapdoorAt) < 0.05 && ladder.hatch.amount === 1 && onDeck() && sameEnd < 0.05, 'with the trapdoor shut it opens as she climbs, and she ends in the same place', `opens at ${shut.opensAt?.toFixed(2)} s (set ${ladders.trapdoorAt}); open ${ladder.hatch.amount.toFixed(2)}; ${sameEnd.toFixed(3)} m from the first end`);
+
+    // From the floor above: no prompt; walking into the opening she drops to the cargo floor, past the ladder.
     await wait(500);
-    report(up && pushing && ladders.state.is === 'on', 'the ladder is climbed, and she is held at its top', `climbed: ${up}; held while pushing: ${pushing}; held at rest: ${ladders.state.is === 'on'}; at ${fmt(character.position)}`);
-
-    // Off the top by her own push: back and to the side there is floor, 10 times in a row each.
-    for (const [name, code] of [['to the side', 'KeyA'], ['back', 'KeyS']]) {
-      const problems = [];
-      for (let i = 1; i <= 10; i++) {
-        await climbTo(1);
-        key('KeyW', false);
-        await wait(150);
-        key(code, true);
-        await wait(700);
-        key(code, false);
-        await offLadder();
-        if (!onDeck() || ladders.state.colliding[0]) problems.push(`${i}: at ${fmt(character.position)}, ladder collides ${ladders.state.colliding[0]}`);
-      }
-      report(problems.length === 0, `pushing ${name} at the top, she floats onto the floor above, 10 times in a row`, problems.join('; ') || `ends at ${fmt(character.position)}; the ladder doesn't collide while she's up there`);
-    }
-
-    // From the floor above (behind the opening, where pushing back left her) into the opening: she
-    // drops to the cargo floor, past the ladder.
+    const offered = interaction.target?.name === ladder.name;
+    view.yaw = yawToward(ladder.bottom.x - character.position.x, ladder.bottom.z - character.position.z);
     key('KeyW', true);
-    let attachedAbove = false;
+    let landedOnLadder = false;
     let lowestStop = Infinity;
     const start = performance.now();
     while (performance.now() - start < 4000 && !onCargoFloor()) {
-      if (ladders.state.is !== 'off' && character.position.y > ladder.bottom.y + 0.5) attachedAbove = true;
+      if (interaction.target?.name === ladder.name) landedOnLadder = true;
       if (character.grounded && character.position.y < ladder.top.y - 0.3) lowestStop = Math.min(lowestStop, character.position.y);
       await wait(30);
     }
     key('KeyW', false);
     await wait(300);
-    report(!attachedAbove && onCargoFloor(), 'she drops through the open trapdoor, without landing on the ladder', `lands at ${fmt(character.position)} (cargo floor ${ladder.bottom.y.toFixed(2)}); attached on the way: ${attachedAbove}${lowestStop < Infinity && lowestStop > ladder.bottom.y + 0.3 ? `; STOOD at ${lowestStop.toFixed(2)} on the way` : ''}`);
+    report(!offered && onCargoFloor() && !(lowestStop < Infinity && lowestStop > ladder.bottom.y + 0.3), 'from the floor above there is no Climb prompt, and she drops through the opening without landing on the ladder', `prompt above: ${offered}; lands at ${fmt(character.position)} (cargo floor ${ladder.bottom.y.toFixed(2)})${lowestStop < Infinity && lowestStop > ladder.bottom.y + 0.3 ? `; STOOD at ${lowestStop.toFixed(2)} on the way` : ''}`);
     key('KeyS', true);
     await wait(700);
     key('KeyS', false);
     const back = await until(() => ladders.state.colliding[0], 1000);
     report(back, 'the ladder collides again once she is clear of it on the cargo floor', `at ${fmt(character.position)}`);
-
-    // Part of the way up, pushing away climbs down, and at the foot walks her off.
-    await climbTo(0.5);
-    key('KeyW', false);
-    const height = character.position.y;
-    key('KeyS', true);
-    let fell = false;
-    let last = height;
-    const t0 = performance.now();
-    while (performance.now() - t0 < 5000 && ladders.state.is === 'on') {
-      if (last - character.position.y > 0.1) fell = true; // faster than climbing
-      last = character.position.y;
-      await wait(30);
-    }
-    await wait(400);
-    key('KeyS', false);
-    const walked = Math.hypot(character.position.x - ladder.bottom.x, character.position.z - ladder.bottom.z);
-    report(!fell && ladders.state.is === 'off' && onCargoFloor() && walked > 0.3, 'pushing away climbs down the ladder, and walks her off at its foot', `from ${height.toFixed(2)} m; dropped: ${fell}; ends ${walked.toFixed(2)} m from its foot at ${fmt(character.position)}`);
-
-    // Jump is a jump: part of the way up she falls back down; near the top, pushing back, she lands above.
-    await climbTo(0.5);
-    key('KeyW', false);
-    const from = character.position.y;
-    await tap('KeyC');
-    let peak = from;
-    const t1 = performance.now();
-    while (performance.now() - t1 < 1500) {
-      peak = Math.max(peak, character.position.y);
-      await wait(16);
-    }
-    report(peak - from > settings.indoorJumpHeight * 0.7 && ladders.state.is === 'off' && onCargoFloor(), 'jump part of the way up the ladder: she jumps, and falls to the cargo floor', `rose ${(peak - from).toFixed(2)} m from ${from.toFixed(2)}; ends at ${fmt(character.position)}`);
-    await climbTo(0.85);
-    key('KeyW', false);
-    key('KeyC', true);
-    key('KeyS', true);
-    await wait(80);
-    key('KeyC', false);
-    await wait(800);
-    key('KeyS', false);
-    await offLadder();
-    report(onDeck(), 'jump near the top of the ladder, pushing back: she lands on the floor above', `ends at ${fmt(character.position)}`);
   }
 
   // --- The roof hatch (22) ---------------------------------------------------------------------
@@ -1089,20 +1045,11 @@ async function checks() {
     const reached = `she went ${character.position.distanceTo(from).toFixed(1)} m, to ${fmt(character.position)}`;
     const wrong = heights.sfx_step_snow.filter((y) => y > 0.15).length + heights.sfx_step_ship.filter((y) => y < 0.15).length;
     report(heights.sfx_step_snow.length > 0 && heights.sfx_step_ship.length > 0 && wrong === 0, 'walking up the ramp: snow steps on the ground, ship steps from the ramp on', `${heights.sfx_step_snow.length} snow, ${heights.sfx_step_ship.length} ship (the lowest at ${Math.min(...heights.sfx_step_ship).toFixed(2)} m); on the wrong surface: ${wrong}; ${reached}`);
-    // The ladder: a hand on a rung when she takes hold, and as she climbs.
+    // The ladder: a hand on a rung each time one lands (fixed moments of the animation).
     const grabs = count('sfx_ladder_grab');
-    put(ladder.bottom.clone().addScaledVector(ladder.face, -0.6));
-    view.yaw = yawToward(ladder.face.x, ladder.face.z);
-    await wait(300);
-    key('KeyW', true);
-    await until(() => ladders.state.is === 'on' && ladders.state.s === 1, 8000);
-    key('KeyW', false);
-    await wait(800);
-    const expected = 1 + Math.floor((ladder.top.y - ladder.bottom.y) / 0.35);
-    report(count('sfx_ladder_grab') - grabs === expected, 'the ladder: a sound taking hold, then every 0.35 m climbed', `${count('sfx_ladder_grab') - grabs} for ${(ladder.top.y - ladder.bottom.y).toFixed(2)} m (expected ${expected})`);
-    // She's held at the top: off it (a jump) before she's put elsewhere, or the ladder keeps her.
-    await tap('KeyC');
-    await until(() => ladders.state.is === 'off', 1000);
+    await climb();
+    const heard = count('sfx_ladder_grab') - grabs;
+    report(heard === 5, 'the ladder: a sound each time a hand lands on a rung', `${heard} (expected 5)`);
     put(away);
     await wait(300);
   }

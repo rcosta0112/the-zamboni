@@ -135,3 +135,13 @@ Owner, 2026-10-19: implement it with the current animation (`Dr. Green - Ladder 
 - **Not checked through the prompt:** Dr. Kaufman, exported with the ladder clip and no pose of her own (1.20 lost her action), stands at the ladder's foot, and her box hides the ladder from the target test. In the probe the climb was started as E does. In reach (0.73 m of 1.0) and 4° from the screen centre with the camera behind her, it becomes the target once she's gone.
 - **The crew export** takes only each character's own action since this pass (`export_animation_mode='ACTIVE_ACTIONS'`) and notes one without: the next `export:crew`, after the owner's fix.
 - Found: she ends 9 cm from the opening's edge (walking back toward it, she drops through): the clip's step-off. The smoke script's ladder checks are for the free climb: rewritten in 2b.
+
+## As built, 2b (2026-10-20)
+
+- **The trapdoor:** each ladder knows the hatch over it (`hatch`: the one whose box meets its top end). A shut one is opened (`open = true`, its usual 0.6 s and sound) **1.0 s into the animation** (frame 24), as the owner asked: a fixed frame, the latest at which the lid misses her. Measured by `tools/ladder-times.js` (kept, a probe): one climb with the lid shut, her skinned vertices recorded each frame, then for each start the lid posed as it would be and tested against them in its own space. The latest clean start is 1.10 s (her hood at 1.47 s); 1.0 is two frames earlier. A shut and locked trapdoor: no prompt.
+- **What the open lid touches anyway** (a hand by its hinge from 1.47 s, her side as she steps off, a few vertices within 5 cm) is left out of the choice: it doesn't depend on the moment. Not visible in the screenshots.
+- **Doors move through her while she climbs** (doors.ts `advance`): the lid's collider met her capsule (bigger than her body) and stopped at 0.81 open, then pushed her 0.42 m at the end. The climb's end already clears her of the doors. Decision log, 2026-10-20.
+- **The rung sound** at five hand contacts (0.27, 0.67, 1.18, 1.77, 1.85 s; a hand landing = it stops rising after a reach, below the floor above + 0.15), measured by the same probe; none at the slide's end any more.
+- **The smoke script's ladder checks** rewritten for the button: the prompt says Climb and she ends upstairs; with the trapdoor shut it opens at its moment and she ends in the same place; from above no prompt, and she drops through; the ladder collides again below; five rung sounds. Tried with the probe: all pass.
+- Screenshots at 1.25, 1.45 and 1.65 s with the lid shut at the start: the lid open ahead of her as her head passes, no clipping seen.
+- Not done: the three console warnings for `Hand_r.IK`'s tracks (the IK target isn't in her model; present since 2a, harmless).

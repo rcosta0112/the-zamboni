@@ -7,7 +7,7 @@
 import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
 import { Placement } from './crew';
-import type { Entities, Openable } from './entities';
+import { isOpenable, type Entities } from './entities';
 import type { GameStory } from './story';
 
 export type Command = (
@@ -45,8 +45,6 @@ export interface CommandTarget {
   /** Plays a cutscene by id. */
   cutscene: (id: string) => void;
 }
-
-const isOpenable = (c: object): c is Openable => 'open' in c && 'amount' in c;
 
 /** The ship's glTF space from the ship file's Blender coordinates. */
 export const fromBlender = ([x, y, z]: [number, number, number]) => new THREE.Vector3(x, z, -y);

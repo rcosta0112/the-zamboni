@@ -7,13 +7,15 @@
 // is there, and the stick is hers again. While it plays her movement, jump and the jetpack do
 // nothing; the camera stays the player's (owner, 2026-10-19). No climbing down: from the floor
 // above she drops through the opening, and the ladder doesn't collide while she's above its foot.
-// Not yet (pass 2b): the trapdoor opening as her head reaches it, the rung sounds on her hands.
+// Pass 2b: a closed trapdoor over the ladder opens by itself at a fixed moment of the animation, the
+// latest at which the swinging lid misses her (owner: as close to her head as it can); the rung sound
+// plays as each hand lands. Both moments are measured once (tools/ladder-times.js), not at run time.
 // The climb with the stick (2026-10-09 to 10-19) is kept, not in use: ladders-free.ts.
 // Ladders: the things of kind `ladder` (today `cargo-hold-ladder`, through the trapdoor).
 
 import * as THREE from 'three/webgpu';
 import type { Character } from './character';
-import type { Entities } from './entities';
+import { isOpenable, type Entities, type Openable } from './entities';
 import type { Input } from './input';
 import type { Interactable } from './interaction';
 import type { Physics } from './physics';
@@ -38,6 +40,15 @@ const DOOR_CLEAR = 0.15;
 const CLEAR_TIME = 0.25;
 /** The prompt shows within this distance of the start, with her feet on the ladder's floor (m). */
 const NEAR = 1.2;
+/**
+ * When a closed trapdoor over the ladder starts opening, into the animation (s): frame 24. The latest
+ * start at which the lid, opening in `doorSeconds` (0.6), touches nothing of her is 1.10 (frame 26.5:
+ * her hood, at 1.47 s); two frames earlier for safety. Measured with tools/ladder-times.js on
+ * `Dr. Green - Ladder x1.25` (72 frames at 24 fps), 2026-10-20.
+ */
+const TRAPDOOR_AT = 1.0;
+/** When a hand lands on a rung (or on the floor above), into the animation (s): left, right, left, right, left. */
+const RUNG_TIMES = [0.27, 0.67, 1.18, 1.77, 1.85];
 
 export interface Ladder {
   name: string;
@@ -55,6 +66,8 @@ export interface Ladder {
   object: THREE.Object3D;
   /** Its own collider, if it has one apart from the ship's: off while she's above its foot. */
   collider: { setEnabled: (on: boolean) => void } | null;
+  /** The hatch over it (the trapdoor), if there's one: the climb opens it. */
+  hatch: Openable | null;
 }
 
 /**
@@ -62,9 +75,19 @@ export interface Ladder {
  * @param colliders each ladder's own collider, by its id (ship.ts)
  */
 export function shipLadders(entities: Entities, physics: Physics, colliders: Record<string, { setEnabled: (on: boolean) => void } | null> = {}): Ladder[] {
-  const ladders: Ladder[] = entities.ofKind('ladder').map((l) => ({ ...fixedLadder(l.object.name, l.object, physics), collider: colliders[l.id] ?? null }));
+  const hatches = entities.ofKind('hatch').flatMap((e) => {
+    const openable = e.find(isOpenable);
+    return openable ? [{ box: new THREE.Box3().setFromObject(e.object), openable }] : [];
+  });
+  const ladders: Ladder[] = entities.ofKind('ladder').map((l) => {
+    const ladder = fixedLadder(l.object.name, l.object, physics);
+    // The hatch over it: one whose box meets its top end.
+    const top = ladder.bounds.clone().expandByScalar(0.3);
+    top.min.y = ladder.bounds.max.y - 0.5;
+    return { ...ladder, collider: colliders[l.id] ?? null, hatch: hatches.find((h) => h.box.intersectsBox(top))?.openable ?? null };
+  });
   if (ladders.length === 0) console.warn('[0.0.2] no ladder (kind "ladder") in the ship');
-  console.info(`[0.0.2] ladders: ${ladders.map((l) => `${l.name} (${l.topExit ? 'floor at the top' : 'no way off at the top'})`).join(', ')}`);
+  console.info(`[0.0.2] ladders: ${ladders.map((l) => `${l.name} (${l.topExit ? 'floor at the top' : 'no way off at the top'}${l.hatch ? ', a hatch over it' : ''})`).join(', ')}`);
   return ladders;
 }
 
@@ -73,7 +96,7 @@ export function shipLadders(entities: Entities, physics: Physics, colliders: Rec
  * the floor under it; the top is the floor beside its top end, if there's one she can reach through
  * an opening (with the doors open: they're left out of these measurements).
  */
-function fixedLadder(name: string, object: THREE.Object3D, physics: Physics): Omit<Ladder, 'collider'> {
+function fixedLadder(name: string, object: THREE.Object3D, physics: Physics): Omit<Ladder, 'collider' | 'hatch'> {
   const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
@@ -152,8 +175,10 @@ export interface ClimbStart {
 
 export class LadderClimb {
   private phase: { kind: 'slide'; t: number; length: number; from: THREE.Vector3; fromFacing: number } | { kind: 'clip'; t: number } | { kind: 'clear'; t: number; by: THREE.Vector3; facing: number } | null = null;
-  /** Counts up each time a hand lands on a rung (for the sound): taking hold, for now. */
+  /** Counts up each time a hand lands on a rung (for the sound). */
   rungs = 0;
+  /** When a closed trapdoor starts opening, into the animation (s). Checks may change it. */
+  trapdoorAt = TRAPDOOR_AT;
   readonly interactables: Interactable[];
   private colliding = new Map<Ladder, boolean>();
   private feet = new THREE.Vector3();
@@ -185,6 +210,7 @@ export class LadderClimb {
   private offered(ladder: Ladder): boolean {
     const c = this.character;
     if (this.phase || !this.start || !this.clip() || !c.grounded || c.flying) return false;
+    if (ladder.hatch && !ladder.hatch.open && ladder.hatch.locked) return false; // shut over her, and locked
     return Math.abs(c.position.y - ladder.bottom.y) < 0.3 && horizontal(c.position, this.start.feet) < NEAR;
   }
 
@@ -216,7 +242,6 @@ export class LadderClimb {
       if (k === 1) {
         this.phase = { kind: 'clip', t: 0 };
         character.clipTime = 0;
-        this.rungs++;
       }
       return true;
     }
@@ -229,7 +254,12 @@ export class LadderClimb {
       if (phase.t >= CLEAR_TIME) this.phase = null;
       return true;
     }
+    const before = phase.t;
     phase.t = Math.min(clip.duration, phase.t + dt);
+    const passed = (at: number) => before <= at && at < phase.t;
+    const hatch = this.list[0]?.hatch;
+    if (hatch && !hatch.open && passed(this.trapdoorAt)) hatch.open = true;
+    this.rungs += RUNG_TIMES.filter(passed).length;
     this.place(clip, phase.t);
     character.setClimbing(this.feet, start.facing, physics);
     character.clipTime = phase.t;

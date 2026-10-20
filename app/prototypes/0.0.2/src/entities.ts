@@ -24,6 +24,8 @@ export interface Openable extends Component {
   locked: boolean;
 }
 
+export const isOpenable = (c: object): c is Openable => 'open' in c && 'amount' in c;
+
 export class Entity {
   readonly components: Component[] = [];
 
