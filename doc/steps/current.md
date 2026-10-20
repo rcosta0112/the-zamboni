@@ -23,6 +23,7 @@
 
 ## Waiting on the owner
 
+- **Item 51 (2026-10-20): archive 01 as 0.0.1, start 0.0.2.** Plan drafted, owner's first answers in (versions as the numbering, folders `prototypes/0.0.1`/`0.0.2`; low-res 02 skipped; version in the tuning panel; archive = 1.21 with textures packed): [archive-01-start-02.md](../plans/prototypes/archive-01-start-02.md). Open: which state is frozen; the open work after the freeze. Found: 15 of 1.21's 31 textures live outside `resources/` (`Desktop/The Zamboni.archive/…`, `Desktop/Work/…`), so the archive packs them into its copy.
 - **Two plans saved, no action** (owner, 2026-10-19/20): [robust exports](../plans/features/robust-exports.md) (item 48) and [the ship's things as components](../plans/architecture/game-architecture/components.md) (item 49). **2026-10-20:** [a faster load](../plans/features/faster-load.md) (item 50): **stage 2 built** (`pipelines.ts`: unused UVs dropped, mirrored meshes unmirrored, see-through copies all physical; 116 → 78 pipelines; reloads compile in about 2 s instead of 11, the button at 4 s; first load still about 12 s). **The bar built too** (option A: shaders report object by object, a warm-up share; never still more than about 2 s). Not committed. Later: drop the unused UVs in the export (owner, for the file's size).
 
 - The clipping fix of objects in the hull's wall (asked 2026-10-15): by hand, or a semi-automatic Blender script (Shrinkwrap on the offending vertices; `npm run probe -- tools/hull-clipping.js` lists them). The crew quarters need a modelling decision first (no inner skin there).
@@ -34,8 +35,7 @@
 - **Engineering seen from above is slow in the test browser:** about 110 ms a frame (other rooms 16.7), the same with the see-through off and with main's rules: not this branch. Not looked into (headless Chrome; may not happen on a real GPU).
 - **Smoke, once in two runs (2026-10-14):** *the ramp closes from its keypad* failed (it didn't move in 4 s) and E then took a jetpack from the rack instead. Likely: she ends the walk-in at y 0.88, on the ramp's walkway, and since item 35 the ramp waits until she's off. Passed on the rerun.
 - **Dropping through the trapdoor's opening while pushing toward the ladder**, she lands where the ladder stands (it doesn't collide until she's clear of it) and overlaps it until she steps away. **Closed doors with colliders of their own** stop her (in the air too) when she touches their edge: the crew quarters and the cargo locker have boxes 0.08 in front of them now.
-- `Tape.003` is in both exported files as a stray object; the front thrusters' collision mesh may lack geometry-nodes instances.
-- Metal on parts that are never cut (landing gear, cargo ramp) gets no reflections. Crew materials shared with the ship are single-sided in 1.19: check the placed crew at the next crew export.
+- `Tape.003` is in both exported files as a stray object; the front thrusters' collision mesh may lack geometry-nodes instances. Metal on parts that are never cut (landing gear, cargo ramp) gets no reflections. Crew materials shared with the ship are single-sided in 1.19: check the placed crew at the next crew export.
 
 ## Known traps
 
