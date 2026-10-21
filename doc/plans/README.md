@@ -47,6 +47,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [Exports that don't break when the file is worked on (item 48)](features/robust-exports.md) | 0.0.2 | Done 2026-10-20 |
 | [The ladder with a climbing animation (item 44)](features/ladder-climb-animation.md) | Prototype 01 | Draft; pass 2, after the owner re-keys the animation |
 | [A faster load, and a bar that tells the truth (item 50)](features/faster-load.md) | Prototype 01 | Stages 2 and 3 built 2026-10-20; unused UVs out of the export later |
+| [A second collision pass: every place she gets stuck (item 55)](features/collision-pass-2.md) | 0.0.2 | Upper deck built 2026-10-21; set aside by the owner (lower deck not started) |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format

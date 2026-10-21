@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-21 | She stays in the corridor | feature | Indoors she walks the corridors only: collision boxes keep her off furniture and out of the cockpit's front; climbing around is out (too many places to get stuck); sitting will be an animation, like the ladder |
 | 2026-10-20 | The ladder by button, with the owner's animation | feature | A *Climb* prompt at its foot; the animation moves her (root motion), the camera stays the player's; no climbing down; a shut trapdoor opens at a fixed moment, measured once; doors move through her while she climbs; the free climb kept, not in use |
 | 2026-10-20 | The game's structure: scenes, state in Ink, ids, components, in-engine cutscenes | architecture | Locations are assets, scenes are story beats set up by id; anything saved lives in Ink; one set of commands; kinds defined in the game, the file carrying kind and id; cutscenes own what they animate and declare their end state |
 | 2026-10-20 | The export puts moving parts at their recorded rest pose; a gate on what reaches the game | pipeline | `rest-poses.json` records each door's local transform; the exports drop the doors' animation, put them at rest and run at the start frame; the game's files are replaced only when nothing differs from the last taken export (exceptions one by one), else `npm run export:accept` |
@@ -49,13 +50,21 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
+## [2026-10-21] — She stays in the corridor (feature)
+
+**Context:** the second collision pass (item 55, plan `plans/features/collision-pass-2.md`) found that she could walk up the cockpit's floor to the dashboard and get trapped there; the plan asked whether she should reach everywhere in the cockpit.
+**Decision (owner):** "She should stay in the corridor. We can add more collision boxes if needed. It's fun to climb around stuff, but it creates too many possible places to get stuck." **When she has to sit on a chair, it will be an animation, like the ladder.** In the cockpit she walks up the ramp to the platform behind the front seats (owner, after a first version that ended the corridor where the ramp starts): a wall box up to the ceiling behind the seats, a flat floor box from the doorway to the ramp, walls over the consoles' ridges.
+**Alternatives considered:** the whole cockpit reachable, with its floor's steps smoothed; climbing on furniture allowed where it's safe.
+**Rationale:** every surface she can reach is a place she can get stuck; boxes are cheap and keep the collider simple (as items 30 and 42).
+**Status:** built 2026-10-21 (`add-collision-boxes-3.py`); owner's play-test pending.
+
 ## [2026-10-20] — The ladder by button, with the owner's animation (feature)
 
 **Context:** the ladder was climbed with the stick (2026-10-09 to 10-19), with no animation. The owner made a climbing animation (`Dr. Green - Ladder`, 1.20, re-keyed in 1.21 as `x1.25`) and asked for the ladder to play it (backlog item 44; plan `plans/features/ladder-climb-animation.md`).
 **Decision (owner):** at the ladder's foot the prompt says **Climb**; pressed, she slides to where the animation starts and it plays, **moving her by its root motion**, so the camera and everything that follows her follow; she ends where its last frame leaves her, upstairs. **Her movement, jump and jetpack do nothing** while it plays (no cancelling); **the camera stays the player's**. **No climbing down**: from the floor above she drops through the opening. **A shut trapdoor opens at a fixed moment of the animation** (owner: "too complicated… fire the trapdoor open animation at the correct frame", and as close to her head as it can): the latest start at which the lid misses her body, two frames earlier, measured once by a probe (`tools/ladder-times.js`), not at run time. **The rung sound** plays as each hand lands, at fixed moments measured the same way. **While she climbs, a door moves through her** instead of stopping (its collider met her capsule, which is bigger than her body, and the lid waited at 0.8 open); the climb's end already moves her clear of the doors. The free climb is kept in the code, not in use.
 **Alternatives considered:** the trapdoor's moment worked out at load from the animation (the plan's first version: the owner found it too complicated); rays from her head during the climb; a faster opening or pausing the animation; a *Climb down* prompt playing the animation backwards (owner: no); the doors stopping for her capsule while she climbs (as with the free climb).
 **Rationale:** the climb is a fixed animation, so its moments are fixed too: measuring them once keeps the game simple, and the probe is run again if the animation, the ladder or the door's timing changes.
-**Status:** built 2026-10-19 (pass 2a: the button, the slide, the animation moving her, the end upstairs) and 2026-10-20 (pass 2b: the trapdoor at 1.0 s, frame 24; the rung sounds at five hand contacts; the smoke script's ladder checks rewritten for the button). Owner's play-test pending.
+**Status:** built 2026-10-19 (pass 2a: the button, the slide, the animation moving her, the end upstairs) and 2026-10-20 (pass 2b: the trapdoor at 1.0 s, frame 24; the rung sounds at five hand contacts; the smoke script's ladder checks rewritten for the button). *Update 2026-10-20:* played and approved by the owner ("ladder is ok").
 
 ## [2026-10-20] — The game's structure: scenes, state in Ink, ids, components, in-engine cutscenes (architecture)
 

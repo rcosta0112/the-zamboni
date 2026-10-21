@@ -713,14 +713,18 @@ async function checks() {
     // (From one side, then the other if furniture stands where she'd start.)
     let walked = { ok: false, detail: '' };
     for (const way of [1, -1]) {
-      put(stand(-way * far));
+      // The cockpit's corridor ends 1.2 m past its door (item 55): too short to be far from it, or to
+      // get far enough past it for it to close. So it's walked from inside, 0.8 m from it (open
+      // while she's there), out into the crew quarters.
+      const from = physics.fits(stand(-way * far)) ? far : 0.8;
+      put(stand(-way * from));
       view.yaw = yawToward(way * across.x, way * across.z);
       view.pitch = 0.15;
       // Facing the door first: turning round as she sets off, she swings wide and misses the doorway.
       await tap('KeyW');
       await wait(300);
-      put(stand(-way * far));
-      const closedFar = await until(() => settled(leaves, 0), 3000);
+      put(stand(-way * from));
+      const closedFar = from === far ? await until(() => settled(leaves, 0), 3000) : 'n/a (starts near it)';
       let opened = false;
       key('KeyW', true);
       const start = performance.now();
@@ -735,7 +739,7 @@ async function checks() {
       key('KeyW', false);
       const through = way * side(character.position) >= past;
       const closedBehind = await until(() => settled(leaves, 0), 3000);
-      walked = { ok: closedFar && opened && through && closedBehind, detail: `closed from afar: ${closedFar}; opened: ${opened}; through: ${through} (${(way * side(character.position)).toFixed(2)} m past it); closed behind: ${closedBehind}${through ? '' : `; she's at ${fmt(character.position)}, door centre ${fmt(centre)}, leaves ${leaves.map((d) => `${d.amount.toFixed(2)}${d.blocked ? ' waiting for her' : ''}`).join(' / ')}`}` };
+      walked = { ok: closedFar !== false && opened && through && closedBehind, detail: `closed from afar: ${closedFar}; opened: ${opened}; through: ${through} (${(way * side(character.position)).toFixed(2)} m past it); closed behind: ${closedBehind}${through ? '' : `; she's at ${fmt(character.position)}, door centre ${fmt(centre)}, leaves ${leaves.map((d) => `${d.amount.toFixed(2)}${d.blocked ? ' waiting for her' : ''}`).join(' / ')}`}` };
       if (walked.ok) break;
     }
     report(walked.ok, `${label}: opens as she walks up, she goes through, it closes behind her`, walked.detail);

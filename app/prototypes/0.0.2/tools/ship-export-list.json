@@ -840,7 +840,11 @@
   "Box Console Left_col",
   "Box Console Right_col",
   "Box Pilot Seat Right_col",
-  "Box Pilot Seat Left_col"
+  "Box Pilot Seat Left_col",
+  "Box Cockpit Floor_col",
+  "Box Cockpit Front_col",
+  "Box Cockpit Aisle Left_col",
+  "Box Cockpit Aisle Right_col"
  ],
  "lights": [
   "light cargo bay (Area.002)",
