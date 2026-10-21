@@ -88,6 +88,10 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   cam.add(settings, 'cameraFollowSharpness', 1, 40, 0.5).name('follow sharpness');
   cam.add(settings, 'cameraMinPitchDeg', -45, 0, 1).name('min pitch (°)');
   cam.add(settings, 'cameraMaxPitchDeg', 10, 89, 1).name('max pitch (°)');
+  cam.add(settings, 'cameraWallGap', 0, 0.6, 0.01).name('gap to walls (m)');
+  cam.add(settings, 'cameraMinDistance', 0.1, 1.5, 0.01).name('closest to her (m)');
+  cam.add(settings, 'cameraFadeStart', 0.2, 3, 0.05).name('she fades from (m)');
+  cam.add(settings, 'cameraFadeEnd', 0, 2, 0.05).name('she is gone at (m)');
 
   const input = gui.addFolder('Input');
   input.add(settings, 'stickLookSpeed', 0.5, 6, 0.1).name('stick look (rad/s)');

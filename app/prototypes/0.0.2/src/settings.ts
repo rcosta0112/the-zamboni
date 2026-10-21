@@ -120,6 +120,12 @@ export const settings = {
   cameraFollowSharpness: 12,
   cameraMinPitchDeg: 0, // owner, 2026-10-12: fixes several see-through problems
   cameraMaxPitchDeg: 70,
+  // Close to her (owner, 2026-10-21): the camera stops this far in front of what's behind her, as
+  // close to her as it needs (no 1 m floor any more), and she fades out between the two distances.
+  cameraWallGap: 0.25, // m, in front of the obstacle
+  cameraMinDistance: 0.15, // m from her focus point; the near plane is 0.1
+  cameraFadeStart: 1.0, // m: fully shown at this distance or farther
+  cameraFadeEnd: 0.5, // m: gone at this distance or closer (her shadow stays)
 
   // Input
   stickLookSpeed: 2.6, // rad/s at full right-stick deflection

@@ -92,6 +92,13 @@ export class AnimatedModel {
       if ((child as THREE.Mesh).isMesh) {
         child.castShadow = true;
         child.frustumCulled = false; // skinned meshes move away from their bind-pose bounds
+        // Her fade (the camera close to her): dithered, set now so the shaders are built with it.
+        const material = (child as THREE.Mesh).material;
+        for (const m of Array.isArray(material) ? material : [material]) {
+          if (this.fading.some((f) => f.material === m)) continue;
+          m.alphaHash = true;
+          this.fading.push({ material: m, opacity: m.opacity });
+        }
         const index = (child as THREE.Mesh).morphTargetDictionary?.[HOOD_KEY];
         if (index !== undefined) this.hood.push({ mesh: child as THREE.Mesh, index });
       }
@@ -106,6 +113,13 @@ export class AnimatedModel {
   jetpack: THREE.Object3D | null = null;
   private backpack: THREE.Object3D | null = null;
   private hood: { mesh: THREE.Mesh; index: number }[] = [];
+  /** Her materials, with their own opacities: setShown scales them (the shadow pass ignores it). */
+  private fading: { material: THREE.Material; opacity: number }[] = [];
+
+  /** 0..1: how much of her shows (dithered; her shadow stays whole). */
+  setShown(share: number): void {
+    for (const f of this.fading) f.material.opacity = f.opacity * share;
+  }
 
   private wear(on: boolean): void {
     if (this.jetpack) this.jetpack.visible = on;

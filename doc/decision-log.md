@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-21 | The camera comes close and she fades | feature | No 1 m floor on the camera: it stops in front of what is behind her (0.15 m from her at least) and she fades out, dithered, from 1 m to 0.5 m; her shadow stays |
 | 2026-10-21 | She stays in the corridor | feature | Indoors she walks the corridors only: collision boxes keep her off furniture and out of the cockpit's front; climbing around is out (too many places to get stuck); sitting will be an animation, like the ladder |
 | 2026-10-20 | The ladder by button, with the owner's animation | feature | A *Climb* prompt at its foot; the animation moves her (root motion), the camera stays the player's; no climbing down; a shut trapdoor opens at a fixed moment, measured once; doors move through her while she climbs; the free climb kept, not in use |
 | 2026-10-20 | The game's structure: scenes, state in Ink, ids, components, in-engine cutscenes | architecture | Locations are assets, scenes are story beats set up by id; anything saved lives in Ink; one set of commands; kinds defined in the game, the file carrying kind and id; cutscenes own what they animate and declare their end state |
@@ -49,6 +50,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-21] — The camera comes close and she fades (feature)
+
+**Context.** Indoors and out, the camera stopped 0.25 m in front of whatever was between her and it, but never closer than 1 m to her focus point (closer, it was inside her head). With her back less than about 1.25 m from something, the 1 m floor won and the camera went through it: inside the crew quarters' lockers (feet 3.612, 3.461, −13.92; the lockers' camera box was hit at 0.39 m).
+
+**Decision (owner).** The floor goes: the camera comes as close as the obstacle needs (`cameraWallGap` 0.25 m in front of it, `cameraMinDistance` 0.15 m from her focus at least), and **she fades out** as it comes close: fully shown at `cameraFadeStart` (1.0 m) or farther, gone at `cameraFadeEnd` (0.5 m). Dithered (three's `alphaHash` on her materials, set at load; only their opacity changes in play). Her shadow stays whole; the jetpack's glow fades with her; never during a cutscene. All four values in the tuning panel.
+
+**Alternatives considered.** The camera rising over her when there's no room behind (the camera moving by itself, which the owner wants minimal); cutting the lockers (against *never cut on her deck*); real transparency for the fade (her body shows its own inside, sorting).
+
+**Rationale.** The camera never moves by itself, and the fix holds for any tight spot in later scenes. It goes against *the player must never lose track of her*, on purpose and only within about 1 m. Plan: [camera-close-fade.md](plans/features/camera-close-fade.md).
+
+**Status.** Built 2026-10-21; works (owner, 2026-10-21). The grain of the dither: backlog item 58, for later.
 
 ## [2026-10-21] — She stays in the corridor (feature)
 

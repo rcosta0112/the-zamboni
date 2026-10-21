@@ -439,8 +439,11 @@ async function start(): Promise<void> {
     // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
     // Not during a cutscene: the game's camera waits behind her for the hand-back.
     if (!watching) view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
+    // She fades out when the camera comes close (not in a cutscene: its own camera), the glow with her.
+    const shown = watching ? 1 : view.shown;
+    character.setShown(shown);
     // The jetpack's glow, at its nozzles as the animation left them, facing the camera.
-    exhaust.update(dt, character.jetpack, character.flying || character.parachuting, character.flyTrigger, view.camera);
+    exhaust.update(dt, character.jetpack, character.flying || character.parachuting, character.flyTrigger, view.camera, shown);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
     const active = inside && settings.seeThrough && !watching;
     let holeOpen = active;

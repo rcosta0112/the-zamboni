@@ -97,9 +97,9 @@ export class Exhaust {
   /**
    * Per rendered frame, after the camera has moved. `jetpack`: the shown model's jetpack group (null
    * if she has none on); `on`: flying or the auto-parachute firing; `trigger`: R2's value when it's
-   * flying her, else null.
+   * flying her, else null; `shown`: how much of her shows (she fades with the camera close), 0..1.
    */
-  update(dt: number, jetpack: THREE.Object3D | null, on: boolean, trigger: number | null, camera: THREE.PerspectiveCamera): void {
+  update(dt: number, jetpack: THREE.Object3D | null, on: boolean, trigger: number | null, camera: THREE.PerspectiveCamera, shown = 1): void {
     dt = Math.max(0, dt);
     const wanted = on && jetpack !== null && settings.exhaustGlow ? 1 : 0;
     this.amount += (wanted - this.amount) * (1 - Math.exp(-dt / (wanted ? FADE_IN : FADE_OUT)));
@@ -141,7 +141,7 @@ export class Exhaust {
       g.halo.value.set(settings.exhaustHaloColor);
       g.coreSize.value = settings.exhaustCore;
       g.haloLevel.value = settings.exhaustHalo;
-      g.level.value = this.amount * level * (0.85 + 0.15 * g.size);
+      g.level.value = this.amount * level * shown * (0.85 + 0.15 * g.size);
     });
   }
 }

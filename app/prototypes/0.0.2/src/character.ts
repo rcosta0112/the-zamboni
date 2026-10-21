@@ -92,6 +92,11 @@ export class Character {
     for (const m of Object.values(models)) this.root.add(m.object);
   }
 
+  /** 0..1: how much of her shows (the camera close to her fades her out). */
+  setShown(share: number): void {
+    for (const m of Object.values(this.models)) m.setShown(share);
+  }
+
   /** Where the shown model's walk/run cycle is, 0..1; null with no model shown. */
   get cycle(): number | null {
     return (settings.showModel ? this.models[settings.characterModel] : undefined)?.cycle ?? null;

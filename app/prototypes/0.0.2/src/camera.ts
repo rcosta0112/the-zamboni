@@ -74,8 +74,9 @@ export class FollowCamera {
       // Move in front of anything between the focus and the camera; ease back out when clear.
       const ideal = this.focus.clone().addScaledVector(dir, this.distance);
       const hit = this.collide(this.focus, ideal);
-      // Never closer than 1 m: closer than that, the camera ends up inside her head.
-      const target = hit === null ? this.distance : Math.max(1.0, hit - 0.25);
+      // As close as it needs (owner, 2026-10-21; it used to stop at 1 m and went through what was
+      // behind her): she fades out instead (shown).
+      const target = hit === null ? this.distance : Math.max(settings.cameraMinDistance, hit - settings.cameraWallGap);
       if (target < this.collidedDistance) this.collidedDistance = target;
       else this.collidedDistance += (target - this.collidedDistance) * (1 - Math.exp(-4 * dt));
       distance = Math.min(this.distance, this.collidedDistance);
@@ -86,5 +87,12 @@ export class FollowCamera {
     // Never go below the floor.
     this.camera.position.y = Math.max(0.2, this.camera.position.y);
     this.camera.lookAt(this.focus);
+  }
+
+  /** How much of her shows, 0..1: she fades out as the camera comes close (cameraFadeStart → cameraFadeEnd). */
+  get shown(): number {
+    const d = this.camera.position.distanceTo(this.focus);
+    const t = THREE.MathUtils.clamp((d - settings.cameraFadeEnd) / Math.max(settings.cameraFadeStart - settings.cameraFadeEnd, 1e-3), 0, 1);
+    return t * t * (3 - 2 * t);
   }
 }
