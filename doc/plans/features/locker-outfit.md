@@ -1,48 +1,67 @@
 # Changing clothes at the locker (item 72)
 
-**Status:** *draft*, 2026-10-21, for the owner's review: what the feature does, before any build plan. Nothing built.
+**Status:** *draft*, 2026-10-21. The feature was defined with the owner on 2026-10-21 (answers below). The build passes are for review. Nothing built.
 
 ## Goal
 
-Using a crew locker switches Dr. Green's clothes: the indoor **jumpsuit** for the outdoor **parka**, and back (owner, 2026-10-21).
+At **her own locker**, Dr. Green swaps the indoor **jumpsuit and sneakers** for the outdoor **parka and boots**, and back (owner, 2026-10-21).
 
 ## What exists
 
-- **Her model in the game is the parka** (`public/test/green-parka.glb`, from the armature `Dr. Green Parka` by `npm run export:player`), with the jetpack and the hood's `jetpack` shape key. The file also has **`Dr. Green Jump suit`** (scaled with the parka in item 46), never exported.
-- **The lockers:** `Crew Locker Door 1` and `Crew Locker Door 2` (crew quarters) and `Cargo Locker Door` (cargo hold) open and close ([interaction](../../features/interaction.md)). **Three parkas hang in the crew quarters** (`Parka.001`–`.003`, props in the ship export).
-- One skeleton for every outfit: a swap keeps every animation ([characters](../architecture/game-architecture/characters.md#outfits)).
+- **Her model in the game is the parka** (`public/test/green-parka.glb`, from the armature `Dr. Green Parka` by `npm run export:player`). It carries the jetpack (`Gadget.004`, `Gadget.005`) and the hood's `jetpack` shape key. The file also has **`Dr. Green Jump suit`**, never exported.
+- **The lockers:** `crew-locker-door-1` (crew quarters, on the left: **hers**, labelled *locker*) opens and closes. `crew-locker-door-2` (Dr. Kaufman's) and `cargo-locker-door` (Dr. Ogawa's) give her remark instead (`# instead`) and stay shut. **Three parkas hang in the crew quarters** (`Parka.001` to `.003`), and two boots sit in `Stuff` (`Boot`, `Boot.001`).
+- One skeleton for every outfit ([characters](../architecture/game-architecture/characters.md#outfits)).
 
-## Constraints and a conflict
+## The owner's answers (2026-10-21)
 
-- **Conflict:** [characters](../architecture/game-architecture/characters.md#outfits) says *"Characters change outfit off-screen or in a cutscene, at the moment the story needs it (before going outside)."* The locker makes it the player's action. I'd update that line to say the player changes at the locker (the crew still change off-screen); **your call** (question 1).
-- **Anything saved is in Ink** ([game structure](../architecture/game-architecture/game-structure.md#who-owns-each-piece-of-state)): what she wears is an Ink variable (`green_outfit`), so *Continue* and the story agree on it (a scene can require the parka, a line can comment on it).
-- **Owner, 2026-10-15:** clothes are among the costly parts (her outfits exported, swapped on the character, her materials). Measured cost below.
-- **Gamepad first;** the prompt follows item 56's placement.
+1. **Her own locker only:** `crew-locker-door-1`. **The other two keep their doors' opening and closing** even though the player can't open them, so a later scene can open one (e.g. Dr. Kaufman leaves hers open). They already work this way: the remark replaces only the player's action, not the door.
+2. **The prompt is on the parka hanging in the open locker,** not on the door: *Put on parka* hides it from the locker, and *Take off parka* (while she wears it) shows it there again. The door stays a door.
+3. **An instant swap.** No fade, no animation.
+4. **Only one parka:** the one in her locker, which she puts on and takes off. **The owner removes the others in Blender.** The same goes for **boots and sneakers**; the owner adds those.
+5. **The shoes go with the parka:** one action swaps the parka and the boots (*Put on parka* leaves the sneakers in the locker; *Take off parka* puts the boots back).
+6. **What she wears:** the jumpsuit and sneakers are the indoor clothes, worn while the ship is flying; the parka is for going outside when it lands. **This describes what normally happens; it's not a rule**, and there can be exceptions. So: **no rule in code**. She starts in the jumpsuit, and a scene's setup can set her outfit.
+7. **The jetpack goes over both outfits.** The owner adds it to the jumpsuit in Blender.
+8. **The conflict with `characters.md` is resolved:** the player changes Dr. Green's clothes at her locker; the crew change off-screen or in a cutscene (the line is updated).
+9. **The jumpsuit is ready to export** once those edits are in ("but check the scale"): see below.
 
-## The features to define
+## The jumpsuit's scale (checked 2026-10-21, `The Zamboni 1.21.blend`, read only)
 
-1. **Which locker.** Her own crew locker only (which one is hers?), any crew locker, or the cargo locker too.
-2. **The prompt.** On the open locker, a second prompt beside the door's: *Put on parka* / *Put on jumpsuit* (recommended: opening the door stays a door). Or the locker's only action becomes *Change*.
-3. **The change itself.** (a) **A short fade to black** (about 0.4 s out, swap, 0.4 s in) with a rustle sound (recommended: no animation needed, hides the swap); (b) an instant swap; (c) an animation you make in Blender (a turn into the locker and back), played like the ladder's.
-4. **The parka on the hanger.** Hers hangs in the locker while she wears the jumpsuit, and is gone while she wears it (one of `Parka.001`–`.003` shown or hidden), or the hanging parkas stay decoration.
-5. **Rules on wearing.** None for now (recommended), or: the jetpack only over the parka; going out without the parka gives a bark (*"Too cold out there"*) and turns her back; a scene can force the parka. Each later rule is a line in Ink or a scene, not code, once the outfit is a variable.
-6. **What she starts in.** The jumpsuit in the ship, the parka from the opening's landing; set by each scene's setup (`outfit: parka`) when the story needs it.
-7. **The jetpack over the jumpsuit.** The parka's hood has a shape key for it; the jumpsuit may need a small fit for the jetpack straps in Blender.
+- **Scale 1, the same skeleton** (16 bones; the parka has one more, `Hood`). Feet at the same height (the lowest vertex: −0.010 for the jumpsuit, −0.013 for the parka).
+- **It stands 1.241 tall, the parka 1.230**: the jumpsuit's head (hair, no hood) is 1.4 cm higher. This is the mesh, not a wrong scale. The export's scale check (1.23 ± 0.01) will measure each outfit against its own height.
+- **`Leg_l` and `Leg_r` are 1.4 cm off** from the parka's. On one shared skeleton, the jumpsuit's legs would be drawn 1.4 cm from where they were modelled. **Question 1.**
+- The jumpsuit's mesh is named **`Dr. KaufmanMesh.005`** (a copy of Dr. Kaufman's, renamed or not?). It exports either way; a name like `Dr. Green Jumpsuit Mesh` would read better in the logs.
 
-## How it would be built (outline, for sizing only)
+## Constraints
 
-- `export:player` exports both armatures (`green-jumpsuit.glb` beside `green-parka.glb`), each checked for scale like today.
-- `model.ts` loads both at start, sharing one skeleton, mixer and the retargeted clips; swapping shows one mesh and hides the other (no reload). The see-through, her fade and the low-res rules take both meshes' materials.
-- A command `outfit` (`set` for Green: `parka` | `jumpsuit`), usable from scenes, Ink and cutscenes; the locker's action runs it and sets `green_outfit`.
+- **Anything saved is in Ink** ([game structure](../architecture/game-architecture/game-structure.md#who-owns-each-piece-of-state)): what she wears is an Ink variable, `green_outfit` (`jumpsuit` | `parka`). The save, *Continue* and the story agree on it, and a later rule (*"Too cold out there"*) would be a line of Ink, not code.
+- **Gamepad first.** The parka's prompt follows item 56's placement rules (a new kind, by its centre).
+- **Edits to the `.blend` are announced** (CLAUDE.md): I compare the new file with 1.21 before exporting.
 
-**Cost (estimates):** about 0.2–0.5 MB more to download; a few more shader pipelines at load (both outfits' materials, through the see-through and the fade: perhaps 4–8, a fraction of a second; item 50 counts them); about 4–5 hours over two passes (the export and the swap; then the locker, the prompt, the fade and Ink), plus Blender work on your side if the jumpsuit needs a fix (straps, single-sided faces).
+## The work
+
+**Before pass 1, the owner's Blender edit:** one parka, boots and sneakers in her locker (the other parkas and boots removed); the jetpack on the jumpsuit; the legs (question 1). Then announce the file.
+
+**Pass 1: both outfits in the game** (about 2 hours)
+1. Compare the new file with 1.21 (objects, collections, the two armatures).
+2. `export:player` exports both armatures: `green-jumpsuit.glb` beside `green-parka.glb`. The scale check runs on each at its own height; the jetpack and the hood's shape key on each that has them.
+3. The ship export takes the locker's three things (`ship-export-list.json`); the removed parkas and boots leave the list.
+4. `model.ts` loads both outfits at start on one skeleton, mixer and set of clips. A swap shows one mesh and hides the other, with no reload. The see-through, her fade and the low-res rules take both outfits' materials.
+5. A command `outfit` (`set`: `jumpsuit` | `parka`) and a dev hook `__outfit()`.
+- **Check:** a probe swaps the outfits in the corridor, on the ladder and with the jetpack, with screenshots; the load's pipeline count (item 50) before and after.
+
+**Pass 2: the locker** (about 1.5 hours)
+1. The parka in her locker becomes an interactable (kind `outfit`): only while her locker door is open, *Put on parka* / *Take off parka*. The locker's three things are shown or hidden by `green_outfit`.
+2. The Ink variable `green_outfit` (start: `jumpsuit`) and an `outfit:` line in a scene's setup. Chapter 1 starts in the jumpsuit.
+3. The save keeps it; *Continue* restores the clothes and the locker.
+- **Check:** a probe opens her locker, puts on the parka, reloads (*Continue*), takes it off. Then the whole smoke run once.
+
+**Cost (estimates):** about 0.2–0.5 MB more to download; perhaps 4–8 more shader pipelines at load (both outfits through the see-through and the fade, a fraction of a second); the two passes as above, plus your Blender edit.
 
 ## Open questions for the owner
 
-1. The conflict: the player changes at the locker, and `characters.md` changes to say so?
-2. The seven features above: your choices (my recommendations are marked).
-3. Is `Dr. Green Jump suit` ready to export as it is, or will you work on it first (announced as usual)?
+1. **The legs, 1.4 cm apart:** (a) **you snap the jumpsuit's `Leg_l` and `Leg_r` to the parka's** in your edit (recommended: one skeleton, as `characters.md` says); (b) each outfit keeps its own skeleton and both play the same clips (it works, but every animation runs twice, and the item-44 ladder work has two rigs to fit); (c) leave the 1.4 cm.
+2. **Names for the locker's three things**, so the code can find them: e.g. `Locker Parka`, `Locker Boots`, `Locker Sneakers` (any names; tell me which).
 
 ## After
 
-A build plan in passes (in this file) once these are settled; then `features/interaction.md` (the lockers), `characters.md` (*Outfits*), the code map, the backlog.
+`features/interaction.md` (the lockers), `characters.md` (*Outfits*, as built), the code map, `tools/README.md` (the player export), the backlog.

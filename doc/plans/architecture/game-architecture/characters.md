@@ -77,7 +77,7 @@ Each outfit is its **own skinned mesh on the shared skeleton**: changing outfit 
 | Jumpsuit (indoors) | `char-<name>-jumpsuit.glb`: mesh + its own texture (name tag and the character's way of wearing it) | With the crew, at start |
 | Parka (outdoors) | `char-<name>-parka.glb` | Before the first landing, with the first landing site |
 
-Characters change outfit off-screen or in a cutscene, at the moment the story needs it (before going outside).
+The player changes Dr. Green's clothes at her locker (owner, 2026-10-21: [locker-outfit](../../features/locker-outfit.md)); the crew change outfit off-screen or in a cutscene, at the moment the story needs it (before going outside).
 
 **Cost:** small. The meshes are a few hundred triangles; the cost is the textures. At 1024² in KTX2, roughly 0.1–0.5 MB per outfit *(estimate)*. Dr. Kaufman's 2048² texture can go to 1024² at third-person distance with no visible loss.
 

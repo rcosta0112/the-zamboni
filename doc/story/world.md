@@ -4,6 +4,7 @@
 - "Comms" is a word with multiple meanings (the device, and the radio channel the crew talk over).
 - Adam's bodies are taller than the humans, with similar articulation points. They're made of isolated solid blocks: there's no mesh distortion when they move.
 - Each crew member (except Adam) has at least two outfits: a jumpsuit indoors and a parka outdoors. Each wears the jumpsuit a bit differently, and it has a name tag.
+- The jumpsuit and sneakers are indoor clothes: the crew wear them while the ship is flying. Parkas (and boots) are for going outside when the ship lands. That's what normally happens, not a rule: there can be exceptions. Dr. Green keeps her parka, boots and sneakers in her locker (the left one in the crew quarters). (2026-10-21)
 - Some of the planet is ice and snow, and some of it is rocky.
 - The Zamboni's small side door, in the cargo hold, is hinged at the bottom. Open, it rests on the ground and works as a ramp (it has steps on its inside).
 - The roof hatch may get an unfolding ladder, or none: the crew have jetpacks.
