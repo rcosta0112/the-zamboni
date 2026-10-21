@@ -9,5 +9,6 @@ What's in it (2026-10-13, from the start screen: [`doc/design/start-screen.md`](
 | `src/tokens.css` | Colours, the two fonts, the controls' shape, timings. Written by hand from the mockup (the Figma file has one variable). Imported once by the app: `import '@zamboni/ui/tokens.css'` |
 | `src/Button.svelte` | The outlined button, with its states: default, hover (also `highlighted`: the control a gamepad is on), pressed (also `pressed`) |
 | `src/ProgressBar.svelte` | A bar the size of a button, filling from the left (`value`, 0..1) |
+| `src/DialogueBox.svelte` | The dialogue box, a placeholder (2026-10-21): white, low in the middle, the speaker, the line typed out, the button prompt (*Skip*, *Next*, *End*). The game drives it with `show(view)` ([dialogue plan](../../../doc/plans/features/dialogue.md)) |
 
 Sizes are in `--ui-unit`, one pixel of the mockup: a screen that scales with the window sets it. The fonts are files in `app/assets/ui/fonts/`, served at `/ui/fonts/` (an app that uses this package serves `app/assets` as its public folder).

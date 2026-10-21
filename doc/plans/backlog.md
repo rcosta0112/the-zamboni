@@ -74,8 +74,9 @@
 | 68 | Metal on parts that are never cut (landing gear, cargo ramp) gets no reflections (owner, 2026-10-21) | – | To do |
 | 69 | Crew materials shared with the ship are single-sided since 1.19: check the placed crew at the next crew export (owner, 2026-10-21) | – | To check (next crew export) |
 | 70 | Objects clipping into the hull's wall: by hand, or a semi-automatic Blender script (Shrinkwrap on the offending vertices; `npm run probe -- tools/hull-clipping.js` lists them); the crew quarters need a modelling decision first (no inner skin there) (asked 2026-10-15; owner, 2026-10-21) | – | Waiting on the owner |
-| 71 | The dialogue system: face-to-face conversations in a VN box with choices, her remarks on objects (the pilot's seat first), the save (no conversation twice), the crew's idle and talk animations, barks, cutscene subtitles; the comm's chat after it (owner, 2026-10-21) | – | Plan reviewed twice 2026-10-21, every question answered; pass 1 for the go-ahead ([plan](features/dialogue.md)) |
+| 71 | The dialogue system: face-to-face conversations in a VN box with choices, her remarks on objects (the pilot's seat first), the save (no conversation twice), the crew's idle and talk animations, barks, cutscene subtitles; the comm's chat after it (owner, 2026-10-21) | – | Pass 1 under way (2026-10-21): part A built (the box, talking to the crew), the owner's to try; part B (the front seat's remark) next ([plan](features/dialogue.md)) |
 | 72 | Using a crew locker switches her clothes, jumpsuit and parka; a short plan first to define the feature (owner, 2026-10-21) | – | Plan drafted 2026-10-21, for review ([plan](features/locker-outfit.md)) |
+| 73 | A door mustn't close while she's standing in it: it stays open and plays an error sound (owner, 2026-10-21) | – | To do |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 
@@ -127,3 +128,4 @@ Added 2026-10-21:
 - let's add all these to the backlog.
 - I would like to see the plan for the dialogue system
 - add this to the interaction feature: we are going to make it so that interacting with the locker will switch her clothes. this will need a short plan to define the features
+- add this to the backlog: need to prevent doors from closing when she's standing in them. Should play an error sound.

@@ -182,6 +182,12 @@ export const settings = {
   // Interaction: point (the screen centre) at something within her reach and press E / Circle.
   interactReach: 1.0, // m, from her chest to the object's bounds
   interactMaxAngleDeg: 30, // how far from the screen centre a target may be
+  talkReach: 1.6, // m, from her chest to a character's bounds: further than a thing's (across the crew quarters' table)
+  // The dialogue box (dialogue.ts): the typewriter's speed; with *reduced motion* the line is there at once.
+  dialogueCharMs: 35, // ms a character; 0: the whole line at once
+  dialogueTypeEvery: 2, // a typewriter key's sound every this many characters typed (not on spaces); 0: silent
+  dialogueDebounce: 0.15, // s: a press this soon after the last is ignored (a double press skips nothing unread)
+  dialogueCooldown: 1, // s after a conversation ends before anything can be used (the press that ended it doesn't start it again)
   doorSeconds: 0.6, // to open or close a door
   slideSeconds: 0.3, // the same for a sliding door (bulkhead doors, the engineering window, its lever)
   leverDelay: 0.6, // the window starts this long after its lever is used (s): the lever is heard first

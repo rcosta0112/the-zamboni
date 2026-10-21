@@ -10,10 +10,14 @@
 // roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
 // Other devices (the boombox) make their own target and are handed in (`others`).
 // Locked (a scene or Ink): a door, or its keypad or panel, offers its story knot (`use_<id>`, its
-// `# verb:` tag as the prompt) if the story has one, otherwise "Locked" (`respectLocks`).
+// `# verb:` tag as the prompt) if the story has one, otherwise "Locked" (`respectLocks`). A knot
+// tagged `# instead` runs in place of the action, locked or not (the crew's lockers: her remark).
+// The crew: *Talk to Dr. Kaufman* (and so on) when the story has their `talk_<id>` knot, the prompt
+// above their heads (`crewInteractables`).
 // Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1),
 // doc/plans/features/bulkhead-doors.md, doc/plans/features/audio-from-ue.md,
-// doc/plans/features/interaction-sounds.md (the panels' two tones, the lever's clunk)
+// doc/plans/features/interaction-sounds.md (the panels' two tones, the lever's clunk),
+// doc/plans/features/dialogue.md (talking to the crew)
 
 import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
@@ -24,7 +28,7 @@ import type { Device } from './input';
 import { isDeviceKind } from './kinds';
 import type { Physics } from './physics';
 import { settings } from './settings';
-import type { GameStory } from './story';
+import { displayName, type GameStory } from './story';
 
 export interface Interactable {
   /** A name for checks and logs. */
@@ -40,6 +44,14 @@ export interface Interactable {
   controls?: Openable[];
   /** Where the prompt goes beside (world, into `out`): a door's handle. Not set: the centre of its bounds. */
   anchor?: (out: THREE.Vector3) => THREE.Vector3;
+  /** The prompt centred above the anchor instead of beside it (a character's head). */
+  above?: boolean;
+  /** How far from her chest to its bounds it can be used (m). Not set: `settings.interactReach`. */
+  reach?: () => number;
+  /** The point her line of sight must reach (world, into `out`). Not set: the nearest of its bounds. */
+  sight?: (out: THREE.Vector3) => THREE.Vector3;
+  /** Something solid this close in front of its bounds doesn't hide it (m; default 0.15): a character's seat. */
+  sightMargin?: number;
 }
 
 /** A hinged door's handle is this far in from the edge away from its hinge (m). */
@@ -210,9 +222,53 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
 }
 
 /**
+ * The crew (the entities of kind `character`): *Talk to <name>*, running their `talk_<id>` knot,
+ * while the story has one and they're shown, from further than a thing (`settings.talkReach`) and
+ * if she can see their head (past the seat they're in). The prompt goes above their heads.
+ */
+export function crewInteractables(entities: Entities, story: () => GameStory | null, talk: (knot: string) => void): Interactable[] {
+  const list: Interactable[] = [];
+  const box = new THREE.Box3();
+  for (const { id, object, kind } of entities.all()) {
+    if (kind !== 'character') continue;
+    const knot = () => story()?.talkKnot(id) ?? null;
+    list.push({
+      name: object.name,
+      objects: [object],
+      verb: () => `Talk to ${displayName(id)}`,
+      act: () => {
+        const k = knot();
+        if (k) talk(k);
+      },
+      available: () => knot() !== null && shown(object),
+      anchor: (out) => {
+        box.setFromObject(object);
+        return box.getCenter(out).setY(box.max.y + 0.08);
+      },
+      above: true,
+      // Further than a thing's reach (across the crew quarters' table); the seat they're in doesn't hide them.
+      reach: () => settings.talkReach,
+      sightMargin: 0.6,
+      sight: (out) => {
+        box.setFromObject(object);
+        return box.getCenter(out).setY(box.max.y - 0.15);
+      },
+    });
+  }
+  return list;
+}
+
+/** Shown: it and everything it's under are visible (the crew are hidden on the lower deck). */
+function shown(object: THREE.Object3D): boolean {
+  for (let o: THREE.Object3D | null = object; o; o = o.parent) if (!o.visible) return false;
+  return true;
+}
+
+/**
  * The targets, minding locks: while what one controls is locked, it runs the story's knot for it
  * (`use_<id>` of its first object, through the commands), prompted by the knot's `# verb:` tag
- * ("Use" without one); with no knot, it says "Locked" and does nothing.
+ * ("Use" without one); with no knot, it says "Locked" and does nothing. A knot tagged `# instead`
+ * runs whether it's locked or not (someone else's locker: she says so, it stays shut).
  */
 export function respectLocks(items: Interactable[], story: () => GameStory | null, run: (command: Command) => void): Interactable[] {
   return items.map((item) => {
@@ -221,15 +277,19 @@ export function respectLocks(items: Interactable[], story: () => GameStory | nul
     const id = item.objects[0]?.userData.id as string | undefined;
     const locked = () => controls.some((c) => c.locked);
     const knot = () => (id ? (story()?.useKnot(id) ?? null) : null);
+    const instead = () => {
+      const k = knot();
+      return k !== null && story()!.tag(k, 'instead') !== null;
+    };
     return {
       ...item,
       verb: () => {
-        if (!locked()) return item.verb();
+        if (!locked() && !instead()) return item.verb();
         const k = knot();
         return k ? (story()!.tag(k, 'verb') ?? 'Use') : 'Locked';
       },
       act: () => {
-        if (!locked()) return item.act();
+        if (!locked() && !instead()) return item.act();
         const k = knot();
         if (k) run({ do: 'story', knot: k });
       },
@@ -255,6 +315,8 @@ export class Interaction {
   private toTarget = new THREE.Vector3();
   private forward = new THREE.Vector3();
   private ray = new THREE.Ray();
+  /** A use waiting for its click to finish: no other until it's done. */
+  private pending = false;
   /** The ids switched off by a scene or a command (any of an item's objects): not offered. */
   disabled = new Set<string>();
 
@@ -262,6 +324,11 @@ export class Interaction {
     private items: Interactable[],
     private physics: Physics,
     private prompt: HTMLElement,
+    /**
+     * Every use's click (owner, 2026-10-21: every interaction in the game), calling `then` when it
+     * has finished; false if it didn't play. The thing acts (and makes its own sound) after it.
+     */
+    private used: (then: () => void) => boolean = () => false,
   ) {}
 
   /**
@@ -286,11 +353,12 @@ export class Interaction {
       if (this.disabled.size && item.objects.some((o) => this.disabled.has(o.userData.id as string))) continue;
       this.bounds(item);
       const distance = this.box.distanceToPoint(chest);
-      if (distance > settings.interactReach) continue;
+      if (distance > (item.reach?.() ?? settings.interactReach)) continue;
       // Not behind something solid (its own collider is hit at about its own distance).
-      this.box.clampPoint(chest, this.closest);
+      if (item.sight) item.sight(this.closest);
+      else this.box.clampPoint(chest, this.closest);
       const hit = distance > 0.05 ? this.physics.castRay(chest, this.closest) : null;
-      if (hit !== null && hit < distance - 0.15) continue;
+      if (hit !== null && hit < distance - (item.sightMargin ?? 0.15)) continue;
       // How far from the screen centre: 0 if the view's centre line passes through it.
       let angle = 0;
       if (!this.ray.intersectsBox(this.box)) {
@@ -305,7 +373,20 @@ export class Interaction {
       }
     }
     this.target = best;
-    if (pressed && this.target) this.target.act();
+    if (pressed && this.target && !this.pending) {
+      const target = this.target;
+      let done = false;
+      const act = () => {
+        if (done) return;
+        done = true;
+        this.pending = false;
+        target.act();
+      };
+      this.pending = true;
+      // After the click; at once if it didn't play, and never later than half a second (it was cut off).
+      if (this.used(act)) setTimeout(act, 500);
+      else act();
+    }
     if (this.target) {
       this.prompt.textContent = `${GLYPH[device]}  ${this.target.verb()}`;
       this.prompt.hidden = false;
@@ -324,7 +405,7 @@ export class Interaction {
   /**
    * The prompt next to the target on screen. With an anchor (a door's handle): 18 px beside it, on
    * the side away from the target's centre (just outside a door's edge), to the right when the two
-   * are nearly in line. Without: beside the centre of its bounds, to the right, clear of a small
+   * are nearly in line; above it if the target says so (a character's head). Without: beside the centre of its bounds, to the right, clear of a small
    * target (a keypad) and at most 60 px from the centre of a large one. Kept inside the screen's edges.
    */
   private placePrompt(item: Interactable, camera: THREE.Camera): void {
@@ -340,7 +421,11 @@ export class Interaction {
     const inFront = this.toTarget.subVectors(point, camera.position).dot(this.forward) > 0.05;
     let x = width / 2;
     let y = height / 2;
-    if (inFront && item.anchor) {
+    if (inFront && item.anchor && item.above) {
+      point.project(camera);
+      x = (point.x * 0.5 + 0.5) * width;
+      y = (-point.y * 0.5 + 0.5) * height - 10 - h / 2;
+    } else if (inFront && item.anchor) {
       point.project(camera);
       x = (point.x * 0.5 + 0.5) * width;
       y = (-point.y * 0.5 + 0.5) * height;

@@ -30,6 +30,7 @@
   --color-sky-deep: #26a3ca; /* the glow behind the title */
   --color-fill-hover: rgb(255 255 255 / 0.14); /* a control under the pointer, or the one a gamepad is on */
   --color-fill-active: rgb(255 255 255 / 0.26); /* a control pressed; the filled part of a progress bar */
+  --color-ink: #1d1f24; /* text on white: the dialogue box (a placeholder, not from the mockup) */
 
   /* Type */
   --font-title: 'Digital Desolation Plus', sans-serif;

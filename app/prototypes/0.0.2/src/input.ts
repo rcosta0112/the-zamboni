@@ -44,6 +44,8 @@ export class Input {
   private jumpLatched = false;
   private interactLatched = false;
   private skipLatched = false;
+  /** Enter or a mouse click: advances the dialogue box (as interact does). */
+  private confirmLatched = false;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
   private menuStick = 0;
@@ -65,6 +67,7 @@ export class Input {
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
       if (e.code === 'KeyC') this.jumpLatched = true;
       if (e.code === 'KeyE') this.interactLatched = true;
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') this.confirmLatched = true;
       // A cutscene's skip: Enter, Esc (which also releases the mouse: the game pauses), E, Space, C.
       if (['Enter', 'NumpadEnter', 'Escape', 'KeyE', 'Space', 'KeyC'].includes(e.code)) this.skipLatched = true;
       if (e.code === 'KeyY') settings.invertY = !settings.invertY;
@@ -75,6 +78,9 @@ export class Input {
 
     canvas.addEventListener('click', () => {
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
+    });
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 0) this.confirmLatched = true;
     });
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
@@ -173,11 +179,30 @@ export class Input {
     return this.analogPad !== null;
   }
 
-  /** True once per interact press (E, gamepad B / Circle). */
+  /** True once per interact press (E, gamepad B / Circle). An Enter or a click since is dropped. */
   consumeInteract(): boolean {
     const i = this.interactLatched;
     this.interactLatched = false;
+    this.confirmLatched = false;
     return i;
+  }
+
+  /** True once per press that advances the dialogue box: interact, Enter or a click. */
+  consumeAdvance(): boolean {
+    const a = this.interactLatched || this.confirmLatched;
+    this.interactLatched = false;
+    this.confirmLatched = false;
+    return a;
+  }
+
+  /** No movement, flying or jump this frame (a conversation holds her still; the camera still turns). Call after `poll`. */
+  hold(): void {
+    this.move.x = 0;
+    this.move.y = 0;
+    this.walkHeld = false;
+    this.flyHeld = false;
+    this.flyTrigger = null;
+    this.jumpLatched = false;
   }
 
   /** True once per press that skips a cutscene (any pad button but Start and View; Enter, Esc, E, Space, C). */

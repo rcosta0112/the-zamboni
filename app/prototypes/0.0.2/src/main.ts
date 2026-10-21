@@ -4,6 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { mount, unmount } from 'svelte';
 import '@zamboni/ui/tokens.css';
+import { DialogueBox } from '@zamboni/ui';
 import { GameAudio } from './audio';
 import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
@@ -15,10 +16,11 @@ import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
 import { CutscenePlayer } from './cutscene';
+import { Dialogue } from './dialogue';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
-import { Interaction, respectLocks, shipInteractables } from './interaction';
+import { crewInteractables, Interaction, respectLocks, shipInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
@@ -52,6 +54,10 @@ async function start(): Promise<void> {
   // The start screen first: it covers the view while everything below loads, with a bar for it.
   const startScreen = mount(StartScreen, { target: document.querySelector<HTMLElement>('#start')!, props: { onstart: (byPointer: boolean, choice: StartChoice) => begin(byPointer, choice) } });
   const loading = new LoadProgress((share) => startScreen.setProgress(share));
+  // The dialogue box over the view: a story knot's lines, one at a time.
+  const dialogueBox = mount(DialogueBox, { target: document.querySelector<HTMLElement>('#dialogue')! });
+  const dialogue = new Dialogue((view) => dialogueBox.show(view), () => audio.play('ui_interact'), () => audio.play('ui_type'));
+  const helpEl = document.querySelector<HTMLElement>('#help')!;
 
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true;
@@ -138,6 +144,7 @@ async function start(): Promise<void> {
         return null;
       });
       story = target.story;
+      if (story) story.onLines = (lines) => dialogue.start(lines);
       director = new SceneDirector(s, target, (at, yaw) => {
         physics.teleport(at);
         character.position.copy(at);
@@ -178,8 +185,9 @@ async function start(): Promise<void> {
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
-      const items = shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState);
-      interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target)), physics, document.querySelector<HTMLElement>('#prompt')!);
+      const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
+      const items = [...shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState), ...crewTargets];
+      interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target)), physics, document.querySelector<HTMLElement>('#prompt')!, (then) => audio.play('ui_interact', undefined, then));
       interaction.disabled = disabled;
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
       addCollisionBoxes(s, physics);
@@ -201,7 +209,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
@@ -319,6 +327,8 @@ async function start(): Promise<void> {
     last = now;
 
     input.poll();
+    // A conversation holds her still: no move, jump or flight. The camera still turns (owner, 2026-10-21).
+    if (dialogue.active) input.hold();
     // Sound: a gamepad button turns it on, as a key or a click does (if the browser counts it).
     if (input.padPressed) void audio.unlock();
     audio.update(dt, indoorLight);
@@ -486,10 +496,15 @@ async function start(): Promise<void> {
       holeEnd: settings.holeEnd,
       holeBeyond: settings.holeBeyond,
     });
+    // A conversation: the button completes the line, then the next, then ends it.
+    const talking = dialogue.active;
+    dialogue.update(dt, talking && input.consumeAdvance(), input.lastDevice);
+    helpEl.hidden = dialogue.active; // it sits where the box goes
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
-    // While she climbs nothing else can be used (owner: control is taken, but not the camera).
-    interaction?.update(chest, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching);
+    // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor
+    // while she talks, nor for a moment after.
+    interaction?.update(chest, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);

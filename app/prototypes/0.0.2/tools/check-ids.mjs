@@ -6,7 +6,8 @@
 //
 // Things: tools/ids.json (written by the ship export) and the crew's ids (CREW_IDS in
 // export-ship-crew.py). Also checked: cutscenes by their track file, sound cues in src/cues.json,
-// story knots and the variables of `if` / `unless` in the Ink source, the knots `use_<id>`.
+// story knots and the variables of `if` / `unless` in the Ink source, the knots `use_<id>` and
+// `talk_<id>` (a character's).
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (pass 6)
 
 import fs from 'node:fs';
@@ -92,6 +93,7 @@ for (const [line, n] of ink.split(/\r?\n/).map((l, i) => [l, i + 1])) {
   }
 }
 for (const knot of knots) if (knot.startsWith('use_')) thing(`story.ink, knot ${knot}`, knot.slice(4).replace(/_/g, '-'));
+for (const knot of knots) if (knot.startsWith('talk_')) thing(`story.ink, knot ${knot}`, knot.slice(5).replace(/_/g, '-'), new Set(['character']), "isn't a character");
 
 if (problems.length) {
   console.error(`ids: ${problems.length} problem(s)\n  ${problems.join('\n  ')}`);

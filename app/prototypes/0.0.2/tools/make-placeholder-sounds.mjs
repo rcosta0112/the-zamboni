@@ -12,7 +12,8 @@
 // - The lever: the first of the two sounds in the owner's
 //   `freesound_community-lever-action-cocking-2-39680.mp3` (resources/audio/), with the silence
 //   around it cut off (TRIMMED).
-// - The start button's click (`ui_click`), made from a tone and noise like the first kind.
+// - The start button's click (`ui_click`) and the dialogue box's typing (`ui_type_0n`), made from
+//   tones and noise like the first kind.
 // `--only <name>` makes one of the first kind and leaves the other files alone.
 // Nothing here was listened to by the agent. Each file's source is in SOURCES.md beside the files.
 // Plans: doc/plans/features/interaction-sounds.md, start-screen.md. Names: doc/architecture/audio.md.
@@ -59,6 +60,10 @@ const MADE = [
   ['sfx_jetpack_return', 0.45, `${noise(0)}*${hit(0, 170)}*0.4+sin(2*PI*1150*t)*${hit(0, 55)}*0.2+${noise(1)}*pow(sin(PI*clip((t-0.06)/0.16,0,1)),2)*0.2+sin(2*PI*130*t)*${hit(0.25, 35)}*0.6+${noise(2)}*${hit(0.25, 120)}*0.3`, 'highpass=f=80,lowpass=f=3200'],
   // The start button: a short, soft tick with a little body under it.
   ['ui_click', 0.12, `${noise(0)}*${hit(0, 320)}*0.3+sin(2*PI*1100*t)*${hit(0, 110)}*0.35+sin(2*PI*550*t)*${hit(0, 70)}*0.25`, 'highpass=f=250,lowpass=f=4500'],
+  // The dialogue box typing (owner, 2026-10-21: a custom typewriter sound, subtle): a key's soft
+  // tick, noise only (tones made it ring like a xylophone, owner), a faint second tick as it
+  // bottoms out; three of them, filtered a little differently.
+  ...[[1800, 5200], [2100, 5800], [1600, 4800]].map(([low, high], i) => [`ui_type_0${i + 1}`, 0.04, `${noise(i)}*${hit(0, 1100)}*0.6+${noise(i + 3)}*${hit(0.006, 1600)}*0.25`, `highpass=f=${low},lowpass=f=${high}`]),
 ];
 const onlyAt = process.argv.indexOf('--only');
 const ONLY = onlyAt >= 0 ? process.argv[onlyAt + 1] : null;

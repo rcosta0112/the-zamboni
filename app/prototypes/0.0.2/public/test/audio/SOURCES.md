@@ -38,6 +38,9 @@ Plan: [`doc/plans/features/start-screen.md`](../../../../../../doc/plans/feature
 |---|---|---|---|
 | `mus_part1_theme.m4a` | `Background Music.wav` in Part 1's Unity project (`Big Moon Tiny Moon/Assets/Audio/`; 2 min 17 s, 44.1 kHz, 24-bit stereo), whole, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 128 kbit/s stereo | Not known | Not known: where Part 1's file came from isn't recorded |
 | `ui_click.m4a` | Made by [`make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs) from a tone and noise: no master, the recipe is in the script | The project | Nothing to license |
+| `ui_type_01.m4a` … `_03` | The dialogue box's typewriter keys (2026-10-21; Eigodojo has none to reuse): made by [`make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs) from tones and noise | The project | Nothing to license |
+
+The click on every interaction and every press in the dialogue box (`ui_interact` in `cues.json`) plays `sfx_latch_open.m4a`, faster and on the `ui` bus.
 
 ## The jetpack (2026-10-14)
 

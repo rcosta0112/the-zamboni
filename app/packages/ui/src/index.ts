@@ -3,3 +3,4 @@
 // Their colours, type and sizes are in tokens.css, which the app imports once.
 export { default as Button } from './Button.svelte';
 export { default as ProgressBar } from './ProgressBar.svelte';
+export { default as DialogueBox, type DialogueView } from './DialogueBox.svelte';
