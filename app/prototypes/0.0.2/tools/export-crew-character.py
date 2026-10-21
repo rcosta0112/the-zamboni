@@ -55,6 +55,9 @@ check_scale()
 armature = bpy.data.objects.get(args.armature)
 if armature is None:
     sys.exit(f'STOP: no armature {args.armature!r} in the file: nothing exported')
+# Another outfit's armature (the jumpsuit) goes onto the player's skeleton in the game: same scale.
+if max(abs(s - 1) for s in armature.scale) > 1e-3:
+    sys.exit(f'SCALE: {args.armature!r} has scale {tuple(round(s, 4) for s in armature.scale)}; the game needs 1: nothing exported')
 # Anything listed for her that's missing stops the export (``STOP:``; export.mjs keeps the files
 # waiting): the game would get her without it.
 parts = []

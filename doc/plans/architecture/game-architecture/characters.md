@@ -79,6 +79,8 @@ Each outfit is its **own skinned mesh on the shared skeleton**: changing outfit 
 
 The player changes Dr. Green's clothes at her locker (owner, 2026-10-21: [locker-outfit](../../features/locker-outfit.md)); the crew change outfit off-screen or in a cutscene, at the moment the story needs it (before going outside).
 
+> **[Agent note]** **As built for Dr. Green (item 72, pass 1, 2026-10-21):** `green-parka.glb` (the skeleton, the ladder clip, the parka with its jetpack, little backpack and gadgets) and `green-jumpsuit.glb` (the jumpsuit and `Jetpack With Straps`), both loaded at start. At load the jumpsuit's things go onto the parka's skeleton (bones and materials matched by name; `model.ts` `dress`), so one mixer animates both and a swap only shows and hides (`settings.outfit`, the `outfit` command). She's sized by the parka (the jumpsuit's hair is 1.4 cm higher than the hood). Both outfits are drawn while the shaders are built and through the warm-up, or the first swap stalls (about 0.7 s): 82 pipelines at load. The jetpack's glow takes its nozzles from the rings' part (`Teal Dark`), which fits both jetpacks. Her little backpack belongs to the parka: off with the jumpsuit and under a jetpack (owner, 2026-10-21).
+
 **Cost:** small. The meshes are a few hundred triangles; the cost is the textures. At 1024² in KTX2, roughly 0.1–0.5 MB per outfit *(estimate)*. Dr. Kaufman's 2048² texture can go to 1024² at third-person distance with no visible loss.
 
 ## Adam

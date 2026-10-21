@@ -1,6 +1,8 @@
 // Tunable values, edited live in the tuning panel. Starting values come from Part 1
 // (Big Moon Tiny Moon, Main.unity) where they exist; see doc/plans/prototypes/01-walk.md.
 
+import type { Outfit } from './model';
+
 export const settings = {
   // Movement (m/s, m/s²). Part 1: walk 1.5, run 7, acceleration 0.1/frame ≈ 6 m/s²,
   // deceleration 20× acceleration. Outdoor speeds; inside the ship the indoor ones apply.
@@ -26,6 +28,9 @@ export const settings = {
   // She wears a jetpack: taken from the cargo hold's rack, or switched here (the rack follows).
   // Shows it on her back, hides her little backpack, moves her hood out of its way; she can fly.
   wearingJetpack: false,
+  // What she wears (item 72): the jumpsuit (and sneakers) indoors, the parka (and boots) outside.
+  // She starts in the jumpsuit; the `outfit` command sets it.
+  outfit: 'jumpsuit' as Outfit,
   // The jetpack (held: R2, Space), with momentum (owner, 2026-10-14: "similar to the ship in
   // Asteroids"; plan: doc/plans/features/jetpack-hover-and-flight.md). No gravity while it's on.
   // Hover, while she's slow: R2 sets her height (below), and the stick's first hoverStickShare of

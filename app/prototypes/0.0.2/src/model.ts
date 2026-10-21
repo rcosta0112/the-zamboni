@@ -3,6 +3,8 @@
 // - "zamboni": the Zamboni Dr. Green (parka) from the ship file's `Player` collection (the crew
 //   file's model, with a jetpack), driven by Part 1's animations through retargeting (same bone
 //   names, different bone orientations and proportions). Wearing a jetpack shows it and moves the hood.
+//   Two outfits on one skeleton (item 72): the parka's file has the skeleton; the jumpsuit's meshes
+//   are moved onto it at load (`dress`), so one mixer animates both and a swap only shows and hides.
 // Blends standing → walking → running by speed, keeping walk and run on the same step
 // (shared phase), and plays the jump while airborne. Flying (the jetpack), Part 1's Flying clip
 // loops, blended in and out over FLY_BLEND.
@@ -17,14 +19,19 @@ import { settings } from './settings';
 
 const PART1_URL = '/test/part1-dr-green.glb';
 const ZAMBONI_URL = '/test/green-parka.glb';
+const JUMPSUIT_URL = '/test/green-jumpsuit.glb';
 /** Part 1's character height as authored; the Zamboni model is scaled to match by default. */
 export const PART1_HEIGHT = 1.23;
 
 export type ModelId = 'zamboni' | 'part1';
+/** What she wears (the Zamboni model): indoors the jumpsuit and sneakers, outside the parka and boots. */
+export type Outfit = 'jumpsuit' | 'parka';
 
 /** In the Zamboni model (the ship file's `Player` collection): the jetpack on her back, her little
  * backpack, and the hood's shape key for wearing the jetpack. */
 const JETPACK = 'Jetpack';
+/** The jumpsuit's jetpack (with its straps). */
+const JUMPSUIT_JETPACK = 'Jetpack With Straps';
 const BACKPACK = 'Backpack.002';
 const HOOD_KEY = 'jetpack';
 
@@ -58,6 +65,8 @@ export class AnimatedModel {
     private heightToScale: () => number,
     /** The ladder's climbing animation, made for this model (none on Part 1's). */
     climbClip?: THREE.AnimationClip,
+    /** Her outfits' things (`outfitParts`, `dress`); none on Part 1's. */
+    private outfits: Partial<Record<Outfit, THREE.Object3D[]>> = {},
   ) {
     this.object = object;
     this.mixer = new THREE.AnimationMixer(object);
@@ -105,6 +114,10 @@ export class AnimatedModel {
       if (named(child, JETPACK)) this.jetpack = child;
       if (named(child, BACKPACK)) this.backpack = child;
     });
+    for (const [outfit, parts] of Object.entries(this.outfits)) {
+      const jetpack = parts.find((p) => named(p, JETPACK) || named(p, JUMPSUIT_JETPACK));
+      if (jetpack) this.jetpacks.set(outfit as Outfit, jetpack);
+    }
   }
 
   // Wearing a jetpack (the Zamboni model; Part 1's has its own, always on): hers shows, her little
@@ -112,6 +125,8 @@ export class AnimatedModel {
   /** The jetpack group (on the `Body` bone), shown only while she wears it; the exhaust glow's nozzles are in it. */
   jetpack: THREE.Object3D | null = null;
   private backpack: THREE.Object3D | null = null;
+  /** Each outfit's jetpack. */
+  private jetpacks = new Map<Outfit, THREE.Object3D>();
   private hood: { mesh: THREE.Mesh; index: number }[] = [];
   /** Her materials, with their own opacities: setShown scales them (the shadow pass ignores it). */
   private fading: { material: THREE.Material; opacity: number }[] = [];
@@ -121,9 +136,26 @@ export class AnimatedModel {
     for (const f of this.fading) f.material.opacity = f.opacity * share;
   }
 
+  /** Every outfit shown, for building their shaders at load (the next update dresses her again). */
+  showEveryOutfit(): void {
+    for (const parts of Object.values(this.outfits)) for (const p of parts) p.visible = true;
+  }
+
+  /** Shows the outfit's things and hides the other's; then the jetpack, hers in that outfit. */
+  private dressIn(outfit: Outfit): void {
+    for (const [id, parts] of Object.entries(this.outfits)) for (const p of parts) p.visible = id === outfit;
+    this.jetpack = this.jetpacks.get(outfit) ?? this.jetpack;
+  }
+
+  /** Part of the outfit she wears (or of no outfit: Part 1's model). */
+  private inWornOutfit(part: THREE.Object3D): boolean {
+    return Object.entries(this.outfits).every(([id, parts]) => id === settings.outfit || !parts.includes(part));
+  }
+
   private wear(on: boolean): void {
     if (this.jetpack) this.jetpack.visible = on;
-    if (this.backpack) this.backpack.visible = !on;
+    // The little backpack goes with its outfit (the parka): off with the jumpsuit too (owner, 2026-10-21).
+    if (this.backpack) this.backpack.visible = !on && this.inWornOutfit(this.backpack);
     for (const { mesh, index } of this.hood) mesh.morphTargetInfluences![index] = on ? 1 : 0;
   }
 
@@ -142,6 +174,7 @@ export class AnimatedModel {
   update(dt: number, actualSpeed: number, grounded: boolean, walk: number, run: number, flying = false, clipTime: number | null = null): void {
     this.object.scale.setScalar(settings.modelScale * this.heightToScale());
     this.object.rotation.y = THREE.MathUtils.degToRad(this.baseYawDeg + settings.modelYawOffsetDeg);
+    this.dressIn(settings.outfit);
     this.wear(settings.wearingJetpack);
 
     // The animation follows a smoothed speed, so starting and stopping blend over time instead of
@@ -285,10 +318,12 @@ export interface ClimbTag {
  */
 export async function loadModels(onProgress: (share: number) => void = () => undefined): Promise<{ models: Record<ModelId, AnimatedModel>; climbTag: ClimbTag | null }> {
   const loader = new GLTFLoader();
-  const [a, b] = downloads(2, onProgress);
-  const [part1, zamboni] = await Promise.all([loader.loadAsync(PART1_URL, a), loader.loadAsync(ZAMBONI_URL, b)]);
+  const [a, b, c] = downloads(3, onProgress);
+  const [part1, zamboni, jumpsuit] = await Promise.all([loader.loadAsync(PART1_URL, a), loader.loadAsync(ZAMBONI_URL, b), loader.loadAsync(JUMPSUIT_URL, c)]);
 
+  // Her size from the parka (the jumpsuit's hair is 1.4 cm higher than the hood: she doesn't change size).
   const zamboniHeight = new THREE.Box3().setFromObject(zamboni.scene).getSize(new THREE.Vector3()).y;
+  const outfits = { parka: outfitParts(zamboni.scene), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
   let climbTag: ClimbTag | null = null;
   zamboni.scene.traverse((o) => {
     if (o.userData.climb) climbTag = o.userData.climb as ClimbTag;
@@ -301,8 +336,53 @@ export async function loadModels(onProgress: (share: number) => void = () => und
     models: {
       part1: new AnimatedModel(part1.scene, part1.animations, 180, () => 1),
       // Her model's only animation is the ladder's (export-crew-character.py --clip).
-      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, zamboni.animations[0]),
+      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, zamboni.animations[0], outfits),
     },
     climbTag,
   };
+}
+
+const isBone = (o: THREE.Object3D | null): boolean => (o as THREE.Bone | null)?.isBone === true;
+
+/** An outfit's things in its file: the meshes beside the skeleton and what hangs on its bones (not the bones). */
+function outfitParts(root: THREE.Object3D): THREE.Object3D[] {
+  const parts: THREE.Object3D[] = [];
+  root.traverse((o) => {
+    if (!isBone(o) && o.parent && (isBone(o.parent) || o.parent.children.some(isBone))) parts.push(o);
+  });
+  return parts;
+}
+
+/**
+ * Puts another outfit's things on her skeleton (`body`): each where it was in its own file (beside
+ * the skeleton, or on the bone of the same name), skinned meshes bound to her bones by name, and
+ * materials of the same name shared (one material per colour). Both armatures have the same rest
+ * pose (`tools/fit-jumpsuit.py`), so the clothes' own bind matrices fit. Returns the things moved.
+ */
+function dress(body: THREE.Object3D, clothes: THREE.Object3D): THREE.Object3D[] {
+  const bones = new Map<string, THREE.Object3D>();
+  const materials = new Map<string, THREE.Material>();
+  body.traverse((o) => {
+    if (isBone(o)) bones.set(o.name, o);
+    const m = (o as THREE.Mesh).isMesh ? (o as THREE.Mesh).material : [];
+    for (const material of Array.isArray(m) ? m : [m]) materials.set(material.name, material);
+  });
+  const skeleton = [...bones.values()].find((b) => !isBone(b.parent))!.parent!;
+  const bone = (name: string) => {
+    const found = bones.get(name);
+    if (!found) throw new Error(`her model has no bone ${name} for the other outfit`);
+    return found;
+  };
+  const parts = outfitParts(clothes);
+  for (const part of parts) {
+    (isBone(part.parent) ? bone(part.parent!.name) : skeleton).add(part);
+    part.traverse((o) => {
+      const mesh = o as THREE.SkinnedMesh;
+      if (!mesh.isMesh) return;
+      const own = (m: THREE.Material) => materials.get(m.name) ?? m;
+      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(own) : own(mesh.material);
+      if (mesh.isSkinnedMesh) mesh.bind(new THREE.Skeleton(mesh.skeleton.bones.map((b) => bone(b.name) as THREE.Bone), mesh.skeleton.boneInverses), mesh.bindMatrix);
+    });
+  }
+  return parts;
 }

@@ -2,7 +2,7 @@
 //
 //     npm run export:ship       ship + collider → assets/test/zamboni-ship.glb, zamboni-ship-col.glb
 //     npm run export:crew       crew → assets/test/zamboni-crew.glb
-//     npm run export:player     the player's Dr. Green → assets/test/green-parka.glb (not compressed)
+//     npm run export:player     the player's Dr. Green → assets/test/green-parka.glb, green-jumpsuit.glb (not compressed)
 //     npm run export:accept -- ship   take the files of a stopped export (refused if the .blend was saved since)
 //     npm run rest-poses        the moving parts' rest poses, checked or taken (rest_poses.py); no export
 //
@@ -46,19 +46,29 @@ const JOBS = {
     files: { 'zamboni-crew.glb': ['resize', 'meshopt'] },
   },
   // The player's Dr. Green (the `Player` collection), at the file's scale (the game's since
-  // 2026-10-19); not compressed (the game loads it without a Meshopt decoder).
+  // 2026-10-19); not compressed (the game loads it without a Meshopt decoder). Two outfits, one
+  // Blender run each (item 72): the parka carries the skeleton the game animates and the ladder
+  // clip; the jumpsuit's meshes go onto that skeleton in the game (model.ts).
   player: {
     script: 'export-crew-character.py',
-    args: (raw) => [
-      '--armature', 'Dr. Green Parka',
-      '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack',
-      '--force-double-sided',
-      // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
-      '--clip', 'Dr. Green - Ladder x1.25',
-      '--clip-start', 'Dr. Green Jump suit',
-      '--out', join(raw, 'green-parka.glb'),
+    runs: (raw) => [
+      [
+        '--armature', 'Dr. Green Parka',
+        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack',
+        '--force-double-sided',
+        // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
+        '--clip', 'Dr. Green - Ladder x1.25',
+        '--clip-start', 'Dr. Green Jump suit',
+        '--out', join(raw, 'green-parka.glb'),
+      ],
+      [
+        '--armature', 'Dr. Green Jump suit',
+        '--objects', 'Dr. KaufmanMesh.005,Jetpack With Straps',
+        '--force-double-sided',
+        '--out', join(raw, 'green-jumpsuit.glb'),
+      ],
     ],
-    files: { 'green-parka.glb': ['copy'] },
+    files: { 'green-parka.glb': ['copy'], 'green-jumpsuit.glb': ['copy'] },
   },
 };
 const job = JOBS[what];
@@ -153,10 +163,13 @@ mkdirSync(waiting, { recursive: true });
 
 // 1. Blender.
 const started = Date.now();
-const blender = run(BLENDER, ['-b', BLEND, '--python', join(PROTO, 'tools', job.script), '--', ...job.args(raw)]);
-const log = `${blender.stdout ?? ''}\n${blender.stderr ?? ''}`;
+// A job with `runs` runs Blender once per argument list (the player: one per outfit).
+const argLists = job.runs ? job.runs(raw) : [job.args(raw)];
+const logs = argLists.map((args) => run(BLENDER, ['-b', BLEND, '--python', join(PROTO, 'tools', job.script), '--', ...args]));
+const blender = { error: logs.find((l) => l.error)?.error };
+const log = logs.map((l) => `${l.stdout ?? ''}\n${l.stderr ?? ''}`).join('\n');
 writeFileSync(join(raw, 'export.log'), log);
-if (blender.error || !/^EXPORTED /m.test(log)) {
+if (blender.error || (log.match(/^EXPORTED /gm) ?? []).length < argLists.length) {
   console.error(`export: Blender didn't finish the export${blender.error ? ` (${blender.error.message})` : ''}. Its log: ${join(raw, 'export.log')}`);
   console.error(log.split(/\r?\n/).filter((l) => /^(SCALE|STOP):|Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);

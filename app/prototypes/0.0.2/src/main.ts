@@ -11,7 +11,7 @@ import { FollowCamera } from './camera';
 import { Character } from './character';
 import { run, type CommandTarget } from './commands';
 import { Input } from './input';
-import { loadModels, type ClimbTag } from './model';
+import { loadModels, type ClimbTag, type Outfit } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
@@ -120,6 +120,8 @@ async function start(): Promise<void> {
         if (o.frustumCulled) culled.push(o);
         o.frustumCulled = false;
       });
+      // Both her outfits too, or the first swap stalls (item 72).
+      character.model?.showEveryOutfit();
       const start = performance.now();
       await renderer.compileAsync(scene, view.camera, null, (e) => loading.set('shaders', e.loaded / e.total));
       for (const o of culled) o.frustumCulled = true;
@@ -210,7 +212,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
@@ -518,6 +520,9 @@ async function start(): Promise<void> {
     roomLights?.update(character.root.position, dt);
     renderer.toneMappingExposure = settings.exposure;
     renderer.toneMapping = TONE_MAPPING[settings.toneMapping];
+    // Until the start button is ready, both her outfits are drawn under the start screen, so their
+    // see-through and shadow shaders are built in the warm-up with the rest (item 72).
+    if (!ready) character.model?.showEveryOutfit();
 
     renderer.render(scene, cutscene?.playing ? cutscene.camera : view.camera);
     renderer.getDrawingBufferSize(size);

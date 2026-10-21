@@ -8,6 +8,8 @@ import * as THREE from 'three/webgpu';
 import type { CueId } from './audio';
 import { Placement } from './crew';
 import { isOpenable, type Entities } from './entities';
+import type { Outfit } from './model';
+import { settings } from './settings';
 import type { GameStory } from './story';
 
 export type Command = (
@@ -27,6 +29,8 @@ export type Command = (
   | { do: 'story'; knot: string }
   /** Play a cutscene (cutscene.ts), by its track's id. */
   | { do: 'cutscene'; id: string }
+  /** Dress her: the jumpsuit or the parka. */
+  | { do: 'outfit'; set: Outfit }
 ) & {
   /** Only if this story variable is true (set, not zero, not empty). */
   if?: string;
@@ -94,6 +98,9 @@ export function run(command: Command, target: CommandTarget): void {
     }
     case 'cutscene':
       target.cutscene(command.id);
+      return;
+    case 'outfit':
+      settings.outfit = command.set;
       return;
     case 'swap-exterior':
       console.warn(`[0.0.2] swap-exterior isn't built yet (${command.site})`);

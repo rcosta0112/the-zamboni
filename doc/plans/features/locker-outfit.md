@@ -1,6 +1,6 @@
 # Changing clothes at the locker (item 72)
 
-**Status:** *draft*, 2026-10-21. The feature was defined with the owner on 2026-10-21 (answers below). The build passes are for review. **The owner's Blender edit is in (1.22) and the ship is exported with the locker's things;** nothing in the code yet.
+**Status:** *approved* (owner, 2026-10-21: "lets do the locker outfits"). **Pass 1 built 2026-10-21, for the owner's look** (below); pass 2 next.
 
 ## Goal
 
@@ -48,6 +48,8 @@ At **her own locker**, Dr. Green swaps the indoor **jumpsuit and sneakers** for 
 4. `model.ts` loads both outfits at start on one skeleton, mixer and set of clips. A swap shows one mesh and hides the other, with no reload. The see-through, her fade and the low-res rules take both outfits' materials.
 5. A command `outfit` (`set`: `jumpsuit` | `parka`) and a dev hook `__outfit()`.
 - **Check:** a probe swaps the outfits in the corridor, on the ladder and with the jetpack, with screenshots; the load's pipeline count (item 50) before and after.
+
+> **[Agent note]** **Pass 1, as built (2026-10-21):** `export:player` runs Blender once per outfit (`green-parka.glb`, `green-jumpsuit.glb`, 0.13 MB); the parka's export took the merged materials' names (`Teal.001` → `Teal`…). `model.ts` `dress` moves the jumpsuit's things onto the parka's skeleton at load; `settings.outfit` (start: `jumpsuit`; the tuning panel's *Jetpack* folder), the command `{ do: 'outfit', set }`, `__outfit(set?)`. Found on the way: the first swap stalled 0.7–1 s (the hidden outfit's see-through and shadow shaders), so both are drawn through the shader build and the warm-up (82 pipelines at load, 78 recorded before with the parka alone); the jumpsuit's jetpack is the same pack modelled 10× larger with straps, so the glow takes its nozzles from the rings' part (`Teal Dark`) instead of shares of the height. Checked by `tools/outfit-probe.js` (swaps 18–20 ms, both outfits flying and climbing). Step 3 was done in the last session.
 
 **Pass 2: the locker** (about 1.5 hours)
 1. The parka in her locker becomes an interactable (kind `outfit`): only while her locker door is open, *Put on parka* / *Take off parka*. The locker's three things are shown or hidden by `green_outfit`.

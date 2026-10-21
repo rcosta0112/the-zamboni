@@ -10,7 +10,7 @@ import { float, length, smoothstep, uniform, uv, vec4 } from 'three/tsl';
 import { settings } from './settings';
 
 /**
- * The nozzles in the `Jetpack` group's own space, as shares of the group's height: the middle of
+ * Without the rings' part (`RINGS`), the nozzles in the `Jetpack` group's own space, as shares of the group's height: the middle of
  * each nozzle ring (`Jetpack_Mesh002`, two octagonal rings). Both models have the same mesh (Part 1's
  * is about 12 times larger in its units), so shares fit both. Measured 2026-10-14.
  */
@@ -23,6 +23,12 @@ const NOZZLES = [new THREE.Vector3(-0.229, -0.436, -0.173), new THREE.Vector3(0.
 const OUT = new THREE.Vector3(0, -1, -1).normalize();
 /** Children of the jetpack named like this mark the nozzles instead, if the owner adds them. */
 const MARKER = /^JetpackExhaust/;
+/**
+ * The nozzle rings' material: the rings are the jetpack's only part in it, so the nozzles are the
+ * middles of its left and right halves. Fits any jetpack made from the same pack (the jumpsuit's has
+ * straps, which make it taller, and is modelled at another size: shares of the height don't fit it).
+ */
+const RINGS = 'Teal Dark';
 /** How fast the glow comes on and goes off (time constants, s). On take-off Part 1's first frame was small and faint. */
 const FADE_IN = 0.03;
 const FADE_OUT = 0.03;
@@ -76,8 +82,25 @@ export class Exhaust {
     let found = this.nozzles.get(jetpack);
     if (found) return found;
     const markers = jetpack.children.filter((c) => MARKER.test(c.name));
+    const rings = jetpack.children.find((c) => ((c as THREE.Mesh).material as THREE.Material | undefined)?.name === RINGS) as THREE.Mesh | undefined;
     if (markers.length > 0) found = markers.map((m) => m.position.clone());
-    else {
+    else if (rings) {
+      // The middle of each half's vertices (an octagonal ring's middle), in the group's space.
+      const left = new THREE.Vector3();
+      const right = new THREE.Vector3();
+      let lefts = 0;
+      const position = rings.geometry.getAttribute('position');
+      const v = new THREE.Vector3();
+      rings.updateMatrix();
+      for (let i = 0; i < position.count; i++) {
+        v.fromBufferAttribute(position, i).applyMatrix4(rings.matrix);
+        if (v.x < 0) {
+          left.add(v);
+          lefts++;
+        } else right.add(v);
+      }
+      found = [left.divideScalar(Math.max(1, lefts)), right.divideScalar(Math.max(1, position.count - lefts))];
+    } else {
       // The group's height in its own space, from its meshes (its direct children).
       const box = new THREE.Box3();
       for (const c of jetpack.children) {
