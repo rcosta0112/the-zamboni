@@ -23,7 +23,7 @@ export class JetpackRack {
     this.interactables = this.slots.map((slot) => ({
       name: slot.name,
       objects: [slot],
-      verb: () => (this.taken === slot ? 'Put back jetpack' : 'Take jetpack'),
+      verb: () => (this.taken === slot ? 'Put jetpack back' : 'Take jetpack'),
       available: () => this.taken === null || this.taken === slot,
       act: () => {
         const taking = this.taken === null;

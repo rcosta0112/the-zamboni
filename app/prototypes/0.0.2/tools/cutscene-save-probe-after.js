@@ -10,7 +10,7 @@ const door = w.__entity('side-door')?.components[0];
 
 report(w.__start().shown === 'continue' && w.__director().current === 'locked', 'continued in locked', `shown ${w.__start().shown}, scene ${w.__director().current}`);
 report(w.__story().get('side_door_unlocked') === true && door?.locked === false, 'the side door unlocked, as saved', `variable ${w.__story().get('side_door_unlocked')}, locked ${door?.locked}`);
-report(keypad?.verb() === 'Open door', 'its keypad opens it now', `"${keypad?.verb()}"`);
+report(keypad?.verb() === 'Open side door', 'its keypad opens it now', `"${keypad?.verb()}"`);
 report(!w.__cutscene().playing, 'no cutscene playing', '');
 
 await w.__save.clear();

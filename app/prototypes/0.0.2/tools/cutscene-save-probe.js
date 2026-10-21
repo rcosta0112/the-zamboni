@@ -21,7 +21,7 @@ story.set('side_door_unlocked', false);
 await director.start('locked');
 await wait(300);
 const feet = w.__character.position.clone();
-report(door()?.locked === true && keypad?.verb() === 'Unlock door', 'locked: the side door locked, its keypad offers the knot', `locked ${door()?.locked}, "${keypad?.verb()}"`);
+report(door()?.locked === true && keypad?.verb() === 'Unlock side door', 'locked: the side door locked, its keypad offers the knot', `locked ${door()?.locked}, "${keypad?.verb()}"`);
 
 keypad?.act();
 await until(() => player.playing, 5000).catch(() => undefined);

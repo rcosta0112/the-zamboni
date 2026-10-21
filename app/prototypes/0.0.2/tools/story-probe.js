@@ -19,13 +19,13 @@ report(Boolean(keypad), 'the side door has its keypad', keypad?.name ?? 'none');
 
 await director.start('locked');
 report(door()?.locked === true && door()?.open === false, 'locked: the side door is locked and closed', `locked ${door()?.locked}, open ${door()?.open}`);
-report(keypad?.verb() === 'Unlock door', 'its keypad offers the knot\'s verb', `"${keypad?.verb()}"`);
+report(keypad?.verb() === 'Unlock side door', 'its keypad offers the knot\'s verb', `"${keypad?.verb()}"`);
 if (sideDoor) report(sideDoor.verb() === 'Locked', 'the door itself says Locked', `"${sideDoor.verb()}"`);
 
 keypad?.act();
 report(story?.get('side_door_unlocked') === true, 'the keypad set the story variable', `${story?.get('side_door_unlocked')}`);
 report(door()?.locked === false && door()?.open === false, 'the knot unlocked the door (still closed)', `locked ${door()?.locked}, open ${door()?.open}`);
-report(keypad?.verb() === 'Open door', 'the keypad works as before', `"${keypad?.verb()}"`);
+report(keypad?.verb() === 'Open side door', 'the keypad works as before', `"${keypad?.verb()}"`);
 
 keypad?.act();
 await until(() => door()?.amount === 1, 8000).catch(() => undefined);

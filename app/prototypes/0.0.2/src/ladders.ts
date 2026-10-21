@@ -194,7 +194,7 @@ export class LadderClimb {
     private awayFromDoors: (margin: number) => THREE.Vector3 = () => new THREE.Vector3(),
   ) {
     const ladder = list[0];
-    this.interactables = ladder && start ? [{ name: ladder.name, objects: [ladder.object], verb: () => 'Climb', act: () => this.begin(), available: () => this.offered(ladder) }] : [];
+    this.interactables = ladder && start ? [{ name: ladder.name, objects: [ladder.object], verb: () => 'Climb ladder', act: () => this.begin(), available: () => this.offered(ladder) }] : [];
     if (ladder && !start) console.warn('[0.0.2] no `climb` tag on her model: the ladder has no animation to play');
   }
 

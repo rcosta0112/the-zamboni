@@ -16,6 +16,8 @@ Point at something and press a button to use it, as in the UE prototype. In this
 
 The prompt shows the button of the last device used (◯ or E).
 
+> **Update, 2026-10-21 (owner):** **every prompt names its thing**: *Open fridge*, *Open Dr. Kaufman's locker*, *Open cockpit door*, *Climb ladder*, *Turn on boombox*, *Put jetpack back*, *Talk to Dr. Ogawa*. The names are in `src/labels.ts` (by id, then by kind, "door" otherwise); a story knot's `# verb:` is the whole prompt (*Unlock side door*). Not named yet: *Locked*, *Next track*. **Every use clicks** (`ui_interact`) and the thing acts once the click has finished (about 0.17 s). Dr. Kaufman's locker (`crew-locker-door-2`) and Dr. Ogawa's (`cargo-locker-door`) don't open: her remark in the dialogue box (a `use_<id>` knot tagged `# instead`). The crew: *Talk to <name>* ([dialogue plan](../plans/features/dialogue.md)). The prompts named below are from before this.
+
 ## Targeting
 
 "Pointing" is done with the camera; there's no crosshair:

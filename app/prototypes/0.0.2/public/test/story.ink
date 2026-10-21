@@ -6,6 +6,7 @@
 // unlock, enable, disable, sound, cutscene), `value` its state or cue ("" if none).
 // Talking to a character runs `talk_<id>`. A line names its speaker before a colon (Green, Kaufman,
 // Ogawa, Adam Red, Adam Blue, Adam); a line with none is narration. Shown in the dialogue box.
+// A knot's `# verb:` is the whole prompt, the thing's name included ("Unlock side door").
 // A `use_<id>` knot tagged `# instead` runs in place of the thing's action, locked or not.
 
 EXTERNAL command(name, id, value)
@@ -15,7 +16,7 @@ VAR side_door_unlocked = false
 -> DONE
 
 === use_side_door_keypad ===
-# verb: Unlock door
+# verb: Unlock side door
 // [Test] The keypad takes the code. (Not said: the cutscene starts at once.)
 ~ side_door_unlocked = true
 ~ command("unlock", "side-door", "")
@@ -25,13 +26,13 @@ VAR side_door_unlocked = false
 
 // The crew's lockers: hers stays shut (owner, 2026-10-21, the owner's lines).
 === use_crew_locker_door_2 ===
-# verb: Open
+# verb: Open Dr. Kaufman's locker
 # instead
 Green: That's Dr. Kaufman's locker. I shouldn't open it.
 -> DONE
 
 === use_cargo_locker_door ===
-# verb: Open
+# verb: Open Dr. Ogawa's locker
 # instead
 Green: That's Dr. Ogawa's locker. I shouldn't open it.
 -> DONE

@@ -350,7 +350,7 @@ async function checks() {
     await tap('KeyE');
     await wait(200);
     const returned = !settings.wearingJetpack && rack.slots.every((s) => s.visible) && !model.jetpack.visible && model.backpack.visible && !hood();
-    report(rack.slots.length === 4 && !flewWithout && offered === 'Take jetpack' && worn && flewWith && back === 'Put back jetpack' && returned, 'the jetpack rack: take one, fly, put it back',
+    report(rack.slots.length === 4 && !flewWithout && offered === 'Take jetpack' && worn && flewWith && back === 'Put jetpack back' && returned, 'the jetpack rack: take one, fly, put it back',
       `${rack.slots.length} on the rack; flies without: ${flewWithout}; "${offered}" â†’ worn (hidden on the rack, hers on, little backpack off, hood up): ${worn}; flies: ${flewWith}; "${back}" â†’ back: ${returned}`);
   }
 
@@ -977,7 +977,7 @@ async function checks() {
     await wait(1000);
     report(since(quiet) === 'nothing', 'standing still, no step sounds', since(quiet));
 
-    const locker = await twice(items.find((i) => i.name === 'Crew_Locker_Door_2'), [door('Crew_Locker_Door_2')]);
+    const locker = await twice(items.find((i) => i.name === 'Crew_Locker_Door_1'), [door('Crew_Locker_Door_1')]);
     report(both(locker, 'sfx_latch_open Ã—1', 'sfx_latch_close Ã—1'), 'a locker: a latch sound as it opens, another once closed', said(locker));
     const trap = await twice(items.find((i) => i.name === 'Floor_Hatch'), [door('Floor_Hatch')]);
     report(both(trap, 'sfx_hatch_open Ã—1', 'sfx_hatch_close Ã—1'), 'the trapdoor: the hatch sounds', said(trap));

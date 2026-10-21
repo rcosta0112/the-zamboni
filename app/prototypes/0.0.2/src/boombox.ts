@@ -35,7 +35,7 @@ export class Boombox {
       name: object.name,
       objects: [object],
       // The step it will take.
-      verb: () => (this.step === 0 ? 'Play' : this.step === TRACKS.length ? 'Turn off' : 'Next track'),
+      verb: () => (this.step === 0 ? 'Turn on boombox' : this.step === TRACKS.length ? 'Turn off boombox' : 'Next track'),
       act: () => this.use(),
     };
   }

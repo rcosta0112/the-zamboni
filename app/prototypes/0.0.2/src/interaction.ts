@@ -26,6 +26,7 @@ import type { Door } from './doors';
 import type { Entities, Openable } from './entities';
 import type { Device } from './input';
 import { isDeviceKind } from './kinds';
+import { labelOf } from './labels';
 import type { Physics } from './physics';
 import { settings } from './settings';
 import { displayName, type GameStory } from './story';
@@ -133,7 +134,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
         name: o.name,
         objects: [o],
         ...(ramp ? { controls: [ramp] } : {}),
-        verb: () => (settings.cargoRampOpen ? 'Close ramp' : 'Open ramp'),
+        verb: () => `${settings.cargoRampOpen ? 'Close' : 'Open'} ${labelOf('cargo-ramp')}`,
         act: () => {
           settings.cargoRampOpen = !settings.cargoRampOpen;
           settings.cargoRampByKeypad = settings.cargoRampOpen; // from inside: it won't stop for her (ship.ts)
@@ -154,7 +155,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
     for (const d of [...group, ...handles]) withKeypad.add(d);
     // The handle moves first, then what it controls.
     for (const d of group) d.waitsFor = handles;
-    const what = kind === 'lever' ? 'window' : 'door';
+    const what = labelOf(door.id, entities.of(door.object)?.kind);
     // A door that opens by itself: the panel shuts it and keeps it shut; used again, the door is
     // automatic again (owner, 2026-10-13). With the automatic opening off, the panel just toggles.
     const automatic = () => door.auto && settings.autoDoors;
@@ -196,7 +197,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       objects: group.map((d) => d.object),
       controls: group,
       anchor: middleOf(group.map(handleOf)),
-      verb: () => (first.open ? 'Close' : 'Open'),
+      verb: () => `${first.open ? 'Close' : 'Open'} ${labelOf(first.id, entities.of(first.object)?.kind)}`,
       // All to the same state, whatever each was.
       act: () => {
         const open = !first.open;
@@ -212,7 +213,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       objects: [door.object],
       controls: [door],
       ...(door.slide ? {} : { anchor: handleOf(door) }),
-      verb: () => (door.open ? 'Close' : 'Open'),
+      verb: () => `${door.open ? 'Close' : 'Open'} ${labelOf(door.id, entities.of(door.object)?.kind)}`,
       act: () => door.toggle(),
       // Not while she's standing on it (the trapdoor, closed).
       available: () => !door.collider?.under(),
