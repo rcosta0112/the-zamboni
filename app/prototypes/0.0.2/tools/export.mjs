@@ -26,7 +26,7 @@ const APP = resolve(PROTO, '..', '..');
 const ROOT = resolve(APP, '..');
 // The current version exports from the owner's working file.
 // EXPORT_BLEND: another file, for trying the export out on a scratch copy.
-const BLEND = process.env.EXPORT_BLEND ?? join(ROOT, 'resources', 'models', 'The Zamboni 1.21.blend');
+const BLEND = process.env.EXPORT_BLEND ?? join(ROOT, 'resources', 'models', 'The Zamboni 1.22.blend');
 const BLEND_NAME = BLEND.startsWith(ROOT) ? BLEND.slice(ROOT.length + 1) : BLEND;
 const ASSETS = join(PROTO, 'public', 'test');
 const GLTF_TRANSFORM = join(APP, 'node_modules', '@gltf-transform', 'cli', 'bin', 'cli.js');

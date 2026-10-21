@@ -123,15 +123,23 @@
    "group": "Crew Quarters"
   },
   {
-   "name": "Parka.001",
+   "name": "Parka Hanging",
    "group": "Crew Quarters"
   },
   {
-   "name": "Parka.002",
+   "name": "Boot Left",
    "group": "Crew Quarters"
   },
   {
-   "name": "Parka.003",
+   "name": "Boot Right",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Sneakers Left",
+   "group": "Crew Quarters"
+  },
+  {
+   "name": "Sneakers Right",
    "group": "Crew Quarters"
   },
   {
@@ -140,10 +148,6 @@
   },
   {
    "name": "Boot",
-   "group": "Stuff"
-  },
-  {
-   "name": "Mug.001",
    "group": "Stuff"
   },
   {

@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-21 | One material per colour: a limited palette | look | No near-duplicate materials: one `Black`, `Red`, `Blue`…; a different material of the same colour gets its own name (`Black Metal`, `Black Plastic`); no *Flat* materials (they skip the principled shader); `tools/merge-materials.py` merged 17 in 1.22 |
 | 2026-10-21 | The camera comes close and she fades | feature | No 1 m floor on the camera: it stops in front of what is behind her (0.15 m from her at least) and she fades out, dithered, from 1 m to 0.5 m; her shadow stays |
 | 2026-10-21 | She stays in the corridor | feature | Indoors she walks the corridors only: collision boxes keep her off furniture and out of the cockpit's front; climbing around is out (too many places to get stuck); sitting will be an animation, like the ladder |
 | 2026-10-20 | The ladder by button, with the owner's animation | feature | A *Climb* prompt at its foot; the animation moves her (root motion), the camera stays the player's; no climbing down; a shut trapdoor opens at a fixed moment, measured once; doors move through her while she climbs; the free climb kept, not in use |
@@ -48,6 +49,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-21] — One material per colour: a limited palette (look)
+
+**Context:** The boots in Dr. Green's locker (1.22) came with copies of her model's materials (`Black.001`, `Red.001`…), and the file had more: Blender's `.001` copies of the player's materials, same-colour pairs under two names (`Dark Teal` and `Teal Dark`, `Darkest Teal` and `Teal Darkest`, `Dark Brown` and `Brown Dark`) and *Flat* materials.
+
+**Decision (owner, 2026-10-21):** The game's look is built on a limited colour palette: **one material per colour** (a single `Black`, `Red`, `Blue`…), the version the game uses. Materials of the same colour that really differ get their own names (`Black Metal`, `Black Plastic`). **Materials with *Flat* in their names** bypass the principled shader and go straight into the output: they don't look right in this project; they merge into their closest base material, or are flagged when there is none. Each crew member has their own skin material. Done in 1.22 by [`merge-materials.py`](../app/prototypes/0.0.2/tools/merge-materials.py): 12 `.001` copies into their originals, `Dark Teal` → `Teal Dark`, `Darkest Teal` → `Teal Darkest` (keeping `Teal Darkest`'s lighter colour, owner), `Dark Brown` → `Brown Dark`, `Blue Flat` → `Blue`, `Black Flat` → `Black` (its colour within 0.03); the kept ones single-sided.
+
+**Alternatives considered:** Merging only the boots' copies (the first pass that day): left the near-duplicates in the file. Keeping the player's copies apart because her model is its own file in the game: it keeps the palette's drift.
+
+**Rationale:** The palette is the style; near-duplicates drift apart unseen, and each extra material costs a shader pipeline at load (item 50).
+
+**Status:** Decided. **Update (2026-10-21):** one skin material per skin colour (owner): `Skin White` (was `Skin 2 - White`, Dr. Kaufman) and `Skin Asian` (`Skin 2 - Asian` and `Skin 3 - Asian`, both Dr. Ogawa's, the same colour). Dr. Green's skin is in her baked texture (`Dr. Green Jumpsuit Baked`), not a material of its own.
 
 ---
 

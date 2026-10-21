@@ -1,6 +1,6 @@
 # Changing clothes at the locker (item 72)
 
-**Status:** *draft*, 2026-10-21. The feature was defined with the owner on 2026-10-21 (answers below). The build passes are for review. Nothing built.
+**Status:** *draft*, 2026-10-21. The feature was defined with the owner on 2026-10-21 (answers below). The build passes are for review. **The owner's Blender edit is in (1.22) and the ship is exported with the locker's things;** nothing in the code yet.
 
 ## Goal
 
@@ -58,6 +58,8 @@ At **her own locker**, Dr. Green swaps the indoor **jumpsuit and sneakers** for 
 **Cost (estimates):** about 0.2–0.5 MB more to download; perhaps 4–8 more shader pipelines at load (both outfits through the see-through and the fade, a fraction of a second); the two passes as above, plus your Blender edit.
 
 ## Open questions for the owner
+
+> **[Agent note]** Answered 2026-10-21, with 1.22: **1.** the agent snapped the legs (`tools/fit-jumpsuit.py`, rest matrices with the roll, which was about 6° off too; every shared bone now matches); **2.** the names are `Parka Hanging`, `Boot Left`, `Boot Right`, `Sneakers Left`, `Sneakers Right`, in the collection `Locker Dr. Green`. The jumpsuit's jetpack keeps its straps (owner), its rack tags dropped; the parka's is `Jetpack` again (owner). For pass 1: the jumpsuit's jetpack is `Jetpack With Straps` (renamed 2026-10-21; the game looks for it under the jumpsuit), and the boots and sneakers are merged into `Props Crew Quarters` in the export today: pass 2 keeps them as objects of their own, to show and hide.
 
 1. **The legs, 1.4 cm apart:** (a) **you snap the jumpsuit's `Leg_l` and `Leg_r` to the parka's** in your edit (recommended: one skeleton, as `characters.md` says); (b) each outfit keeps its own skeleton and both play the same clips (it works, but every animation runs twice, and the item-44 ladder work has two rigs to fit); (c) leave the 1.4 cm.
 2. **Names for the locker's three things**, so the code can find them: e.g. `Locker Parka`, `Locker Boots`, `Locker Sneakers` (any names; tell me which).
