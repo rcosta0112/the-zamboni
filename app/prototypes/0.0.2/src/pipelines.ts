@@ -1,9 +1,10 @@
 // Fewer GPU pipelines, so the ship's shaders build faster at load. A WebGPU pipeline is fixed to a
 // shader, a vertex layout and the way faces point, so meshes that could share a shader but differ
 // in those make a pipeline each (116 for the ship in 1.21; building them was most of the load).
-// - One vertex layout per kind of mesh: a mesh whose material has no texture loses its UVs (the
-//   export leaves them on every mesh, up to eight sets); a textured one keeps the sets it uses, as
-//   plain floats (Meshopt stores some 16-bit, some not).
+// - One vertex layout per kind of mesh: a mesh whose material has no texture loses its UVs (since
+//   2026-10-21 the export drops nearly all of them already, tools/drop-uvs.mjs; it keeps the sets
+//   below a used one); a textured one keeps the sets it uses, as plain floats (Meshopt stores some
+//   16-bit, some not).
 // - No mirrored meshes: a mesh with a negative scale somewhere above it is drawn with its faces'
 //   order reversed, which is a pipeline of its own; its geometry is mirrored instead.
 // Plan: doc/plans/features/faster-load.md

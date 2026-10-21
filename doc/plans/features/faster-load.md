@@ -1,6 +1,6 @@
 # A faster load, and a bar that tells the truth (item 50)
 
-**Status:** stage 1 answered and **stage 2 built** 2026-10-20 (*As built*, at the end); **stage 3 built** the same day (option A); dropping unused UVs in the export later (owner). Asked by the owner on 2026-10-20: "it's taking a long time to load every time even on the dev server. is there any caching going on? is there anything we can do to improve it? related issue: the progress bar goes very quickly to around 95% and then stops there for most of the loading time."
+**Status:** stage 1 answered and **stage 2 built** 2026-10-20 (*As built*, at the end); **stage 3 built** the same day (option A); **stage 4 built** 2026-10-21 (the unused UVs dropped in the export, asked by the owner). Asked by the owner on 2026-10-20: "it's taking a long time to load every time even on the dev server. is there any caching going on? is there anything we can do to improve it? related issue: the progress bar goes very quickly to around 95% and then stops there for most of the loading time."
 
 ## What was measured (2026-10-20, headless Chrome on this machine, dev server, ship of 1.21)
 
@@ -78,3 +78,25 @@
 - **Option A, without batches:** three r186's `compileAsync` already builds the scene object by object and reports each one (`onProgress`), so `main.ts` passes that to the bar; no batching was needed. The creep is gone from `loading.ts`.
 - **Shares by time** (`loading.ts`): shaders 62 %, the warm-up frames 10 % (new part: quick frames in a row out of five, or the time out of six seconds), the rest 38 %. Written up in [`design/start-screen.md`](../../design/start-screen.md).
 - **Checked:** the bar logged every 200 ms: the longest it stood still was 1.9 s on a cold load, 1.5 s on a cached one. It moves unevenly through the shaders (objects whose pipeline already exists are instant: on a cold load it goes 0.29 → 0.36 in 5 s, then 0.36 → 0.84 in 4 s). `npm run check`, `npm run build`; the smoke: the same 8 failures, the start screen's checks pass.
+
+## Stage 4: unused UVs dropped in the export (planned and approved 2026-10-21; built, see *As built (stage 4)*)
+
+> **[Agent note]** Asked by the owner on 2026-10-20 ("later: drop the unused UVs in the export", for the file's size). The game already drops them at load (`sameLayouts` in `pipelines.ts`), so this changes the download, not the look or the pipelines.
+
+**Measured (trial on the last export's intermediate file, in the scratchpad):** the ship's game file goes **4.51 → 3.82 MB (−0.69 MB, −15 %)**; 519 UV sets dropped out of 573 on 528 primitives.
+
+**The work:**
+1. **A new step in `tools/export.mjs`**, `uvs`, for the ship only, between `dedup` and `meshopt` (`resize, dedup, uvs, meshopt`). It's a small script, `tools/drop-uvs.mjs` (gltf-transform's API, as installed). The rule is the game's: a primitive keeps the UV sets its material's textures read (by `texCoord`, also through `KHR_texture_transform`), plus set 0 for anisotropic materials. **One difference:** glTF wants a primitive's UV sets numbered without gaps, so it keeps every set up to the highest one read (a material reading only set 1 keeps sets 0 and 1). Then the unused accessors are pruned.
+2. **`pipelines.ts` stays as it is.** It still stores the kept UVs as floats and drops the few sets kept only to fill the gaps. Its console line (`vertex layouts: …`) will show far fewer drops. Its header comment is changed to say the export now drops most of them.
+3. **The crew and the collider are left alone.** The crew file is 0.15 MB and skinned (the game doesn't touch its UVs); the collider has no materials.
+4. **Export** with `npm run export:ship`. The gate will stop on the bytes (expected): if the summary shows nothing but the size, `npm run export:accept -- ship`.
+
+**Done when:** every room's screenshot is unchanged (`npm run see-through`, compared with today's); the after-export check passes; the console line shows the drops and the pipeline count is still 78; `npm run check`, `npm run build`, then the smoke once. The file's size goes into *As built*, and the step into `tools/README.md` and `asset-pipeline.md`.
+
+**Question for the owner:** none, beyond the go-ahead. (The `.blend` is only read, never saved.)
+
+## As built (stage 4, 2026-10-21)
+
+- **`tools/drop-uvs.mjs`**, a step of `export.mjs` for the ship (`resize, dedup, uvs, meshopt`); the summary prints `zamboni-ship.glb: 519 UV sets dropped, 54 kept`. **The ship's file: 4.51 → 3.83 MB.**
+- **Two traps in gltf-transform's `prune`, caught by the checks:** a full prune also removed the 7 lights' nodes (the gate stopped on it), and without `keepAttributes` it removed the normals of the four unlit `Black Flat` primitives, which the lit see-through copies read (a window frame in engineering looked different in the screenshots). It now prunes only the accessors, keeping attributes; checked that nothing but UV sets differs from Blender's file (attributes, indices, materials, nodes, scenes).
+- **Checked:** every room's screenshot against two runs with the old file: the differences are within run-to-run noise. In the game, the same UV sets after the load (set 0 on 108 meshes) and **78 pipelines** with either file. The after-export check passes; `npm run check`, `npm run build`.

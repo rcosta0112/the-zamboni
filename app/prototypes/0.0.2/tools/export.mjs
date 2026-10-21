@@ -7,9 +7,9 @@
 //     npm run rest-poses        the moving parts' rest poses, checked or taken (rest_poses.py); no export
 //
 // Runs the Blender export script (nothing is saved to the .blend: Blender may be open), caps the
-// textures at 512 px, removes duplicates (ship), compresses (Meshopt) into .export/<what>/out/,
-// then compares with the game's files and the last taken export's lines. **The gate:** the game's
-// files are replaced only when nothing differs (objects, animations, bytes, a new PERF / NODES /
+// textures at 512 px, removes duplicates and the unused UV sets (ship), compresses (Meshopt) into
+// .export/<what>/out/, then compares with the game's files and the last taken export's lines.
+// **The gate:** the game's files are replaced only when nothing differs (objects, animations, bytes, a new PERF / NODES /
 // NOTE / POSE line, any STOP line), but for the exceptions in EXCEPTIONS (flagged, "FLAG:"); then
 // the after-export check runs (after-export.js, if the dev server is up). Otherwise the summary lists
 // every reason and the files wait for `npm run export:accept`. The raw files, the baked images and
@@ -37,7 +37,8 @@ const JOBS = {
   ship: {
     script: 'export-ship.py',
     args: (raw) => ['--out', join(raw, 'zamboni-ship.glb'), '--collider-out', join(raw, 'zamboni-ship-col.glb')],
-    files: { 'zamboni-ship.glb': ['resize', 'dedup', 'meshopt'], 'zamboni-ship-col.glb': ['meshopt'] },
+    // uvs: the UV sets no texture reads, dropped (drop-uvs.mjs).
+    files: { 'zamboni-ship.glb': ['resize', 'dedup', 'uvs', 'meshopt'], 'zamboni-ship-col.glb': ['meshopt'] },
   },
   crew: {
     script: 'export-ship-crew.py',
@@ -163,7 +164,8 @@ if (blender.error || !/^EXPORTED /m.test(log)) {
 const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE|ID)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
-// 2. Resize, dedup, compress, into the waiting folder.
+// 2. Resize, dedup, drop the unused UVs, compress, into the waiting folder.
+const stepLines = [];
 for (const [name, steps] of Object.entries(job.files)) {
   let from = join(raw, name);
   for (const step of steps) {
@@ -172,11 +174,14 @@ for (const [name, steps] of Object.entries(job.files)) {
       continue;
     }
     const to = step === 'meshopt' ? join(waiting, name) : join(raw, name.replace('.glb', `-${step}.glb`));
-    const done = run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
+    const done = step === 'uvs'
+      ? run(process.execPath, [join(PROTO, 'tools', 'drop-uvs.mjs'), from, to])
+      : run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
     if (done.status !== 0) {
-      console.error(`export: gltf-transform ${step} failed on ${name}\n${done.stdout}\n${done.stderr}`);
+      console.error(`export: ${step === 'uvs' ? 'drop-uvs' : `gltf-transform ${step}`} failed on ${name}\n${done.stdout}\n${done.stderr}`);
       process.exit(1);
     }
+    stepLines.push(...(done.stdout ?? '').split(/\r?\n/).filter((l) => l.startsWith('UVS:')).map((l) => `${name}: ${l.slice(5)}`));
     from = to;
   }
 }
@@ -196,6 +201,7 @@ const EXCEPTIONS = {
 };
 console.log(`exported the ${what} from ${BLEND_NAME} in ${Math.round((Date.now() - started) / 1000)} s`);
 if (counts) console.log(counts.replace(/, convex hulls:.*/, ''));
+for (const line of stepLines) console.log(line);
 const text = lines.join('\n');
 const before = new Set(lastLines.split('\n'));
 const reasons = [];
