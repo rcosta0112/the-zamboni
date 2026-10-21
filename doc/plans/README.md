@@ -49,6 +49,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [A faster load, and a bar that tells the truth (item 50)](features/faster-load.md) | Prototype 01 | Stages 2 and 3 built 2026-10-20; stage 4 (unused UVs out of the export) built 2026-10-21 |
 | [A second collision pass: every place she gets stuck (item 55)](features/collision-pass-2.md) | 0.0.2 | Upper deck built 2026-10-21; set aside by the owner (lower deck not started) |
 | [The camera close to her, and her fade (item 41: the camera in a locker)](features/camera-close-fade.md) | 0.0.2 | Done 2026-10-21 (grain: item 58) |
+| [The prompt beside the handle (item 56, pass 1)](features/prompt-placement.md) | 0.0.2 | Built 2026-10-21; the owner's to play |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format

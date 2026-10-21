@@ -38,6 +38,63 @@ export interface Interactable {
   available?: () => boolean;
   /** What it opens: while any is locked, it does what `respectLocks` says instead. */
   controls?: Openable[];
+  /** Where the prompt goes beside (world, into `out`): a door's handle. Not set: the centre of its bounds. */
+  anchor?: (out: THREE.Vector3) => THREE.Vector3;
+}
+
+/** A hinged door's handle is this far in from the edge away from its hinge (m). */
+const HANDLE_INSET = 0.05;
+
+/**
+ * A hinged door's handle, by rule (doc/plans/features/prompt-placement.md): the edge away from the
+ * hinge, halfway along it, in the middle of the door's thickness. Measured once, closed, in the
+ * hinge's own space, so the point swings with the door.
+ */
+function handleOf(door: Door): (out: THREE.Vector3) => THREE.Vector3 {
+  const hinge = door.hinge;
+  const toHinge = new THREE.Matrix4().copy(hinge.matrixWorld).invert();
+  const box = new THREE.Box3();
+  const part = new THREE.Box3();
+  door.object.traverse((o) => {
+    const geometry = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+    if (!geometry) return;
+    if (!geometry.boundingBox) geometry.computeBoundingBox();
+    box.union(part.copy(geometry.boundingBox!).applyMatrix4(new THREE.Matrix4().multiplyMatrices(toHinge, o.matrixWorld)));
+  });
+  const local = new THREE.Vector3();
+  if (!box.isEmpty()) {
+    // Away from the hinge line, square to the axis: the far edge is the box's furthest corner that way.
+    const centre = box.getCenter(new THREE.Vector3());
+    const away = centre.clone().addScaledVector(door.axis, -centre.dot(door.axis));
+    if (away.lengthSq() > 1e-6) {
+      away.normalize();
+      let far = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        const corner = new THREE.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z);
+        far = Math.max(far, corner.dot(away));
+      }
+      local.copy(centre).addScaledVector(away, far - centre.dot(away) - HANDLE_INSET);
+    } else {
+      local.copy(centre);
+    }
+  }
+  return (out) => out.copy(local).applyMatrix4(hinge.matrixWorld);
+}
+
+/** The middle of several points (doors that open as one target: where their handles meet). */
+function middleOf(anchors: ((out: THREE.Vector3) => THREE.Vector3)[]): (out: THREE.Vector3) => THREE.Vector3 {
+  const one = new THREE.Vector3();
+  return (out) => {
+    out.set(0, 0, 0);
+    for (const anchor of anchors) out.add(anchor(one));
+    return out.divideScalar(anchors.length);
+  };
+}
+
+/** The centre of an object's bounds (a lever's handle). */
+function centreOf(object: THREE.Object3D): (out: THREE.Vector3) => THREE.Vector3 {
+  const box = new THREE.Box3();
+  return (out) => box.setFromObject(object).getCenter(out);
 }
 
 /**
@@ -93,6 +150,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       name: o.name,
       objects: [o, ...handles.map((h) => h.object)],
       controls: group,
+      ...(handles[0] ? { anchor: centreOf(handles[0].object) } : {}),
       verb: () => ((automatic() ? !door.shut : door.open) ? `Close ${what}` : `Open ${what}`),
       act: () => {
         // A lever isn't used while it's moving (as in the UE prototype).
@@ -125,6 +183,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       name: group.map((d) => d.name).join(' + '),
       objects: group.map((d) => d.object),
       controls: group,
+      anchor: middleOf(group.map(handleOf)),
       verb: () => (first.open ? 'Close' : 'Open'),
       // All to the same state, whatever each was.
       act: () => {
@@ -140,6 +199,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       name: door.name,
       objects: [door.object],
       controls: [door],
+      ...(door.slide ? {} : { anchor: handleOf(door) }),
       verb: () => (door.open ? 'Close' : 'Open'),
       act: () => door.toggle(),
       // Not while she's standing on it (the trapdoor, closed).
@@ -190,6 +250,7 @@ export class Interaction {
   private part = new THREE.Box3();
   private centre = new THREE.Vector3();
   private corner = new THREE.Vector3();
+  private anchor = new THREE.Vector3();
   private closest = new THREE.Vector3();
   private toTarget = new THREE.Vector3();
   private forward = new THREE.Vector3();
@@ -261,9 +322,10 @@ export class Interaction {
   }
 
   /**
-   * The prompt next to the target on screen: beside the centre of its bounds, to the right, clear
-   * of a small target (a keypad) and at most 60 px from the centre of a large one (a door that
-   * fills the view); kept inside the screen's edges.
+   * The prompt next to the target on screen. With an anchor (a door's handle): 18 px beside it, on
+   * the side away from the target's centre (just outside a door's edge), to the right when the two
+   * are nearly in line. Without: beside the centre of its bounds, to the right, clear of a small
+   * target (a keypad) and at most 60 px from the centre of a large one. Kept inside the screen's edges.
    */
   private placePrompt(item: Interactable, camera: THREE.Camera): void {
     const width = window.innerWidth;
@@ -273,24 +335,37 @@ export class Interaction {
     this.bounds(item);
     camera.updateMatrixWorld();
     this.box.getCenter(this.centre);
+    const point = item.anchor ? item.anchor(this.anchor) : this.centre;
     // Behind the camera (it's inside the target's bounds): the middle of the screen.
-    const inFront = this.toTarget.subVectors(this.centre, camera.position).dot(this.forward) > 0.05;
+    const inFront = this.toTarget.subVectors(point, camera.position).dot(this.forward) > 0.05;
     let x = width / 2;
     let y = height / 2;
-    let halfWidth = 0;
-    if (inFront) {
+    if (inFront && item.anchor) {
+      point.project(camera);
+      x = (point.x * 0.5 + 0.5) * width;
+      y = (-point.y * 0.5 + 0.5) * height;
+      let side = 1;
+      if (this.toTarget.subVectors(this.centre, camera.position).dot(this.forward) > 0.05) {
+        const centreX = (this.centre.project(camera).x * 0.5 + 0.5) * width;
+        if (Math.abs(x - centreX) > 8) side = Math.sign(x - centreX);
+      }
+      x += side * (18 + w / 2);
+    } else if (inFront) {
       this.centre.project(camera);
       x = (this.centre.x * 0.5 + 0.5) * width;
       y = (-this.centre.y * 0.5 + 0.5) * height;
       // Half the width of its bounds on screen, from the corners in front of the camera.
+      let halfWidth = 0;
       for (let i = 0; i < 8; i++) {
         this.corner.set(i & 1 ? this.box.max.x : this.box.min.x, i & 2 ? this.box.max.y : this.box.min.y, i & 4 ? this.box.max.z : this.box.min.z);
         if (this.toTarget.subVectors(this.corner, camera.position).dot(this.forward) <= 0.05) continue;
         this.corner.project(camera);
         halfWidth = Math.max(halfWidth, Math.abs((this.corner.x * 0.5 + 0.5) * width - x));
       }
+      x += Math.min(halfWidth, 60) + 12 + w / 2;
+    } else {
+      x += 12 + w / 2;
     }
-    x += Math.min(halfWidth, 60) + 12 + w / 2;
     x = THREE.MathUtils.clamp(x, EDGE + w / 2, Math.max(EDGE + w / 2, width - EDGE - w / 2));
     y = THREE.MathUtils.clamp(y, EDGE + h / 2, Math.max(EDGE + h / 2, height - EDGE - h / 2));
     this.promptAt.x = x;
