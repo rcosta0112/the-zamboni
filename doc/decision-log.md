@@ -35,7 +35,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-09 | The rest of the ship: props, room lights, crew | prototype | Small props merged per room, no prop shadows; one or two lights per room, the four nearest on; the crew placed in the ship |
 | 2026-10-08 | Every camera angle in the ship should look good | design | Worth extra work and per-object exceptions |
 | 2026-10-08 | See-through hull rules | feature | Inside: a dithered hole from the camera to her chest. Outside: no cut, camera collision. Camera: fixed distance indoors and outdoors, no zoom, pitch from 0 |
-| 2026-10-08 | Ink for dialogue | tech | Ink through `inkjs`: one story for dialogue, comm chats, barks and story state |
+| 2026-10-08 | Ink for dialogue | tech | Ink through `inkjs`: one story for dialogue, comm chats, barks and story state; the Ink files are the master copy of the wording (2026-10-21) |
 | 2026-10-08 | Inverted Y in prototypes, normal in production | input | As the title says; changeable in settings |
 | 2026-10-08 | No spoken dialogue; characters talk by nodding | scope | All dialogue is text; no mouth movement |
 | 2026-10-08 | Prototype workspace built; TypeScript 6 | tech | One npm workspace in `app/`; prototypes on port 5200 + NN; TypeScript 6, not 7 |
@@ -450,6 +450,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Alternatives considered:** Yarn Spinner (Part 1); its official runtimes target Unity and Godot, and the JavaScript ports are less complete.
 
 **Status:** Decided, after the owner's review of the docs. Still open: whether the Markdown scene docs or the Ink files are the master copy of the dialogue once implemented.
+
+**Update 2026-10-21 (owner):** **Ink is the master copy** of the wording once a scene is in Ink. The scene's Markdown keeps the stage directions and notes. Answered in the dialogue plan's review ([`plans/features/dialogue.md`](plans/features/dialogue.md)).
 
 ---
 

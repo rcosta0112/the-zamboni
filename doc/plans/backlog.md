@@ -63,6 +63,19 @@
 | 57 | At the next QA pass, check for memory leaks: the dev server and the page over a long session and many reloads, and the check scripts (probe, smoke, sweeps) ending without leftover processes. Found 2026-10-21: the PC ran out of memory and stopped responding after a `node.exe` grew to 124 GB of virtual memory over hours (likely the dev server on 5202, not confirmed) (owner, 2026-10-21) | – | To do |
 | 58 | Her fade without grain: real transparency with a depth pass first (only her front surface blends), instead of the dithered `alphaHash` (owner, 2026-10-21: "we could address this later"). Cost: nothing while she's fully shown; while fading, a second shape-only draw of her and blending, likely well under 1 ms (measure); a second set of her materials built at load (a few more pipelines, a fraction of a second on a first load). A cheaper middle step: an ordered 4×4 Bayer dither, as the hole's edge ([plan](features/camera-close-fade.md)) | – | Later |
 | 59 | The same fade on the other characters when the camera comes too close to them (owner, 2026-10-21: look at it with the dialogue feature). Today only she fades ([plan](features/camera-close-fade.md)); the camera doesn't collide with the crew | – | Later (with the dialogue feature) |
+| 60 | The big thrusters' collision extended so she can't fall into the gap between them and the main hull: likely a small collision box filling the gap (owner, 2026-10-21) | – | To do |
+| 61 | Window frames (black in the file) show as strips where the see-through hole half-cuts them (their front faces; the cut edge is filled). Options: leave frames out of the cut, or let *hull gap black* blend them (owner, 2026-10-21) | – | To do (owner's choice of option) |
+| 62 | A lit face in the cargo hold's wall by the side door (seen once, not reproduced) (owner, 2026-10-21) | – | Watch: the owner reports it if seen again |
+| 63 | Engineering seen from above is slow in the test browser: about 110 ms a frame (other rooms 16.7), the same with the see-through off; check on a real GPU first (owner, 2026-10-21) | – | To do |
+| 64 | Smoke flake (once in two runs, 2026-10-14): *the ramp closes from its keypad* fails; likely she ends the walk-in on the ramp's walkway and the ramp waits until she's off (owner, 2026-10-21) | – | To do |
+| 65 | Dropping through the trapdoor's opening while pushing toward the ladder, she lands where the ladder stands (it doesn't collide until she's clear) and overlaps it until she steps away (owner, 2026-10-21) | – | To do (with item 55) |
+| 66 | Closed doors with colliders of their own stop her (in the air too) when she touches their edge; the crew quarters and the cargo locker have boxes 0.08 in front now, the rest unchecked (owner, 2026-10-21) | – | In part (with item 55) |
+| 67 | The front thrusters' collision mesh may lack its geometry-nodes instances (owner, 2026-10-21) | – | To check (with item 60) |
+| 68 | Metal on parts that are never cut (landing gear, cargo ramp) gets no reflections (owner, 2026-10-21) | – | To do |
+| 69 | Crew materials shared with the ship are single-sided since 1.19: check the placed crew at the next crew export (owner, 2026-10-21) | – | To check (next crew export) |
+| 70 | Objects clipping into the hull's wall: by hand, or a semi-automatic Blender script (Shrinkwrap on the offending vertices; `npm run probe -- tools/hull-clipping.js` lists them); the crew quarters need a modelling decision first (no inner skin there) (asked 2026-10-15; owner, 2026-10-21) | – | Waiting on the owner |
+| 71 | The dialogue system: face-to-face conversations in a VN box with choices, her remarks on objects (the pilot's seat first), the save (no conversation twice), the crew's idle and talk animations, barks, cutscene subtitles; the comm's chat after it (owner, 2026-10-21) | – | Plan reviewed twice 2026-10-21, every question answered; pass 1 for the go-ahead ([plan](features/dialogue.md)) |
+| 72 | Using a crew locker switches her clothes, jumpsuit and parka; a short plan first to define the feature (owner, 2026-10-21) | – | Plan drafted 2026-10-21, for review ([plan](features/locker-outfit.md)) |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 
@@ -110,3 +123,7 @@ Added 2026-10-21:
 
 - add a note to the docs to check for memory leaks when we do a QA pass
 - I would like to add the transparency effect on the other characters as well. If the camera collides with them. We'll look at when working on the dialogue feature.
+- we need to extend the collision box on the big thrusters to keep her from falling between them and the main hull. A small collision box between them would probably solve this
+- let's add all these to the backlog.
+- I would like to see the plan for the dialogue system
+- add this to the interaction feature: we are going to make it so that interacting with the locker will switch her clothes. this will need a short plan to define the features

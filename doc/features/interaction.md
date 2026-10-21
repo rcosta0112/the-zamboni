@@ -45,6 +45,8 @@ The prompt shows the button of the last device used (◯ or E).
 | Galley cupboard | `Galley Door 3` | vertical edge | 100° |
 | Lockers | `Cargo Locker Door` (cargo bay), `Crew Locker Door 2`, `Crew Locker Door 1` (crew quarters) | vertical edge | 100° |
 
+> **[Agent note]** **Planned (owner, 2026-10-21):** using a crew locker will switch her clothes (jumpsuit ↔ parka). Not built; the feature is being defined in [`plans/features/locker-outfit.md`](../plans/features/locker-outfit.md) (item 72).
+
 - **All start closed except the trapdoor**, which starts open for now (owner, 2026-10-09: from below, the camera angle makes it hard to aim at; to be worked out later). The trapdoor and two galley doors are modelled open in the file; the export closes the galley doors (`MODELLED_OPEN`) and tags the trapdoor `startOpen`.
 - **The side door, fully open, is a ramp** (owner): as for the cargo ramp, a smooth walkable slope stands in for its steps, and its own collider is off. The doorway has a sill 0.13 m above the cargo floor (and above the door's hinge), so the slope climbs to the sill's top at no more than 42° (her controller takes up to 45°), then runs flat across it into the hold; its foot lies about 0.1 m past the door's far end. The door can't be closed while she's on it.
 - Each press toggles; the door eases (smoothstep) over 0.6 s (tunable).
