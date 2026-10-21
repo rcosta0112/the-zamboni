@@ -13,7 +13,8 @@
 // `# verb:` tag as the prompt) if the story has one, otherwise "Locked" (`respectLocks`). A knot
 // tagged `# instead` runs in place of the action, locked or not (the crew's lockers: her remark).
 // The crew: *Talk to Dr. Kaufman* (and so on) when the story has their `talk_<id>` knot, the prompt
-// above their heads (`crewInteractables`).
+// above their heads (`crewInteractables`). A thing with no action of its own (the pilot's seat) is
+// offered while the story has its `use_<id>` knot (`storyInteractables`).
 // Plan: doc/plans/features/interaction-doors.md, doc/plans/backlog-passes.md (pass 1),
 // doc/plans/features/bulkhead-doors.md, doc/plans/features/audio-from-ue.md,
 // doc/plans/features/interaction-sounds.md (the panels' two tones, the lever's clunk),
@@ -25,7 +26,7 @@ import type { Command } from './commands';
 import type { Door } from './doors';
 import type { Entities, Openable } from './entities';
 import type { Device } from './input';
-import { isDeviceKind } from './kinds';
+import { isDeviceKind, isStoryKind } from './kinds';
 import { labelOf } from './labels';
 import type { Physics } from './physics';
 import { settings } from './settings';
@@ -254,6 +255,29 @@ export function crewInteractables(entities: Entities, story: () => GameStory | n
         box.setFromObject(object);
         return box.getCenter(out).setY(box.max.y - 0.15);
       },
+    });
+  }
+  return list;
+}
+
+/**
+ * The things with no action of their own (kinds.ts, `STORY_KINDS`: the pilot's seat): offered while
+ * the story has their `use_<id>` knot, prompted by its `# verb:` tag ("Use" without one), running it.
+ */
+export function storyInteractables(entities: Entities, story: () => GameStory | null, run: (command: Command) => void): Interactable[] {
+  const list: Interactable[] = [];
+  for (const { id, object, kind } of entities.all()) {
+    if (!isStoryKind(kind)) continue;
+    const knot = () => story()?.useKnot(id) ?? null;
+    list.push({
+      name: object.name,
+      objects: [object],
+      verb: () => story()?.tag(knot()!, 'verb') ?? 'Use',
+      act: () => {
+        const k = knot();
+        if (k) run({ do: 'story', knot: k });
+      },
+      available: () => knot() !== null,
     });
   }
   return list;

@@ -37,6 +37,12 @@ Green: That's Dr. Kaufman's locker. I shouldn't open it.
 Green: That's Dr. Ogawa's locker. I shouldn't open it.
 -> DONE
 
+// The pilot's seat: no action of its own, only her remark (the owner's line).
+=== use_cockpit_seat_pilot ===
+# verb: Look at pilot's seat
+Green: It's not time to go yet.
+-> DONE
+
 === talk_kaufman ===
 Kaufman: [Test] Placeholder line from Dr. Kaufman.
 -> DONE

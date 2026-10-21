@@ -45,6 +45,11 @@
   "name": "Cockpit Door Right",
   "collection": "Parts"
  },
+ "cockpit-seat-pilot": {
+  "kind": "seat",
+  "name": "Seat.001",
+  "collection": "Cockpit"
+ },
  "crew-locker-door-1": {
   "kind": "door",
   "name": "Crew Locker Door 1",

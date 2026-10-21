@@ -20,7 +20,7 @@ import { Dialogue } from './dialogue';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
-import { crewInteractables, Interaction, respectLocks, shipInteractables } from './interaction';
+import { crewInteractables, Interaction, respectLocks, shipInteractables, storyInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
@@ -186,7 +186,8 @@ async function start(): Promise<void> {
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
-      const items = [...shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState), ...crewTargets];
+      const storyTargets = storyInteractables(s.entities, () => target.story, (command) => run(command, target));
+      const items = [...shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState), ...crewTargets, ...storyTargets];
       interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target)), physics, document.querySelector<HTMLElement>('#prompt')!, (then) => audio.play('ui_interact', undefined, then));
       interaction.disabled = disabled;
       // After everything that measures the ship with rays (the ladders, the doors' ramp).

@@ -45,8 +45,8 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Interaction** | Finds what the player is looking at or near, shows a prompt, runs the verb: *pick up*, *use*, *open*, *talk*, *scan* | Data from glTF custom properties |
 | **Physics objects** | Small objects that can be picked up, carried, dropped, thrown | Rapier rigid bodies |
 | **Devices** | Objects with their own behaviour: boombox, doors, lockers, levers, ship controls, screens | One small class per device type, configured from data |
-| **Dialogue** | Runs the Ink story; hands lines and choices to a presenter | `inkjs` |
-| **Presenters** | Show dialogue in the right form: VN box (face-to-face), comm chat, barks (one-liners above the character), subtitles (cutscenes) | Svelte UI overlay |
+| **Dialogue** | Runs the Ink story; hands lines and choices to a presenter. **Built (pass 1, 2026-10-21): lines, no choices yet** ([dialogue](../features/dialogue.md)) | `inkjs` |
+| **Presenters** | Show dialogue in the right form: VN box (face-to-face; **built**, `DialogueBox.svelte`), comm chat, barks (one-liners above the character), subtitles (cutscenes) | Svelte UI overlay |
 | **Comm** | The in-world smartphone: a home screen with app icons. Apps: chat (runs dialogue), mission data (wildlife, ruins and artifacts), camera (nice-to-have); room for more | Svelte UI overlay + Dialogue + Mission data |
 | **Scanner + mission data** | Scanning ruins and artifacts adds entries to the mission data (a store of what has been documented, read by the comm's mission data app) | Data files + story state |
 | **Backpack** | The jetpack used outside: camera-relative flight, as prototyped in Part 1 (see [`../reference/big-moon-tiny-moon.md`](../reference/big-moon-tiny-moon.md)) | Player controller extension |

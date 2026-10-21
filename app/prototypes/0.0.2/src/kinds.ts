@@ -41,8 +41,11 @@ export const DOOR_KINDS = {
 /** What she uses to open something else (`controls`): a keypad, a bulkhead door's panel, the window's lever. */
 export const DEVICE_KINDS = ['keypad', 'door-panel', 'lever'] as const;
 
+/** Things with no action of their own: used only when the story has their `use_<id>` (the pilot's seat). */
+export const STORY_KINDS = ['seat'] as const;
+
 /** The kinds without defaults: their features find them by kind. */
-const OTHER_KINDS = ['character', 'ramp', ...DEVICE_KINDS, 'ladder', 'jetpack', 'jetpack-rack', 'boombox'] as const;
+const OTHER_KINDS = ['character', 'ramp', ...DEVICE_KINDS, ...STORY_KINDS, 'ladder', 'jetpack', 'jetpack-rack', 'boombox'] as const;
 
 export type DoorKindName = keyof typeof DOOR_KINDS;
 export type Kind = DoorKindName | (typeof OTHER_KINDS)[number];
@@ -53,6 +56,10 @@ export function isKind(kind: string): kind is Kind {
 
 export function isDeviceKind(kind: unknown): kind is (typeof DEVICE_KINDS)[number] {
   return (DEVICE_KINDS as readonly unknown[]).includes(kind);
+}
+
+export function isStoryKind(kind: unknown): kind is (typeof STORY_KINDS)[number] {
+  return (STORY_KINDS as readonly unknown[]).includes(kind);
 }
 
 export function isDoorKind(kind: string): kind is DoorKindName {
