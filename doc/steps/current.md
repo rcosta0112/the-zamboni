@@ -4,7 +4,7 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-10-22, forty-seventh session (the flying scene's pass 1, **first half**: what doesn't wait on the owner's Blender tasks; not yet tried by the owner). **On `main`, not committed.** Tag `v0.0.1` on be0ffae.*
+*Updated 2026-10-22, forty-seventh session (the flying scene's pass 1, **first half**: what doesn't wait on the owner's Blender tasks; not yet tried by the owner). **On `main`, committed and pushed (d0cddd8).** Tag `v0.0.1` on be0ffae.*
 **Weekly budget (owner, CLAUDE.md rule 7):** 50% of the plan's weekly limit; a hook adds this project's usage to every message (`.claude/usage/`, local). **Calibration (2026-10-21): 1.86M per 1%**, the project's 7-day total against the account's weekly `/usage` (38%): never understates, since the project can't exceed the account. The short stretches (1–3 whole points) were too coarse (one gave 0.87M and read 84%). **The week resets Monday 09:30** (`calibrate.js reset`). The owner reset the usage by hand on Wed 21 Oct at 18:40: config `manualReset` starts the count there until that Monday (`usage.js` `weekStart`).
 ## The versions (item 51, done 2026-10-20)
 
