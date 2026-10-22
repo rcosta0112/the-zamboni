@@ -44,8 +44,10 @@ export class Input {
   private jumpLatched = false;
   private interactLatched = false;
   private skipLatched = false;
-  /** Enter or a mouse click: advances the dialogue box (as interact does). */
+  /** Enter, Space or a mouse click: advances the dialogue box (as interact does). */
   private confirmLatched = false;
+  /** W / S or the arrows, for a conversation's topics: -1 up, 1 down (the start screen reads its own keys). */
+  private keyStep = 0;
   private padButtons: boolean[] = [];
   private padLook = { x: 0, y: 0 };
   private menuStick = 0;
@@ -67,7 +69,9 @@ export class Input {
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
       if (e.code === 'KeyC') this.jumpLatched = true;
       if (e.code === 'KeyE') this.interactLatched = true;
-      if (e.code === 'Enter' || e.code === 'NumpadEnter') this.confirmLatched = true;
+      if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') this.confirmLatched = true;
+      if (e.code === 'KeyW' || e.code === 'ArrowUp') this.keyStep = -1;
+      if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keyStep = 1;
       // A cutscene's skip: Enter, Esc (which also releases the mouse: the game pauses), E, Space, C.
       if (['Enter', 'NumpadEnter', 'Escape', 'KeyE', 'Space', 'KeyC'].includes(e.code)) this.skipLatched = true;
       if (e.code === 'KeyY') settings.invertY = !settings.invertY;
@@ -187,7 +191,14 @@ export class Input {
     return i;
   }
 
-  /** True once per press that advances the dialogue box: interact, Enter or a click. */
+  /** A conversation's topics: the selection's step this frame (-1 up, 1 down), from the pad's `menuStep` or the keys. */
+  consumeChoiceStep(): number {
+    const step = this.menuStep || this.keyStep;
+    this.keyStep = 0;
+    return step;
+  }
+
+  /** True once per press that advances the dialogue box: interact, Enter, Space or a click. */
   consumeAdvance(): boolean {
     const a = this.interactLatched || this.confirmLatched;
     this.interactLatched = false;

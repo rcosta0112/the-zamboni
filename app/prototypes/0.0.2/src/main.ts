@@ -159,7 +159,10 @@ async function start(): Promise<void> {
       });
       story = target.story;
       // A knot that says nothing has ended at once; a conversation when the box ends it: saved either way.
-      if (story) story.onLines = (lines) => (lines.length > 0 ? dialogue.start(lines) : saveNow());
+      if (story) {
+        story.onLines = (lines, topics) => dialogue.start(lines, topics);
+        dialogue.onChoose = (index) => story?.choose(index);
+      }
       dialogue.onEnded = saveNow;
       director = new SceneDirector(s, target, (at, yaw) => {
         physics.teleport(at);
@@ -537,9 +540,10 @@ async function start(): Promise<void> {
       holeEnd: settings.holeEnd,
       holeBeyond: settings.holeBeyond,
     });
-    // A conversation: the button completes the line, then the next, then ends it.
+    // A conversation: the button completes the line, then the next, picks a topic, or ends it.
     const talking = dialogue.active;
-    dialogue.update(dt, talking && input.consumeAdvance(), input.lastDevice);
+    const step = input.consumeChoiceStep();
+    dialogue.update(dt, talking && input.consumeAdvance(), talking ? step : 0, input.lastDevice);
     helpEl.hidden = dialogue.active; // it sits where the box goes
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();

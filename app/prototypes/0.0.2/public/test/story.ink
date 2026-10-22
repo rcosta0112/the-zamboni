@@ -8,8 +8,11 @@
 // Ogawa, Adam Red, Adam Blue, Adam); a line with none is narration. Shown in the dialogue box.
 // A knot's `# verb:` is the whole prompt, the thing's name included ("Unlock side door").
 // A `use_<id>` knot tagged `# instead` runs in place of the thing's action, locked or not.
-// Ink remembers what has been said (each knot's visit count, in the save): `talk_ogawa` shows how a
+// Ink remembers what has been said (each knot's visit count, in the save): `talk_kaufman` shows how a
 // conversation is had once, then a one-liner after it. The save is written after each knot ends.
+// Topics are Ink's choices (`talk_ogawa` shows them): her lines to choose from, in the box under her
+// name; the one picked isn't shown again, the answer follows. `*` a topic offered until heard, `+`
+// always; the text goes in `[…]` (so Ink doesn't print it again). Four at most fit.
 
 EXTERNAL command(name, id, value)
 
@@ -50,20 +53,46 @@ Green: That's Dr. Ogawa's locker. I shouldn't open it.
 Green: It's not time to go yet.
 -> DONE
 
-=== talk_kaufman ===
-Kaufman: [Test] Placeholder line from Dr. Kaufman.
--> DONE
-
 // A whole conversation the first time; every time after, the one-liner (`again`).
-=== talk_ogawa ===
-{ talk_ogawa > 1: -> again }
-Ogawa: [Test] First screen, from Dr. Ogawa, long enough to wrap onto a second line of the box at most sizes.
+=== talk_kaufman ===
+{ talk_kaufman > 1: -> again }
+Kaufman: [Test] First screen, from Dr. Kaufman, long enough to wrap onto a second line of the box at most sizes.
 Green: [Test] Second screen: her answer.
-Ogawa: [Test] Third screen, from Dr. Ogawa again.
+Kaufman: [Test] Third screen, from Dr. Kaufman again.
 Green: [Test] Fourth screen: hers, and the end.
 -> DONE
 = again
-Ogawa: [Test] The one-liner, every time after the conversation.
+Kaufman: [Test] The one-liner, every time after the conversation.
+-> DONE
+
+// Topics: an opener, then her lines to choose from; the answer; a topic heard is gone from the list;
+// the leave topic ends it.
+=== talk_ogawa ===
+// Every topic heard: straight to the one-liner.
+{ talk_ogawa.signal and talk_ogawa.feeling: -> again }
+// The opener: the first time, and a shorter one after.
+{ talk_ogawa > 1:
+    Ogawa: [Test] Anything else?
+- else:
+    Green: [Test] Her opener.
+    Ogawa: [Test] His answer to it.
+}
+- (topics)
+// `(signal)` the topic's name, to ask later whether it was heard (`talk_ogawa.signal`).
+* (signal) [(Test) Her first question?]
+    Ogawa: [Test] His answer to the first.
+    -> topics
+* (feeling) [(Test) Her second question?]
+    Ogawa: [Test] His answer to the second.
+    -> topics
+// A topic offered only once something has happened: here, once she has talked to Dr. Kaufman.
+* (kaufman) {talk_kaufman} [(Test) Her question about Dr. Kaufman?]
+    Ogawa: [Test] His answer about Dr. Kaufman.
+    -> topics
++ [(Test) That's all for now.]
+    -> DONE
+= again
+Ogawa: [Test] The one-liner, once every topic is heard.
 -> DONE
 
 === talk_adam_red ===

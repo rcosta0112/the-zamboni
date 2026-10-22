@@ -1,5 +1,5 @@
 // A whole conversation, the one-liner after it, and the save (the dialogue plan, pass 2), before the
-// reload: Ogawa's four screens, the save written when it ends; talking again gives the one-liner;
+// reload: Dr. Kaufman's four screens, the save written when it ends; talking again gives the one-liner;
 // the jetpack and the parka put on, the save written again. conversation-probe-after.js, after the
 // reload (*Continue*), finds all three kept. In app/:
 //
@@ -31,13 +31,13 @@ const savedAt = async () => (await w.__save.read())?.savedAt ?? 0;
 
 await wait(300);
 const before = await savedAt();
-const first = await talk('talk_ogawa');
+const first = await talk('talk_kaufman');
 const speakers = first.map((s) => s.split(':')[0]).join(', ');
-report(first.length === 4 && speakers === 'Dr. Ogawa, Dr. Green, Dr. Ogawa, Dr. Green', 'the conversation: four screens, back and forth', speakers);
+report(first.length === 4 && speakers === 'Dr. Kaufman, Dr. Green, Dr. Kaufman, Dr. Green', 'the conversation: four screens, back and forth', speakers);
 report(!dialogue.active, 'the box ended it', `active ${dialogue.active}`);
 const afterTalk = await savedAt();
 report(afterTalk > before, 'saved when the conversation ended', `savedAt ${before} → ${afterTalk}`);
-const again = await talk('talk_ogawa');
+const again = await talk('talk_kaufman');
 report(again.length === 1 && /one-liner/.test(again[0]), 'talking again: the one-liner', again.join(' | '));
 
 w.__settings.wearingJetpack = true;

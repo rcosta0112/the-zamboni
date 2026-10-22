@@ -4,11 +4,12 @@
 // knots act on the game through the external function `command(name, id, value)`, which runs one of
 // the commands (commands.ts). A knot's lines go to the dialogue box (`onLines`, dialogue.ts), each
 // with its speaker (the name before a colon, as the script is written); talking to a character runs
-// `talk_<id>`. No choices for now (owner, 2026-10-22).
+// `talk_<id>`. Ink's choices are the conversation's topics (owner, 2026-10-22): a knot runs up to its
+// choices, the box shows them, and the one picked (`choose`) runs on to the next ones or the end.
 // The slice's story is a test one, `public/test/story.ink` (compiled by `npm run ink`). Its whole
 // state is what a save keeps of the story (save.ts).
 // Plans: doc/plans/architecture/game-architecture/game-structure.md (passes 3, 4),
-// doc/plans/features/dialogue.md (passes 1, 2)
+// doc/plans/features/dialogue.md (passes 1, 2, topics)
 
 import { Story } from 'inkjs';
 import type { Command } from './commands';
@@ -69,8 +70,11 @@ function toLine(raw: string): Line {
 }
 
 export class GameStory {
-  /** Where a knot's lines go (the dialogue box), none for a knot that says nothing; not set, the console. */
-  onLines: ((lines: Line[]) => void) | null = null;
+  /**
+   * Where a knot's lines go (the dialogue box), up to its topics (the choices' text, none at its
+   * end); none of either for a knot that says nothing. Not set, the console.
+   */
+  onLines: ((lines: Line[], topics: string[]) => void) | null = null;
 
   private constructor(private readonly ink: Story) {}
 
@@ -135,16 +139,29 @@ export class GameStory {
     return null;
   }
 
-  /** Runs a knot to its end (its commands as they come); its lines go to `onLines`, all at once (none too). */
+  /** Runs a knot up to its topics or its end (its commands as they come): its lines to `onLines`. */
   run(knot: string): void {
     this.ink.ChoosePathString(knot);
+    this.flow(knot);
+  }
+
+  /** The topic picked (an index into the last `onLines`' topics): runs on to the next ones or the end. */
+  choose(index: number): void {
+    this.ink.ChooseChoiceIndex(index);
+    this.flow('a topic');
+  }
+
+  private flow(from: string): void {
     const lines: Line[] = [];
     while (this.ink.canContinue) {
       const raw = this.ink.Continue()?.trim();
       if (raw) lines.push(toLine(raw));
     }
-    if (this.ink.currentChoices.length > 0) console.warn(`[0.0.2] ink: "${knot}" offers choices (not shown: no choices for now)`);
-    if (this.onLines) this.onLines(lines);
-    else for (const line of lines) console.info(`[0.0.2] ink: ${line.speaker ? `${line.speaker}: ` : ''}${line.text}`);
+    const topics = this.ink.currentChoices.map((choice) => choice.text.trim());
+    if (this.onLines) this.onLines(lines, topics);
+    else {
+      for (const line of lines) console.info(`[0.0.2] ink: ${line.speaker ? `${line.speaker}: ` : ''}${line.text}`);
+      if (topics.length > 0) console.warn(`[0.0.2] ink: ${from} offers topics, with no box to show them`);
+    }
   }
 }

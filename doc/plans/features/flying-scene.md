@@ -134,7 +134,7 @@ The scene names its terrain: `"travel": { "terrain": "ice-plain" }` (speed and h
 
 A **big task** (CLAUDE.md rule 5): about 20 hours of agent work over seven passes, plus the owner's art and lines. Budget at 7.6% of the weekly limit (2026-10-22); checked before each pass.
 
-**Pass 0: topics in conversations (about 2–3 hours).** As in the [dialogue plan](dialogue.md#topics-owner-2026-10-22) (approved). *Check:* its probe.
+**Pass 0: topics in conversations (about 2–3 hours).** As in the [dialogue plan](dialogue.md#topics-owner-2026-10-22) (approved). *Check:* its probe. **Built 2026-10-22** ([what exists](../../features/dialogue.md)).
 
 **Pass 1: the ship in flight (about 3 hours).** The real story file and its placeholders; the scene `chapter-1`; `opening` renamed `landed`; the seat's id (a Blender script: scratch copy first, the save announced, a backup; `export:ship`); `travel` and the flight rules (`lock` on any interactable, `ship_flying`); the viewport open; the ship's noise as one file; the jumpsuits; the crew at marks with their loops (dialogue pass 3 folded in: the crew export takes one loop per character per scene, and the talk layer; stand-ins until the owner's actions); NEW GAME → the animatic's stand-in → `chapter-1`. *Check:* a probe starts the scene, tries each locked thing and reads its line, reads the ship's noise, the crew's places, her outfit.
 

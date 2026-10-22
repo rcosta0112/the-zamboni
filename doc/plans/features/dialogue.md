@@ -214,6 +214,10 @@ Ogawa: (the one-liner)
 
 **The work (about 2–3 hours):** `story.ts` gives the choices and takes the one picked; `dialogue.ts` a *choosing* state; `DialogueBox.svelte` (`packages/ui`) the list, its selection and the hover; the input as above; the test story's `talk_ogawa` with topics; `npm run check` treating the list's text as no speaker's. *Check:* a probe opens the conversation, moves down, picks a topic, finds it gone from the list, leaves, reloads, and finds it still heard.
 
+> **Update, 2026-10-22 (owner, after trying it: "too complicated"):** **the topics are in the dialogue box**, under *Dr. Green*, and **each is her line**; the one picked isn't said again, the next screen is the answer. The list above the box (flag 1) and her line written out under each topic (flag 5) are gone; in Ink, the choice's `[…]` text is her line. Rebuilt the same day ([what exists](../../features/dialogue.md)); the note below is the first build.
+
+> **[Agent note]** **Topics, first build (2026-10-22, replaced by the update above):** as above, flags 1–6 as proposed. Two details: **the mouse has no hover** (the game runs with the pointer locked to the camera; losing it pauses), so a click picks the selected topic; **Space** advances the box and picks too. The pass-2 four-screen conversation moved to `talk_kaufman` in the test story (its probe with it); `talk_ogawa` has the topics. Checked: `topics-probe.js` with its reload (13 pass), `conversation-probe.js`, `dialogue-probe.js`, `npm run check`, `npm run build`, the smoke script. What exists: [features/dialogue.md](../../features/dialogue.md).
+
 ## The work, in passes (a stop to assess after each)
 
 **Pass 1: one line from each crew member, and her remark on the pilot's seat (about 3 hours).**

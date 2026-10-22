@@ -96,6 +96,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** decided; the details approved as proposed (owner, 2026-10-22), in the [dialogue plan](plans/features/dialogue.md#topics-owner-2026-10-22).
 
+**Update, 2026-10-22 (owner, after trying the first build: "too complicated"):** the topics are **in the dialogue box, not a separate list**: after the last line, a screen under *Dr. Green* lists **her lines** to choose from; the one picked isn't said again, **the next screen is the answer**. In Ink the choice's text, in `[…]`, is her line. Replaces the list above the box and the separate line she said after the pick.
+
 ---
 
 ## [2026-10-22] — What the save keeps: what the player shouldn't have to do again (architecture)

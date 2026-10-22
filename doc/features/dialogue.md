@@ -1,6 +1,6 @@
 # Dialogue
 
-**Status:** passes 1 and 2 built in 0.0.2 (2026-10-21, 22): talking to the crew, her remarks on things, the box, whole conversations remembered by the save. No choices (owner, 2026-10-22: the story may not need them). Plan and later passes (the crew's animations, barks, subtitles): [`../plans/features/dialogue.md`](../plans/features/dialogue.md).
+**Status:** passes 1 and 2 built in 0.0.2 (2026-10-21, 22): talking to the crew, her remarks on things, the box, whole conversations remembered by the save. **Topics** (Ink's choices) built 2026-10-22, the flying scene's pass 0 (owner: needed for the script). Plan and later passes (the crew's animations, barks, subtitles): [`../plans/features/dialogue.md`](../plans/features/dialogue.md).
 
 ## What exists
 
@@ -9,7 +9,8 @@
 - **The box** (`DialogueBox.svelte` in `packages/ui`): at the bottom of the screen, 30 units up; the speaker's name, the line typed out, a key sound (`ui_type`) every 2 characters typed (not on spaces). A press (E, pad B, Enter or a click) completes the line, the next goes on, the last ends it. Presses are debounced, and the prompt stays hidden for 1 s after the end, so the same press doesn't start it again.
 - **During a conversation** she stops (`input.hold()`), the prompts are off, **the camera stays the player's** (owner, 2026-10-21: no lock, no orbit).
 - **Every interaction clicks** (`ui_interact`), the box's presses too.
-- **A conversation happens once** (pass 2): Ink remembers each knot's visits, and the save keeps Ink's state. The test story's `talk_ogawa` is four screens the first time, a one-liner after.
+- **A conversation happens once** (pass 2): Ink remembers each knot's visits, and the save keeps Ink's state. The test story's `talk_kaufman` is four screens the first time, a one-liner after.
+- **Topics** (owner, 2026-10-22): after the last line before Ink's choices, the next screen is **in the box, under *Dr. Green***: **her lines** to choose from, the first selected (▸); shown at once, not typed. **Up / down:** the pad's D-pad or left stick, W / S, ↑ / ↓; no wrap. **Pick:** the box's button (E, pad Circle, Enter, Space, a click: the click picks the selected one, as the mouse is the camera's while the game runs, so there's no hover). The corner prompt reads **Choose**. The line picked isn't said again: **the next screen is the answer**. The topics come back without the one heard; a leave topic ends it. Three fit the box; a fourth makes the text a little smaller. Which topics were heard is in Ink's state, so the save keeps it (written when the conversation ends; closed mid-conversation, its topics are offered again).
 - **The save** is written again after each conversation ends (a knot that says nothing: at once), and when her clothes or the jetpack change; never during a cutscene. Owner's rule (2026-10-22): the player never repeats an action unless the story asks; what's kept of her is in `KEPT` (main.ts), each an Ink variable (`green_outfit`, `green_jetpack`); doors and music reset.
 
 ## For whoever writes the story (Ink)
@@ -31,8 +32,35 @@ The story is `public/test/story.ink` (placeholder lines, compiled by `npm run in
   Ogawa: The one-liner, every time after.
   -> DONE
   ```
-- `npm run check` fails on a knot naming an id that doesn't exist, and on a speaker name the game doesn't know.
+- **Topics:** Ink's own choices. **The choice's text is her line**, in `[…]` (so Ink doesn't print it again after the pick); the answer is the next line. `*` a topic offered until heard, `+` always offered (the way out); `(name)` to ask later whether it was heard; a condition in `{…}` offers it only once something has happened. Four at most fit the box. The pattern, as in the test story's `talk_ogawa`:
+  ```ink
+  === talk_ogawa ===
+  { talk_ogawa.signal and talk_ogawa.feeling: -> again }
+  { talk_ogawa > 1:
+      Ogawa: Anything else?
+  - else:
+      Green: Got a minute?
+      Ogawa: Sure.
+  }
+  - (topics)
+  * (signal) [What can you tell me about that?]
+      Ogawa: His answer.
+      -> topics
+  * (feeling) [How are you?]
+      Ogawa: His answer.
+      -> topics
+  * {talk_kaufman} [Her line, once she's talked to Dr. Kaufman]
+      Ogawa: His answer.
+      -> topics
+  + [That's all for now.]
+      -> DONE
+  = again
+  Ogawa: The one-liner, once every topic is heard.
+  -> DONE
+  ```
+  Elsewhere the story asks `{ talk_ogawa.signal: … }`.
+- `npm run check` fails on a knot naming an id that doesn't exist, and on a speaker name the game doesn't know; it warns about a list of more than four topics.
 
 ## Code
 
-`story.ts` (running a knot, lines with speakers), `dialogue.ts` (the typewriter, presses, cooldown), `interaction.ts` (`crewInteractables`, `storyInteractables`, `respectLocks`). Checks: `tools/dialogue-probe.js` (the crew), `tools/seat-probe.js` (the pilot's seat), `tools/conversation-probe.js` with `--reload tools/conversation-probe-after.js` (a conversation, the one-liner, the save).
+`story.ts` (running a knot up to its topics, `choose`; lines with speakers), `dialogue.ts` (the typewriter, presses, cooldown, the topics' selection), `input.ts` (`consumeChoiceStep`), `interaction.ts` (`crewInteractables`, `storyInteractables`, `respectLocks`). Checks: `tools/dialogue-probe.js` (the crew), `tools/seat-probe.js` (the pilot's seat), `tools/conversation-probe.js` with `--reload tools/conversation-probe-after.js` (a conversation, the one-liner, the save), `tools/topics-probe.js` with `--reload tools/topics-probe-after.js` (topics).

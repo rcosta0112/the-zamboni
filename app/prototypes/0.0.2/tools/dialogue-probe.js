@@ -72,7 +72,7 @@ for (const id of ['kaufman', 'ogawa', 'adam-red', 'adam-blue']) {
   const completed = dialogue.line?.done ?? false;
   await shot(`${id}-done`);
   let presses = 0;
-  while (dialogue.active && presses < 12) {
+  while (dialogue.active && presses < 40) {
     await press();
     presses++;
   }

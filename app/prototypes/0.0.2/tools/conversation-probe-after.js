@@ -11,8 +11,8 @@ report(w.__settings.wearingJetpack === true, 'the jetpack on her', `${w.__settin
 report(w.__settings.outfit === 'parka', 'the parka on her', `${w.__settings.outfit}`);
 const rack = w.__rack();
 report(rack?.hers ? !rack.hers.visible : false, "the rack's jetpack gone", `visible ${rack?.hers?.visible}`);
-story.run('talk_ogawa');
+story.run('talk_kaufman');
 const line = dialogue.line;
-report(dialogue.active && /one-liner/.test(line?.text ?? ''), 'talking to Ogawa: the one-liner, remembered', line?.text);
+report(dialogue.active && /one-liner/.test(line?.text ?? ''), 'talking to Dr. Kaufman: the one-liner, remembered', line?.text);
 await w.__save.clear();
 return results;

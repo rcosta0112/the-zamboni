@@ -101,6 +101,13 @@ for (const [line, n] of ink.split(/\r?\n/).map((l, i) => [l, i + 1])) {
   checked++;
   if (!speakers.has(name)) problems.push(`story.ink:${n}: no speaker "${name}" (SPEAKERS in story.ts: ${[...speakers].join(', ')})`);
 }
+// Topics (Ink's choices): four at most fit above the box. A warning, not a problem: more is the script's call.
+// Counted per list: the top-level choices (`*`, `+`) between a knot or stitch and a gather (`-`).
+let list = { count: 0, at: 0 };
+for (const [line, n] of ink.split(/\r?\n/).map((l, i) => [l, i + 1])) {
+  if (/^\s*(===|=\s*\w|-(?!>))/.test(line)) list = { count: 0, at: n };
+  else if (/^\s*[*+](?![*+])/.test(line) && ++list.count === 5) console.warn(`story.ink:${n}: more than four topics in one list (from line ${list.at}): the list may not fit above the box`);
+}
 for (const knot of knots) if (knot.startsWith('use_')) thing(`story.ink, knot ${knot}`, knot.slice(4).replace(/_/g, '-'));
 for (const knot of knots) if (knot.startsWith('talk_')) thing(`story.ink, knot ${knot}`, knot.slice(5).replace(/_/g, '-'), new Set(['character']), "isn't a character");
 
