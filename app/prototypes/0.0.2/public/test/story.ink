@@ -12,6 +12,9 @@
 EXTERNAL command(name, id, value)
 
 VAR side_door_unlocked = false
+// What Dr. Green wears (her locker, the `outfit` command): "jumpsuit" or "parka". The game keeps it
+// with her clothes (main.ts); a scene's setup can set it.
+VAR green_outfit = "jumpsuit"
 
 -> DONE
 

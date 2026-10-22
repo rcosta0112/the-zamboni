@@ -22,9 +22,10 @@ The prompt shows the button of the last device used (◯ or E).
 
 "Pointing" is done with the camera; there's no crosshair:
 
-1. **Candidates:** every interactable object whose bounds are within **reach** of her chest (1.0 m, tunable), and not behind something solid (a ray from her chest to the object's nearest point; its own collider doesn't count).
-2. **Target:** of those, the one nearest the **centre of the screen**: 0 if the view's centre line passes through its bounds, otherwise the angle to its centre; nothing beyond 30° (tunable). Ties go to the nearer object.
-3. **Feedback:** a prompt **next to the target on screen** names the action: *Open* / *Close* for doors, *Open ramp* / *Close ramp* and *Open door* / *Close door* for the keypads and panels, *Open window* / *Close window* for the lever (owner, 2026-10-12; it was at the bottom of the screen). **Where it goes** (item 56, pass 1, 2026-10-21; [plan](../plans/features/prompt-placement.md)): **beside the handle** of a hinged door or hatch, 18 px from it, on the side away from the door's centre on screen (just outside its edge; to the right when the two are nearly in line). The handle is found by rule, not marked in the file: the edge away from the hinge, halfway along it, 5 cm in, the same point from both sides; it swings with the door. Doors that open as one target (the roof hatch): the middle of their handles. The lever: beside its handle. Everything else (keypads, panels, boombox, jetpacks, the ladder): to the right of the centre of its bounds, clear of a small target, at most 60 px from the centre of a large one. Always inside the screen's edges; it follows the target as the camera moves. A door whose handle isn't where the rule puts it gets an exception (none so far).
+1. **Candidates:** every interactable object whose bounds are within **reach** of her chest (1.0 m, tunable), not behind something solid (a ray from her chest to the object's nearest point; its own collider doesn't count), usable now (the parka: only with her locker open), **in her room** (owner, 2026-10-22: Adam in the cockpit isn't, through the open doorway; rooms by deck and side of the bulkhead, a bulkhead's doors and panels in both, the ladder on both decks; `Ship.roomsOf`). **Dots show further: within 1.2 m** (tunable), whichever way she faces (owner, 2026-10-22: every prompt close to her visible; the "in front of her" rule is gone); only what's within reach can be the target.
+2. **Target: the camera and her facing each have a cone, and the one the player moved last aims** (owner, 2026-10-22: players try both). The camera: within **30° across** of the screen's centre; her facing: within **45° across** of where she faces; **up/down comes from the camera in both** (within 60°: the camera can't tilt up indoors) and counts a third as much as across. Measured to the thing's prompt point (a door's handle, otherwise the middle of its bounds). "Moved" is very little and tunable: the camera turned 0.3° in a frame, or she turned 0.3° or stepped 3 mm; both in one frame: the camera. **Nothing in that cone: the other's** (owner: try the fallback). The target keeps its place until another is better by 4° while the same one aims (no flicker); switching moves it at once. Ties go to the nearer object. Nothing in either: no prompt, only the circles. Item 56, pass 2 ([plan](../plans/features/prompt-choice.md)).
+3. **Dots:** a white dot at each candidate's prompt point, fading in and out (0.1 s): **the target's full size (12 px)** with its prompt above it, **the others 40% smaller and at 60% opacity** (owner, 2026-10-22). **The crew get no dot** unless they're the target (owner, 2026-10-22). (The rack has one target, hers: [the jetpack rack](#the-jetpack-rack).)
+4. **Feedback:** a prompt **next to the target on screen** names the action (**white, black text, the button in an outline**, as the dialogue box: owner, 2026-10-22): *Open* / *Close* for doors, *Open ramp* / *Close ramp* and *Open door* / *Close door* for the keypads and panels, *Open window* / *Close window* for the lever (owner, 2026-10-12; it was at the bottom of the screen). **Where it goes** (owner, 2026-10-22, replacing pass 1's "beside the handle"): **centred above the target's dot**, 8 px clear of it. The dot is at the thing's prompt point: a hinged door's or hatch's **handle** (by rule, not marked in the file: the edge away from the hinge, halfway along it, 5 cm in; it swings with the door; doors that open as one target: the middle of their handles), the lever's handle, a character's head, otherwise the middle of its bounds. Always inside the screen's edges; it follows the target as the camera moves.
 
 **What isn't a target:**
 
@@ -33,7 +34,7 @@ The prompt shows the button of the last device used (◯ or E).
 
 **Doors that open together are one target:** the roof hatch's two parts (`Top Hatch Upper`, `Top Hatch Lower`). Aiming at either shows one prompt; one press moves both to the same state. Each part is tagged `opensWith: "<the other's name>"` in the ship file (since the export of 2026-10-12; until then the pair was listed in the code).
 
-**No highlight:** the first version lifted the target toward white; the prompt replaced it, and the slider and its shader code were removed on 2026-10-14 (owner).
+**No highlight:** the first version lifted the target toward white; the prompt replaced it, and the slider and its shader code were removed on 2026-10-14 (owner). The circles (2026-10-22) are marks on the screen, not on the things.
 
 ## Doors
 
@@ -47,7 +48,7 @@ The prompt shows the button of the last device used (◯ or E).
 | Galley cupboard | `Galley Door 3` | vertical edge | 100° |
 | Lockers | `Cargo Locker Door` (cargo bay), `Crew Locker Door 2`, `Crew Locker Door 1` (crew quarters) | vertical edge | 100° |
 
-> **[Agent note]** **Planned (owner, 2026-10-21):** using a crew locker will switch her clothes (jumpsuit ↔ parka). Not built; the feature is being defined in [`plans/features/locker-outfit.md`](../plans/features/locker-outfit.md) (item 72).
+> **[Agent note]** **Built 2026-10-21:** changing clothes at her locker (`crew-locker-door-1`): [Her locker's clothes](#her-lockers-clothes).
 
 - **All start closed except the trapdoor**, which starts open for now (owner, 2026-10-09: from below, the camera angle makes it hard to aim at; to be worked out later). The trapdoor and two galley doors are modelled open in the file; the export closes the galley doors (`MODELLED_OPEN`) and tags the trapdoor `startOpen`.
 - **The side door, fully open, is a ramp** (owner): as for the cargo ramp, a smooth walkable slope stands in for its steps, and its own collider is off. The doorway has a sill 0.13 m above the cargo floor (and above the door's hinge), so the slope climbs to the sill's top at no more than 42° (her controller takes up to 45°), then runs flat across it into the hold; its foot lies about 0.1 m past the door's far end. The door can't be closed while she's on it.
@@ -122,14 +123,25 @@ Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)).
 - **The sound comes from the boombox** and falls off with distance, in a straight line: full within 1.5 m, silent at 12 m (*boombox: full within*, *silent at*). A guess: UE's values aren't readable. The distance is to the camera, not to her. A closed door doesn't muffle it.
 - **Not from UE:** the ring's *off* step (UE's `Stop` is most likely "stop and move to the next track"); what UE's `Random Integer` feeds isn't known, so nothing here is random but the shake.
 
+## Her locker's clothes
+
+Built 2026-10-21 (item 72; [plan](../plans/features/locker-outfit.md); `src/clothes.ts`). Her locker (`crew-locker-door-1`, the left one in the crew quarters) holds the parka (`Parka Hanging`, on its `Coat Hanger`), the boots and the sneakers (collection `Locker Dr. Green`). The hanger stays when the parka goes (owner, 2026-10-22; merged into the crew quarters' props for now).
+
+- **The parka is the target, only while the locker is open:** *Put on parka* while she wears the jumpsuit, *Take off parka* while she wears the parka. **An instant swap** (owner): the parka and boots go on her together, and the sneakers come off together.
+- **What's in the locker is what she isn't wearing:** with the jumpsuit on, the parka and boots; with the parka on, the sneakers.
+- **She starts in the jumpsuit.** What she wears is Ink's `green_outfit` (`"jumpsuit"` or `"parka"`), so the save keeps it and *Continue* dresses her. No rule about where she wears what (owner): a scene's setup can dress her with `{ "do": "outfit", "set": "parka" }`; the tuning panel's *outfit* (*Jetpack* folder) moves the same state.
+- **The jetpack goes over both outfits:** with the jumpsuit, its own jetpack with straps (`Jetpack With Straps`). Her little backpack goes with the parka only, and hides under a jetpack.
+- **In the file:** each thing is tagged with an `id`, a `kind` (`outfit` for the parka, `clothes` for the shoes) and the `outfit` it goes with; the parka is also tagged `behind: crew-locker-door-1`.
+
 ## The jetpack rack
 
 Built 2026-10-14 (item 32; [plan](../plans/features/dr-green-jetpack-model.md)). On the cargo hold's wall: two shelves (`Jetpack Rack Upper`, `Jetpack Rack Lower`) and four jetpacks with straps (`Jetpack 3`, `.002` below, `.003`, `.004` above; `.003` added by the agent on 2026-10-14, item 37: a copy of `.004`, its mesh and tags shared).
 
-- **Pointing at one, *Take jetpack*:** it disappears from the rack and she wears one. Hers (`Jetpack`, no straps) shows on her back, her little backpack (`Backpack.002`) hides, and the hood's shape key `jetpack` is on, so the hood clears it. **She can fly only while she wears one** (Space / R2). Jumping (C / Cross) works with or without it.
-- **While she wears one, only the empty spot is offered, *Put back jetpack*:** it reappears there and everything goes back (owner, 2026-10-14: taken off at the rack only).
+- **She only ever uses the bottom right jetpack** (`jetpack-4`, the lower shelf's right end as seen from the room; owner, 2026-10-22, [world](../story/world.md)): it's the only one offered, with one dot over it. A scene may have fewer jetpacks on the rack, never without hers: another character never takes it. The game finds it by place, not by id (`JetpackRack.hers`).
+- **Pointing at it, *Take jetpack*:** it disappears from the rack and she wears one. Hers (`Jetpack`, no straps) shows on her back, her little backpack (`Backpack.002`) hides, and the hood's shape key `jetpack` is on, so the hood clears it. **She can fly only while she wears one** (Space / R2). Jumping (C / Cross) works with or without it.
+- **While she wears it, its empty spot is offered, *Put back jetpack*:** it reappears there and everything goes back (owner, 2026-10-14: taken off at the rack only).
 - Sounds: straps and a buckle, one for taking, one for putting back (placeholders: [Sounds](#sounds)).
-- *Wearing a jetpack* in the tuning panel (*Jetpack*) moves the same state; the rack follows it (switched on, the first jetpack goes). She starts without one.
+- *Wearing a jetpack* in the tuning panel (*Jetpack*) moves the same state; the rack follows it (switched on, hers goes). She starts without one.
 - On Part 1's model (tuning panel) nothing shows or hides: its jetpack is part of the model. The flying rule is the same.
 
 ### Flying

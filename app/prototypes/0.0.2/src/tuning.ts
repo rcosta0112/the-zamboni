@@ -134,8 +134,14 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
 
   const interact = gui.addFolder('Interaction');
   interact.add(settings, 'interactReach', 0.3, 3, 0.05).name('reach (m)');
+  interact.add(settings, 'interactDotReach', 0.5, 5, 0.1).name('dots shown within (m)');
   interact.add(settings, 'talkReach', 0.3, 3, 0.05).name('talk reach (m)');
-  interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre (°)');
+  interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre, across (°)');
+  interact.add(settings, 'interactMaxVerticalDeg', 5, 90, 1).name('max from centre, up/down (°)');
+  interact.add(settings, 'interactFacingAngleDeg', 5, 90, 1).name('max from her facing, across (°)');
+  interact.add(settings, 'aimByCameraDeg', 0, 5, 0.1).name('camera aims after turning (°/frame)');
+  interact.add(settings, 'aimByFacingDeg', 0, 5, 0.1).name('her facing aims after turning (°/frame)');
+  interact.add(settings, 'aimByStep', 0, 0.05, 0.001).name('her facing aims after a step (m/frame)');
   interact.add(settings, 'dialogueCharMs', 0, 120, 1).name('text: ms a character');
   interact.add(settings, 'dialogueTypeEvery', 0, 6, 1).name('text: a key sound every');
   interact.add(settings, 'doorSeconds', 0.1, 3, 0.05).name('door open time (s)');

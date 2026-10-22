@@ -22,6 +22,7 @@ import { Exhaust } from './exhaust';
 import { Footsteps } from './footsteps';
 import { crewInteractables, Interaction, respectLocks, shipInteractables, storyInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
+import { LockerClothes } from './clothes';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
@@ -88,6 +89,8 @@ async function start(): Promise<void> {
   let climbTag: ClimbTag | null = null;
   let boombox: Boombox | null = null;
   let rack: JetpackRack | null = null;
+  let clothes: LockerClothes | null = null;
+  let inkOutfit: unknown; // Ink's `green_outfit` as last seen
   let doorSounds: (() => void) | null = null;
   let director: SceneDirector | null = null;
   let story: GameStory | null = null;
@@ -183,14 +186,16 @@ async function start(): Promise<void> {
         doors();
         ramp();
       };
-      rack = new JetpackRack(s.entities, (id, at) => audio.play(id, at));
+      rack = new JetpackRack(s.entities, s.interior.getCenter(new THREE.Vector3()).x, (id, at) => audio.play(id, at));
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
-      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...ladders.interactables];
+      clothes = new LockerClothes(s.entities);
+      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables];
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
       const storyTargets = storyInteractables(s.entities, () => target.story, (command) => run(command, target));
       const items = [...shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState), ...crewTargets, ...storyTargets];
       interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target)), physics, document.querySelector<HTMLElement>('#prompt')!, (then) => audio.play('ui_interact', undefined, then));
+      interaction.roomsOf = s.roomsOf;
       interaction.disabled = disabled;
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
       addCollisionBoxes(s, physics);
@@ -212,7 +217,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
@@ -403,6 +408,16 @@ async function start(): Promise<void> {
     doorSounds?.();
     boombox?.update();
     rack?.update();
+    // What she wears is Ink's `green_outfit` (the save keeps it): when Ink changes it (*Continue*, a
+    // new game, a knot) she follows; otherwise Ink follows her (the locker, the `outfit` command, the
+    // tuning panel).
+    if (story) {
+      const ink = story.get('green_outfit');
+      if (ink !== inkOutfit && (ink === 'jumpsuit' || ink === 'parka')) settings.outfit = ink;
+      else if (settings.outfit !== ink) story.set('green_outfit', settings.outfit);
+      inkOutfit = story.get('green_outfit');
+    }
+    clothes?.update();
     if (ladders && ladders.rungs !== rungs) {
       rungs = ladders.rungs;
       audio.play('sfx_ladder_grab');
@@ -507,7 +522,7 @@ async function start(): Promise<void> {
     const pressed = input.consumeInteract();
     // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor
     // while she talks, nor for a moment after.
-    interaction?.update(chest, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
+    interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     crew?.mixer.update(dt);

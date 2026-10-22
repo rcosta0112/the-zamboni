@@ -88,7 +88,7 @@ async function checks() {
     const floor = physics.ray(feet, DOWN, 3, true);
     feet.y -= floor ? floor.distance : 0;
     put(feet);
-    view.yaw = yawToward(-away.x, -away.z);
+    view.yaw = yawToward(-away.x, -away.z); character.facing = view.yaw; // she faces what she aims at (the prompt needs it in front of her)
     for (let pitch = 0; pitch <= 1.0; pitch += 0.1) {
       view.pitch = pitch;
       await wait(120);
@@ -101,7 +101,7 @@ async function checks() {
   settings.cargoRampOpen = true;
   await until(() => ship.rampAmount === 1, 4000);
   put(new T.Vector3(0, 0.05, 0));
-  view.yaw = 0;
+  view.yaw = 0; character.facing = view.yaw;
   view.pitch = 0.15;
   await wait(1200);
   const outdoors = view.distance;
@@ -116,7 +116,7 @@ async function checks() {
   // Up the open ramp into the cargo bay, on foot.
   const rampMouth = new T.Vector3(inside.x, 0.05, ship.interior.max.z + 6);
   put(rampMouth);
-  view.yaw = yawToward(0, -1);
+  view.yaw = yawToward(0, -1); character.facing = view.yaw;
   view.pitch = 0.15;
   await wait(300);
   let wasOutside = !ship.interior.containsPoint(character.position.clone().setY(character.position.y + settings.cutTargetHeight));
@@ -162,7 +162,7 @@ async function checks() {
     const yaw = view.yaw;
     for (let a = -1.2; a <= 1.2; a += 0.2) {
       for (const pitch of [0, 0.4, 0.8]) {
-        view.yaw = yaw + a;
+        view.yaw = yaw + a; character.facing = view.yaw;
         view.pitch = pitch;
         await wait(60);
         seen.add(interaction.target ? `${interaction.target.name} "${prompt.textContent}"` : 'nothing');
@@ -187,7 +187,7 @@ async function checks() {
   /** At its foot, facing it, then E: whether the prompt said Climb, when the trapdoor began opening (s into the animation), how long it took (s). */
   const climb = async () => {
     put(foot);
-    view.yaw = yawToward(ladder.face.x, ladder.face.z);
+    view.yaw = yawToward(ladder.face.x, ladder.face.z); character.facing = view.yaw;
     view.pitch = 0.3;
     await until(() => character.grounded, 2000);
     const aimed = await until(() => interaction.target?.name === ladder.name, 1500);
@@ -219,7 +219,7 @@ async function checks() {
     // From the floor above: no prompt; walking into the opening she drops to the cargo floor, past the ladder.
     await wait(500);
     const offered = interaction.target?.name === ladder.name;
-    view.yaw = yawToward(ladder.bottom.x - character.position.x, ladder.bottom.z - character.position.z);
+    view.yaw = yawToward(ladder.bottom.x - character.position.x, ladder.bottom.z - character.position.z); character.facing = view.yaw;
     key('KeyW', true);
     let landedOnLadder = false;
     let lowestStop = Infinity;
@@ -248,14 +248,16 @@ async function checks() {
   } else {
     // It's out of her reach from the floor (see doc/features/interaction.md): a longer reach and a
     // wider aim, for this check only.
-    const keep = { reach: settings.interactReach, angle: settings.interactMaxAngleDeg };
+    const keep = { reach: settings.interactReach, angle: settings.interactMaxAngleDeg, vertical: settings.interactMaxVerticalDeg };
     settings.interactReach = 4;
     settings.interactMaxAngleDeg = 180;
+    settings.interactMaxVerticalDeg = 90;
     const under = boxOf(hatch[0]).getCenter(new T.Vector3());
     const floor = physics.ray(under.clone().setY(under.y - 0.5), DOWN, 5, true);
     under.y -= 0.5 + (floor ? floor.distance : 0);
     put(under);
-    view.pitch = 1.2;
+    // A level camera: looking down from above her, the hatch would be behind it (not aimable).
+    view.pitch = 0;
     // With that reach the cockpit door's panel is a candidate too, and nearer the screen centre
     // (the camera can't look up): nothing else is offered meanwhile.
     const others = items.filter((i) => i !== hatch[0]).map((i) => [i, i.available]);
@@ -269,6 +271,7 @@ async function checks() {
     for (const [i, available] of others) i.available = available;
     settings.interactReach = keep.reach;
     settings.interactMaxAngleDeg = keep.angle;
+    settings.interactMaxVerticalDeg = keep.vertical;
     report(aimed && opened && closed, 'one press moves both parts of the roof hatch', `target "${hatch[0].name}", prompt "${shown}"; both open: ${opened}; both closed again: ${closed}`);
   }
 
@@ -288,7 +291,7 @@ async function checks() {
     const items = interaction.items;
     interaction.items = [rampPad];
     for (const a of [-0.5, 0, 0.5]) {
-      view.yaw = yaw + a;
+      view.yaw = yaw + a; character.facing = view.yaw;
       await wait(250);
       if (interaction.target !== rampPad) continue;
       const t = onScreen();
@@ -301,7 +304,7 @@ async function checks() {
       samples.push(`keypad at ${t.x.toFixed(0)},${t.y.toFixed(0)} â†’ prompt at ${px.toFixed(0)},${py.toFixed(0)}`);
     }
     interaction.items = items;
-    view.yaw = yaw;
+    view.yaw = yaw; character.facing = view.yaw;
     await wait(100);
     // The keypad moved across the screen, and the prompt stayed the same short way from it.
     const follows = samples.length === 3 && Math.max(...places) - Math.min(...places) > 40 && Math.max(...offsets) - Math.min(...offsets) < 30 && Math.max(...offsets) < 160;
@@ -324,12 +327,12 @@ async function checks() {
     const flewWithout = character.flying;
     key('Space', false);
     await until(() => character.grounded, 5000);
-    const slot = rack.slots[0];
+    const slot = rack.hers; // the only one she uses (owner, 2026-10-22)
     const at = new T.Box3().setFromObject(slot).getCenter(new T.Vector3());
     const atRack = async () => {
       put(new T.Vector3(at.x - 0.7, at.y - 0.6, at.z)); // the floor is 0.7 below the slot
       await until(() => character.grounded, 4000);
-      view.yaw = yawToward(1, 0);
+      view.yaw = yawToward(1, 0); character.facing = view.yaw;
       view.pitch = 0.15;
       character.facing = view.yaw;
       await until(() => interaction.target?.name === slot.name, 3000);
@@ -349,7 +352,7 @@ async function checks() {
     const back = interaction.target?.verb();
     await tap('KeyE');
     await wait(200);
-    const returned = !settings.wearingJetpack && rack.slots.every((s) => s.visible) && !model.jetpack.visible && model.backpack.visible && !hood();
+    const returned = !settings.wearingJetpack && rack.slots.every((s) => s.visible) && !model.jetpack.visible && model.backpack.visible === (settings.outfit === 'parka') && !hood(); // the little backpack goes with the parka
     report(rack.slots.length === 4 && !flewWithout && offered === 'Take jetpack' && worn && flewWith && back === 'Put jetpack back' && returned, 'the jetpack rack: take one, fly, put it back',
       `${rack.slots.length} on the rack; flies without: ${flewWithout}; "${offered}" â†’ worn (hidden on the rack, hers on, little backpack off, hood up): ${worn}; flies: ${flewWith}; "${back}" â†’ back: ${returned}`);
   }
@@ -409,7 +412,7 @@ async function checks() {
     const glowGone = await until(() => !w.__exhaust.shown, 1000); // it fades out over about 0.1 s
     report(glowFlying && glowGone, 'the jetpack\'s exhaust glow shows while she flies, and goes', `while flying: ${glowFlying}; gone after landing: ${glowGone}`);
     // From the ground, stick forward with the camera looking down at her: she flies, not skims.
-    view.yaw = yawToward(1, 0);
+    view.yaw = yawToward(1, 0); character.facing = view.yaw;
     view.pitch = 0.3;
     key('Space', true);
     key('KeyW', true);
@@ -421,7 +424,7 @@ async function checks() {
     put(new T.Vector3(hull.max.x + 6, 0.05, centre.z));
     await until(() => character.grounded, 3000);
     // Level toward the ship, camera behind her: the hull stops her.
-    view.yaw = yawToward(centre.x - character.position.x, 0);
+    view.yaw = yawToward(centre.x - character.position.x, 0); character.facing = view.yaw;
     view.pitch = 0;
     character.facing = view.yaw; // faced first, or she sets off in an arc (from wherever the last check left her)
     // Up a little first (taking off into flight she climbs on to about 3.5 m): lower down, the hull's
@@ -598,7 +601,7 @@ async function checks() {
   /** Walk from `from` in a straight line on the ground for `ms`; where she ends up. */
   const walk = async (from, dx, dz, ms) => {
     put(from);
-    view.yaw = yawToward(dx, dz);
+    view.yaw = yawToward(dx, dz); character.facing = view.yaw;
     view.pitch = 0.15;
     await wait(300);
     key('KeyW', true);
@@ -681,7 +684,7 @@ async function checks() {
       if (!floor) continue;
       feet.y -= floor.distance;
       put(feet);
-      view.yaw = yawToward(-dx, -dz);
+      view.yaw = yawToward(-dx, -dz); character.facing = view.yaw;
       for (let pitch = 0; pitch <= 1.0; pitch += 0.1) {
         view.pitch = pitch;
         await wait(120);
@@ -718,7 +721,7 @@ async function checks() {
       // while she's there), out into the crew quarters.
       const from = physics.fits(stand(-way * far)) ? far : 0.8;
       put(stand(-way * from));
-      view.yaw = yawToward(way * across.x, way * across.z);
+      view.yaw = yawToward(way * across.x, way * across.z); character.facing = view.yaw;
       view.pitch = 0.15;
       // Facing the door first: turning round as she sets off, she swings wide and misses the doorway.
       await tap('KeyW');
@@ -732,7 +735,7 @@ async function checks() {
       // cargo hold, she comes off it to one side).
       const aim = centre.clone().addScaledVector(across, way * 6);
       while (performance.now() - start < 9000 && way * side(character.position) < past) {
-        view.yaw = yawToward(aim.x - character.position.x, aim.z - character.position.z);
+        view.yaw = yawToward(aim.x - character.position.x, aim.z - character.position.z); character.facing = view.yaw;
         if (settled(leaves, 1)) opened = true;
         await wait(30);
       }
@@ -763,7 +766,7 @@ async function checks() {
       if (n === 0) {
         // Shut, it stays shut with her in front of it, and she can't walk through.
         put(stand(Math.sign(from) * 0.8));
-        view.yaw = yawToward(-Math.sign(from) * across.x, -Math.sign(from) * across.z);
+        view.yaw = yawToward(-Math.sign(from) * across.x, -Math.sign(from) * across.z); character.facing = view.yaw;
         await wait(300);
         key('KeyW', true);
         await wait(1500);
@@ -1003,7 +1006,7 @@ async function checks() {
 
     // Footsteps: snow outside, faster at a run than at a walk; a landing after a jump.
     const steps = async (dx, dz, ms, slow) => {
-      view.yaw = yawToward(dx, dz);
+      view.yaw = yawToward(dx, dz); character.facing = view.yaw;
       view.pitch = 0.15;
       await wait(300);
       if (slow) key('ShiftLeft', true);
@@ -1030,7 +1033,7 @@ async function checks() {
     await until(() => ship.rampAmount === 1, 4000);
     await wait(500);
     put(new T.Vector3(0, 0.05, 0));
-    view.yaw = yawToward(inside.x, inside.z);
+    view.yaw = yawToward(inside.x, inside.z); character.facing = view.yaw;
     view.pitch = 0.15;
     await wait(400);
     // Her height at the moment each step plays (looked at afterwards, she has moved on).

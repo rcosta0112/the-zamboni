@@ -10,6 +10,7 @@
 - The roof hatch may get an unfolding ladder, or none: the crew have jetpacks.
 - The roof hatch is two hatches: the top one flips open (up), the bottom one flips down.
 - The jetpacks hang on a rack in the cargo hold. The ones on the rack have straps; the one a character wears doesn't show them. A crew member takes one from the rack to fly, and can take it off again. (2026-10-14)
+- **Dr. Green always uses the bottom right jetpack on the rack** (as seen from the cargo hold). Some scenes have fewer than four jetpacks on the rack, for story reasons; when another character takes one, it's never that one. (2026-10-22) How the game handles it: [the jetpack rack](../features/interaction.md#the-jetpack-rack).
 
 > **[Agent comment]** "Comms" is already used in the script for the crew's radio/intercom: Ogawa speaks *(over the comms)* in the Opening, and in Blue runs away he says "Can't hail them on the comms. It's the same channel for both units." So "the comms" might mean the network and "a comm" the device, or both might be the same thing. The UE prototype's crew quarters also has a model called "comms". (2026-10-08)
 - The crew quarters' lockers: the one on the right is Dr. Kaufman's; the locker in the cargo hold is Dr. Ogawa's. Dr. Green won't open them ("That's Dr. Kaufman's locker. I shouldn't open it."). (2026-10-21)

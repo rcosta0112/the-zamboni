@@ -17,7 +17,7 @@ import { fillBackFaces, makeCuttable } from './cutaway';
 import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
 import { Entities, type Openable } from './entities';
 import { downloads } from './loading';
-import { named } from './names';
+import { named, sanitize } from './names';
 import { sameLayouts, unmirror } from './pipelines';
 import { isDrawn, isHullPart, newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
 import type { MovingCollider, Physics } from './physics';
@@ -51,6 +51,10 @@ const CREW_QUARTERS_WALLS = ['Crew Quarters Sitting Area Walls', 'Walls and seat
  * its keypads, the cabinets on it).
  */
 const BULKHEAD_SIDE = 0.15;
+/** Each deck's rooms, in front of its bulkhead and behind it. */
+const ROOMS = [['engineering', 'cargo hold'], ['cockpit', 'crew quarters']];
+/** Below this far under the upper floor's top, a thing is on the lower deck; above it, on the upper (m). */
+const DECK_EDGE = 0.15;
 /**
  * Never cut while she's on their deck (owner, 2026-10-15): everything in the cockpit and in
  * engineering (not what's on their bulkheads), in the cargo hold the sled and the pallet with what
@@ -105,6 +109,12 @@ export interface Ship {
   interior: THREE.Box3;
   /** The upper deck's floor height (world): decks for the see-through rules. */
   upperFloorY: number;
+  /**
+   * The rooms a box is in (world; the prompts: only what's in her room): its deck by height (both,
+   * across the upper floor: the ladder), the side of that deck's bulkhead by its centre (both,
+   * within BULKHEAD_SIDE: the bulkhead's doors and panels). None outside the ship.
+   */
+  roomsOf: (box: THREE.Box3) => string[];
   /** The ship's objects, for the see-through rules. */
   cutUnits: CutUnit[];
   /** The hull's object: "is the camera inside the ship?" */
@@ -271,6 +281,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     ladderColliders,
     interior,
     upperFloorY,
+    roomsOf: roomsIn(object, interior, upperFloorY),
     cutUnits,
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
     rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
@@ -430,7 +441,7 @@ function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
     return along(unit);
   };
   const bulkheads = [bulkheadAt('Bulkhead Cargo'), bulkheadAt('Bulkhead Cockpit')];
-  const rooms = [['engineering', 'cargo hold'], ['cockpit', 'crew quarters']];
+  const rooms = ROOMS;
   const blockers = units.filter((u) => inChain(u, KEEP_WITH_CONTENTS)).map((u) => boxOf(u).expandByScalar(0.05));
   // The sitting area: across and along a little wider than its walls, not below the floor (the
   // cargo hold's ceiling lights hang under it).
@@ -449,6 +460,31 @@ function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
       blockers.some((box) => box.containsPoint(centre)) ||
       (unit.deck === 1 && sittingArea.some((box) => box.containsPoint(centre)));
   }
+}
+
+/** `Ship.roomsOf`: the bulkheads' places along the ship, from the ship's file. */
+function roomsIn(ship: THREE.Object3D, interior: THREE.Box3, upperFloorY: number): (box: THREE.Box3) => string[] {
+  // Along the ship: Blender's y (front negative), from the ship's own space (as markBroughtBack).
+  const along = (p: THREE.Vector3) => -ship.worldToLocal(p.clone()).z;
+  const bulkheads = ['Bulkhead Cargo', 'Bulkhead Cockpit'].map((name) => {
+    const found = ship.getObjectByProperty('name', sanitize(name));
+    if (!found) throw new Error(`The ship has no "${name}"`);
+    return along(new THREE.Box3().setFromObject(found).getCenter(new THREE.Vector3()));
+  });
+  const centre = new THREE.Vector3();
+  return (box) => {
+    box.getCenter(centre);
+    if (!interior.containsPoint(centre)) return [];
+    const y = along(centre);
+    const rooms: string[] = [];
+    for (const deck of [0, 1]) {
+      if (deck === 0 ? box.min.y >= upperFloorY - DECK_EDGE : box.max.y <= upperFloorY - DECK_EDGE) continue;
+      const [front, back] = ROOMS[deck]!;
+      if (y < bulkheads[deck]! + BULKHEAD_SIDE) rooms.push(front!);
+      if (y > bulkheads[deck]! - BULKHEAD_SIDE) rooms.push(back!);
+    }
+    return rooms;
+  };
 }
 
 /** How close (m) an object must be to a bulkhead to count as attached to it. */

@@ -18,6 +18,7 @@ const BY_ID: Record<string, string> = {
   'galley-door-1': 'fridge',
   'galley-door-2': 'fridge',
   'galley-door-3': 'cupboard',
+  'green-parka': 'parka',
 };
 
 const BY_KIND: Record<string, string> = {

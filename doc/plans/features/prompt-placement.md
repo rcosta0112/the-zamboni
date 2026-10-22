@@ -1,6 +1,6 @@
 # The prompt beside the handle (item 56, pass 1)
 
-**Status:** approved 2026-10-21 (owner: "write the plan and run it"); **built 2026-10-21**, the owner's to play (see *As built*).
+**Status:** approved 2026-10-21 (owner: "write the plan and run it"); **built 2026-10-21**, the owner's to play (see *As built*). **Superseded 2026-10-22** (owner): the prompt is centred above the target's dot ([prompt-choice](prompt-choice.md)); the handle rule stays as the dot's place.
 
 ## Goal and scope
 

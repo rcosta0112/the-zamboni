@@ -28,8 +28,8 @@ properties (doc/architecture/asset-pipeline.md, "Naming contract"):
   posed by an armature (the engineering display) is baked in its posed place first.
 - Props: the listed render-visible meshes, curves and text objects (the list was made from the
   ship's collections, not those tagged ``export: false``), baked to a mesh in place. Big ones (BIG and up) stay separate objects and go into the collider as convex hulls;
-  props tagged ``interact`` (the rack's jetpacks) stay separate too, keeping their ``interact``
-  and ``device`` tags (small ones don't collide);
+  props tagged ``interact`` or ``id`` (the rack's jetpacks, her locker's clothes) stay separate too, keeping their ``interact``,
+  ``device``, ``id``, ``kind``, ``outfit`` and ``behind`` tags (small ones don't collide);
   small ones are merged into one object per group ("Props <group>": the collection they were in
   when the list was made), one draw call per material. A prop that hangs on a part (a child of it, or of a prop that is) is exported with it,
   as a child object: a big one as its own object, the small ones merged into one ("Props <part>", or
@@ -344,7 +344,7 @@ for collection in groups.values():
             ob['export'] = False  # nothing is saved: so an object in two collections is baked once
             prop = add_prop(name, mesh, collection)
             hang_on(prop, anchor)
-            for key in ('interact', 'device', 'id', 'kind'):
+            for key in ('interact', 'device', 'id', 'kind', 'outfit', 'behind'):
                 if key in ob:
                     prop[key] = ob[key]
             big_props.append(prop)

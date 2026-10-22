@@ -186,7 +186,18 @@ export const settings = {
 
   // Interaction: point (the screen centre) at something within her reach and press E / Circle.
   interactReach: 1.0, // m, from her chest to the object's bounds
-  interactMaxAngleDeg: 30, // how far from the screen centre a target may be
+  interactDotReach: 1.2, // m: the dots show this far (whichever way she faces; owner, 2026-10-22)
+  interactMaxAngleDeg: 30, // how far across from the screen centre a target may be
+  // ...and how far up or down (owner, 2026-10-22: the camera can't tilt up indoors); up and down
+  // count a third as much as across when choosing
+  interactMaxVerticalDeg: 60,
+  // Her facing's cone, across (owner, 2026-10-22: the camera and her facing each have one; the one
+  // the player moved last aims)...
+  interactFacingAngleDeg: 45,
+  // ...and how little counts as moving it: the camera turned (°), she turned (°) or stepped (m) in a frame
+  aimByCameraDeg: 0.3,
+  aimByFacingDeg: 0.3,
+  aimByStep: 0.003,
   talkReach: 1.6, // m, from her chest to a character's bounds: further than a thing's (across the crew quarters' table)
   // The dialogue box (dialogue.ts): the typewriter's speed; with *reduced motion* the line is there at once.
   dialogueCharMs: 35, // ms a character; 0: the whole line at once

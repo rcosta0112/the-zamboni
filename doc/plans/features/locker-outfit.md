@@ -1,6 +1,6 @@
 # Changing clothes at the locker (item 72)
 
-**Status:** *approved* (owner, 2026-10-21: "lets do the locker outfits"). **Pass 1 built 2026-10-21, for the owner's look** (below); pass 2 next.
+**Status:** *approved* (owner, 2026-10-21: "lets do the locker outfits"). **Built 2026-10-21:** pass 1 approved by the owner (with the little backpack off with the jumpsuit too), pass 2 for the owner's look (notes below each pass). What exists: [interaction](../../features/interaction.md#her-lockers-clothes).
 
 ## Goal
 
@@ -56,6 +56,8 @@ At **her own locker**, Dr. Green swaps the indoor **jumpsuit and sneakers** for 
 2. The Ink variable `green_outfit` (start: `jumpsuit`) and an `outfit:` line in a scene's setup. Chapter 1 starts in the jumpsuit.
 3. The save keeps it; *Continue* restores the clothes and the locker.
 - **Check:** a probe opens her locker, puts on the parka, reloads (*Continue*), takes it off. Then the whole smoke run once.
+
+> **[Agent note]** **Pass 2, as built (2026-10-21):** the five things tagged in 1.22 by [`add-locker-clothes-ids.py`](../../../app/prototypes/0.0.2/tools/add-locker-clothes-ids.py) (`id`, `kind` `outfit` / `clothes`, `outfit`; the parka `behind: crew-locker-door-1`), so the export keeps them as objects of their own and passes `outfit` and `behind` through. `src/clothes.ts` (the rack's pattern: the hidden parka stays the target for *Take off parka*); Ink's `VAR green_outfit = "jumpsuit"`, kept with `settings.outfit` once per frame in main.ts (Ink changed: she follows; otherwise Ink follows her), so the existing `outfit` command is the scene setup's line. Checked by `tools/locker-probe.js` / `locker-probe-after.js`: all 12 pass, screenshots. No check added to the smoke run.
 
 **Cost (estimates):** about 0.2–0.5 MB more to download; perhaps 4–8 more shader pipelines at load (both outfits through the see-through and the fade, a fraction of a second); the two passes as above, plus your Blender edit.
 

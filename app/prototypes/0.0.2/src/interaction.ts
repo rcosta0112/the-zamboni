@@ -1,8 +1,13 @@
 // Interaction: point at something and press E (keyboard) or Circle / B (gamepad) to use it.
-// "Pointing" in third person: of the targets within her reach (from her chest, not hidden behind
-// something solid), the one nearest the centre of the screen. No crosshair. A prompt next to the
-// target on screen names the action, with the button of the last device used (owner, 2026-10-12;
-// the highlight that came first is gone, 2026-10-14).
+// "Pointing" in third person: of the things within her reach (from her chest, not hidden behind
+// something solid) and in her room (the ship's rooms; owner, 2026-10-22), the one aimed at most nearly, by **whichever the player moved last** (owner, 2026-10-22):
+// the camera (its cone: interactMaxAngleDeg across) or her facing (hers: interactFacingAngleDeg
+// across); up and down come from the camera in both (interactMaxVerticalDeg; the camera can't tilt
+// up indoors) and count a third as much as across. Measured to its prompt's point (a door's handle,
+// otherwise its middle). Nothing in that cone: the other's. No crosshair. A prompt next to the target on screen names the
+// action, with the button of the last device used (owner, 2026-10-12; the highlight that came first
+// is gone, 2026-10-14); every other thing nearby shows a white circle at its prompt's point
+// (owner, 2026-10-22; plan: doc/plans/features/prompt-choice.md).
 // Targets: the doors, and the devices (the kinds `keypad`, `door-panel`, `lever`: the keypads by the
 // side door and the ramp, the bulkhead doors' panels, the engineering window's lever), each naming
 // what it opens by id with its `controls` tag. A door that a device controls isn't offered itself (the side door,
@@ -48,6 +53,8 @@ export interface Interactable {
   anchor?: (out: THREE.Vector3) => THREE.Vector3;
   /** The prompt centred above the anchor instead of beside it (a character's head). */
   above?: boolean;
+  /** A dot only while it's the target (the crew: owner, 2026-10-22). */
+  dotWhenTarget?: boolean;
   /** How far from her chest to its bounds it can be used (m). Not set: `settings.interactReach`. */
   reach?: () => number;
   /** The point her line of sight must reach (world, into `out`). Not set: the nearest of its bounds. */
@@ -248,6 +255,7 @@ export function crewInteractables(entities: Entities, story: () => GameStory | n
         return box.getCenter(out).setY(box.max.y + 0.08);
       },
       above: true,
+      dotWhenTarget: true,
       // Further than a thing's reach (across the crew quarters' table); the seat they're in doesn't hide them.
       reach: () => settings.talkReach,
       sightMargin: 0.6,
@@ -326,20 +334,49 @@ const GLYPH: Record<Device, string> = { gamepad: '◯', keyboard: 'E' };
 
 /** The prompt stays this far inside the screen's edges (px). */
 const EDGE = 8;
+/** The target's dot (px, as in style.css `.mark.active`), and the space between it and the prompt above it. */
+const DOT = 12;
+const GAP = 8;
+/** Nearer than this across (m), a thing is straight ahead for her facing's cone, whichever way she faces: she's at it (overhead, in its doorway). */
+const AT_HER = 0.4;
+/** How much up and down counts against across, choosing the target. */
+const VERTICAL_SHARE = 1 / 3;
+/** The target keeps its place unless another is better by this much (rad): no flicker as the camera sways. */
+const HOLD = THREE.MathUtils.degToRad(4);
 
 export class Interaction {
   target: Interactable | null = null;
+  /** The things whose circles show now (their names): for checks. */
+  get marked(): string[] {
+    return [...this.marks].filter(([, mark]) => mark.classList.contains('shown')).map(([item]) => item.name);
+  }
   /** Where the prompt's centre is on screen (CSS px), while there's a target: for checks. */
   readonly promptAt = { x: 0, y: 0 };
   private box = new THREE.Box3();
   private part = new THREE.Box3();
-  private centre = new THREE.Vector3();
-  private corner = new THREE.Vector3();
   private anchor = new THREE.Vector3();
   private closest = new THREE.Vector3();
   private toTarget = new THREE.Vector3();
   private forward = new THREE.Vector3();
-  private ray = new THREE.Ray();
+  private ahead = new THREE.Vector3();
+  private local = new THREE.Vector3();
+  private toCamera = new THREE.Quaternion();
+  private point = new THREE.Vector3();
+  private chestBox = new THREE.Box3();
+  /** Which aims (owner, 2026-10-22): the one the player moved last. For checks. */
+  aimBy: 'camera' | 'facing' = 'camera';
+  /** What aimed when the target was chosen: the hold applies only while the same one aims. */
+  private targetBy: 'camera' | 'facing' = 'camera';
+  private lastForward = new THREE.Vector3();
+  private lastFacing: number | null = null;
+  private lastChest = new THREE.Vector3();
+  /** The rooms a box is in (`Ship.roomsOf`); none set: no room rule. */
+  roomsOf: ((box: THREE.Box3) => string[]) | null = null;
+  /** The prompt's two parts: the button, and what it does. */
+  private glyph = document.createElement('span');
+  private verb = document.createElement('span');
+  /** Each nearby thing's circle, made the first time it's needed. */
+  private marks = new Map<Interactable, HTMLElement>();
   /** A use waiting for its click to finish: no other until it's done. */
   private pending = false;
   /** The ids switched off by a scene or a command (any of an item's objects): not offered. */
@@ -354,50 +391,82 @@ export class Interaction {
      * has finished; false if it didn't play. The thing acts (and makes its own sound) after it.
      */
     private used: (then: () => void) => boolean = () => false,
-  ) {}
+  ) {
+    this.glyph.className = 'glyph';
+    prompt.replaceChildren(this.glyph, ' ', this.verb);
+  }
 
   /**
    * Per frame: pick the target, show the prompt next to it; act on a press.
    * @param chest her chest (world)
+   * @param facing which way she faces (radians around +Y; 0 faces -Z)
    */
-  update(chest: THREE.Vector3, camera: THREE.Camera, device: Device, pressed: boolean, off = false): void {
-    // Off (she's climbing the ladder): no target, no prompt.
+  update(chest: THREE.Vector3, facing: number, camera: THREE.Camera, device: Device, pressed: boolean, off = false): void {
+    // Off (she's climbing the ladder): no target, no prompt, no circles.
     if (off) {
       this.target = null;
       this.prompt.hidden = true;
+      this.showMarks([], camera);
       return;
     }
+    camera.updateMatrixWorld();
     camera.getWorldDirection(this.forward);
-    this.ray.set(camera.position, this.forward);
-    const maxAngle = THREE.MathUtils.degToRad(settings.interactMaxAngleDeg);
-    let best: Interactable | null = null;
-    let bestAngle = Infinity;
-    let bestDistance = Infinity;
+    camera.getWorldQuaternion(this.toCamera).invert();
+    this.ahead.set(-Math.sin(facing), 0, -Math.cos(facing));
+    // The one moved last aims; both in one frame: the camera.
+    const deg = THREE.MathUtils.degToRad;
+    const turned = this.lastFacing === null ? 0 : Math.abs(Math.atan2(Math.sin(facing - this.lastFacing), Math.cos(facing - this.lastFacing)));
+    if (this.lastFacing !== null && this.forward.angleTo(this.lastForward) > deg(settings.aimByCameraDeg)) this.aimBy = 'camera';
+    else if (turned > deg(settings.aimByFacingDeg) || (this.lastFacing !== null && chest.distanceTo(this.lastChest) > settings.aimByStep)) this.aimBy = 'facing';
+    this.lastForward.copy(this.forward);
+    this.lastFacing = facing;
+    this.lastChest.copy(chest);
+    const mine = this.roomsOf?.(this.chestBox.set(chest, chest)) ?? [];
+    const maxAcross = deg(settings.interactMaxAngleDeg);
+    const maxFacing = deg(settings.interactFacingAngleDeg);
+    const maxUp = deg(settings.interactMaxVerticalDeg);
+    const nearby: Interactable[] = [];
+    const best = { camera: { item: null as Interactable | null, score: Infinity, distance: Infinity }, facing: { item: null as Interactable | null, score: Infinity, distance: Infinity } };
+    const consider = (by: keyof typeof best, item: Interactable, score: number, distance: number) => {
+      const b = best[by];
+      if (score < b.score - 1e-3 || (Math.abs(score - b.score) <= 1e-3 && distance < b.distance)) Object.assign(b, { item, score, distance });
+    };
     for (const item of this.items) {
       if (item.available && !item.available()) continue;
       if (this.disabled.size && item.objects.some((o) => this.disabled.has(o.userData.id as string))) continue;
       this.bounds(item);
       const distance = this.box.distanceToPoint(chest);
-      if (distance > (item.reach?.() ?? settings.interactReach)) continue;
+      // Within reach it can be used; a dot shows further (owner, 2026-10-22: everything close to her).
+      const reach = item.reach?.() ?? settings.interactReach;
+      if (distance > Math.max(reach, settings.interactDotReach)) continue;
+      // In her room (through a doorway, Adam in the cockpit isn't).
+      if (mine.length) {
+        const theirs = this.roomsOf!(this.box);
+        if (theirs.length && !theirs.some((room) => mine.includes(room))) continue;
+      }
       // Not behind something solid (its own collider is hit at about its own distance).
       if (item.sight) item.sight(this.closest);
       else this.box.clampPoint(chest, this.closest);
       const hit = distance > 0.05 ? this.physics.castRay(chest, this.closest) : null;
       if (hit !== null && hit < distance - (item.sightMargin ?? 0.15)) continue;
-      // How far from the screen centre: 0 if the view's centre line passes through it.
-      let angle = 0;
-      if (!this.ray.intersectsBox(this.box)) {
-        this.toTarget.subVectors(this.box.getCenter(this.centre), camera.position);
-        angle = this.toTarget.angleTo(this.forward);
-      }
-      if (angle > maxAngle) continue;
-      if (angle < bestAngle - 1e-3 || (Math.abs(angle - bestAngle) <= 1e-3 && distance < bestDistance)) {
-        best = item;
-        bestAngle = angle;
-        bestDistance = distance;
-      }
+      nearby.push(item);
+      if (distance > reach) continue;
+      // The angles to its prompt's point: across from the camera and from her facing, up/down
+      // from the camera. (Behind the camera, across is over 90°: out of the limit.)
+      this.point.copy(this.pointOf(item));
+      this.local.subVectors(this.point, camera.position).applyQuaternion(this.toCamera);
+      const across = Math.abs(Math.atan2(this.local.x, -this.local.z));
+      const up = Math.abs(Math.atan2(this.local.y, Math.hypot(this.local.x, this.local.z)));
+      if (up > maxUp) continue;
+      this.toTarget.subVectors(this.point, chest).setY(0);
+      const side = this.toTarget.lengthSq() < AT_HER * AT_HER ? 0 : this.toTarget.angleTo(this.ahead);
+      const hold = item === this.target && this.targetBy === this.aimBy ? HOLD : 0;
+      if (across <= maxAcross) consider('camera', item, across + up * VERTICAL_SHARE - hold, distance);
+      if (side <= maxFacing) consider('facing', item, side + up * VERTICAL_SHARE - hold, distance);
     }
-    this.target = best;
+    // The one moved last; nothing in its cone: the other's.
+    this.target = best[this.aimBy].item ?? best[this.aimBy === 'camera' ? 'facing' : 'camera'].item;
+    this.targetBy = this.aimBy;
     if (pressed && this.target && !this.pending) {
       const target = this.target;
       let done = false;
@@ -413,12 +482,46 @@ export class Interaction {
       else act();
     }
     if (this.target) {
-      this.prompt.textContent = `${GLYPH[device]}  ${this.target.verb()}`;
+      this.glyph.textContent = GLYPH[device];
+      this.verb.textContent = this.target.verb();
       this.prompt.hidden = false;
       this.placePrompt(this.target, camera);
     } else {
       this.prompt.hidden = true;
     }
+    this.showMarks(nearby, camera);
+  }
+
+  /** Where its prompt goes from (world): its anchor (a door's handle), or the middle of its bounds. Uses `this.box`. */
+  private pointOf(item: Interactable): THREE.Vector3 {
+    return item.anchor ? item.anchor(this.anchor) : this.box.getCenter(this.anchor);
+  }
+
+  /** A white dot at each of these things' prompt points, the target's full size (`active`); the others' dots fade out (CSS). */
+  private showMarks(items: Interactable[], camera: THREE.Camera): void {
+    const shown = new Set<HTMLElement>();
+    for (const item of items) {
+      if (item.dotWhenTarget && item !== this.target) continue;
+      this.bounds(item);
+      const point = this.pointOf(item);
+      if (this.toTarget.subVectors(point, camera.position).dot(this.forward) <= 0.05) continue;
+      let mark = this.marks.get(item);
+      if (!mark) {
+        mark = document.createElement('div');
+        mark.className = 'mark';
+        this.prompt.before(mark);
+        this.marks.set(item, mark);
+      }
+      point.project(camera);
+      const x = (point.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-point.y * 0.5 + 0.5) * window.innerHeight;
+      // `translate`, not `transform`: CSS applies `scale` (the smaller dots) before `transform`, which scaled the position too.
+      mark.style.translate = `${Math.round(x)}px ${Math.round(y)}px`;
+      mark.classList.add('shown');
+      mark.classList.toggle('active', item === this.target);
+      shown.add(mark);
+    }
+    for (const mark of this.marks.values()) if (!shown.has(mark)) mark.classList.remove('shown');
   }
 
   /** The target's bounds (all its parts), into `this.box`. */
@@ -428,10 +531,8 @@ export class Interaction {
   }
 
   /**
-   * The prompt next to the target on screen. With an anchor (a door's handle): 18 px beside it, on
-   * the side away from the target's centre (just outside a door's edge), to the right when the two
-   * are nearly in line; above it if the target says so (a character's head). Without: beside the centre of its bounds, to the right, clear of a small
-   * target (a keypad) and at most 60 px from the centre of a large one. Kept inside the screen's edges.
+   * The prompt centred above the target's dot (owner, 2026-10-22), GAP px clear of it. Behind the
+   * camera (it's inside the target's bounds): the middle of the screen. Kept inside the screen's edges.
    */
   private placePrompt(item: Interactable, camera: THREE.Camera): void {
     const width = window.innerWidth;
@@ -440,41 +541,13 @@ export class Interaction {
     const h = this.prompt.offsetHeight;
     this.bounds(item);
     camera.updateMatrixWorld();
-    this.box.getCenter(this.centre);
-    const point = item.anchor ? item.anchor(this.anchor) : this.centre;
-    // Behind the camera (it's inside the target's bounds): the middle of the screen.
-    const inFront = this.toTarget.subVectors(point, camera.position).dot(this.forward) > 0.05;
+    const point = this.pointOf(item);
     let x = width / 2;
     let y = height / 2;
-    if (inFront && item.anchor && item.above) {
+    if (this.toTarget.subVectors(point, camera.position).dot(this.forward) > 0.05) {
       point.project(camera);
       x = (point.x * 0.5 + 0.5) * width;
-      y = (-point.y * 0.5 + 0.5) * height - 10 - h / 2;
-    } else if (inFront && item.anchor) {
-      point.project(camera);
-      x = (point.x * 0.5 + 0.5) * width;
-      y = (-point.y * 0.5 + 0.5) * height;
-      let side = 1;
-      if (this.toTarget.subVectors(this.centre, camera.position).dot(this.forward) > 0.05) {
-        const centreX = (this.centre.project(camera).x * 0.5 + 0.5) * width;
-        if (Math.abs(x - centreX) > 8) side = Math.sign(x - centreX);
-      }
-      x += side * (18 + w / 2);
-    } else if (inFront) {
-      this.centre.project(camera);
-      x = (this.centre.x * 0.5 + 0.5) * width;
-      y = (-this.centre.y * 0.5 + 0.5) * height;
-      // Half the width of its bounds on screen, from the corners in front of the camera.
-      let halfWidth = 0;
-      for (let i = 0; i < 8; i++) {
-        this.corner.set(i & 1 ? this.box.max.x : this.box.min.x, i & 2 ? this.box.max.y : this.box.min.y, i & 4 ? this.box.max.z : this.box.min.z);
-        if (this.toTarget.subVectors(this.corner, camera.position).dot(this.forward) <= 0.05) continue;
-        this.corner.project(camera);
-        halfWidth = Math.max(halfWidth, Math.abs((this.corner.x * 0.5 + 0.5) * width - x));
-      }
-      x += Math.min(halfWidth, 60) + 12 + w / 2;
-    } else {
-      x += 12 + w / 2;
+      y = (-point.y * 0.5 + 0.5) * height - DOT / 2 - GAP - h / 2;
     }
     x = THREE.MathUtils.clamp(x, EDGE + w / 2, Math.max(EDGE + w / 2, width - EDGE - w / 2));
     y = THREE.MathUtils.clamp(y, EDGE + h / 2, Math.max(EDGE + h / 2, height - EDGE - h / 2));
@@ -482,4 +555,5 @@ export class Interaction {
     this.promptAt.y = y;
     this.prompt.style.transform = `translate(${Math.round(x - w / 2)}px, ${Math.round(y - h / 2)}px)`;
   }
+
 }
