@@ -7,13 +7,13 @@
 | | Task | For pass | Note |
 |---|---|---|---|
 | [SC-13](https://linear.app/eigodojo/issue/SC-13) | **Move Adam:** Adam Red into the pilot's seat (left, `Seat`), Adam Blue into the navigator's seat | 1 | The crew export takes their new places |
-| [SC-14](https://linear.app/eigodojo/issue/SC-14) | **Marks** for the crew's places in this scene: an empty per character, where their feet go, facing their way | 1 | The agent can make them at today's places by a script (ids `mark-…`), for the owner to move |
+| [SC-14](https://linear.app/eigodojo/issue/SC-14) | **A copy of each character per scene** (owner, 2026-10-22; replaces the marks): a collection `chapter-1` with a copy of each crew member, placed and animated for this scene; Dr. Green's copies in `Player` › `chapter-1`. [How](#a-copy-per-scene) | 1 | Today's crew (`Crew`, `Crew.001`) become the `landed` scene's copies |
 | [SC-15](https://linear.app/eigodojo/issue/SC-15) | **Dr. Kaufman's book** (a prop she holds while reading) | 1 | With her reading loop |
 | — | Her seat's id `cockpit-seat-pilot` → `cockpit-seat-copilot` | 1 | **The agent's** (a script, the save announced first, a backup) |
 
 ## The animations
 
-Named `<character>_<what>`, in the file each character is exported from. Stand-ins until each exists.
+Named `<character>_<what>`, in the ship file, each on the character's copy for its scene ([a copy per scene](#a-copy-per-scene)). Stand-ins until each exists.
 
 | | Who | Animation | Loop? | Where | For pass | Stand-in |
 |---|---|---|---|---|---|---|
@@ -29,6 +29,18 @@ Named `<character>_<what>`, in the file each character is exported from. Stand-i
 | [SC-19](https://linear.app/eigodojo/issue/SC-19) | Dr. Ogawa | standing, working on the sensor array on engineering's ceiling (owner, 2026-10-22) | loop | engineering | 1 | today's pose |
 | [SC-20](https://linear.app/eigodojo/issue/SC-20) | Each of the crew | talking: a nod, layered on top of their loop | while their line types | | 1 | a nod made in code |
 | [SC-30](https://linear.app/eigodojo/issue/SC-30) | The ship | the landing gear lowering (no rig: moved by hand) | once | the landing cutscene | 6 | only if a shot shows it |
+
+### A copy per scene
+
+(Owner, 2026-10-22, in place of empties as marks.) **Where a character stands in a scene and what they do there are a copy of them**, posed and animated, in that scene's collection. The game still loads one model per character; the export reads only each copy's place and action.
+
+- **A collection per scene, named by its id:** `chapter-1` (the flying scene), `landed` (today's scene: the crew now in `Crew` and `Crew.001`). One copy per character in it; a character not in a scene has no copy there. A prop for one scene (Dr. Kaufman's book) goes in its collection.
+- **Linked duplicates (Alt+D), not full copies (Shift+D):** mesh and rig shared, so an edit to a character reaches every copy. The export flags a copy whose mesh isn't shared.
+- **Duplicate the armature and its meshes together**, so each copied mesh follows the copied armature.
+- **Actions named `<character>_<what>`** (`ogawa_work`, `kaufman_read`, `adam-red_fly`, `green_sit`…), each with **a fake user** (an action nothing uses is dropped on save: Dr. Kaufman's was lost once).
+- **Loops in place:** the copy stands where the character stands; the loop's first and last frames match.
+- **Dr. Green's copies stay in `Player`, in a collection per scene** (`Player` › `chapter-1`). As for the ladder's climb: **copies of her jumpsuit rig** (`Dr. Green Jump suit`); a copy carries the action (sitting, getting up, sitting down) and where it starts (the seat). **The originals keep their exact names** (`Dr. Green Parka`, `Dr. Green Jump suit`, `Jetpack`, `Jetpack With Straps`, their meshes): the player export finds them by name and ignores the `.001` copies; a copy kept in place of a deleted original takes its name. A mesh copied alone stays on the original armature, counts in her 1.23 height check and stops every export (`SCALE:`).
+- **The export reads the scene collections from pass 1** (the crew export changes then anyway); until it's built, a new collection is only flagged.
 
 **Getting up and sitting down** play like the ladder's climb: she slides to the animation's start, the animation moves her (root motion), and control comes back where it ends. So, as with the ladder: the root moves with her, the start and end poses match her idle, and the seat's place is fixed in the file.
 

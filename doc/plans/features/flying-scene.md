@@ -128,6 +128,8 @@ The scene names its terrain: `"travel": { "terrain": "ice-plain" }` (speed and h
 
 `travel` turns on the treadmill, the ship's noise and the flight rules. `place` takes a **mark** (an empty in the ship file with an id: the owner places the crew in Blender) and a **loop** (the character's action for the scene). The ids are guesses until built.
 
+> **Update (owner, 2026-10-22): a copy per scene instead of empties.** The owner places a linked copy of each character, animated, in a collection per scene (`chapter-1`, `landed`; Dr. Green's in `Player` › `<scene>`): the copy's place is the mark, its action the loop. The crew export reads each scene collection (who, where, which action) and writes one model per character with its clips; the scene data can then take the places and loops from the export instead of listing them. Details: [the Blender tasks](flying-scene-blender.md#a-copy-per-scene).
+
 ## The work, in passes (a stop to assess after each)
 
 A **big task** (CLAUDE.md rule 5): about 20 hours of agent work over seven passes, plus the owner's art and lines. Budget at 7.6% of the weekly limit (2026-10-22); checked before each pass.

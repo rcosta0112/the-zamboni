@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-22 | A copy of each character per scene, in Blender | pipeline | A collection per scene (by its id) with a linked copy of each character, placed and animated for it: the copy's place is the mark, its action the loop; Dr. Green's in `Player` › `<scene>`; the game still loads one model per character |
 | 2026-10-22 | The work is tracked in Linear, for the owner | process | Linear (team `SC`) shows the owner's next task and how the project goes; one project per big piece of work, *The Zamboni: ongoing* for the rest; the agent keeps it current every session; the repo stays the source of truth |
 | 2026-10-22 | Topics in conversations | feature | Ink choices as topics: the player picks what to ask from a list (up/down, the interact button); a heard topic goes, a leave topic stays; reverses pass 2's *no choices* |
 | 2026-10-22 | What the save keeps: what the player shouldn't have to do again | architecture | No action repeated unless the story asks for it: most interactions reset on a reload (doors, music); some are saved in Ink (for now her clothes and the jetpack), the list grows as we go; saved after each conversation and when one changes |
@@ -52,6 +53,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-22] — A copy of each character per scene, in Blender (pipeline)
+
+**Context:** the flying scene's plan placed the crew per scene at **marks** (an empty per character in the ship file) with a **loop** (an action) named in the scene's data. The owner asked how to build the animations, and whether copies of the characters, one per scene, could be used instead, as easier to manage.
+
+**Decision (owner, 2026-10-22):** **a collection per scene, named by the scene's id** (`chapter-1`, `landed`), holding **a linked copy (Alt+D) of each character** in that scene, placed and animated for it: the copy's place is the mark, its action (`<character>_<what>`, with a fake user) the loop. **Dr. Green's copies stay in `Player`**, in a collection per scene (`Player` › `chapter-1`), copies of her jumpsuit rig; the originals keep their exact names. The crew export (pass 1 of the flying scene) reads each scene collection and writes **one model per character** with its clips; a copy whose mesh isn't shared is flagged. Details: [the Blender tasks](plans/features/flying-scene-blender.md#a-copy-per-scene).
+
+**Alternatives:** empties as marks and actions on one copy of each character (the plan's: places and animations made in two places); full copies (Shift+D: an edit to a character wouldn't reach its other copies, and the game would load each copy).
+
+**Rationale:** the owner sees and animates each scene as it plays, in one place; the export already had to change in pass 1 for marks and loops, so this costs little; the download stays one model per character.
+
+**Status:** decided; built in the flying scene's pass 1 (SC-14).
 
 ---
 
