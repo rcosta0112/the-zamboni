@@ -46,6 +46,64 @@ body {
   pointer-events: none;
 }
 
+/* Every cutscene's black bars (owner, 2026-10-22): the picture cut to 2.39:1, the cinema's widescreen.
+   They slide in as a cutscene starts and out as it hands back (main.ts sets .on). Under the dialogue box. */
+#bars i {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 0;
+  background: #000;
+  pointer-events: none;
+  transition: height 0.5s ease-in-out;
+}
+
+#bars i:first-child {
+  top: 0;
+}
+
+#bars i:last-child {
+  bottom: 0;
+}
+
+#bars.on i {
+  height: max(0px, calc((100vh - 100vw / 2.39) / 2));
+}
+
+/* The animatic's stand-in card (the flying scene, pass 1): over the view after NEW GAME. */
+#animatic {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+  font-size: 28px;
+  background: #000;
+  pointer-events: none;
+  /* Over the start screen as it leaves (its own fade is 600 ms). */
+  animation: animatic-in 0.6s ease-out;
+}
+
+@keyframes animatic-in {
+  from {
+    opacity: 0;
+  }
+}
+
+#animatic p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+#animatic small {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+#animatic[hidden],
 #paused[hidden] {
   display: none;
 }

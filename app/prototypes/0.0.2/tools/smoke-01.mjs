@@ -10,7 +10,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { answers, findChrome, openBrowser, useStartButton } from './browser.mjs';
 
-const URL_01 = 'http://localhost:5202/';
+const URL_01 = 'http://localhost:5202/?test'; // the checks' game: the test story, from the landed ship
 const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 // ---------------------------------------------------------------------------------------------
@@ -855,7 +855,7 @@ async function checks() {
     report(false, 'the engineering window plays the door sound once each way', 'the lever could not be aimed at');
   }
 
-  const boxItem = boombox ? items.find((i) => i === boombox.interactable) : null;
+  const boxItem = boombox ? items.find((i) => i.objects[0] === boombox.interactable.objects[0]) : null; // the interactions hold a copy (respectLocks)
   if (!boombox || !boxItem || !(await aimFromAnySide(boxItem))) {
     report(false, 'the boombox can be aimed at', boombox ? `target: ${interaction.target?.name ?? 'none'}` : 'no boombox in the ship');
   } else {
@@ -906,16 +906,19 @@ async function checks() {
     report(stopped && third && fourth && endsOff && off && still, 'the boombox steps round its ring: 1, 2, 3, 4, off', `a use stops the track at once: ${stopped}; 3: ${third}; 4: ${fourth}, prompt "${last}"; the fourth ends in off: ${endsOff}; used on the fourth, off: ${off}, prompt "${prompt.textContent}"; still again: ${still}`);
   }
 
-  // The ship's noise: both sounds together while it's flying; each repeats with no silence (in this
-  // browser: the level around the point where one copy of the file hands over to the other).
+  // The ship's noise: one file (its two sounds mixed) while it's flying; it repeats with no silence
+  // (in this browser: the level around the point where one copy of the file hands over to the other).
   settings.shipFlying = true;
-  const flying = await until(() => audio.noise?.length === 2 && audio.noise.every((n) => n.playing), 5000);
-  report(flying && audio.playing().includes('amb_ship_noise'), 'ship flying: both noise sounds play', `${audio.noise?.filter((n) => n.playing).length ?? 0} of ${audio.noise?.length ?? 0} playing`);
-  if (flying) {
-    await until(() => audio.noise.every((n) => n.elements[n.active].duration > 0 && n.elements[n.active].currentTime > 0.5), 8000);
+  const noise = () => (audio.noise ? [audio.noise] : []);
+  const flying = await until(() => audio.noise?.playing, 5000);
+  report(flying && audio.playing().includes('amb_ship_noise'), 'ship flying: the noise plays', `playing ${audio.noise?.playing ?? false}`);
+  // The file is long (7 min, streamed): its length can take a while to be known.
+  const known = flying && (await until(() => noise().every((n) => n.elements[n.active].duration > 0 && n.elements[n.active].currentTime > 0.5), 20000));
+  if (flying && !known) report(false, 'the ship noise repeats with no silence where it starts again', 'its length never became known');
+  if (known) {
     const seams = [];
     let seamless = true;
-    const taps = audio.noise.map((n) => {
+    const taps = noise().map((n) => {
       const analyser = audio.context.createAnalyser();
       analyser.fftSize = 2048;
       n.out.connect(analyser);
@@ -933,14 +936,14 @@ async function checks() {
       }
       await wait(25);
     }
-    for (const [i, t] of taps.entries()) {
+    for (const t of taps) {
       // The first second is the seek settling.
       const levels = t.levels.slice(40);
       const mean = levels.reduce((a, b) => a + b, 0) / levels.length;
       const quietest = Math.min(...levels);
       const handedOver = t.n.active !== t.active && t.n.elements[t.n.active].currentTime < 6;
       if (!(handedOver && mean > 0 && quietest > mean * 0.25)) seamless = false;
-      seams.push(`${i === 0 ? 'a' : 'b'}: handed over ${handedOver}, quietest ${(quietest / mean * 100).toFixed(0)}% of the mean level`);
+      seams.push(`handed over ${handedOver}, quietest ${(quietest / mean * 100).toFixed(0)}% of the mean level`);
       t.n.out.disconnect(t.analyser);
     }
     report(seamless, 'the ship noise repeats with no silence where it starts again', seams.join('; '));

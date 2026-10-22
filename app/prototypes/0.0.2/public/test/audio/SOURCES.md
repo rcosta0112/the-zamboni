@@ -12,8 +12,7 @@ Made by [`app/prototypes/0.0.2/tools/encode-audio.mjs`](../../../tools/encode-au
 | `mus_boombox_02.m4a` | `Anamanaguchi - My Skateboard Will Go On_01.wav` (stereo, 8-bit) | Anamanaguchi, "My Skateboard Will Go On" | Commercial release | **None** |
 | `mus_boombox_03.m4a` | `2NRO8OT - Crash Of The First Interstellar Channel_01.wav` (stereo, 8-bit) | 2NRO8OT, "Crash Of The First Interstellar Channel" | Not known | **None** |
 | `mus_boombox_04.m4a` | `2NRO8OT - Ugol Padeniya_01.wav` (stereo, 8-bit) | 2NRO8OT, "Ugol Padeniya" | Not known | **None** |
-| `amb_ship_noise_a_loop.m4a` | `plane_cessna152_flight-52790_01.wav` (mono, 16-bit; taken out of the UE asset) | Not known | Not known (the name looks like a Pixabay download, id 52790) | Not checked |
-| `amb_ship_noise_b_loop.m4a` | `plane-landing-23118_01.wav` (mono, 16-bit; taken out of the UE asset) | Not known | Not known (the name looks like a Pixabay download, id 23118) | Not checked |
+| `amb_ship_noise_loop.m4a` | Two masters mixed by `encode-audio.mjs` (2026-10-22): `plane_cessna152_flight-52790_01.wav` and `plane-landing-23118_01.wav` (both mono, 16-bit; taken out of the UE asset) | Not known | Not known (the names look like Pixabay downloads, ids 52790 and 23118) | Not checked |
 
 ## The interactions and the footsteps (2026-10-13)
 

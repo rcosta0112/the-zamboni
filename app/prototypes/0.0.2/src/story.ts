@@ -6,7 +6,8 @@
 // with its speaker (the name before a colon, as the script is written); talking to a character runs
 // `talk_<id>`. Ink's choices are the conversation's topics (owner, 2026-10-22): a knot runs up to its
 // choices, the box shows them, and the one picked (`choose`) runs on to the next ones or the end.
-// The slice's story is a test one, `public/test/story.ink` (compiled by `npm run ink`). Its whole
+// The game's story is `public/story/story.ink` (the owner's lines, copied from the scene files);
+// the checks' is `public/test/story.ink` (`?test`, main.ts); both compiled by `npm run ink`. Its whole
 // state is what a save keeps of the story (save.ts).
 // Plans: doc/plans/architecture/game-architecture/game-structure.md (passes 3, 4),
 // doc/plans/features/dialogue.md (passes 1, 2, topics)
@@ -35,6 +36,8 @@ function fromInk(name: string, id: string, value: string): Command | null {
 /** A line of a knot: who says it (null: narration) and what. */
 export interface Line {
   speaker: string | null;
+  /** The speaker's character id (null: narration): a watched conversation's camera finds them by it. */
+  id: string | null;
   text: string;
 }
 
@@ -66,7 +69,7 @@ export function displayName(id: string): string {
 function toLine(raw: string): Line {
   const colon = raw.indexOf(':');
   const id = colon > 0 ? SPEAKERS[raw.slice(0, colon).trim()] : undefined;
-  return id ? { speaker: displayName(id), text: raw.slice(colon + 1).trim() } : { speaker: null, text: raw };
+  return id ? { speaker: displayName(id), id, text: raw.slice(colon + 1).trim() } : { speaker: null, id: null, text: raw };
 }
 
 export class GameStory {

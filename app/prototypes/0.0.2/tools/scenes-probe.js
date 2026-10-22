@@ -15,15 +15,15 @@ const amount = (id) => w.__entity(id)?.components[0]?.amount;
 const kaufman = () => w.__entity('kaufman')?.object;
 const atBlender = ([x, y, z]) => ship.object.localToWorld(new T.Vector3(x, z, -y));
 
-report(director?.current === 'opening', 'the game starts in opening', `current: ${director?.current}`);
+report(director?.current === 'landed', 'the checks start in landed', `current: ${director?.current}`);
 const home = kaufman()?.getWorldPosition(new T.Vector3());
 report(Boolean(home), 'Dr. Kaufman is an entity with a root', home ? fmt(home) : 'no entity "kaufman"');
 
-for (const id of ['later', 'opening', 'later']) {
+for (const id of ['later', 'landed', 'later']) {
   await director.start(id);
   await wait(2000);
   await shot(`scene-${id}`);
-  const data = await (await fetch(`/test/scenes/${id}.json`)).json();
+  const data = await (await fetch(`/${id === 'landed' ? '' : 'test/'}scenes/${id}.json`)).json();
   const feet = w.__character.position;
   const want = atBlender(data.player.at);
   const near = Math.hypot(feet.x - want.x, feet.z - want.z) < 0.3;

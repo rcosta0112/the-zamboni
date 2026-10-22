@@ -29,5 +29,5 @@
   "ui_interact": { "file": "sfx_latch_open.m4a", "bus": "ui", "volume": 0.3, "rate": 1.3 },
   "mus_part1_theme": { "file": "mus_part1_theme.m4a", "bus": "music", "volume": 0.7, "stream": true, "loop": true, "crossfade": 2 },
   "amb_wind": { "file": "amb_wind_loop.m4a", "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 3 },
-  "amb_ship_noise":{ "layers": ["amb_ship_noise_a_loop.m4a", "amb_ship_noise_b_loop.m4a"], "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 2 }
+  "amb_ship_noise": { "file": "amb_ship_noise_loop.m4a", "bus": "ambience", "volume": 1, "stream": true, "loop": true, "crossfade": 2 }
 }

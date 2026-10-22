@@ -38,6 +38,6 @@ story?.set('side_door_unlocked', false);
 await director.start('locked');
 report(door()?.locked === true, 'the variable cleared: locked again', `locked ${door()?.locked}`);
 
-await director.start('opening');
-report(door()?.locked === false, 'opening: nothing locked', `locked ${door()?.locked}`);
+await director.start('landed');
+report(door()?.locked === false, 'landed: nothing locked', `locked ${door()?.locked}`);
 return results;

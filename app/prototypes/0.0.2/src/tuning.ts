@@ -171,8 +171,6 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   sound.add(settings, 'volumeInteraction', 0, 3, 0.05).name('interaction sounds');
   sound.add(settings, 'volumeSteps', 0, 3, 0.05).name('footsteps');
   sound.add(settings, 'shipFlying').name('ship flying (its noise)').listen();
-  sound.add(settings, 'shipNoiseA', 0, 1, 0.01).name('ship noise: flight sound');
-  sound.add(settings, 'shipNoiseB', 0, 1, 0.01).name('ship noise: landing sound');
   sound.add(settings, 'shipNoiseOutdoors', 0, 1, 0.05).name('ship noise outside the ship');
   sound.add(settings, 'windIndoors', 0, 1, 0.01).name('wind inside the ship');
   sound.add(settings, 'windCargoOpen', 0, 1, 0.01).name('wind in the cargo bay, ramp + door open');

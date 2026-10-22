@@ -1,0 +1,11 @@
+{
+  "location": "ship",
+  "player": { "at": [-0.2, -2.6, 3.74], "yaw": 0 },
+  "travel": { "terrain": "ice-plain" },
+  "setup": [
+    { "do": "outfit", "set": "jumpsuit" },
+    { "do": "set", "id": "engineering-window-left", "state": "open" },
+    { "do": "set", "id": "engineering-window-right", "state": "open" },
+    { "do": "set", "id": "engineering-window-lever-handle", "state": "open" }
+  ]
+}

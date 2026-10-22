@@ -1,0 +1,8 @@
+{
+  "knot": "cutscene_opening",
+  "wait": 1.5,
+  "shots": {
+    "adam-red": { "from": [1.55, -3.73, 5.25] },
+    "ogawa": { "from": [-1.91, -3.05, 5.03], "look": [-0.8, -2.6, 4.6] }
+  }
+}

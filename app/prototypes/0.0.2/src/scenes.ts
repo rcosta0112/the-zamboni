@@ -1,16 +1,23 @@
-// Scenes: story beats in a location. A scene is a small data file (`public/test/scenes/<id>.json`):
-// its location, where she starts and the setup, a list of commands (commands.ts). Starting one puts
-// the location back to its kinds' defaults (every door and the ramp closed, every interaction on, the
-// crew where they were exported), then applies the setup, snaps the doors there and puts her at her
-// start. Each scene start is a checkpoint (`onStarted`: main.ts saves once the game has begun).
-// Dev builds: `?scene=<id>` in the address starts another scene than `opening`;
+// Scenes: story beats in a location. A scene is a small data file (`public/scenes/<id>.json`, the
+// game's; `public/test/scenes/<id>.json`, the checks'): its location, where she starts, whether the
+// ship is flying (`travel`) and the setup, a list of commands (commands.ts). Starting one puts the
+// location back to its kinds' defaults (every door and the ramp closed, nothing locked, every
+// interaction on, the crew where they were exported), then the flight rules if the ship is flying,
+// then the setup; it snaps the doors there and puts her at her start. Each scene start is a checkpoint
+// (`onStarted`: main.ts saves once the game has begun).
+// **The flight rules** (owner, 2026-10-22), on every scene with `travel`: the outer doors and hatches,
+// the jetpacks and her parka locked (`FLIGHT_LOCKED`; their `use_<id>` knots say why), the story's
+// `ship_flying` set and the ship's noise on. The scenery going by is pass 4.
+// Dev builds: `?scene=<id>` in the address starts another scene than the first;
 // `__director().start('<id>')`.
-// Plan: doc/plans/architecture/game-architecture/game-structure.md (*Locations and scenes*, pass 2)
+// Plans: doc/plans/architecture/game-architecture/game-structure.md (*Locations and scenes*, pass 2),
+// doc/plans/features/flying-scene.md (*The flight rules*, pass 1)
 
 import * as THREE from 'three/webgpu';
 import { run, fromBlender, type Command, type CommandTarget } from './commands';
 import { Placement } from './crew';
 import { Door } from './doors';
+import { settings } from './settings';
 import { updateShip, type Ship } from './ship';
 
 export interface SceneData {
@@ -18,10 +25,30 @@ export interface SceneData {
   location: 'ship';
   /** Her feet (the ship file's Blender coordinates) and the camera's yaw (degrees, the game's). */
   player: { at: [number, number, number]; yaw: number };
+  /** The ship is flying: the flight rules, its noise; the terrain going by (pass 4). */
+  travel?: { terrain: string };
   setup: Command[];
 }
 
-export const FIRST_SCENE = 'opening';
+/** A new game's first scene. */
+export const FIRST_SCENE = 'chapter-1';
+/** The checks' first scene (dev builds, `?test`: the test story): the ship landed, as the checks were written for. */
+export const TEST_SCENE = 'landed';
+
+/**
+ * What the flight rules lock (owner, 2026-10-22): the outer doors and hatches (their keypads with
+ * them), the jetpacks and her parka. By kind; the roof hatch by id (the floor hatch is a hatch too).
+ */
+const FLIGHT_LOCKED = { kinds: ['ramp', 'drop-door', 'jetpack', 'outfit'], ids: ['top-hatch-lower', 'top-hatch-upper'] };
+
+/** A scene's file: the game's, else the checks'. (Vite answers a missing file with the page: not JSON.) */
+async function sceneFile(id: string): Promise<SceneData> {
+  for (const url of [`/scenes/${id}.json`, `/test/scenes/${id}.json`]) {
+    const response = await fetch(url);
+    if (response.ok && response.headers.get('content-type')?.includes('json')) return (await response.json()) as SceneData;
+  }
+  throw new Error(`no scene "${id}"`);
+}
 
 export class SceneDirector {
   /** The scene started last. */
@@ -37,9 +64,7 @@ export class SceneDirector {
   ) {}
 
   async start(id: string): Promise<void> {
-    const response = await fetch(`/test/scenes/${id}.json`);
-    if (!response.ok) throw new Error(`no scene "${id}" (${response.status})`);
-    this.apply(id, (await response.json()) as SceneData);
+    this.apply(id, await sceneFile(id));
   }
 
   apply(id: string, scene: SceneData): void {
@@ -53,6 +78,15 @@ export class SceneDirector {
       }
     }
     this.target.disabled.clear();
+    this.target.locked.clear();
+    // The flight rules, before the setup (its `if` may read `ship_flying`).
+    const flying = scene.travel !== undefined;
+    settings.shipFlying = flying;
+    if (this.target.story?.get('ship_flying') !== undefined) this.target.story.set('ship_flying', flying);
+    if (flying) {
+      const ids = [...FLIGHT_LOCKED.ids, ...[...this.ship.entities.all()].filter((e) => FLIGHT_LOCKED.kinds.includes(e.kind)).map((e) => e.id)];
+      for (const id of ids) run({ do: 'lock', id }, this.target);
+    }
     for (const command of scene.setup) run(command, this.target);
     updateShip(this.ship, 0, true);
     this.placePlayer(this.ship.object.localToWorld(fromBlender(scene.player.at)), THREE.MathUtils.degToRad(scene.player.yaw));

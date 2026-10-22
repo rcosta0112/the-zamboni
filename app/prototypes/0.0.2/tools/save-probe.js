@@ -17,7 +17,7 @@ const sideDoor = () => w.__entity('side-door')?.components[0];
 report(w.__start().shown === 'new', 'no save yet: a new game under the start screen', `shown ${w.__start().shown}`);
 await wait(300); // the first save: the scene under the screen, written when the button was used
 const first = await w.__save.read();
-report(first?.checkpoint === 'opening', 'START saved the first scene', `checkpoint ${first?.checkpoint}`);
+report(first?.checkpoint === 'landed', 'START saved the first scene', `checkpoint ${first?.checkpoint}`);
 
 await director.start('locked');
 keypad?.act();

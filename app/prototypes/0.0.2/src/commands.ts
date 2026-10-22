@@ -15,7 +15,10 @@ import type { GameStory } from './story';
 export type Command = (
   /** Open or close a door, a hatch, the ramp. */
   | { do: 'set'; id: string; state: 'open' | 'closed' }
-  /** Lock or unlock one: locked, she can't open it (nor from its keypad); scenes and Ink still can. */
+  /**
+   * Lock or unlock anything she can use: locked, its `use_<id>` knot runs instead of its action (or
+   * "Locked"). A door, hatch or the ramp can't be opened from its keypad either; scenes and Ink still can.
+   */
   | { do: 'lock' | 'unlock'; id: string }
   /** Offer or stop offering something to use (its prompt), by its id. */
   | { do: 'enable' | 'disable'; id: string }
@@ -43,6 +46,8 @@ export interface CommandTarget {
   entities: Entities;
   /** The ids whose interactions are off (`Interaction.disabled`). */
   disabled: Set<string>;
+  /** The ids locked that don't open (a jetpack, her parka): `respectLocks` reads it. */
+  locked: Set<string>;
   play: (cue: CueId, at?: THREE.Object3D) => void;
   /** Null until it's loaded (or if it couldn't be): `if` / `unless` then count as false. */
   story: GameStory | null;
@@ -69,9 +74,11 @@ export function run(command: Command, target: CommandTarget): void {
     }
     case 'lock':
     case 'unlock': {
-      const openable = entity?.find(isOpenable);
-      if (!openable) return missing();
-      openable.locked = command.do === 'lock';
+      if (!entity) return missing();
+      const openable = entity.find(isOpenable);
+      if (openable) openable.locked = command.do === 'lock';
+      else if (command.do === 'lock') target.locked.add(command.id);
+      else target.locked.delete(command.id);
       return;
     }
     case 'story':

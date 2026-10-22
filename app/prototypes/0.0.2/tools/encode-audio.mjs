@@ -25,9 +25,12 @@ const FILES = [
   ['mus_boombox_02', 'Anamanaguchi - My Skateboard Will Go On_01', '64k', 2],
   ['mus_boombox_03', '2NRO8OT - Crash Of The First Interstellar Channel_01', '64k', 2],
   ['mus_boombox_04', '2NRO8OT - Ugol Padeniya_01', '64k', 2],
-  ['amb_ship_noise_a_loop', 'plane_cessna152_flight-52790_01', '48k', 1],
-  ['amb_ship_noise_b_loop', 'plane-landing-23118_01', '48k', 1],
 ];
+// The ship's noise (flying scene, pass 1; owner, 2026-10-22: one file): the two plane recordings mixed
+// at the levels the game played them at (0.5 each), as long as the flight one (7:05); the landing one
+// (1:34) repeated under it, each repeat crossfaded into the next. The game crossfades the file's end
+// into its start (`crossfade` in cues.json), as it did for each of the two.
+const NOISE = { name: 'amb_ship_noise_loop', a: 'plane_cessna152_flight-52790_01', b: 'plane-landing-23118_01', levels: [0.5, 0.5], fade: 2, bitrate: '48k' };
 // [game file, the master's whole path, bit rate, channels]: masters that aren't in resources/.
 // Part 1's soundtrack is 44.1 kHz and keeps it; so does its jetpack's sound (it loops). The wind is
 // from the Islands project (44.1 kHz, kept): it fades in and out, so only the part between is kept
@@ -66,5 +69,31 @@ for (const [name, path, bitrate, channels, wanted, trim] of [...found, ...ELSEWH
     continue;
   }
   console.log(`${name}.m4a  ${(statSync(out).size / 1024).toFixed(0)} kB  ← ${master}`);
+}
+if (!ONLY || ONLY === NOISE.name) {
+  const [a, b] = [NOISE.a, NOISE.b].map((from) => masters.find((f) => f.startsWith(from) && f.toLowerCase().endsWith('.wav')));
+  if (!a || !b) {
+    console.error(`MISSING  ${!a ? NOISE.a : NOISE.b}*.wav (for ${NOISE.name})`);
+    failed++;
+  } else {
+    const seconds = (file) => Number(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' }).stdout);
+    const [long, short] = [seconds(join(MASTERS, a)), seconds(join(MASTERS, b))];
+    const copies = Math.ceil((long - NOISE.fade) / (short - NOISE.fade)) + 1;
+    // Input 0 the flight sound, 1..copies the landing one; the landing copies chained by crossfades.
+    const inputs = ['-i', join(MASTERS, a), ...Array.from({ length: copies }, () => ['-i', join(MASTERS, b)]).flat()];
+    const chain = [];
+    let last = '1:a';
+    for (let i = 2; i <= copies; i++) {
+      chain.push(`[${last}][${i}:a]acrossfade=d=${NOISE.fade}:c1=qsin:c2=qsin[b${i}]`);
+      last = `b${i}`;
+    }
+    const filter = [...chain, `[0:a]volume=${NOISE.levels[0]}[x]`, `[${last}]atrim=0:${long},volume=${NOISE.levels[1]}[y]`, '[x][y]amix=inputs=2:duration=first:normalize=0[out]'].join(';');
+    const out = join(OUT, `${NOISE.name}.m4a`);
+    const run = spawnSync('ffmpeg', ['-y', '-v', 'error', ...inputs, '-filter_complex', filter, '-map', '[out]', '-ac', '1', '-c:a', 'aac', '-b:a', NOISE.bitrate, '-movflags', '+faststart', out], { stdio: ['ignore', 'inherit', 'inherit'] });
+    if (run.status !== 0) {
+      console.error(`FAILED   ${NOISE.name}`);
+      failed++;
+    } else console.log(`${NOISE.name}.m4a  ${(statSync(out).size / 1024).toFixed(0)} kB  ← ${a} + ${b} (${copies} times)`);
+  }
 }
 process.exit(failed === 0 ? 0 : 1);

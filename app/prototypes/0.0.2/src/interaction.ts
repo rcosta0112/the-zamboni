@@ -15,7 +15,8 @@
 // roof hatch's two parts), and a panel moves all of them (a bulkhead door's two leaves).
 // Other devices (the boombox) make their own target and are handed in (`others`).
 // Locked (a scene or Ink): a door, or its keypad or panel, offers its story knot (`use_<id>`, its
-// `# verb:` tag as the prompt) if the story has one, otherwise "Locked" (`respectLocks`). A knot
+// `# verb:` tag as the prompt) if the story has one, otherwise "Locked" (`respectLocks`); so does
+// anything else locked by id (the flight rules: a jetpack, her parka). A knot
 // tagged `# instead` runs in place of the action, locked or not (the crew's lockers: her remark).
 // The crew: *Talk to Dr. Kaufman* (and so on) when the story has their `talk_<id>` knot, the prompt
 // above their heads (`crewInteractables`). A thing with no action of its own (the pilot's seat) is
@@ -303,12 +304,13 @@ function shown(object: THREE.Object3D): boolean {
  * ("Use" without one); with no knot, it says "Locked" and does nothing. A knot tagged `# instead`
  * runs whether it's locked or not (someone else's locker: she says so, it stays shut).
  */
-export function respectLocks(items: Interactable[], story: () => GameStory | null, run: (command: Command) => void): Interactable[] {
+export function respectLocks(items: Interactable[], story: () => GameStory | null, run: (command: Command) => void, lockedIds: ReadonlySet<string> = new Set()): Interactable[] {
   return items.map((item) => {
-    const controls = item.controls;
-    if (!controls?.length) return item;
+    const controls = item.controls ?? [];
     const id = item.objects[0]?.userData.id as string | undefined;
-    const locked = () => controls.some((c) => c.locked);
+    if (!controls.length && !id) return item;
+    // What it opens is locked, or it is (a jetpack, her parka: the `lock` command on a thing that doesn't open).
+    const locked = () => controls.some((c) => c.locked) || (id !== undefined && lockedIds.has(id));
     const knot = () => (id ? (story()?.useKnot(id) ?? null) : null);
     const instead = () => {
       const k = knot();

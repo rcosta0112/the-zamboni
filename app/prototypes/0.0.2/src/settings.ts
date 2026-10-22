@@ -277,8 +277,6 @@ export const settings = {
   volumeInteraction: 1, // the placeholder sounds of doors, panels, the lever, the ramp and the ladder, as a set
   volumeSteps: 1, // her footsteps and landings
   shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
-  shipNoiseA: 0.5, // the level of each of its two sounds (a: the long flight recording; b: the landing)
-  shipNoiseB: 0.5,
   shipNoiseOutdoors: 0.4, // its level outside the ship, as a share of inside
   // The wind (owner, 2026-10-14): full outside; inside, as a share of that: faint, and louder in the
   // cargo bay with the ramp and the side door open (each by the size of its opening).

@@ -9,6 +9,8 @@
 // choose from, in the box under her name, the first selected; up / down move the selection (no wrap),
 // the button picks it (`onChoose`), and the story's next lines (the answer) come back through `start`.
 // main.ts holds her still while one is on; the camera still turns (owner, 2026-10-21).
+// **Moving on by itself** (`autoNext`; a watched conversation, owner, 2026-10-22): a line typed out
+// waits that long, then the next comes (the last ends it); a press still completes or skips.
 // Time is the game's: it stops with the pause.
 // Plan: doc/plans/features/dialogue.md (passes 1, 2, topics)
 
@@ -38,6 +40,10 @@ export class Dialogue {
   private shown: DialogueView | null = null;
   /** A conversation has ended, or a knot that says nothing (main.ts saves). */
   onEnded: (() => void) | null = null;
+  /** Set: each line moves on by itself this long after it's typed out (s); the player can just watch. */
+  autoNext: number | null = null;
+  /** How long the line on screen has been typed out (s). */
+  private waited = 0;
   /** A topic was picked (its index): the story runs on and calls `start` with what follows. */
   onChoose: ((index: number) => void) | null = null;
 
@@ -69,7 +75,7 @@ export class Dialogue {
 
   /** The screen: a line, or the topics (`selected` the one marked), for checks. */
   get line(): (Line & { done: boolean; topics: string[]; selected: number }) | null {
-    if (this.choosing) return { speaker: displayName('green'), text: '', done: true, topics: [...this.topics], selected: this.selected };
+    if (this.choosing) return { speaker: displayName('green'), id: 'green', text: '', done: true, topics: [...this.topics], selected: this.selected };
     const line = this.lines[this.index];
     return line ? { ...line, done: this.done, topics: [], selected: 0 } : null;
   }
@@ -89,6 +95,7 @@ export class Dialogue {
     this.lines = lines;
     this.index = 0;
     this.typed = 0;
+    this.waited = 0;
     this.topics = topics;
     this.selected = 0;
     if (!going) this.sincePress = 0;
@@ -115,9 +122,14 @@ export class Dialogue {
       if (this.shown) this.render(null);
       return;
     }
-    if (pressed && this.sincePress >= settings.dialogueDebounce) {
-      this.sincePress = 0;
-      this.click();
+    // A watched conversation: a line typed out moves on by itself, as a press would (without its click).
+    const auto = this.autoNext !== null && !this.choosing && this.done && (this.waited += dt) >= this.autoNext;
+    if (auto || (pressed && this.sincePress >= settings.dialogueDebounce)) {
+      this.waited = 0;
+      if (!auto) {
+        this.sincePress = 0;
+        this.click();
+      }
       if (this.choosing) {
         if (this.onChoose) this.onChoose(this.selected); // the story calls `start` with what follows
         else this.end();

@@ -28,8 +28,6 @@ interface Cue {
   file?: string;
   /** Variations: one is played, never the same twice running. */
   files?: string[];
-  /** Several files that play together as one sound (the ship's noise). */
-  layers?: string[];
   bus: string;
   volume?: number;
   /** Where in the file it starts (s). */
@@ -77,7 +75,7 @@ export class GameAudio {
   private buses: Record<Bus, GainNode>;
   private buffers = new Map<string, AudioBuffer>();
   private voices = new Map<string, Voice>();
-  private noise: StreamLoop[] | null = null;
+  private noise: StreamLoop | null = null;
   private noiseAmount = 0;
   /** Streamed cues that repeat, each faded in and out (`setLoop`). */
   private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number; level: number }>();
@@ -157,7 +155,7 @@ export class GameAudio {
     this.paused = on;
     if (on) {
       const loops = [...this.loops.values()].flatMap((l) => l.stream.elements);
-      const elements = [...this.voices.values()].map((v) => v.element).concat(this.noise?.flatMap((n) => n.elements) ?? [], loops);
+      const elements = [...this.voices.values()].map((v) => v.element).concat(this.noise?.elements ?? [], loops);
       this.held = elements.filter((e): e is HTMLAudioElement => e !== null && !e.paused && !e.ended);
       for (const element of this.held) element.pause();
       if (this.context.state === 'running') void this.context.suspend().catch(() => undefined);
@@ -269,7 +267,7 @@ export class GameAudio {
   /** The cues that are sounding now: for checks. */
   playing(): string[] {
     const list = [...this.voices].filter(([, v]) => v.playing).map(([k]) => k.split('@')[0]!);
-    if (this.noise?.some((n) => n.playing)) list.push('amb_ship_noise');
+    if (this.noise?.playing) list.push('amb_ship_noise');
     for (const [id, loop] of this.loops) if (loop.stream.playing) list.push(id);
     return list;
   }
@@ -301,23 +299,20 @@ export class GameAudio {
       loop.stream.update((cues[id].volume ?? 1) * loop.amount * loop.level);
     }
 
-    // The ship's noise: its two files loop together while the ship is flying, each at its own level
-    // (the owner's mix, until they're one file), quieter outside the ship.
+    // The ship's noise: one file (the two plane sounds mixed: tools/encode-audio.mjs) looping while
+    // the ship is flying, quieter outside the ship.
     const target = settings.shipFlying && running ? 1 : 0;
     const step = dt / NOISE_FADE;
     this.noiseAmount = this.noiseAmount < target ? Math.min(target, this.noiseAmount + step) : Math.max(target, this.noiseAmount - step);
     if (this.noiseAmount === 0 && target === 0) {
-      if (this.noise) for (const loop of this.noise) loop.stop();
+      this.noise?.stop();
       return;
     }
     const cue = cues.amb_ship_noise;
-    this.noise ??= (cue.layers ?? []).map((file) => new StreamLoop(this.context, BASE + file, this.buses.ambience, cue.crossfade ?? 2));
+    this.noise ??= new StreamLoop(this.context, BASE + cue.file, this.buses.ambience, cue.crossfade ?? 2);
     const where = THREE.MathUtils.lerp(settings.shipNoiseOutdoors, 1, indoors);
-    const levels = [settings.shipNoiseA, settings.shipNoiseB];
-    for (const [i, loop] of this.noise.entries()) {
-      loop.start();
-      loop.update((cue.volume ?? 1) * this.noiseAmount * where * (levels[i] ?? 1));
-    }
+    this.noise.start();
+    this.noise.update((cue.volume ?? 1) * this.noiseAmount * where);
   }
 
   private voice(id: CueId, cue: Cue, at?: THREE.Object3D): Voice {

@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-22 | The game's story and the checks' story | architecture | The game loads its own story (`public/story/`, the owner's lines copied from the scene files) from `chapter-1`; the checks load the test story from `landed` with `?test` (dev builds), so the checks don't change as the script grows |
 | 2026-10-22 | A copy of each character per scene, in Blender | pipeline | A collection per scene (by its id) with a linked copy of each character, placed and animated for it: the copy's place is the mark, its action the loop; Dr. Green's in `Player` › `<scene>`; the game still loads one model per character |
 | 2026-10-22 | The work is tracked in Linear, for the owner | process | Linear (team `SC`) shows the owner's next task and how the project goes; one project per big piece of work, *The Zamboni: ongoing* for the rest; the agent keeps it current every session; the repo stays the source of truth |
 | 2026-10-22 | Topics in conversations | feature | Ink choices as topics: the player picks what to ask from a list (up/down, the interact button); a heard topic goes, a leave topic stays; reverses pass 2's *no choices* |
@@ -53,6 +54,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-22] — The game's story and the checks' story (architecture)
+
+**Context:** the flying scene's pass 1 gives the game a real story file (`public/story/story.ink`, the owner's lines copied word for word from the scene files) and a new first scene (`chapter-1`, the ship flying). The probes and the smoke script were written for the test story's knots (a keypad that unlocks the side door, four-screen test conversations, test topics) and for a game that starts in the landed ship.
+
+**Decision:** **two stories.** The game loads its own and starts NEW GAME at `chapter-1` (after the animatic's stand-in card). **`?test` in the address** (dev builds only) loads the test story (`public/test/story.ink`) and starts at `landed` with no card: the probe and smoke scripts open the page with it; `npm run probe -- f.js --game` opens the game's own. Game scenes go in `public/scenes/`, the checks' only in `public/test/scenes/`; the director looks in both. `npm run check` checks both stories (a game scene's knots and variables must be in both).
+
+**Alternatives:** one story with the test knots in it (test lines in the game's story, and the checks change whenever the owner's script does); rewriting the checks for the real story (they'd break with every script change, and the scene starts in the air until pass 6).
+
+**Rationale:** the checks test the systems with lines that don't move; the game's story belongs to the owner's script.
+
+**Status:** built 2026-10-22 (flying scene, pass 1).
 
 ---
 
