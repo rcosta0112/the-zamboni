@@ -20,7 +20,7 @@ About 6 hours if this chunk of garbage holds up.
 Hey..
 
 **Adam Blue** *(in the nav seat)*\
-My apologies. This ship is a work of art.\
+My apologies. This ship is a veritable work of art.\
 Is that a red light on engine 2?
 
 **Ogawa**\

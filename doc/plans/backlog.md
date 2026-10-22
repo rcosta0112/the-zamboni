@@ -80,6 +80,7 @@
 | 74 | The smoke check's boombox ring fails: right after a use, the track is still sounding ("a use stops the track at once: false"); the rest of the ring passes. Failed twice on 2026-10-21 after the 1.22 exports; passed the session before; no code changed in between (found by the agent) | – | To look at: the check reads `boombox.track` about 160 ms after the press (timing under load?) or a real change |
 | 75 | The coat hanger in her locker wobbles a little when she puts on or takes off her parka (owner, 2026-10-22); a zipper sound on putting on and taking off (owner, 2026-10-22). Needs the hanger as an object of its own in the export (an id), the parka moving with it (parented in the file since 2026-10-22) | – | **Closed 2026-10-22: the swing and the zipper approved (owner)** ([locker outfit, pass 3](features/locker-outfit.md); `hanger-probe.js`) |
 | 76 | A pass on the contents of Dr. Kaufman's locker (her boots `Boot`, `Boot.001` in `Stuff`, exported today) (owner, 2026-10-22) | – | Later |
+| 77 | A flying scene before today's (chapter 1): the ship crossing an icy plain, Dr. Green's break (the crew, a coffee, one conversation required), then a landing cutscene into today's scene; every interaction in the save (owner, 2026-10-22) | – | Plan approved 2026-10-22 ([flying-scene.md](features/flying-scene.md); the owner's [Blender](features/flying-scene-blender.md) and [script](features/flying-scene-script.md) tasks): pass 0 (topics) next |
 
 **Left for now** (owner, 2026-10-12): the circle-mask idea of 2026-10-09.
 

@@ -53,6 +53,7 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [Which prompt, when several things are in reach (item 56, pass 2)](features/prompt-choice.md) | 0.0.2 | Closed 2026-10-22 (owner) |
 | [The dialogue system: the VN box, talking to the crew, her remarks, the save, the crew's animations, barks, subtitles (item 71)](features/dialogue.md) | 0.0.2 | Pass 1 approved 2026-10-21; pass 2 (a conversation, the save) built 2026-10-22 |
 | [Changing clothes at the locker (item 72)](features/locker-outfit.md) | 0.0.2 | Passes 1–2 approved 2026-10-22; pass 3 (the hanger, a zipper: item 75) approved 2026-10-22 |
+| [The flying scene (chapter 1) and the landing cutscene (item 77)](features/flying-scene.md) | 0.0.2 | Approved 2026-10-22 (seven passes; pass 0, topics, first). The owner's work: [Blender tasks](features/flying-scene-blender.md), [script tasks](features/flying-scene-script.md) |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format

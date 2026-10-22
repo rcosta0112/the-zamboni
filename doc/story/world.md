@@ -18,3 +18,8 @@
 - Adam has no locker, and should complain about it: they don't wear clothes, but they do like to collect things. (2026-10-21)
 
 > **[Agent comment]** The two notes above came as "a note on the story file"; they're here because `world.md` is the story file the agent may write to. If they belong in `cast.md` or `storyline.md` instead, say so and they'll move (rule 1). Which crew locker is "the one on the right" was read as seen from inside the crew quarters, facing the lockers: `crew-locker-door-2`. (2026-10-21)
+- **Engineering is also the lab**, where Dr. Kaufman works: the crew use both names in dialogue. Outside dialogue (docs, code) it's always *engineering*. (2026-10-22)
+- **The sensor array** is the contraption on engineering's ceiling. (2026-10-22)
+- **The viewport** is the window in engineering (it opens from a lever). (2026-10-22)
+- **The pilot sits on the left** of the cockpit's two front seats (the standard); the copilot, Dr. Green, on the right. (2026-10-22)
+- **The ship flies over more than ice:** probably a rocky plain with distant mountains, green plains, and the ocean. (2026-10-22)

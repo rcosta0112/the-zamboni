@@ -17,6 +17,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 ## Rules from the owner
 
 1. **Never edit `doc/story/`** (story, cast, scenes), and never make text edits to the owner's writing anywhere, without a specific instruction. Point out what you'd change and wait.
+   - **Tags and comments are fine** (owner, 2026-10-22): those needed for testing or development may be added to the script files. **Never** edit the dialogue's copy, and never add new copy that isn't clearly marked as a comment.
    - **Exception:** `doc/story/world.md`. When the owner comments on the game world, record it there. Anything else relevant to the world can be added too, tagged `> **[Agent comment]**`. No approval needed.
 2. **Agent notes** in docs are tagged clearly: `> **[Agent note]**`.
 3. **The docs constrain the work.** Check them before building a feature. If the owner asks for something that conflicts with them, flag the conflict instead of silently following either side.

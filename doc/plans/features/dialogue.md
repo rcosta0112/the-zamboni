@@ -125,6 +125,95 @@ Green: How far?
 
 *Until your actions exist:* a procedural nod in code (a small eased X rotation) stands in, so pass 3 can be built and played; your `_talk` action replaces it per character with no other change.
 
+## Topics (owner, 2026-10-22)
+
+> **[Agent note]** Choices come back, as **topics** (owner, 2026-10-22: needed for the script; [decision log](../../decision-log.md)). Built as the [flying scene](flying-scene.md)'s pass 0. Reverses pass 2's *no choices*. **Approved with its six flags as proposed** (owner, 2026-10-22).
+
+**What the player sees:** after a line, a short list of topics; one is picked, Dr. Green says it (her line, written in Ink), the answer follows, and the list comes back without the topic just heard. A leave topic ends the conversation.
+
+```
+                     ┌─────────────────────────────────────┐
+                     │ ▸ Can you tell what that signal is?  │
+                     │   How are you feeling?               │
+                     │   That's all for now.                │
+                     └─────────────────────────────────────┘
+        ┌─────────────────────────────────────────────────────┐
+        │ Ogawa                                                │
+        │ Sure.                                                │
+        │                                       (O) Choose     │
+        └─────────────────────────────────────────────────────┘
+```
+
+**Controls:**
+
+| | Move | Pick |
+|---|---|---|
+| Gamepad | D-pad up / down, left stick | Circle (O), the interact button that also advances the box |
+| Keyboard | W / S, ↑ / ↓ | E (as the box), Enter, Space |
+| Mouse | hover | click |
+
+That's the start screen's menu (`Input.menuStep`) plus the box's button; W/S or the arrows with Enter, Space or the interact key is the usual set in PC games with a pad.
+
+**In Ink:** topics are Ink's own choices; nothing new in the language. Checked with inkjs's compiler (2026-10-22):
+
+```ink
+=== talk_ogawa ===
+// Every topic heard: straight to the one-liner.
+{ talk_ogawa.signal and talk_ogawa.feeling: -> again }
+// The opener: the first time, and a shorter one after.
+{ talk_ogawa > 1:
+    Ogawa: Anything else?
+- else:
+    Green: Got a minute?
+    Ogawa: Sure.
+}
+- (topics)
+// `*` a topic offered until heard; `(signal)` its name, to check it later;
+// `[…]` the text in the list only (her line can say it differently).
+* (signal) [Can you tell what that signal is?]
+    Green: Can you tell what the signal is?
+    Ogawa: It’s not a beacon or a communication signal as far as I can tell.
+    Ogawa: It’s pretty similar to the signature of a portal, but it’s a lot fainter and there are some gaps in the spectrum I can’t account for.
+    -> topics
+* (feeling) [How are you feeling?]
+    Green: How are you feeling?
+    Ogawa: (his answer)
+    -> topics
+// A topic only offered once something has happened.
+* {green_had_coffee} [Want a coffee?]
+    Green: Want a coffee?
+    Ogawa: (his answer)
+    -> topics
+// `+` always offered: the way out.
++ [That's all for now.]
+    -> DONE
+= again
+Ogawa: (the one-liner)
+-> DONE
+
+// Elsewhere, the story asks whether a topic was heard:
+=== use_cockpit_seat_copilot ===
+# verb: Sit down
+{ not talk_ogawa.signal:
+    Green: I want to ask Dr. Ogawa about the signal.
+    -> DONE
+}
+```
+
+*(The lines in brackets and the opener are placeholders; the signal lines are the owner's, from `03-chapter-1.md`.)*
+
+**What the save keeps:** which topics were heard, by itself (Ink's state). The save is written when the conversation ends, as today: if the game is closed in the middle of one, that conversation's topics are offered again.
+
+**Flags (for review):**
+1. **The box never grows taller** (flag 4), so the list stands **above** it, right of centre, and the answered line stays readable under it. *Alternative:* the topics in the box in place of the line (the line is gone while she chooses).
+2. **The press that completes a line mustn't pick a topic:** the list shows only once the line is complete, and the debounce (flag 3) covers the press after it. The first topic is selected when the list shows.
+3. **The selection doesn't wrap** from the last topic to the first (proposed; wrapping is also common).
+4. **The topics show at once**, not typed out. **Four at most** fit above the box; more is the script's call (flagged by `npm run check`).
+5. **No topic is said for her automatically:** the list's text is in `[…]` and her line is written out, so the two can differ (the owner's topic *"that signal"*, the script's line *"the signal"*).
+6. **The corner prompt** reads **Choose** while the list is up.
+
+**The work (about 2–3 hours):** `story.ts` gives the choices and takes the one picked; `dialogue.ts` a *choosing* state; `DialogueBox.svelte` (`packages/ui`) the list, its selection and the hover; the input as above; the test story's `talk_ogawa` with topics; `npm run check` treating the list's text as no speaker's. *Check:* a probe opens the conversation, moves down, picks a topic, finds it gone from the list, leaves, reloads, and finds it still heard.
+
 ## The work, in passes (a stop to assess after each)
 
 **Pass 1: one line from each crew member, and her remark on the pilot's seat (about 3 hours).**

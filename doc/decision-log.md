@@ -8,8 +8,9 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-22 | Topics in conversations | feature | Ink choices as topics: the player picks what to ask from a list (up/down, the interact button); a heard topic goes, a leave topic stays; reverses pass 2's *no choices* |
 | 2026-10-22 | What the save keeps: what the player shouldn't have to do again | architecture | No action repeated unless the story asks for it: most interactions reset on a reload (doors, music); some are saved in Ink (for now her clothes and the jetpack), the list grows as we go; saved after each conversation and when one changes |
-| 2026-10-21 | One material per colour: a limited palette | look | No near-duplicate materials: one `Black`, `Red`, `Blue`…; a different material of the same colour gets its own name (`Black Metal`, `Black Plastic`); no *Flat* materials (they skip the principled shader); `tools/merge-materials.py` merged 17 in 1.22 |
+| 2026-10-21 | One material per colour: a limited palette | look | One material per material colour (owner, 2026-10-22): `Black`, `Black Metal`, `Black Plastic` fine; `Teal`, `Teal 2`, `Teal.001` not; one `Black`, `Red`, `Blue`…; a different material of the same colour gets its own name (`Black Metal`, `Black Plastic`); no *Flat* materials (they skip the principled shader); `tools/merge-materials.py` merged 17 in 1.22 |
 | 2026-10-21 | The camera comes close and she fades | feature | No 1 m floor on the camera: it stops in front of what is behind her (0.15 m from her at least) and she fades out, dithered, from 1 m to 0.5 m; her shadow stays |
 | 2026-10-21 | She stays in the corridor | feature | Indoors she walks the corridors only: collision boxes keep her off furniture and out of the cockpit's front; climbing around is out (too many places to get stuck); sitting will be an animation, like the ladder |
 | 2026-10-20 | The ladder by button, with the owner's animation | feature | A *Climb* prompt at its foot; the animation moves her (root motion), the camera stays the player's; no climbing down; a shut trapdoor opens at a fixed moment, measured once; doors move through her while she climbs; the free climb kept, not in use |
@@ -37,7 +38,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-09 | The rest of the ship: props, room lights, crew | prototype | Small props merged per room, no prop shadows; one or two lights per room, the four nearest on; the crew placed in the ship |
 | 2026-10-08 | Every camera angle in the ship should look good | design | Worth extra work and per-object exceptions |
 | 2026-10-08 | See-through hull rules | feature | Inside: a dithered hole from the camera to her chest. Outside: no cut, camera collision. Camera: fixed distance indoors and outdoors, no zoom, pitch from 0 |
-| 2026-10-08 | Ink for dialogue | tech | Ink through `inkjs`: one story for dialogue, comm chats, barks and story state; the Ink files are the master copy of the wording (2026-10-21) |
+| 2026-10-08 | Ink for dialogue | tech | Ink through `inkjs`: one story for dialogue, comm chats, barks and story state; the Ink files are the master copy of the wording (2026-10-21), but while chapter 1 is built the owner writes in the scene files and the agent copies them into Ink (2026-10-22) |
 | 2026-10-08 | Inverted Y in prototypes, normal in production | input | As the title says; changeable in settings |
 | 2026-10-08 | No spoken dialogue; characters talk by nodding | scope | All dialogue is text; no mouth movement |
 | 2026-10-08 | Prototype workspace built; TypeScript 6 | tech | One npm workspace in `app/`; prototypes on port 5200 + NN; TypeScript 6, not 7 |
@@ -50,6 +51,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-22] — Topics in conversations (feature)
+
+**Context:** dialogue pass 2 left choices out (owner, 2026-10-22: the story might not need them). Writing chapter 1's script, the owner wants Dr. Green to pick what to talk about: *"Can you tell what that signal is?"*, *"How are you feeling?"*.
+
+**Decision (owner, 2026-10-22):** conversations can offer **topics**: a list the player picks one from, up and down to move, the pad's interact button (Circle) to pick; on the keyboard W / S or the arrows, and E, Enter or Space. Built first, as the flying scene's pass 0, because the script is written with it. Topics are Ink's choices (`*` heard once, `+` always offered, `[…]` the menu's text, labels to remember one was heard). **Proposed by the agent, for review:** a topic goes once heard; a leave topic, written in Ink, stays (no leave button: owner, 2026-10-21); the list stands above the box, the box keeping its size. Reverses *no choices* in [dialogue pass 2](plans/features/dialogue.md).
+
+**Alternatives:** no choices, every conversation one fixed exchange (pass 2's); topics chosen by walking up to people again (one topic per visit: slower, and the player can't see what's left).
+
+**Rationale:** the player talks to whoever they want about what they want, and the script stays in Ink with no new format: choices are Ink's own, the save already keeps which were taken.
+
+**Status:** decided; the details approved as proposed (owner, 2026-10-22), in the [dialogue plan](plans/features/dialogue.md#topics-owner-2026-10-22).
 
 ---
 
@@ -77,6 +92,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** Decided. **Update (2026-10-21):** one skin material per skin colour (owner): `Skin White` (was `Skin 2 - White`, Dr. Kaufman) and `Skin Asian` (`Skin 2 - Asian` and `Skin 3 - Asian`, both Dr. Ogawa's, the same colour). Dr. Green's skin is in her baked texture (`Dr. Green Jumpsuit Baked`), not a material of its own.
 
+
+*Update (2026-10-22, owner): what the rule means.* **One material per material colour:** `Black`, `Black Metal` and `Black Plastic` are three materials and that's fine; a `Teal Metal` would be fine too. What's not wanted: `Teal`, `Teal 2`, `Teal.001`, near-copies of one material: a conflict to address when found.
 ---
 
 ## [2026-10-21] — The camera comes close and she fades (feature)
@@ -481,6 +498,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Update 2026-10-21 (owner):** **Ink is the master copy** of the wording once a scene is in Ink. The scene's Markdown keeps the stage directions and notes. Answered in the dialogue plan's review ([`plans/features/dialogue.md`](plans/features/dialogue.md)).
 
+
+*Update (2026-10-22, owner): the master copy for now.* While chapter 1 is built, **the owner writes in the scene files** (`doc/story/scenes/`) and the agent copies every change into the game's Ink word for word; the Ink isn't edited by hand. After the first scene is ready, the owner judges whether to write in Ink entirely (which the 2026-10-21 update assumed).
 ---
 
 ## [2026-10-08] — Inverted Y in prototypes, normal in production (input)
