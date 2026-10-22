@@ -130,6 +130,11 @@
   "name": "Boot Right",
   "collection": "Scene Collection"
  },
+ "green-coat-hanger": {
+  "kind": "hanger",
+  "name": "Coat Hanger",
+  "collection": "Scene Collection"
+ },
  "green-parka": {
   "kind": "outfit",
   "name": "Parka Hanging",

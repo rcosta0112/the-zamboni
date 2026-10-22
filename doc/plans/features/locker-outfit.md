@@ -59,6 +59,18 @@ At **her own locker**, Dr. Green swaps the indoor **jumpsuit and sneakers** for 
 
 > **[Agent note]** **Pass 2, as built (2026-10-21):** the five things tagged in 1.22 by [`add-locker-clothes-ids.py`](../../../app/prototypes/0.0.2/tools/add-locker-clothes-ids.py) (`id`, `kind` `outfit` / `clothes`, `outfit`; the parka `behind: crew-locker-door-1`), so the export keeps them as objects of their own and passes `outfit` and `behind` through. `src/clothes.ts` (the rack's pattern: the hidden parka stays the target for *Take off parka*); Ink's `VAR green_outfit = "jumpsuit"`, kept with `settings.outfit` once per frame in main.ts (Ink changed: she follows; otherwise Ink follows her), so the existing `outfit` command is the scene setup's line. Checked by `tools/locker-probe.js` / `locker-probe-after.js`: all 12 pass, screenshots. No check added to the smoke run.
 
+> **[Agent note]** Pass 2 approved by the owner 2026-10-22. `Boot`, `Boot.001` (`Stuff`) are Dr. Kaufman's: they stay; her locker's contents get a pass later.
+
+**Pass 3: the hanger swings, a zipper sounds** (item 75; owner, 2026-10-22; about 1.5 hours)
+1. **The hanger, an object of its own.** `add-locker-clothes-ids.py` also tags `Coat Hanger`: `id: green-coat-hanger`, a new kind `hanger` (no prompt; found by kind). Saved into 1.22 with a copy beside it (**flagged before the save**: the file may be open).
+2. **The parka under the hanger.** Today a prop with an id is baked in world space and hangs only on a *part* (`anchor_of`), so the file's `Parka Hanging` → `Coat Hanger` parenting is lost. The ship export gets a last step: an id'd prop whose nearest exported ancestor is another id'd prop is parented to it, kept in place. Then `npm run export:ship`.
+3. **The swing** (`clothes.ts`): at load, a pivot at the top of the hanger's bounding box (its hook) carries the hanger, and so the parka. Each *Put on* / *Take off* starts a small damped swing about the horizontal axis across her line to it: about 5°, about 0.8 swings a second, gone in about 1.5 s (tuning panel). Only the drawn mesh moves; the hanger and parka have no collider.
+4. **A zipper:** `sfx_zipper`, a placeholder made by `make-placeholder-sounds.mjs` from noise and a train of clicks (the teeth) that speeds up then slows, about 0.5 s; played at the parka on each use (`cues.json`, falloff as the latches). The same sound both ways, played a little faster on *Take off*. A row in `SOURCES.md`.
+- **Check:** a probe: the hanger's id, the parka a child of it, a swing after *Put on* that dies away (angle over time), the zipper started. No smoke check.
+- **Story lever:** none.
+
+> **[Agent note]** **Pass 3, as built (2026-10-22):** as planned. 1.22 saved with the hanger's id (the file as it was: `… (before the hanger id, 2026-10-22).blend`); the export's last step parents an id'd thing to an id'd parent only (all big props at first: the gate caught the oscilloscope's and laptops' parts moving). The swing is scaled so its first swing reaches the angle (it peaks at 5.7° for 5: a damped swing peaks a little early). The cues are `sfx_zipper_up` / `sfx_zipper_down` (rate 1.3). Checked by `tools/hanger-probe.js` (7 pass, screenshots). Not listened to by the agent.
+
 **Cost (estimates):** about 0.2–0.5 MB more to download; perhaps 4–8 more shader pipelines at load (both outfits through the see-through and the fade, a fraction of a second); the two passes as above, plus your Blender edit.
 
 ## Open questions for the owner

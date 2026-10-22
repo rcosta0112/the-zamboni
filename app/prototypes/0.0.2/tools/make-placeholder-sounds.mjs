@@ -58,6 +58,10 @@ const MADE = [
   ['sfx_jetpack_take', 0.45, `${noise(0)}*pow(sin(PI*clip(t/0.22,0,1)),2)*0.25+${noise(1)}*${hit(0.26, 160)}*0.45+sin(2*PI*1250*t)*${hit(0.26, 50)}*0.25+sin(2*PI*180*t)*${hit(0.26, 40)}*0.35`, 'highpass=f=120,lowpass=f=3800'],
   // Back on the rack: the buckle undone, a short scrape, the weight onto its hooks.
   ['sfx_jetpack_return', 0.45, `${noise(0)}*${hit(0, 170)}*0.4+sin(2*PI*1150*t)*${hit(0, 55)}*0.2+${noise(1)}*pow(sin(PI*clip((t-0.06)/0.16,0,1)),2)*0.2+sin(2*PI*130*t)*${hit(0.25, 35)}*0.6+${noise(2)}*${hit(0.25, 120)}*0.3`, 'highpass=f=80,lowpass=f=3200'],
+  // The parka's zipper (item 75, 2026-10-22): its teeth, a train of noise clicks that speeds up to
+  // 260 a second half-way and slows again (their count is the integral of that rate), over a faint
+  // hiss of cloth. The same both ways: the cues play it faster on *Take off*.
+  ['sfx_zipper', 0.5, `${noise(0)}*pow(abs(sin(PI*${(260 * 0.5) / Math.PI}*(1-cos(PI*t/0.5)))),24)*sqrt(sin(PI*clip(t/0.5,0,1)))*0.8+${noise(1)}*pow(sin(PI*clip(t/0.5,0,1)),2)*0.08`, 'highpass=f=900,lowpass=f=7000'],
   // The start button: a short, soft tick with a little body under it.
   ['ui_click', 0.12, `${noise(0)}*${hit(0, 320)}*0.3+sin(2*PI*1100*t)*${hit(0, 110)}*0.35+sin(2*PI*550*t)*${hit(0, 70)}*0.25`, 'highpass=f=250,lowpass=f=4500'],
   // The dialogue box typing (owner, 2026-10-21: a custom typewriter sound, subtle): a key's soft

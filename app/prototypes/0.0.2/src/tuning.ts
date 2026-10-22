@@ -38,6 +38,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   const fly = gui.addFolder('Jetpack');
   fly.add(settings, 'wearingJetpack').name('wearing a jetpack').listen();
   fly.add(settings, 'outfit', ['jumpsuit', 'parka']).name('outfit').listen();
+  fly.add(settings, 'hangerSwing', 0, 20, 0.5).name('hanger: swing (°)');
+  fly.add(settings, 'hangerSwingRate', 0.2, 3, 0.05).name('hanger: swings a second');
+  fly.add(settings, 'hangerSwingTime', 0.2, 5, 0.1).name('hanger: gone after (s)');
   fly.add(settings, 'parachute').name('auto-parachute');
   fly.add(settings, 'parachuteMinDrop', 2, 20, 0.5).name('auto-parachute: lowest fall (m)');
   fly.add(settings, 'parachuteLandingSpeed', 0.5, 6, 0.1).name('auto-parachute: landing speed (m/s)');

@@ -106,6 +106,7 @@ Built 2026-10-13 ([plan](../plans/features/interaction-sounds.md)). **Placeholde
 | The cargo ramp, the side door | **An electric motor over the hiss of hydraulics** (owner), not loud; then the press letting its pressure go, and a thud | While it moves; when it reaches open or closed |
 | The ladder | A light tap on metal (three variations) | Each time a hand lands on a rung (or on the floor above): five fixed moments of the animation (`RUNG_TIMES` in `ladders.ts`, measured by `tools/ladder-times.js`) |
 | The jetpack rack | Straps, then a buckle's clack; for putting back, the buckle, then the weight onto the hooks | Taking one; putting it back |
+| Her locker's parka (2026-10-22) | A zipper: its teeth speeding up then slowing, over a faint hiss (0.5 s); faster when taking it off | *Put on parka*; *Take off parka* |
 
 - A door that stops against her and waits: the motor stops with it and starts again; the small doors make their closing sound only once closed.
 - Which sound a hinged door gets comes from what's already known of it, not a new tag: it opens down to the ground (a motor), its hinge stands upright (a latch) or lies flat (a hatch).
@@ -125,13 +126,14 @@ Built 2026-10-13 (backlog pass 4.5; [plan](../plans/features/audio-from-ue.md)).
 
 ## Her locker's clothes
 
-Built 2026-10-21 (item 72; [plan](../plans/features/locker-outfit.md); `src/clothes.ts`). Her locker (`crew-locker-door-1`, the left one in the crew quarters) holds the parka (`Parka Hanging`, on its `Coat Hanger`), the boots and the sneakers (collection `Locker Dr. Green`). The hanger stays when the parka goes (owner, 2026-10-22; merged into the crew quarters' props for now).
+Built 2026-10-21 (item 72; [plan](../plans/features/locker-outfit.md); `src/clothes.ts`). Her locker (`crew-locker-door-1`, the left one in the crew quarters) holds the parka (`Parka Hanging`, on its `Coat Hanger`), the boots and the sneakers (collection `Locker Dr. Green`). The hanger stays when the parka goes (owner, 2026-10-22).
 
 - **The parka is the target, only while the locker is open:** *Put on parka* while she wears the jumpsuit, *Take off parka* while she wears the parka. **An instant swap** (owner): the parka and boots go on her together, and the sneakers come off together.
 - **What's in the locker is what she isn't wearing:** with the jumpsuit on, the parka and boots; with the parka on, the sneakers.
 - **She starts in the jumpsuit.** What she wears is Ink's `green_outfit` (`"jumpsuit"` or `"parka"`), so the save keeps it and *Continue* dresses her. No rule about where she wears what (owner): a scene's setup can dress her with `{ "do": "outfit", "set": "parka" }`; the tuning panel's *outfit* (*Jetpack* folder) moves the same state.
+- **Each change zips and swings the hanger** (item 75, 2026-10-22; pass 3 of the plan): a zipper at the parka (`sfx_zipper_up` putting on, `sfx_zipper_down` taking off: the same placeholder, faster), and the hanger, with the parka on it, swings about its hook: first swing about 5°, 0.8 swings a second, gone after 1.5 s (tuning panel, *Jetpack*: *hanger: …*). The swing goes across the hanger's widest side (toward and away from her at the locker). Only the drawn mesh moves: no collider.
 - **The jetpack goes over both outfits:** with the jumpsuit, its own jetpack with straps (`Jetpack With Straps`). Her little backpack goes with the parka only, and hides under a jetpack.
-- **In the file:** each thing is tagged with an `id`, a `kind` (`outfit` for the parka, `clothes` for the shoes) and the `outfit` it goes with; the parka is also tagged `behind: crew-locker-door-1`.
+- **In the file:** each thing is tagged with an `id`, a `kind` (`outfit` for the parka, `clothes` for the shoes) and the `outfit` it goes with; the parka is also tagged `behind: crew-locker-door-1`. `Coat Hanger` is `green-coat-hanger`, kind `hanger` (2026-10-22): an object of its own, with the parka (its child in the file) exported under it.
 
 ## The jetpack rack
 

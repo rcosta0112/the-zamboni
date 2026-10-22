@@ -9,6 +9,8 @@ the collection ``Locker Dr. Green`` as objects of their own, found by kind. Each
 - ``Boot Left``, ``Boot Right``: ``green-boot-left``, ``green-boot-right``, kind ``clothes``, with the parka;
 - ``Sneakers Left``, ``Sneakers Right``: ``green-sneakers-left``, ``green-sneakers-right``, kind
   ``clothes``, with the jumpsuit.
+- ``Coat Hanger`` (2026-10-22, item 75): ``green-coat-hanger``, kind ``hanger``: an object of its own,
+  so the parka (its child in the file) is exported under it and the two swing together.
 
 Run again, it reports "0 changes". Run from the project root; ``--file <path>`` works on another
 copy; with ``--save`` it writes a copy of the file next to it, then saves.
@@ -24,13 +26,14 @@ import bpy
 
 args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 FILE = args[args.index('--file') + 1] if '--file' in args else os.path.join(os.getcwd(), 'resources', 'models', 'The Zamboni 1.22.blend')
-COPY = FILE.replace('.blend', ' (before the locker ids, 2026-10-21).blend')
+COPY = FILE.replace('.blend', ' (before the hanger id, 2026-10-22).blend')
 TAGS = {
     'Parka Hanging': {'id': 'green-parka', 'kind': 'outfit', 'outfit': 'parka', 'behind': 'crew-locker-door-1'},
     'Boot Left': {'id': 'green-boot-left', 'kind': 'clothes', 'outfit': 'parka'},
     'Boot Right': {'id': 'green-boot-right', 'kind': 'clothes', 'outfit': 'parka'},
     'Sneakers Left': {'id': 'green-sneakers-left', 'kind': 'clothes', 'outfit': 'jumpsuit'},
     'Sneakers Right': {'id': 'green-sneakers-right', 'kind': 'clothes', 'outfit': 'jumpsuit'},
+    'Coat Hanger': {'id': 'green-coat-hanger', 'kind': 'hanger'},
 }
 
 bpy.ops.wm.open_mainfile(filepath=FILE)

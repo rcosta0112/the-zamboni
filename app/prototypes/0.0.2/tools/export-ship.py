@@ -327,6 +327,7 @@ def merge(name, small, collection, anchor=None):
 
 
 prop_count = {'big': 0, 'small': 0}
+prop_of = {}  # source -> its prop, for the props of its own (big or tagged)
 for collection in groups.values():
     small = []
     hanging = {}  # part -> its small props
@@ -344,6 +345,7 @@ for collection in groups.values():
             ob['export'] = False  # nothing is saved: so an object in two collections is baked once
             prop = add_prop(name, mesh, collection)
             hang_on(prop, anchor)
+            prop_of[ob] = prop
             for key in ('interact', 'device', 'id', 'kind', 'outfit', 'behind'):
                 if key in ob:
                     prop[key] = ob[key]
@@ -363,6 +365,16 @@ for collection in groups.values():
         merge(name, obs, collection, anchor)
     if small:
         merge(f'Props {collection.name}', small, collection)
+
+# A thing with an id whose parent in the file is another one (the parka on its coat hanger, item
+# 75) hangs on it, so the two move together. Only things with ids: the game moves those.
+for ob, prop in prop_of.items():
+    p = ob.parent
+    while p and p not in objects and p not in prop_of:
+        p = p.parent
+    if p in prop_of and 'id' in ob and 'id' in p:
+        hang_on(prop, prop_of[p])
+        print(f'HANGS: {prop.name!r} on {prop_of[p].name!r}')
 
 for mat in sorted({s.material for ob in props for s in ob.material_slots if s.material} - {s.material for ob in objects for s in ob.material_slots if s.material}, key=lambda m: m.name):
     if not mat.use_backface_culling:

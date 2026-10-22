@@ -31,6 +31,11 @@ export const settings = {
   // What she wears (item 72): the jumpsuit (and sneakers) indoors, the parka (and boots) outside.
   // She starts in the jumpsuit; the `outfit` command sets it.
   outfit: 'jumpsuit' as Outfit,
+  // Her locker's hanger when the parka goes on or off (item 75): a swing of up to hangerSwing
+  // degrees about its hook, hangerSwingRate swings a second, gone after hangerSwingTime.
+  hangerSwing: 5,
+  hangerSwingRate: 0.8,
+  hangerSwingTime: 1.5,
   // The jetpack (held: R2, Space), with momentum (owner, 2026-10-14: "similar to the ship in
   // Asteroids"; plan: doc/plans/features/jetpack-hover-and-flight.md). No gravity while it's on.
   // Hover, while she's slow: R2 sets her height (below), and the stick's first hoverStickShare of

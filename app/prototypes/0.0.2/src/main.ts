@@ -189,7 +189,7 @@ async function start(): Promise<void> {
       rack = new JetpackRack(s.entities, s.interior.getCenter(new THREE.Vector3()).x, (id, at) => audio.play(id, at));
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
-      clothes = new LockerClothes(s.entities);
+      clothes = new LockerClothes(s.entities, (id, at) => audio.play(id, at));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables];
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
       const storyTargets = storyInteractables(s.entities, () => target.story, (command) => run(command, target));
@@ -417,7 +417,7 @@ async function start(): Promise<void> {
       else if (settings.outfit !== ink) story.set('green_outfit', settings.outfit);
       inkOutfit = story.get('green_outfit');
     }
-    clothes?.update();
+    clothes?.update(dt);
     if (ladders && ladders.rungs !== rungs) {
       rungs = ladders.rungs;
       audio.play('sfx_ladder_grab');

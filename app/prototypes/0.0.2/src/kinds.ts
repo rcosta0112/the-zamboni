@@ -45,7 +45,7 @@ export const DEVICE_KINDS = ['keypad', 'door-panel', 'lever'] as const;
 export const STORY_KINDS = ['seat'] as const;
 
 /** The kinds without defaults: their features find them by kind. */
-const OTHER_KINDS = ['character', 'ramp', ...DEVICE_KINDS, ...STORY_KINDS, 'ladder', 'jetpack', 'jetpack-rack', 'boombox', 'outfit', 'clothes'] as const;
+const OTHER_KINDS = ['character', 'ramp', ...DEVICE_KINDS, ...STORY_KINDS, 'ladder', 'jetpack', 'jetpack-rack', 'boombox', 'outfit', 'clothes', 'hanger'] as const;
 
 export type DoorKindName = keyof typeof DOOR_KINDS;
 export type Kind = DoorKindName | (typeof OTHER_KINDS)[number];
