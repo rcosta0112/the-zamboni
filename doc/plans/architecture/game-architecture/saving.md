@@ -37,6 +37,8 @@ A save is small, roughly 10–200 KB of JSON *(estimate)*.
 
 ## As built (0.0.2, 2026-10-20)
 
+> **Update, 2026-10-22 (owner): the player never repeats an action unless the story asks for it.** Most interactions don't matter to the save (opening doors, playing music: they reset on a reload); some do and are saved. **Saved for now: her clothes and the jetpack** (Ink's `green_outfit`, `green_jetpack`). The list grows as we go: add each one here. Saved also after each conversation and when one of these changes, not only at a scene start ([dialogue, pass 2](../../features/dialogue.md)).
+
 > **[Agent note]** The game's structure, pass 4 ([game-structure.md](game-structure.md), *As built*): one save in IndexedDB, written at every scene start; the format as in the table above (`format`, `game`, `checkpoint`, `location`, `story`, empty `missionData` and `chat`, `savedAt`). CONTINUE on the start screen when there's a save, NEW GAME below it. Not built yet: export and import of a save file; saves after key story moments other than a scene start.
 
 ## Open questions

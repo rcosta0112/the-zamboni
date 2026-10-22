@@ -51,8 +51,8 @@ Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its
 | [The camera close to her, and her fade (item 41: the camera in a locker)](features/camera-close-fade.md) | 0.0.2 | Done 2026-10-21 (grain: item 58) |
 | [The prompt beside the handle (item 56, pass 1)](features/prompt-placement.md) | 0.0.2 | Pass 1 approved 2026-10-21 |
 | [Which prompt, when several things are in reach (item 56, pass 2)](features/prompt-choice.md) | 0.0.2 | Closed 2026-10-22 (owner) |
-| [The dialogue system: the VN box, talking to the crew, her remarks, the save, the crew's animations, barks, subtitles (item 71)](features/dialogue.md) | 0.0.2 | Pass 1 built and approved 2026-10-21; pass 2 (conversations) next |
-| [Changing clothes at the locker (item 72)](features/locker-outfit.md) | 0.0.2 | Passes 1–2 approved 2026-10-22; pass 3 (the hanger, a zipper: item 75) built 2026-10-22 |
+| [The dialogue system: the VN box, talking to the crew, her remarks, the save, the crew's animations, barks, subtitles (item 71)](features/dialogue.md) | 0.0.2 | Pass 1 approved 2026-10-21; pass 2 (a conversation, the save) built 2026-10-22 |
+| [Changing clothes at the locker (item 72)](features/locker-outfit.md) | 0.0.2 | Passes 1–2 approved 2026-10-22; pass 3 (the hanger, a zipper: item 75) approved 2026-10-22 |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format

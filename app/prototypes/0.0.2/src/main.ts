@@ -49,6 +49,15 @@ const SCREEN_LEAVES = 700;
 const WARM_FRAMES = 5;
 /** ...or this long after the load (s), on a machine where no frame is that quick. */
 const WARM_LIMIT = 6;
+/**
+ * What the save keeps of her beyond the story (owner, 2026-10-22: the player never repeats an action
+ * unless the story asks for it): each a setting kept with an Ink variable. The list grows as we go
+ * (doc/plans/architecture/game-architecture/saving.md).
+ */
+const KEPT: { ink: string; get: () => boolean | string; set: (value: unknown) => void }[] = [
+  { ink: 'green_outfit', get: () => settings.outfit, set: (v) => (v === 'jumpsuit' || v === 'parka') && (settings.outfit = v) },
+  { ink: 'green_jetpack', get: () => settings.wearingJetpack, set: (v) => typeof v === 'boolean' && (settings.wearingJetpack = v) },
+];
 
 async function start(): Promise<void> {
   const canvas = document.querySelector<HTMLCanvasElement>('#view')!;
@@ -90,7 +99,7 @@ async function start(): Promise<void> {
   let boombox: Boombox | null = null;
   let rack: JetpackRack | null = null;
   let clothes: LockerClothes | null = null;
-  let inkOutfit: unknown; // Ink's `green_outfit` as last seen
+  const inkSeen: Record<string, unknown> = {}; // KEPT's Ink variables as last seen
   let doorSounds: (() => void) | null = null;
   let director: SceneDirector | null = null;
   let story: GameStory | null = null;
@@ -149,7 +158,9 @@ async function start(): Promise<void> {
         return null;
       });
       story = target.story;
-      if (story) story.onLines = (lines) => dialogue.start(lines);
+      // A knot that says nothing has ended at once; a conversation when the box ends it: saved either way.
+      if (story) story.onLines = (lines) => (lines.length > 0 ? dialogue.start(lines) : saveNow());
+      dialogue.onEnded = saveNow;
       director = new SceneDirector(s, target, (at, yaw) => {
         physics.teleport(at);
         character.position.copy(at);
@@ -286,6 +297,11 @@ async function start(): Promise<void> {
     void writeSave({ checkpoint: id, location: 'ship', story: story.state(), missionData: [], chat: [] }).catch((err: unknown) => console.warn('[0.0.2] not saved:', err));
   }
 
+  /** The checkpoint written again with the story as it is now (after a conversation, or KEPT changed); not during a cutscene: its end saves. */
+  function saveNow(): void {
+    if (begun && director?.current && !cutscene?.playing) checkpoint(director.current);
+  }
+
   let last = performance.now();
   let accumulator = 0;
 
@@ -408,14 +424,21 @@ async function start(): Promise<void> {
     doorSounds?.();
     boombox?.update();
     rack?.update();
-    // What she wears is Ink's `green_outfit` (the save keeps it): when Ink changes it (*Continue*, a
-    // new game, a knot) she follows; otherwise Ink follows her (the locker, the `outfit` command, the
-    // tuning panel).
+    // What the save keeps of her (KEPT: her clothes, the jetpack): when Ink changes it (*Continue*, a
+    // new game, a knot) she follows; otherwise Ink follows her (the locker, the rack, a command, the
+    // tuning panel) and the checkpoint is written again.
     if (story) {
-      const ink = story.get('green_outfit');
-      if (ink !== inkOutfit && (ink === 'jumpsuit' || ink === 'parka')) settings.outfit = ink;
-      else if (settings.outfit !== ink) story.set('green_outfit', settings.outfit);
-      inkOutfit = story.get('green_outfit');
+      let changed = false;
+      for (const kept of KEPT) {
+        const ink = story.get(kept.ink);
+        if (ink !== inkSeen[kept.ink]) kept.set(ink);
+        else if (kept.get() !== ink) {
+          story.set(kept.ink, kept.get());
+          changed = true;
+        }
+        inkSeen[kept.ink] = story.get(kept.ink);
+      }
+      if (changed) saveNow();
     }
     clothes?.update(dt);
     if (ladders && ladders.rungs !== rungs) {

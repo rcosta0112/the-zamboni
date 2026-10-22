@@ -64,6 +64,7 @@ for (const id of ['kaufman', 'ogawa', 'adam-red', 'adam-blue']) {
   const said = prompt.hidden ? '(no prompt)' : prompt.textContent;
   const camera = view.camera.position.clone();
   await press();
+  await wait(300); // the conversation starts once the click has finished (0.17 s), then the debounce
   const started = dialogue.active;
   const first = dialogue.line;
   await shot(`${id}-typing`);
@@ -71,7 +72,7 @@ for (const id of ['kaufman', 'ogawa', 'adam-red', 'adam-blue']) {
   const completed = dialogue.line?.done ?? false;
   await shot(`${id}-done`);
   let presses = 0;
-  while (dialogue.active && presses < 6) {
+  while (dialogue.active && presses < 12) {
     await press();
     presses++;
   }

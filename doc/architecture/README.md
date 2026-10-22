@@ -45,7 +45,7 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Interaction** | Finds what the player is looking at or near, shows a prompt, runs the verb: *pick up*, *use*, *open*, *talk*, *scan* | Data from glTF custom properties |
 | **Physics objects** | Small objects that can be picked up, carried, dropped, thrown | Rapier rigid bodies |
 | **Devices** | Objects with their own behaviour: boombox, doors, lockers, levers, ship controls, screens | One small class per device type, configured from data |
-| **Dialogue** | Runs the Ink story; hands lines and choices to a presenter. **Built (pass 1, 2026-10-21): lines, no choices yet** ([dialogue](../features/dialogue.md)) | `inkjs` |
+| **Dialogue** | Runs the Ink story; hands lines and choices to a presenter. **Built (passes 1, 2: 2026-10-21, 22): lines and conversations, no choices (owner: maybe never)** ([dialogue](../features/dialogue.md)) | `inkjs` |
 | **Presenters** | Show dialogue in the right form: VN box (face-to-face; **built**, `DialogueBox.svelte`), comm chat, barks (one-liners above the character), subtitles (cutscenes) | Svelte UI overlay |
 | **Comm** | The in-world smartphone: a home screen with app icons. Apps: chat (runs dialogue), mission data (wildlife, ruins and artifacts), camera (nice-to-have); room for more | Svelte UI overlay + Dialogue + Mission data |
 | **Scanner + mission data** | Scanning ruins and artifacts adds entries to the mission data (a store of what has been documented, read by the comm's mission data app) | Data files + story state |
@@ -76,7 +76,7 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | Levels and placement | Blender → glTF, custom properties for behaviour | Owner | Loader, Interaction |
 | Cutscenes | Blender animation → glTF + JSON event track | Owner + agent | Cutscene player |
 
-**Story docs vs runtime dialogue:** the scene Markdown files are the authored script, with stage directions and notes. The Ink files are what the game runs. When a scene is written in Markdown and then implemented, it's converted to Ink, and the Ink file becomes the version that counts for exact wording. *(Proposed: confirm whether Markdown or Ink is the master once dialogue is being implemented.)*
+**Story docs vs runtime dialogue:** the scene Markdown files are the authored script, with stage directions and notes. The Ink files are what the game runs. When a scene is written in Markdown and then implemented, it's converted to Ink, and the Ink file becomes the version that counts for exact wording (owner, 2026-10-21: **Ink is the master copy** once a scene is in Ink; decision log, *Ink for dialogue*).
 
 ## Folder layout
 
@@ -97,5 +97,4 @@ How the code inside the game will be organised (core, world, player, interaction
 
 ## Open questions
 
-- Markdown or Ink as the master copy of the dialogue once implemented?
 - Does the travelling ship need to visibly move relative to its interior (turbulence, banking)? The "ship stays still, world moves" approach handles gentle motion with camera shake; bigger motion needs more thought.

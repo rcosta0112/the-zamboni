@@ -1,6 +1,6 @@
 # The dialogue system (item 71)
 
-**Status:** *draft*, 2026-10-21. Reviewed twice by the owner the same day: the questions answered, the flags settled, the animation setup agreed, the prompt's wording, the box's button prompt and a handheld camera added. **Pass 1 for approval.** Nothing built.
+**Status:** *draft*, 2026-10-21; **pass 2 approved and built 2026-10-22** (for the owner to try). Reviewed twice by the owner the same day: the questions answered, the flags settled, the animation setup agreed, the prompt's wording, the box's button prompt and a handheld camera added. **Pass 1 for approval.** Nothing built.
 
 ## Goal
 
@@ -138,7 +138,35 @@ Green: How far?
 
 **Pass 1b: the handheld camera (about 1½ hours; flagged if past 2).** The slow orbit around the person she's talking to, as above. *Check:* screenshots at the start and a few seconds in; the camera back where it was at the end.
 
-**Pass 2: conversations (about 2½ hours).** Several lines and speakers, choices (pad, keys, mouse), `# comms`, the speakers checked by `npm run check`; **the save after each conversation** and the "talk again" pattern; a text speed in the tuning panel. *Check:* a probe has a conversation with a choice, reloads, continues, and finds it remembered (the short line instead).
+**Pass 2: a conversation, and the save (about 1½–2 hours; revised 2026-10-22, update below).** One four-screen conversation, then a one-liner; the save after each conversation and when her clothes or the jetpack change; the speakers checked by `npm run check`. Choices and `# comms` moved out.
+
+> **Update, 2026-10-22 (owner, reviewing pass 2):** **no choices for now** (the way the story is structured, they may not be needed); **the save after each conversation**, so a conversation that has happened stays happened; **a save rule** (below); **one full conversation**, four screens of back and forth, then **a new one-liner** when she talks to that person again. Pass 2 is now this, **for review**:
+>
+> 1. **The conversation (test story, placeholder lines):** `talk_ogawa` becomes four screens, Ogawa / Green / Ogawa / Green. The first time, the whole conversation; after that, a one-liner from Ogawa. Ink remembers it by itself (the knot's visit count, in Ink's state, in the save): nothing in code. The pattern, written once for you to copy:
+>    ```ink
+>    === talk_ogawa ===
+>    { talk_ogawa > 1: -> again }
+>    Ogawa: [Test] First line.
+>    Green: [Test] Her answer.
+>    Ogawa: [Test] Third line.
+>    Green: [Test] Fourth line.
+>    -> DONE
+>    = again
+>    Ogawa: [Test] The one-liner, every time after.
+>    -> DONE
+>    ```
+>    The other crew stay one line each (Adam Blue keeps its two, the *Next* then *End* check).
+> 2. **The save rule (owner):** the player never has to repeat an action unless the story asks for it. Most interactions don't matter to the save (doors, the boombox: they reset on a reload, as today); **some do, and are saved: her clothes and the jetpack for now**; the full list grows as we go (in [saving](../architecture/game-architecture/saving.md), *What's saved*). Each lives in Ink, as the game's structure says (anything saved is in Ink):
+>    - **Clothes:** Ink's `green_outfit`, already so.
+>    - **The jetpack:** a new Ink variable, `green_jetpack` (true / false), kept with `settings.wearingJetpack` the way `green_outfit` is kept with her clothes (main.ts): *Continue* finds it on her back and the rack's place empty.
+> 3. **When the save is written:** at a scene start (as today), **after each conversation** (a knot that has ended, with lines or not), and **when a saved thing changes** (she changes clothes, takes or puts back the jetpack). Never during a cutscene (its end saves, as today). The same checkpoint scene each time, with Ink's new state; a reload still puts her at the scene's start.
+> 4. **`npm run check`**: a speaker name not in the table fails (a capitalised name before a colon at a line's start).
+>
+> **Moved out of pass 2:** choices (later, if the story needs them; the plan's flags on them stand), `# comms` (pass 3, where it means only that nobody nods: **no label in the box**, owner, 2026-10-22), the "say that again?" choice.
+>
+> *Check:* a probe talks to Ogawa through the four screens, again (the one-liner), reloads with *Continue* and gets the one-liner still; takes the jetpack and the parka, reloads, and finds both on her. Then `npm run check`, `npm run build`, the smoke script. **About 1½–2 hours.**
+
+> **[Agent note]** **Pass 2, as built (2026-10-22):** as revised. `main.ts` keeps a list, `KEPT` (her outfit, the jetpack), each a setting kept with its Ink variable, and saves when one changes; `Dialogue.onEnded` saves after a conversation (`saveNow`: not during a cutscene, not before the game has begun). `check-ids.mjs` checks the speakers against `SPEAKERS` in story.ts. `dialogue-probe.js` (pass 1) needed two fixes for the four-screen conversation and the click delay (more presses; a wait after the first). Checked: `conversation-probe.js` with its reload (11 pass), `dialogue-probe.js`, `npm run check`, `npm run build`, the smoke script.
 
 **Pass 3: the crew's animations (about 3 hours, after your actions, or with the stand-in nod first).** The crew export takes `<name>_idle` / `<name>_talk`; the idle loop with the seam crossfade, the additive talk weighted by who's speaking, the head turn. *Check:* a probe reads the `Head` bone moving only while a crew member's line types; screenshots.
 
@@ -158,6 +186,8 @@ Each pass ends with `npm run check`, `npm run build` and its probe; the smoke sc
 ## Open questions for the owner
 
 All answered (two reviews, 2026-10-21): the pilot's seat is **the empty seat at the front**; the flags as settled above; the nod **as long as the line types**; the animation setup **agreed**; facing each other: in code, the models checked in pass 3. **Left: the go-ahead for pass 1** (and 1b after it).
+
+**Pass 2 (2026-10-22):** the owner's answers are in the update above it (no choices; the save rule; one conversation). Approved ("start", with no label for `# comms`). **Built** (below).
 
 ## After
 

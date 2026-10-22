@@ -4,11 +4,11 @@
 // knots act on the game through the external function `command(name, id, value)`, which runs one of
 // the commands (commands.ts). A knot's lines go to the dialogue box (`onLines`, dialogue.ts), each
 // with its speaker (the name before a colon, as the script is written); talking to a character runs
-// `talk_<id>`. Choices come with pass 2 of the dialogue plan.
+// `talk_<id>`. No choices for now (owner, 2026-10-22).
 // The slice's story is a test one, `public/test/story.ink` (compiled by `npm run ink`). Its whole
 // state is what a save keeps of the story (save.ts).
 // Plans: doc/plans/architecture/game-architecture/game-structure.md (passes 3, 4),
-// doc/plans/features/dialogue.md (pass 1)
+// doc/plans/features/dialogue.md (passes 1, 2)
 
 import { Story } from 'inkjs';
 import type { Command } from './commands';
@@ -69,7 +69,7 @@ function toLine(raw: string): Line {
 }
 
 export class GameStory {
-  /** Where a knot's lines go (the dialogue box); not set, the console. */
+  /** Where a knot's lines go (the dialogue box), none for a knot that says nothing; not set, the console. */
   onLines: ((lines: Line[]) => void) | null = null;
 
   private constructor(private readonly ink: Story) {}
@@ -135,7 +135,7 @@ export class GameStory {
     return null;
   }
 
-  /** Runs a knot to its end (its commands as they come); its lines go to `onLines`, all at once. */
+  /** Runs a knot to its end (its commands as they come); its lines go to `onLines`, all at once (none too). */
   run(knot: string): void {
     this.ink.ChoosePathString(knot);
     const lines: Line[] = [];
@@ -143,8 +143,7 @@ export class GameStory {
       const raw = this.ink.Continue()?.trim();
       if (raw) lines.push(toLine(raw));
     }
-    if (this.ink.currentChoices.length > 0) console.warn(`[0.0.2] ink: "${knot}" offers choices (not shown until pass 2)`);
-    if (lines.length === 0) return;
+    if (this.ink.currentChoices.length > 0) console.warn(`[0.0.2] ink: "${knot}" offers choices (not shown: no choices for now)`);
     if (this.onLines) this.onLines(lines);
     else for (const line of lines) console.info(`[0.0.2] ink: ${line.speaker ? `${line.speaker}: ` : ''}${line.text}`);
   }

@@ -7,7 +7,7 @@
 // Things: tools/ids.json (written by the ship export) and the crew's ids (CREW_IDS in
 // export-ship-crew.py). Also checked: cutscenes by their track file, sound cues in src/cues.json,
 // story knots and the variables of `if` / `unless` in the Ink source, the knots `use_<id>` and
-// `talk_<id>` (a character's).
+// `talk_<id>` (a character's), and each line's speaker (the name before a colon: SPEAKERS in story.ts).
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (pass 6)
 
 import fs from 'node:fs';
@@ -91,6 +91,15 @@ for (const [line, n] of ink.split(/\r?\n/).map((l, i) => [l, i + 1])) {
     else if (['lock', 'unlock', 'enable', 'disable', 'cutscene'].includes(name)) command(where, { do: name, id });
     else problems.push(`${where}: Ink can't call the command "${name}" (story.ts, fromInk)`);
   }
+}
+// A line's speaker: a capitalised name before a colon at the line's start (not a comment, tag,
+// knot or code line) must be one story.ts knows, or the box shows it as narration.
+const speakers = new Set([.../SPEAKERS: Record<string, string> = \{([^}]*)\}/.exec(read('src/story.ts'))?.[1].matchAll(/^\s*'?([\w ]+?)'?:/gm) ?? []].map((m) => m[1]));
+for (const [line, n] of ink.split(/\r?\n/).map((l, i) => [l, i + 1])) {
+  const name = /^\s*([A-Z][\w .]*?)\s*:/.exec(line)?.[1];
+  if (!name || /^(VAR|CONST|INCLUDE|EXTERNAL)\b/.test(name)) continue;
+  checked++;
+  if (!speakers.has(name)) problems.push(`story.ink:${n}: no speaker "${name}" (SPEAKERS in story.ts: ${[...speakers].join(', ')})`);
 }
 for (const knot of knots) if (knot.startsWith('use_')) thing(`story.ink, knot ${knot}`, knot.slice(4).replace(/_/g, '-'));
 for (const knot of knots) if (knot.startsWith('talk_')) thing(`story.ink, knot ${knot}`, knot.slice(5).replace(/_/g, '-'), new Set(['character']), "isn't a character");

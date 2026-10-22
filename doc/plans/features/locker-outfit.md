@@ -1,6 +1,6 @@
 # Changing clothes at the locker (item 72)
 
-**Status:** *approved* (owner, 2026-10-21: "lets do the locker outfits"). **Built 2026-10-21:** pass 1 approved by the owner (with the little backpack off with the jumpsuit too), pass 2 for the owner's look (notes below each pass). What exists: [interaction](../../features/interaction.md#her-lockers-clothes).
+**Status:** *approved* (owner, 2026-10-21: "lets do the locker outfits"). **Built 2026-10-21:** pass 1 approved by the owner (with the little backpack off with the jumpsuit too), pass 2 for the owner's look (notes below each pass). **Pass 3 approved 2026-10-22 (owner): the swing and the zipper.** What exists: [interaction](../../features/interaction.md#her-lockers-clothes).
 
 ## Goal
 

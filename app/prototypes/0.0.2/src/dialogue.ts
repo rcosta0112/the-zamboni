@@ -7,7 +7,7 @@
 // interaction's, which clicks too: interaction.ts); a typewriter key sounds every few characters as the line types (settings.dialogueTypeEvery).
 // main.ts holds her still while one is on; the camera still turns (owner, 2026-10-21).
 // Time is the game's: it stops with the pause.
-// Plan: doc/plans/features/dialogue.md (pass 1)
+// Plan: doc/plans/features/dialogue.md (passes 1, 2)
 
 import type { DialogueView } from '@zamboni/ui';
 import type { Device } from './input';
@@ -26,6 +26,8 @@ export class Dialogue {
   private sincePress = Infinity;
   private cooldown = 0;
   private shown: DialogueView | null = null;
+  /** A conversation has ended (main.ts saves). */
+  onEnded: (() => void) | null = null;
 
   /**
    * @param show draws the box (null: takes it away)
@@ -86,6 +88,7 @@ export class Dialogue {
         this.index = 0;
         this.cooldown = settings.dialogueCooldown;
         this.render(null);
+        this.onEnded?.();
         return;
       }
     } else if (!this.done) {

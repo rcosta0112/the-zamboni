@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-22 | What the save keeps: what the player shouldn't have to do again | architecture | No action repeated unless the story asks for it: most interactions reset on a reload (doors, music); some are saved in Ink (for now her clothes and the jetpack), the list grows as we go; saved after each conversation and when one changes |
 | 2026-10-21 | One material per colour: a limited palette | look | No near-duplicate materials: one `Black`, `Red`, `Blue`…; a different material of the same colour gets its own name (`Black Metal`, `Black Plastic`); no *Flat* materials (they skip the principled shader); `tools/merge-materials.py` merged 17 in 1.22 |
 | 2026-10-21 | The camera comes close and she fades | feature | No 1 m floor on the camera: it stops in front of what is behind her (0.15 m from her at least) and she fades out, dithered, from 1 m to 0.5 m; her shadow stays |
 | 2026-10-21 | She stays in the corridor | feature | Indoors she walks the corridors only: collision boxes keep her off furniture and out of the cockpit's front; climbing around is out (too many places to get stuck); sitting will be an animation, like the ladder |
@@ -51,6 +52,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-10-22] — What the save keeps: what the player shouldn't have to do again (architecture)
+
+**Context:** the save keeps a checkpoint scene and Ink's state; on a reload the props and doors reset ([saving](plans/architecture/game-architecture/saving.md)). With conversations (dialogue pass 2) and things she carries (her clothes, the jetpack), a reload could make the player do them again.
+
+**Decision (owner, 2026-10-22):** the player never has to repeat an action unless it's part of the story. Most interaction events are irrelevant to the save (opening doors, playing music) and reset; some aren't and are saved. **For now: her clothes and the jetpack.** The complete list is made as we go. Conversations that have happened stay happened (Ink's visit counts); the save is written after each conversation and when a saved thing changes, as well as at scene starts.
+
+**Alternatives:** save every prop and door (more state to keep in step with the file, and the checkpoint scene already sets the world up); save only at scene starts (a reload offers a conversation again, or takes off the jetpack).
+
+**Rationale:** what the player did on purpose to move on (talked, got dressed, took the jetpack) shouldn't be lost; what's incidental resets cheaply. Each saved thing is an Ink variable, as the game's structure says (anything saved lives in Ink).
+
+**Status:** decided; built with dialogue pass 2.
 
 ## [2026-10-21] — One material per colour: a limited palette (look)
 

@@ -8,6 +8,8 @@
 // Ogawa, Adam Red, Adam Blue, Adam); a line with none is narration. Shown in the dialogue box.
 // A knot's `# verb:` is the whole prompt, the thing's name included ("Unlock side door").
 // A `use_<id>` knot tagged `# instead` runs in place of the thing's action, locked or not.
+// Ink remembers what has been said (each knot's visit count, in the save): `talk_ogawa` shows how a
+// conversation is had once, then a one-liner after it. The save is written after each knot ends.
 
 EXTERNAL command(name, id, value)
 
@@ -15,6 +17,8 @@ VAR side_door_unlocked = false
 // What Dr. Green wears (her locker, the `outfit` command): "jumpsuit" or "parka". The game keeps it
 // with her clothes (main.ts); a scene's setup can set it.
 VAR green_outfit = "jumpsuit"
+// She wears a jetpack (the cargo hold's rack): kept with her the same way.
+VAR green_jetpack = false
 
 -> DONE
 
@@ -50,8 +54,16 @@ Green: It's not time to go yet.
 Kaufman: [Test] Placeholder line from Dr. Kaufman.
 -> DONE
 
+// A whole conversation the first time; every time after, the one-liner (`again`).
 === talk_ogawa ===
-Ogawa: [Test] Placeholder line from Dr. Ogawa, long enough to wrap onto a second line of the box at most sizes.
+{ talk_ogawa > 1: -> again }
+Ogawa: [Test] First screen, from Dr. Ogawa, long enough to wrap onto a second line of the box at most sizes.
+Green: [Test] Second screen: her answer.
+Ogawa: [Test] Third screen, from Dr. Ogawa again.
+Green: [Test] Fourth screen: hers, and the end.
+-> DONE
+= again
+Ogawa: [Test] The one-liner, every time after the conversation.
 -> DONE
 
 === talk_adam_red ===

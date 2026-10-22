@@ -1,6 +1,6 @@
 # Dialogue
 
-**Status:** pass 1 built in 0.0.2 (2026-10-21): one line from each crew member, her remarks on things, the box. Plan and later passes (conversations with choices, the save after each, the crew's animations, barks, subtitles): [`../plans/features/dialogue.md`](../plans/features/dialogue.md).
+**Status:** passes 1 and 2 built in 0.0.2 (2026-10-21, 22): talking to the crew, her remarks on things, the box, whole conversations remembered by the save. No choices (owner, 2026-10-22: the story may not need them). Plan and later passes (the crew's animations, barks, subtitles): [`../plans/features/dialogue.md`](../plans/features/dialogue.md).
 
 ## What exists
 
@@ -9,6 +9,8 @@
 - **The box** (`DialogueBox.svelte` in `packages/ui`): at the bottom of the screen, 30 units up; the speaker's name, the line typed out, a key sound (`ui_type`) every 2 characters typed (not on spaces). A press (E, pad B, Enter or a click) completes the line, the next goes on, the last ends it. Presses are debounced, and the prompt stays hidden for 1 s after the end, so the same press doesn't start it again.
 - **During a conversation** she stops (`input.hold()`), the prompts are off, **the camera stays the player's** (owner, 2026-10-21: no lock, no orbit).
 - **Every interaction clicks** (`ui_interact`), the box's presses too.
+- **A conversation happens once** (pass 2): Ink remembers each knot's visits, and the save keeps Ink's state. The test story's `talk_ogawa` is four screens the first time, a one-liner after.
+- **The save** is written again after each conversation ends (a knot that says nothing: at once), and when her clothes or the jetpack change; never during a cutscene. Owner's rule (2026-10-22): the player never repeats an action unless the story asks; what's kept of her is in `KEPT` (main.ts), each an Ink variable (`green_outfit`, `green_jetpack`); doors and music reset.
 
 ## For whoever writes the story (Ink)
 
@@ -18,8 +20,19 @@ The story is `public/test/story.ink` (placeholder lines, compiled by `npm run in
 - `use_<id>` (dashes as underscores): using a thing. `# verb: <prompt>` is the whole prompt, the thing's name included. `# instead` runs it in place of the thing's action.
 - A line names its speaker before a colon: `Green`, `Kaufman`, `Ogawa`, `Adam Red`, `Adam Blue`, `Adam`. A line with none is narration.
 - The knots call the game through `command(name, id, value)` (set, lock, unlock, enable, disable, sound, cutscene).
-- `npm run check` fails on a knot naming an id that doesn't exist.
+- **A conversation once, then a one-liner:**
+  ```ink
+  === talk_ogawa ===
+  { talk_ogawa > 1: -> again }
+  Ogawa: First screen.
+  Green: Second.
+  -> DONE
+  = again
+  Ogawa: The one-liner, every time after.
+  -> DONE
+  ```
+- `npm run check` fails on a knot naming an id that doesn't exist, and on a speaker name the game doesn't know.
 
 ## Code
 
-`story.ts` (running a knot, lines with speakers), `dialogue.ts` (the typewriter, presses, cooldown), `interaction.ts` (`crewInteractables`, `storyInteractables`, `respectLocks`). Checks: `tools/dialogue-probe.js` (the crew), `tools/seat-probe.js` (the pilot's seat).
+`story.ts` (running a knot, lines with speakers), `dialogue.ts` (the typewriter, presses, cooldown), `interaction.ts` (`crewInteractables`, `storyInteractables`, `respectLocks`). Checks: `tools/dialogue-probe.js` (the crew), `tools/seat-probe.js` (the pilot's seat), `tools/conversation-probe.js` with `--reload tools/conversation-probe-after.js` (a conversation, the one-liner, the save).
