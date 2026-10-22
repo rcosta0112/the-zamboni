@@ -16,11 +16,12 @@ plans/
 
 ## Index
 
-Open items: [`backlog.md`](backlog.md), the tracker (one line per item, with its pass and status). The state of the work in progress: [`../steps/current.md`](../steps/current.md).
+Open items: **in Linear** (team Studio Cataplasma, `SC`; [how it's organized](architecture/linear.md)); [`backlog.md`](backlog.md) maps items 1–77 to their issues. The state of the work in progress: [`../steps/current.md`](../steps/current.md).
 
 | Plan | For step | Status |
 |---|---|---|
 | [Game architecture (levels, loading, budgets, characters, performance, saving, offline)](architecture/game-architecture/README.md) | [Step 1](../steps/01-docs-and-architecture.md) | Draft, for review |
+| [Tracking the work in Linear (the owner's tasks, the backlog)](architecture/linear.md) | Process | Built 2026-10-22 (two passes) |
 | [Repo and prototype workspace](architecture/repo-and-prototypes.md) | [Step 2](../steps/02-first-prototype.md) | Done |
 | [Prototype 01: walk](prototypes/01-walk.md) | [Step 2](../steps/02-first-prototype.md) | Built; frozen as 0.0.1 (2026-10-20) |
 | [Low-resolution rendering (was prototype 02)](prototypes/low-res.md) | [Step 2](../steps/02-first-prototype.md) | Set aside 2026-10-20; its features later (item 52) |

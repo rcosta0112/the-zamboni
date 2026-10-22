@@ -1,6 +1,6 @@
 # The dialogue system (item 71)
 
-**Status:** *draft*, 2026-10-21; **pass 2 approved and built 2026-10-22** (for the owner to try). Reviewed twice by the owner the same day: the questions answered, the flags settled, the animation setup agreed, the prompt's wording, the box's button prompt and a handheld camera added. **Pass 1 for approval.** Nothing built.
+**Status:** *draft*, 2026-10-21; **pass 2 approved and built 2026-10-22; tried by the owner the same day: fine** ("checked"). Reviewed twice by the owner the same day: the questions answered, the flags settled, the animation setup agreed, the prompt's wording, the box's button prompt and a handheld camera added. **Pass 1 for approval.** Nothing built.
 
 ## Goal
 

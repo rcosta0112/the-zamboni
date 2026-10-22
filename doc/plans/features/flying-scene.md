@@ -155,7 +155,7 @@ A **big task** (CLAUDE.md rule 5): about 20 hours of agent work over seven passe
 
 ## Still open (none blocks pass 0)
 
-- **The owner's:** the lines ([script tasks](flying-scene-script.md)); the animations and models ([Blender tasks](flying-scene-blender.md)); Adam Blue's loop, Kaufman's spot, Ogawa's pose; the coffee's details (the four flags above); the landing cutscene's description.
+- **The owner's:** the lines ([script tasks](flying-scene-script.md)); the animations and models ([Blender tasks](flying-scene-blender.md)); (settled 2026-10-22: Adam Blue navigating, Dr. Kaufman reading on the couch, Dr. Ogawa standing at the sensor array); the coffee's details (the four flags above); the landing cutscene's description.
 - **For later:** what the animatic is in the game (video, stills, in-engine).
 
 > **Story lever** (CLAUDE.md rule 5): the landing cutscene hides the swap from the travel scenery to the landing site. Today's ground costs nothing to load; a landing site with its own models would need the flying scene to cover its download (about 10 s on a slow connection: one conversation does). If the scene ever becomes very short, the download shows.

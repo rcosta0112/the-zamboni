@@ -1,21 +1,21 @@
 # The flying scene: the script tasks
 
-**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). What the owner writes for the flying scene and its cutscenes, and how the game reads it. The Blender work is in [its own doc](flying-scene-blender.md).
+**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). What the owner writes for the flying scene and its cutscenes, and how the game reads it. The Blender work is in [its own doc](flying-scene-blender.md). **Tracked in Linear** (since 2026-10-22): each row links its issue, assigned to the owner.
 
 ## What to write
 
 | | Where | What | For pass | Until then, in the game |
 |---|---|---|---|---|
-| ☐ | [`01-cutscene-flight.md`](../../story/scenes/01-cutscene-flight.md) | Cutscene 1's description (the ship flying over the plain) | the animatic | a stand-in card |
-| ☐ | [`03-chapter-1.md`](../../story/scenes/03-chapter-1.md) | **Adam Red and Adam Blue:** a conversation each, or one shared *Adam* one; topics; their one-liners | 2 | `[Placeholder]` lines |
-| ☐ | | **Dr. Kaufman:** her conversation, topics, one-liner | 2 | `[Placeholder]` |
-| ☐ | | **Dr. Ogawa:** the rest of his conversation (the signal is written), other topics, his one-liner | 2 | the written lines, `[Placeholder]` for the rest |
-| ☐ | | **Her refusal at the seat without coffee** (Ogawa's is written: *"I want to ask Dr. Ogawa about the signal."*; it comes first) | 2 | `[Placeholder]` |
-| ☐ | | **The coffee remark** on entering the crew quarters (once, before the coffee; it can depend on where she came from) | 2 | `[Placeholder]` |
-| ☐ | | **Her seat when she can sit:** any line before the cutscene | 2 | none |
-| ☐ | | **The coffee:** a line when she pours, if any; **her comment after the first sip**; a line if she tries to pour again | 3 | `[Placeholder]` |
-| ☐ | | Her remarks on things in flight (the windows, the viewport, the sensor array, the signal receiver): optional | any | none |
-| ☐ | [`04-cutscene-landing.md`](../../story/scenes/04-cutscene-landing.md) | The landing cutscene's description (for its placeholder) | 6 | the test cutscene |
+| [SC-35](https://linear.app/eigodojo/issue/SC-35) | [`01-cutscene-flight.md`](../../story/scenes/01-cutscene-flight.md) | Cutscene 1's description (the ship flying over the plain) | the animatic | a stand-in card |
+| [SC-31](https://linear.app/eigodojo/issue/SC-31) | [`03-chapter-1.md`](../../story/scenes/03-chapter-1.md) | **Adam Red and Adam Blue:** a conversation each, or one shared *Adam* one; topics; their one-liners | 2 | `[Placeholder]` lines |
+| [SC-31](https://linear.app/eigodojo/issue/SC-31) | | **Dr. Kaufman:** her conversation, topics, one-liner | 2 | `[Placeholder]` |
+| [SC-31](https://linear.app/eigodojo/issue/SC-31) | | **Dr. Ogawa:** the rest of his conversation (the signal is written), other topics, his one-liner | 2 | the written lines, `[Placeholder]` for the rest |
+| [SC-32](https://linear.app/eigodojo/issue/SC-32) | | **Her refusal at the seat without coffee** (Ogawa's is written: *"I want to ask Dr. Ogawa about the signal."*; it comes first) | 2 | `[Placeholder]` |
+| [SC-32](https://linear.app/eigodojo/issue/SC-32) | | **The coffee remark** on entering the crew quarters (once, before the coffee; it can depend on where she came from) | 2 | `[Placeholder]` |
+| [SC-32](https://linear.app/eigodojo/issue/SC-32) | | **Her seat when she can sit:** any line before the cutscene | 2 | none |
+| [SC-33](https://linear.app/eigodojo/issue/SC-33) | | **The coffee:** a line when she pours, if any; **her comment after the first sip**; a line if she tries to pour again | 3 | `[Placeholder]` |
+| [SC-36](https://linear.app/eigodojo/issue/SC-36) | | Her remarks on things in flight (the windows, the viewport, the sensor array, the signal receiver): optional | any | none |
+| [SC-34](https://linear.app/eigodojo/issue/SC-34) | [`04-cutscene-landing.md`](../../story/scenes/04-cutscene-landing.md) | The landing cutscene's description (for its placeholder) | 6 | the test cutscene |
 
 The same list, as it stood on 2026-10-22, is a comment at the end of `03-chapter-1.md`, beside the script.
 

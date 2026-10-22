@@ -1,14 +1,14 @@
 # The flying scene: the Blender tasks
 
-**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). The owner's work in Blender for it, in the order the passes need it. Each line says what the game needs, not how to do it in Blender. Ticked as each is done.
+**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). The owner's work in Blender for it, in the order the passes need it. Each line says what the game needs, not how to do it in Blender. **Tracked in Linear** (since 2026-10-22): each row links its issue, assigned to the owner; its status there is the one that counts.
 
 ## The ship file (`The Zamboni 1.22.blend`)
 
 | | Task | For pass | Note |
 |---|---|---|---|
-| ☐ | **Move Adam:** Adam Red into the pilot's seat (left, `Seat`), Adam Blue into the navigator's seat | 1 | The crew export takes their new places |
-| ☐ | **Marks** for the crew's places in this scene: an empty per character, where their feet go, facing their way | 1 | The agent can make them at today's places by a script (ids `mark-…`), for the owner to move |
-| ☐ | **Dr. Kaufman's book** (a prop she holds while reading) | 1 | With her reading loop |
+| [SC-13](https://linear.app/eigodojo/issue/SC-13) | **Move Adam:** Adam Red into the pilot's seat (left, `Seat`), Adam Blue into the navigator's seat | 1 | The crew export takes their new places |
+| [SC-14](https://linear.app/eigodojo/issue/SC-14) | **Marks** for the crew's places in this scene: an empty per character, where their feet go, facing their way | 1 | The agent can make them at today's places by a script (ids `mark-…`), for the owner to move |
+| [SC-15](https://linear.app/eigodojo/issue/SC-15) | **Dr. Kaufman's book** (a prop she holds while reading) | 1 | With her reading loop |
 | — | Her seat's id `cockpit-seat-pilot` → `cockpit-seat-copilot` | 1 | **The agent's** (a script, the save announced first, a backup) |
 
 ## The animations
@@ -17,18 +17,18 @@ Named `<character>_<what>`, in the file each character is exported from. Stand-i
 
 | | Who | Animation | Loop? | Where | For pass | Stand-in |
 |---|---|---|---|---|---|---|
-| ☐ | Dr. Green | **sitting** in her seat (the scene starts on it) | loop | `cockpit-seat-copilot` | 2 | her idle, in the seat |
-| ☐ | Dr. Green | **getting up** from the seat to the corridor (starts on the sitting loop's pose, ends on her idle's) | once | the seat → the corridor | 2 | none: the seat waits for it |
-| ☐ | Dr. Green | **sitting back down** (the reverse, at the scene's end) | once | the corridor → the seat | 2 | none |
-| ☐ | Dr. Green | **pouring** the coffee at the coffee maker | once | the galley | 3 | the mug appears in her hand |
-| ☐ | Dr. Green | **holding the mug**: the arm's pose, layered over walk, run and idle (only the arm's bones are read) | pose | | 3 | none |
-| ☐ | Dr. Green | **a sip** from the mug (the same arm) | once | | 3 | none |
-| ☐ | Adam Red | flying the ship | loop | the pilot's seat (left) | 1 | today's pose |
-| ☐ | Adam Blue | navigating, or reading while flying (**open**: which?) | loop | the navigator's seat | 1 | today's pose |
-| ☐ | Dr. Kaufman | reading a book (**open**: on the couch as today?) | loop | the crew quarters | 1 | today's idle |
-| ☐ | Dr. Ogawa | working on the sensor array, on engineering's ceiling (**open**: standing, on a step?) | loop | engineering | 1 | today's pose |
-| ☐ | Each of the crew | talking: a nod, layered on top of their loop | while their line types | | 1 | a nod made in code |
-| ☐ | The ship | the landing gear lowering (no rig: moved by hand) | once | the landing cutscene | 6 | only if a shot shows it |
+| [SC-21](https://linear.app/eigodojo/issue/SC-21) | Dr. Green | **sitting** in her seat (the scene starts on it) | loop | `cockpit-seat-copilot` | 2 | her idle, in the seat |
+| [SC-22](https://linear.app/eigodojo/issue/SC-22) | Dr. Green | **getting up** from the seat to the corridor (starts on the sitting loop's pose, ends on her idle's) | once | the seat → the corridor | 2 | none: the seat waits for it |
+| [SC-23](https://linear.app/eigodojo/issue/SC-23) | Dr. Green | **sitting back down** (the reverse, at the scene's end) | once | the corridor → the seat | 2 | none |
+| [SC-25](https://linear.app/eigodojo/issue/SC-25) | Dr. Green | **pouring** the coffee at the coffee maker | once | the galley | 3 | the mug appears in her hand |
+| [SC-26](https://linear.app/eigodojo/issue/SC-26) | Dr. Green | **holding the mug**: the arm's pose, layered over walk, run and idle (only the arm's bones are read) | pose | | 3 | none |
+| [SC-26](https://linear.app/eigodojo/issue/SC-26) | Dr. Green | **a sip** from the mug (the same arm) | once | | 3 | none |
+| [SC-16](https://linear.app/eigodojo/issue/SC-16) | Adam Red | flying the ship | loop | the pilot's seat (left) | 1 | today's pose |
+| [SC-17](https://linear.app/eigodojo/issue/SC-17) | Adam Blue | navigating (owner, 2026-10-22) | loop | the navigator's seat | 1 | today's pose |
+| [SC-18](https://linear.app/eigodojo/issue/SC-18) | Dr. Kaufman | reading a book, on the couch (owner, 2026-10-22) | loop | the crew quarters | 1 | today's idle |
+| [SC-19](https://linear.app/eigodojo/issue/SC-19) | Dr. Ogawa | standing, working on the sensor array on engineering's ceiling (owner, 2026-10-22) | loop | engineering | 1 | today's pose |
+| [SC-20](https://linear.app/eigodojo/issue/SC-20) | Each of the crew | talking: a nod, layered on top of their loop | while their line types | | 1 | a nod made in code |
+| [SC-30](https://linear.app/eigodojo/issue/SC-30) | The ship | the landing gear lowering (no rig: moved by hand) | once | the landing cutscene | 6 | only if a shot shows it |
 
 **Getting up and sitting down** play like the ladder's climb: she slides to the animation's start, the animation moves her (root motion), and control comes back where it ends. So, as with the ladder: the root moves with her, the start and end poses match her idle, and the seat's place is fixed in the file.
 
@@ -36,9 +36,9 @@ Named `<character>_<what>`, in the file each character is exported from. Stand-i
 
 | | Task | For pass |
 |---|---|---|
-| ☐ | **The coffee pot** on the coffee maker in the galley (ready, owner) | 3 |
-| ☐ | **The mug** she carries: one of the galley's (`Mug.005`…), or a new one | 3 |
-| ☐ | **Where the mug sits in her hand**: the mug parented to her hand bone in a pose, or an empty marking the grip | 3 |
+| [SC-28](https://linear.app/eigodojo/issue/SC-28) | **The coffee pot** on the coffee maker in the galley (ready, owner) | 3 |
+| [SC-27](https://linear.app/eigodojo/issue/SC-27) | **The mug** she carries: one of the galley's (`Mug.005`…), or a new one | 3 |
+| [SC-27](https://linear.app/eigodojo/issue/SC-27) | **Where the mug sits in her hand**: the mug parented to her hand bone in a pose, or an empty marking the grip | 3 |
 | — | The coffee maker's id and kind (`coffee-maker`) | 3, **the agent's** (a script) |
 
 ## The kit file: how to set it up
@@ -56,4 +56,4 @@ Named `<character>_<what>`, in the file each character is exported from. Stand-i
 
 ## When the owner has done one
 
-Tick it here and say so; the agent compares the file with the last version before working from it (CLAUDE.md, *Keeping the work cheap*, rule 4).
+Move its issue to Done (or say so); the agent compares the file with the last version before working from it (CLAUDE.md, *Keeping the work cheap*, rule 4).

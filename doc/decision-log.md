@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-22 | The work is tracked in Linear, for the owner | process | Linear (team `SC`) shows the owner's next task and how the project goes; one project per big piece of work, *The Zamboni: ongoing* for the rest; the agent keeps it current every session; the repo stays the source of truth |
 | 2026-10-22 | Topics in conversations | feature | Ink choices as topics: the player picks what to ask from a list (up/down, the interact button); a heard topic goes, a leave topic stays; reverses pass 2's *no choices* |
 | 2026-10-22 | What the save keeps: what the player shouldn't have to do again | architecture | No action repeated unless the story asks for it: most interactions reset on a reload (doors, music); some are saved in Ink (for now her clothes and the jetpack), the list grows as we go; saved after each conversation and when one changes |
 | 2026-10-21 | One material per colour: a limited palette | look | One material per material colour (owner, 2026-10-22): `Black`, `Black Metal`, `Black Plastic` fine; `Teal`, `Teal 2`, `Teal.001` not; one `Black`, `Red`, `Blue`…; a different material of the same colour gets its own name (`Black Metal`, `Black Plastic`); no *Flat* materials (they skip the principled shader); `tools/merge-materials.py` merged 17 in 1.22 |
@@ -51,6 +52,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-22] — The work is tracked in Linear, for the owner (process)
+
+**Context:** open items lived in `doc/plans/backlog.md` (one line each, 77 items) and what waited on the owner in `doc/steps/current.md`. The owner had to ask, or read the docs, to know their next task and how the project was going. The owner set up a Linear workspace (team Studio Cataplasma, `SC`); the main goal: keep track of their manual tasks (owner, 2026-10-22).
+
+**Decision (owner, 2026-10-22):** Linear is the tracker, **for the owner, a human**: their next task (*My issues*, by priority) and an overview, without asking. **The repo stays the source of truth.** The agent keeps it current, as automatically as possible: statuses, a comment on each issue worked on, new owner tasks assigned to the owner, a project update at the end of every session. **One project per big piece of work with an end** (made when its plan is approved, completed at the owner's sign-off; past ones made retroactively), and *The Zamboni: ongoing* for everything small, open or *later*; all labelled *The Zamboni*. The owner's tasks are assigned to them; the agent's are unassigned; an owner task a pass needs *blocks* it. **An issue carries what's needed to work on it:** a doc passage of a paragraph or two is copied into it, a longer one summarized and linked. Backlog items keep their numbers in the titles (`77 · …`); new items are issues only. Plan: [`plans/architecture/linear.md`](plans/architecture/linear.md).
+
+**Alternatives:** the backlog file kept as the tracker (the owner reads Markdown to find their tasks); one Linear project for the whole game (its progress bar meaningless with the finished history in it); a project per area (never finishes); moving the project to another workspace (tried: not possible, and the GitHub connection had issues there).
+
+**Rationale:** the owner sees their own tasks first and each piece of work's progress at a glance; the docs keep the reasons and the details, so nothing is lost if Linear goes.
+
+**Status:** built 2026-10-22: 12 projects, items 1–77 as issues SC-5 to SC-115 (the finished ones *Done*; items of backlog passes 1–4 marked *Built* taken as done), the owner's flying-scene tasks; `backlog.md` an index of items to issues.
 
 ---
 
@@ -394,6 +409,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Rationale:** A new session should start from one short file, not from re-reading the project.
 
 **Status:** Done, 2026-10-12. The saving hasn't been measured yet.
+
+*Update 2026-10-22:* change (3) is replaced: open items are tracked in Linear, and `plans/backlog.md` is an index of items 1–77 to their issues ([*The work is tracked in Linear, for the owner*](#2026-10-22--the-work-is-tracked-in-linear-for-the-owner-process)). The other four changes stand.
 
 **Update (2026-10-12):** first measurement: the session that built pass 1 of the backlog read about 14 files before its first test, against about 23. The code map moved out of the prototype's README into its own short file, [`CODE-MAP.md`](../app/prototypes/01-walk/CODE-MAP.md) (owner): the README is long, and only the map is needed to start.
 

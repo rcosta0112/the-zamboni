@@ -12,7 +12,7 @@ A short third-person story/exploration game (visual novel × immersive sim) for 
 
 1. **Read `doc/steps/current.md` first.** It says what's in progress, what's next, what's waiting on the owner and which files are involved. **Rewrite it at the end of every session** (60 lines at most; not a log).
 2. Open other docs and source files only when the task needs them. For code, start from the **code map** of the current version, `app/prototypes/0.0.2/CODE-MAP.md`; for export and check scripts, from `app/prototypes/0.0.2/tools/README.md`; for decisions, from the **index** at the top of `doc/decision-log.md`.
-3. Open items are tracked in `doc/plans/backlog.md`, one line each: keep each item's status current.
+3. **Open items are tracked in Linear** (owner, 2026-10-22): team Studio Cataplasma (`SC`), one project per big piece of work, *The Zamboni: ongoing* for everything small, open or *later*; plan and rules in `doc/plans/architecture/linear.md`. **Linear is for the owner** (their next task, how the project is going); **the repo stays the source of truth.** Read the active projects at the start of a session (the owner may have closed or commented on issues). **At the end of every session:** statuses current, a comment on each issue worked on, new owner tasks created and assigned to the owner, a project update on each project worked on. An issue carries what's needed to work on it: a doc passage of a paragraph or two copied into it, a longer one summarized and linked. A big plan approved gets its own project.
 
 ## Rules from the owner
 
