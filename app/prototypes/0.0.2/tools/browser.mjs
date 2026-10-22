@@ -3,7 +3,7 @@
 // CHROME_PATH to use another.
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -56,13 +56,27 @@ export async function useStartButton(send, timeout = 90000) {
  * exceptions). Returns `send(method, params)` and `close()`.
  */
 export async function openBrowser(chromePath, onEvent = () => {}) {
+  // A check that was stopped (killed, timed out) leaves its profile, 100 MB or more (item 57). Chrome
+  // itself ends with the script. No check runs for an hour: older ones belong to no running check.
+  for (const name of readdirSync(tmpdir()).filter((n) => n.startsWith('zamboni-smoke-'))) {
+    try {
+      const old = join(tmpdir(), name);
+      if (Date.now() - statSync(old).birthtimeMs > 3600000) rmSync(old, { recursive: true, force: true });
+    } catch {
+      /* in use or gone: left for the next run */
+    }
+  }
   const profile = mkdtempSync(join(tmpdir(), 'zamboni-smoke-'));
   const chrome = spawn(chromePath, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1280,720', '--enable-unsafe-webgpu', '--no-first-run', '--mute-audio', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
   const close = async () => {
-    chrome.kill();
-    await new Promise((r) => setTimeout(r, 500));
+    // Wait for Chrome to be gone (its files released) before removing the profile.
+    if (chrome.exitCode === null && chrome.signalCode === null) {
+      const exited = new Promise((r) => chrome.once('exit', r));
+      chrome.kill();
+      await Promise.race([exited, new Promise((r) => setTimeout(r, 5000))]);
+    }
     try {
-      rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     } catch {
       /* Chrome still holds a file: the folder is in the system's temp directory */
     }

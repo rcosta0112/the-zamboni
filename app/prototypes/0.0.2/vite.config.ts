@@ -13,7 +13,9 @@ export default defineConfig({
   // Three's add-ons (GLTFLoader…) import 'three'; point that at the WebGPU build so the whole
   // app shares one copy of three (as the official WebGPU examples do with their import map).
   resolve: { alias: [{ find: /^three$/, replacement: 'three/webgpu' }] },
-  server: { port: 5202, strictPort: true },
+  // Not watched: .export/ (raw exports, check output) and dist/ are deleted and rewritten whole, and on
+  // Windows a watch on a deleted folder can loop forever, leaking native memory (item 57: GBs an hour).
+  server: { port: 5202, strictPort: true, watch: { ignored: ['**/.export/**', '**/dist/**'] } },
   preview: { port: 5202, strictPort: true },
   build: { target: 'es2022' },
 });

@@ -52,6 +52,8 @@ The version shows at the top of the tuning panel, read from the prototype's `pac
 | Version | What it is | Port | Status |
 |---|---|---|---|
 | [0.0.1](../../app/prototypes/0.0.1/README.md) | Prototype 01 (`01-walk`, [plan](../plans/prototypes/01-walk.md)): Dr. Green in and around the ship: movement, camera, the see-through hull, doors, ladders, the jetpack, sound, the start screen | 5201 | **Frozen** 2026-10-20 (tag `v0.0.1`); reference only |
+
+> **[Agent note]** **0.0.1 keeps the dev-server leak fixed in 0.0.2** (item 57, 2026-10-22; owner: note only, no fix). Its `vite.config.ts` watches `.export/` and `dist/`, and on Windows a watched folder that is deleted and recreated (an export, a build) can make the watcher loop, leaking about 110 MB of memory a minute. If `dev:0.0.1` is left running during `export:0.0.1:*` or a build, restart it afterwards; the fix, should it stop running, is 0.0.2's `server.watch.ignored` line. Its `tools/browser.mjs` also lacks 0.0.2's cleanup of Chrome profiles.
 | [0.0.2](../../app/prototypes/0.0.2/README.md) | Starts as a copy of 0.0.1; for the architecture (item 49) and the exports (item 48), the ladder and all open work | 5202 | **Current**; https://002-teal.vercel.app/ |
 | – | Low-res: low-resolution rendering on the real ship ([plan](../plans/prototypes/low-res.md)) | – | Set aside (owner, 2026-10-20); its features later |
 
