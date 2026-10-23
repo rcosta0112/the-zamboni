@@ -2,6 +2,7 @@
 // on the clipboard as JSON, to paste back into settings.ts or the prototype's README. "Copy view"
 // puts her position and the camera's angles there, to reproduce a screenshot.
 
+import * as THREE from 'three/webgpu';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { settings } from './settings';
 
@@ -129,10 +130,25 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');
   look.add(settings, 'metalReflections', 0, 2, 0.05).name('metal reflections');
   look.add(settings, 'haze').name('distance haze');
-  look.add(settings, 'hazeNear', 0, 150, 1).name('haze starts (m)');
-  look.add(settings, 'hazeFar', 20, 400, 1).name('haze full (m)');
+  look.add(settings, 'hazeNear', 0, 10000, 1).name('haze starts (m)');
+  look.add(settings, 'hazeFar', 20, 20000, 1).name('haze full (m)');
   look.add(settings, 'showGrid').name('grid');
+  look.add(settings, 'flightSpeed', 0, 4000, 10).name('flight: speed (m/s)').listen();
+  look.add(settings, 'flightHeight', 1, 1000, 1).name('flight: height (m)').listen();
+  look.add(settings, 'flightHeading', -180, 180, 1).name('flight: heading (°)').listen();
   look.add(settings, 'showColliders').name('show colliders');
+
+  // The ground under the flying ship (terrain.ts): set from the terrain's file when it's shown.
+  const ground = gui.addFolder('Flight: ground material');
+  ground.addColor(settings, 'groundColor').name('colour').listen();
+  ground.add(settings, 'groundMetalness', 0, 1, 0.01).name('metalness (sky reflection)').listen();
+  ground.add(settings, 'groundRoughnessLow', 0, 1, 0.01).name('roughness: low').listen();
+  ground.add(settings, 'groundRoughnessHigh', 0, 1, 0.01).name('roughness: high').listen();
+  ground.add(settings, 'groundCoarse', 5, 1000, 1).name('roughness: big noise (m)').listen();
+  ground.add(settings, 'groundFine', 0.1, 20, 0.01).name('roughness: fine noise (m)').listen();
+  ground.addColor(settings, 'groundGlow').name('glow (emission)').listen();
+  ground.add({ print: () => console.info(`"ground": ${JSON.stringify(groundData())}`) }, 'print').name('print for the terrain file (console)');
+  ground.close();
   look.add(settings, 'cargoRampOpen').name('cargo ramp open').listen();
 
   const interact = gui.addFolder('Interaction');
@@ -230,4 +246,15 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   for (const folder of gui.foldersRecursive()) folder.close();
   gui.close();
   return gui;
+}
+
+/** The ground's values as the terrain file writes them: linear RGB, three decimals. */
+function groundData(): object {
+  const linear = (hex: string) => new THREE.Color(hex).toArray().map((v) => Math.round(v * 1000) / 1000);
+  return {
+    color: linear(settings.groundColor),
+    metalness: settings.groundMetalness,
+    emissive: linear(settings.groundGlow),
+    roughness: { low: settings.groundRoughnessLow, high: settings.groundRoughnessHigh, coarse: [settings.groundCoarse, settings.groundCoarse * 4], fine: [settings.groundFine, settings.groundFine * 4] },
+  };
 }

@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-23 | The scenery: a treadmill that looks like the owner's fly-by | look | The ship never moves; the ground and its rubble pass under it (a terrain is a data file and a `.glb`); scale, scatter and materials from the fly-by file (×1.486); shadows are the rubble flattened along the sun, drawn as the ice in shadow; the ice's roughness a noise tile made at load; the lighting unchanged |
 | 2026-10-23 | Picking up objects: curated events only | scope | No free pick-up of small objects; objects are picked up only as designed events (the coffee mug, the jetpacks), added case by case; physics props (drop, throw) open, kept for a future interaction |
 | 2026-10-22 | The game's story and the checks' story | architecture | The game loads its own story (`public/story/`, the owner's lines copied from the scene files) from `chapter-1`; the checks load the test story from `landed` with `?test` (dev builds), so the checks don't change as the script grows |
 | 2026-10-22 | A copy of each character per scene, in Blender | pipeline | A collection per scene (by its id) with a linked copy of each character, placed and animated for it: the copy's place is the mark, its action the loop; Dr. Green's in `Player` › `<scene>`; the game still loads one model per character |
@@ -58,6 +59,27 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
+
+## [2026-10-23] — The scenery: a treadmill that looks like the owner's fly-by (look)
+
+**Context:** The flying scene needs the plain going by outside (pass 4 of [the plan](plans/features/flying-scene.md)). The plan approved a treadmill: the ship never moves. The first placeholders (boulders made in code) were rescaled by the owner (50 times bigger, 2026-10-22), then the owner pointed to the reference: *"how the ground, boulders, shadows, etc should look"* (`resources/models/The Zamboni 1.10 - fly by animation.blend`), keeping the game's lighting inside and in the cockpit, and asked for the ice's roughness *replicated in code, optimized for performance*.
+
+**Decision:**
+- **A treadmill:** one group at the ship's centre: the ground (a plane) and pools of instanced meshes that slide back and are moved to the front when they pass the rear edge. A terrain is a data file (`public/terrain/<id>.json`) with its meshes in `<id>.glb`; a scene names it (`travel.terrain`).
+- **The fly-by's numbers, in the game's units (×1.486):** about 14 m up, 174 m/s; ten of its `Rubble` pieces at its density, scaled evenly 0–0.5, tipped up to 1 rad, half buried. This replaces the 50× scale.
+- **Shadows without a shadow map:** each rubble piece drawn again, flattened onto the ground along the sun in the shader (the part below the ice left out), with the ice's material wholly in the sun's shadow: they match the ship's own shadow.
+- **Materials fitted, lighting kept:** the ice and the rubble are tuned in the terrain file (and the tuning panel's *Flight: ground material*); the owner set the ice white and the rubble a little blue.
+- **The ice's roughness:** the fly-by's two noises (one layer each) added and ramped, from a 256 × 256 repeating noise tile made at load and read at two scales (no measurable cost; its mip levels stop the fine grain shimmering).
+
+**Alternatives considered:**
+- **Moving the ship through a world:** physics, the crew, the lights and the cameras would all move with it; the treadmill keeps everything aboard as it is.
+- **Real shadows from the shadow map:** it covers 25–50 m around her; the rubble's shadows are seen kilometres off.
+- **The roughness baked in Blender:** the noise doesn't repeat over a 3 km plane; noise computed in the shader: two noise evaluations per pixel and shimmer in the distance.
+- **The fly-by's colour management (Filmic High Contrast):** would match its blue (the game's AgX tops out lower) but changes the whole game's look: flagged, not done.
+
+**Rationale:** Nothing aboard changes; the look comes from the owner's own file; everything costs a few draws (21) and almost nothing on the GPU; more terrains (rocks, mountains, ocean) are data files.
+
+**Status:** Built (pass 4a), the owner's *good for now* (2026-10-23). The clouds, the frame time against the landed ship and cutscene 2's exterior shot are next. See [the plan](plans/features/flying-scene.md), `app/prototypes/0.0.2/src/terrain.ts`.
 ## [2026-10-23] — Picking up objects: curated events only (scope)
 
 **Context:** the scope listed *Pick up small objects (carry, drop, throw)* as core, with physics props as Rapier rigid bodies, under the pillar "everything interactable". The 2026-10-15 notes ([interaction plan](plans/features/interaction-doors.md#notes-for-picking-things-up-and-using-them-owner-2026-10-15)) had already flagged the costs: about 28 to 130 pickable objects, each an object of its own in the export (draw calls, see-through entries), attaching objects in or on other things, and back-in-place vs *throw*. Playtesting shows the interactions as built (doors, lockers, keypads, the boombox, the jetpack rack, the parka, the crew's conversations, remarks) give plenty to do.

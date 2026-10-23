@@ -38,6 +38,7 @@ import { antialiasEnabled, createTuningPanel } from './tuning';
 import { updateVisibility } from './visibility';
 import { Wind } from './wind';
 import { createWorld, updateWorld } from './world';
+import { Treadmill } from './terrain';
 
 const STEP = 1 / 60; // fixed simulation step
 const TONE_MAPPING = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
@@ -62,7 +63,18 @@ const WARM_LIMIT = 6;
  * Without it the game's own story, from chapter 1.
  */
 const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has('test');
-const firstScene = TESTING ? TEST_SCENE : FIRST_SCENE;
+/**
+ * Dev builds, `?scene=<id>`: a new game from that point of the game's order, which then goes on as
+ * usual: `cutscene-1` (the animatic's card, then cutscene 2, then chapter 1: as a new game), `opening`
+ * (cutscene 2, then chapter 1), or a scene's id (`chapter-1`, `landed`, the checks'…). A save isn't
+ * continued meanwhile. Not in production builds (`import.meta.env.DEV` is false there).
+ */
+const ASKED = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
+/** The animatic's parts, before the first scene. */
+const ANIMATIC_STEPS = ['cutscene-1', 'opening'];
+const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
+/** What a new game plays before its first scene: the whole animatic, cutscene 2 only, or nothing. */
+const animaticFrom: 'card' | 'opening' | null = ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'card' : TESTING || ASKED ? null : 'card';
 const KEPT: { ink: string; get: () => boolean | string; set: (value: unknown) => void }[] = [
   { ink: 'green_outfit', get: () => settings.outfit, set: (v) => (v === 'jumpsuit' || v === 'parka') && (settings.outfit = v) },
   { ink: 'green_jetpack', get: () => settings.wearingJetpack, set: (v) => typeof v === 'boolean' && (settings.wearingJetpack = v) },
@@ -118,6 +130,7 @@ async function start(): Promise<void> {
   let director: SceneDirector | null = null;
   let story: GameStory | null = null;
   let cutscene: CutscenePlayer | null = null;
+  let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
   let saved: SaveData | null = null; // the checkpoint save read at load: *Continue*
   let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
@@ -190,6 +203,10 @@ async function start(): Promise<void> {
         view.yaw = yaw;
         character.facing = yaw; // she faces the way the camera looks
       });
+      // The scenery round the ship's centre, under its belly (the hull's bottom).
+      const shipBox = new THREE.Box3().setFromObject(s.object);
+      treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections);
+      director.onTravel = (terrain) => void treadmill?.set(terrain).catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
       // A save at each scene start, once the game has begun (not the scene under the start screen).
       director.onStarted = (id) => {
         if (begun) checkpoint(id);
@@ -200,12 +217,11 @@ async function start(): Promise<void> {
       });
       // Under the start screen: the save's scene, as *Continue* will find it (a new game's if the
       // address asks for a scene).
-      const asked = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
-      if (saved && !asked && (await startFrom(saved))) shown = 'continue';
+      if (saved && !ASKED && (await startFrom(saved))) shown = 'continue';
       else {
-        // A save that can't be continued isn't offered.
-        if (saved && !asked) saved = null;
-        await director.start(asked ?? firstScene).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
+        // A save that can't be continued isn't offered; nor one while the address asks for a point.
+        if (saved) saved = null;
+        await director.start(firstScene).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
       }
       const box = s.entities.ofKind('boombox')[0]?.object;
       if (box) boombox = new Boombox(box, audio);
@@ -249,7 +265,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __cutscene: () => cutscene, __watched: () => watched, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __cutscene: () => cutscene, __watched: () => watched, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
@@ -358,10 +374,13 @@ async function start(): Promise<void> {
       story?.reset();
       void director?.start(firstScene).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
     } else if (director?.current) checkpoint(director.current);
-    if (choice === 'new' && !TESTING) {
+    if (choice === 'new' && animaticFrom === 'card') {
       animatic = ANIMATIC_SECONDS;
       animaticEl.hidden = false;
       input.consumeSkip(); // the press that started it
+    } else if (choice === 'new' && animaticFrom === 'opening') {
+      input.consumeSkip();
+      void watched?.play('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
     }
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));
@@ -405,7 +424,7 @@ async function start(): Promise<void> {
         if (smooth >= WARM_FRAMES || warmTime > WARM_LIMIT) {
           ready = true;
           loading.finish();
-          // CONTINUE whenever there's a save, also when `?scene=` put another scene under the screen.
+          // CONTINUE whenever there's a save (none while the address asks for a point: `?scene=`).
           startScreen.setReady(saved !== null);
         }
       }
@@ -592,6 +611,15 @@ async function start(): Promise<void> {
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
+    treadmill?.update(dt);
+    // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
+    const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
+    for (const camera of [view.camera, watched?.camera]) {
+      if (camera && camera.far !== far) {
+        camera.far = far;
+        camera.updateProjectionMatrix();
+      }
+    }
     crew?.mixer.update(dt);
     // The crew are back (owner, 2026-10-15), except while she's inside on the lower deck: they're all
     // upstairs, can't be cut, and would stand in the hole's way.

@@ -14,7 +14,7 @@
 // start screen's button used again (Enter: CONTINUE when there's a save) and the second file run the
 // same way; both results are printed. Console errors are printed.
 // The page is the checks' game (`?test`: the test story, from the landed ship); with `--game`, the
-// game's own (its story, from chapter 1).
+// game's own (its story, from chapter 1). `--query <q>` adds to the address (`--query scene=opening`).
 // Uses the dev server already on port 5202, or starts one. For trying a check out before it goes
 // into smoke-01.mjs, and for looking at one thing after a change.
 
@@ -28,7 +28,9 @@ const PROTOTYPE = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const gameAt = args.indexOf('--game');
 if (gameAt >= 0) args.splice(gameAt, 1);
-const URL_01 = gameAt >= 0 ? 'http://localhost:5202/' : 'http://localhost:5202/?test';
+const queryAt = args.indexOf('--query'); // more of the address: `--query scene=opening`
+const query = queryAt >= 0 ? args.splice(queryAt, 2)[1] : null;
+const URL_01 = (gameAt >= 0 ? 'http://localhost:5202/' : 'http://localhost:5202/?test') + (query ? (gameAt >= 0 ? '?' : '&') + query : '');
 const shotAt = args.indexOf('--shot');
 const shot = shotAt >= 0 ? args.splice(shotAt, 2)[1] : null;
 const shotsAt = args.indexOf('--shots');

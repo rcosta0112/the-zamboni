@@ -7,8 +7,8 @@
 // (`onStarted`: main.ts saves once the game has begun).
 // **The flight rules** (owner, 2026-10-22), on every scene with `travel`: the outer doors and hatches,
 // the jetpacks and her parka locked (`FLIGHT_LOCKED`; their `use_<id>` knots say why), the story's
-// `ship_flying` set and the ship's noise on. The scenery going by is pass 4.
-// Dev builds: `?scene=<id>` in the address starts another scene than the first;
+// `ship_flying` set and the ship's noise on; the scenery going by (`onTravel`: terrain.ts).
+// Dev builds: `?scene=<id>` in the address starts a new game from another point (main.ts `ASKED`);
 // `__director().start('<id>')`.
 // Plans: doc/plans/architecture/game-architecture/game-structure.md (*Locations and scenes*, pass 2),
 // doc/plans/features/flying-scene.md (*The flight rules*, pass 1)
@@ -25,7 +25,7 @@ export interface SceneData {
   location: 'ship';
   /** Her feet (the ship file's Blender coordinates) and the camera's yaw (degrees, the game's). */
   player: { at: [number, number, number]; yaw: number };
-  /** The ship is flying: the flight rules, its noise; the terrain going by (pass 4). */
+  /** The ship is flying: the flight rules, its noise; the terrain going by (`public/terrain/<id>.json`). */
   travel?: { terrain: string };
   setup: Command[];
 }
@@ -55,6 +55,8 @@ export class SceneDirector {
   current: string | null = null;
   /** Called once a scene has started: the checkpoint save (main.ts). */
   onStarted: ((id: string) => void) | null = null;
+  /** Called with the scene's terrain, or null when the ship isn't flying: the scenery (main.ts). */
+  onTravel: ((terrain: string | null) => void) | null = null;
 
   constructor(
     private readonly ship: Ship,
@@ -82,6 +84,7 @@ export class SceneDirector {
     // The flight rules, before the setup (its `if` may read `ship_flying`).
     const flying = scene.travel !== undefined;
     settings.shipFlying = flying;
+    this.onTravel?.(scene.travel?.terrain ?? null);
     if (this.target.story?.get('ship_flying') !== undefined) this.target.story.set('ship_flying', flying);
     if (flying) {
       const ids = [...FLIGHT_LOCKED.ids, ...[...this.ship.entities.all()].filter((e) => FLIGHT_LOCKED.kinds.includes(e.kind)).map((e) => e.id)];

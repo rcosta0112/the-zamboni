@@ -1,0 +1,13 @@
+{
+  "speed": 174,
+  "height": 14,
+  "ground": {
+    "color": [1, 1, 1], "metalness": 0.384, "emissive": [0, 0.06, 0.3],
+    "roughness": { "low": 0.452, "high": 1, "coarse": [119, 475], "fine": [1.19, 4.75] }
+  },
+  "scatter": [
+    { "mesh": "file", "unit": 1.486, "density": 0.000453, "scale": [0, 0.5], "tilt": 1, "color": [0.8, 0.9, 1], "roughness": 1, "ahead": 1500, "behind": 600, "width": 900 }
+  ],
+  "backdrop": [],
+  "haze": { "near": 800, "far": 1800 }
+}

@@ -7,7 +7,7 @@
 // values carry over directly.
 
 import * as THREE from 'three/webgpu';
-import { abs, color, float, fract, fwidth, max, min, mix, mx_fractal_noise_float, positionWorld, smoothstep, uniform, vec2, vec3 } from 'three/tsl';
+import { abs, color, float, fract, fwidth, max, min, mix, mx_fractal_noise_float, positionWorld, smoothstep, uniform, vec3 } from 'three/tsl';
 import { settings } from './settings';
 
 const FLOOR_SIZE = 400;
@@ -31,6 +31,8 @@ export interface World {
   sky: THREE.DataTexture;
   /** The same gradient, for metal to reflect (see `reflections`). */
   reflections: THREE.DataTexture;
+  /** The landed ground (hidden while the ship flies: terrain.ts has its own). */
+  floor: THREE.Mesh;
 }
 
 /** The sun's colour: also what the room lights of sunlit rooms are tinted toward. */
@@ -69,12 +71,12 @@ export function createWorld(scene: THREE.Scene): World {
   sun.shadow.normalBias = 0.02;
   scene.add(sun, sun.target);
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE), snowMaterial());
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE), snowMaterial(positionWorld.xz));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   scene.add(floor);
 
-  return { sun, ambient, sky, reflections };
+  return { sun, ambient, sky, reflections, floor };
 }
 
 /**
@@ -183,13 +185,13 @@ function worldGradientTexture(w: number, h: number): THREE.DataTexture {
   return tex;
 }
 
-/** Near-white snow with very faint large-scale variation, plus an optional faint grid. */
-function snowMaterial(): THREE.MeshStandardNodeMaterial {
-  const variation = mx_fractal_noise_float(vec3(positionWorld.xz.mul(0.08), 0), 3, 2.0, 0.5);
+/** Near-white snow with very faint large-scale variation, plus an optional faint grid. `at`: where on the snow a point is (m). */
+function snowMaterial(at: THREE.Node<'vec2'>): THREE.MeshStandardNodeMaterial {
+  const variation = mx_fractal_noise_float(vec3(at.mul(0.08), 0), 3, 2.0, 0.5);
   const base = mix(color(SNOW), color(0xe4eef3), smoothstep(-0.4, 0.6, variation).mul(0.6));
 
   const lines = (spacing: number) => {
-    const coord = vec2(positionWorld.x, positionWorld.z).div(spacing);
+    const coord = at.div(spacing);
     const d = abs(fract(coord.sub(0.5)).sub(0.5)).div(fwidth(coord));
     return float(1).sub(min(min(d.x, d.y), 1));
   };

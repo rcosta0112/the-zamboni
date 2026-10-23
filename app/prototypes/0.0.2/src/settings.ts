@@ -286,6 +286,20 @@ export const settings = {
   boomboxGoneAt: 12, // ...and silent from here. A guess: UE's values aren't readable
   boomboxVibration: 1, // how much it shakes while a track plays (0 = still)
 
+  // The scenery going by while the ship flies (terrain.ts): set from the terrain's file when a scene
+  // with `travel` starts; here to tune. The ship never moves: the ground passes under it.
+  flightSpeed: 174, // m/s (the owner's fly-by, 2026-10-23)
+  flightHeight: 14, // m from the ship's belly down to the ground
+  flightHeading: 0, // ° turned to the right since the scene started (the ground turns the other way)
+  // The ground's material (and its shadows'), from the terrain's file: colours as the picker shows them.
+  groundColor: '#59b3ff',
+  groundMetalness: 0.384,
+  groundRoughnessLow: 0.452, // the roughness ramp's ends (the fly-by's Ice)
+  groundRoughnessHigh: 1,
+  groundCoarse: 119, // m: the big noise's cells across the flight (4 times as long along it)
+  groundFine: 1.19, // m: the fine noise's (averaged out in the distance)
+  groundGlow: '#004495',
+
   // Rendering
   maxPixelRatio: 2, // below 1 renders fewer pixels than the screen has (down to 0.1)
   pixelated: true, // stretch a low-resolution render with hard, square pixels instead of smoothing it
