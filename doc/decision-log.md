@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-23 | Picking up objects: curated events only | scope | No free pick-up of small objects; objects are picked up only as designed events (the coffee mug, the jetpacks), added case by case; physics props (drop, throw) open, kept for a future interaction |
 | 2026-10-22 | The game's story and the checks' story | architecture | The game loads its own story (`public/story/`, the owner's lines copied from the scene files) from `chapter-1`; the checks load the test story from `landed` with `?test` (dev builds), so the checks don't change as the script grows |
 | 2026-10-22 | A copy of each character per scene, in Blender | pipeline | A collection per scene (by its id) with a linked copy of each character, placed and animated for it: the copy's place is the mark, its action the loop; Dr. Green's in `Player` › `<scene>`; the game still loads one model per character |
 | 2026-10-22 | The work is tracked in Linear, for the owner | process | Linear (team `SC`) shows the owner's next task and how the project goes; one project per big piece of work, *The Zamboni: ongoing* for the rest; the agent keeps it current every session; the repo stays the source of truth |
@@ -54,6 +55,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-23] — Picking up objects: curated events only (scope)
+
+**Context:** the scope listed *Pick up small objects (carry, drop, throw)* as core, with physics props as Rapier rigid bodies, under the pillar "everything interactable". The 2026-10-15 notes ([interaction plan](plans/features/interaction-doors.md#notes-for-picking-things-up-and-using-them-owner-2026-10-15)) had already flagged the costs: about 28 to 130 pickable objects, each an object of its own in the export (draw calls, see-through entries), attaching objects in or on other things, and back-in-place vs *throw*. Playtesting shows the interactions as built (doors, lockers, keypads, the boombox, the jetpack rack, the parka, the crew's conversations, remarks) give plenty to do.
+
+**Decision (owner, 2026-10-23):** **the "interact with all the objects" feature is reduced.** Objects the player can pick up remain, but **as curated events**, like the coffee cup: each chosen and designed on its own (prompt, animation, outcome, save state). **Interactions with objects are added case by case.** No free pick-up of any small object. **Physics on objects (dropping, throwing, rigid bodies) stays open** (owner, 2026-10-23: "we may still need the physics system for future interactions"): the docs keep its recommendation (Rapier rigid bodies, the budgets), marked open.
+
+**Alternatives:** the scope as it was (every small object, with physics); every small object picked up and looked at, put back in place on drop (the owner's note of 2026-10-15: no physics, but still the per-object export and attaching costs).
+
+**Rationale:** free pick-ups of random objects create lots of extra work and issues to debug, as we don't have full control of all the outcomes: rigid-body physics is unpredictable. A curated object has one outcome, designed and tested.
+
+**Status:** decided; physics props open. Rapier stays for the character controller, collision and queries, and for physics props if an interaction needs them. Docs updated: [overview](overview.md), [scope](architecture/scope.md), [architecture](architecture/README.md), [stack](architecture/stack.md), [interaction](features/interaction.md#picking-things-up), the asset pipeline's `mass` tag, the game architecture plan's budgets.
 
 ---
 

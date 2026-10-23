@@ -24,7 +24,7 @@ Decide how the game is put together so it **runs smoothly as a web app, with loa
 - About one hour of play; one ship; 6–10 landing scenes with some repeat locations; travelling inside the flying ship ([`architecture/scope.md`](../../../architecture/scope.md)).
 - Three.js r186, `WebGPURenderer` (WebGL2 fallback), TSL; Svelte 5 for the UI; Rapier for physics ([`architecture/stack.md`](../../../architecture/stack.md)).
 - Gamepad first; keyboard and mouse secondary.
-- Immersive sim: most small objects can be picked up, which means many separate objects.
+- Immersive sim: ~~most small objects can be picked up, which means many separate objects~~. **Since 2026-10-23: curated pick-ups only** (a few objects of their own; physics props open, for a future interaction; [decision log](../../../decision-log.md)).
 - Cutscenes in-engine; pre-rendered video only as a fallback.
 - Platform and targets: [`architecture/platform.md`](../../../architecture/platform.md).
 
@@ -53,7 +53,7 @@ The owner controls the story and script, and is open to changing them when that 
 |---|---|
 | Unnoticeable loading | A story order the loader can rely on; travel sections and cutscenes long enough to cover downloads |
 | Rich interior lighting | Download size (lightmaps) or authoring time (vertex lighting); no moving lights in the ship |
-| Everything interactable | Draw calls and physics bodies, kept in check with BatchedMesh and sleeping bodies |
+| Everything interactable | Draw calls and physics bodies, kept in check with BatchedMesh and sleeping bodies. **Smaller since 2026-10-23:** curated pick-ups only; physics props open |
 | Few materials | Blender materials converted at export; special effects need their own material |
 | Unique ruins at each site | Download size per site |
 | Endless travel terrain | Generated, so less authored detail during travel |

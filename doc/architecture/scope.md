@@ -26,7 +26,7 @@ Priority: **Core** = the game doesn't work without it. **Wanted** = planned. **M
 | Ship interior, walkable during travel and landings | Core | |
 | Outdoor landing areas with soft + hard boundaries | Core | Bark first (*"I shouldn't get too far from the ship"*), invisible walls further out |
 | Interaction: use devices (doors, lockers, boombox, ship controls, screens…) | Core | Immersive-sim pillar |
-| Pick up small objects (carry, drop, throw) | Core | Most small objects, not all |
+| Picking up objects: curated events | Core | Case by case, each one designed as an event with its own outcome (the coffee mug, the jetpacks). **No free pick-up of any small object** (owner, 2026-10-23: playtests show the current interactions are plenty; free pick-ups and physics props cost work and debugging, with outcomes we don't control). **Physics props (drop, throw, rigid bodies): open**, kept for a future interaction that needs them, case by case. [Decision log](../decision-log.md) |
 | Face-to-face dialogue (VN-style box at the bottom, options) | Core | Minimal branching |
 | Comm: home screen with app icons + chat app | Core | Many conversations happen here |
 | Comm: mission data app (wildlife, ruins, artifacts) | Core | Where scanned entries are viewed |

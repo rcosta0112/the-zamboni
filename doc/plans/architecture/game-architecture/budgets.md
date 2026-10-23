@@ -32,7 +32,7 @@ Collision shapes are **included** in the bundles above. They're small because th
 | Ship rooms, walls, furniture | Simplified `*_col` meshes made in Blender, or boxes/capsules where they fit | Usually 5–10% of the visual triangles; ≈ 0.1–0.3 MB for the whole ship |
 | Landing-site terrain | Heightfield (a grid of heights) | Tiny; cheaper than a mesh for the physics engine too |
 | Ruins | Simplified meshes or boxes | Part of the site's ≤ 0.5 MB |
-| Pickable props | Boxes, spheres, capsules, or convex hulls | Almost nothing |
+| Pickable props | Boxes, spheres, capsules, or convex hulls. Since 2026-10-23 only if a future interaction needs physics (open; the curated pick-ups so far are attached to her) | Almost nothing |
 | Characters | A capsule each | Nothing to download |
 
 At runtime, collision meshes cost a little memory in the physics engine and no GPU time.
@@ -46,7 +46,7 @@ At runtime, collision meshes cost a little memory in the physics engine and no G
 | Unique materials (shader variants) | ≤ 30 | Each new one compiles a shader, a cause of stutter ([performance](performance.md#stutter)) |
 | Texture memory on the GPU | ≤ 512 MB | Integrated GPUs share system RAM; browsers kill tabs that use too much |
 | Real-time lights | 1 shadowed sun/key light + ≤ 4 small unshadowed lights near the player | Baked lighting does the rest |
-| Physics bodies | Static collision as above; ≤ 200 dynamic props awake at once | Sleeping bodies cost almost nothing |
+| Physics bodies | Static collision as above; ≤ 200 dynamic props awake at once (none so far: physics props open since 2026-10-23) | Sleeping bodies cost almost nothing |
 
 ## Conventions that make the budgets reachable
 

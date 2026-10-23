@@ -14,6 +14,8 @@
 
 ## Notes for picking things up and using them (owner, 2026-10-15)
 
+> **Update, 2026-10-23 (owner): superseded.** No free pick-up of small objects: objects are picked up only as **curated events** (the coffee mug), added case by case; physics props (drop, throw, rigid bodies) open, kept for a future interaction ([decision log](../../decision-log.md)). The notes and the prop list below are kept as history and as a source for choosing curated objects; the conflicts in the agent note at the end of this section are resolved by it.
+
 Not built yet; for the plan that adds them.
 
 1. **The player will pick up small objects and look at them.** Any object where that makes sense has to be considered (collision boxes, the export, the see-through rules).

@@ -42,8 +42,8 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Player controller** | Third-person character movement, stairs, ladders, collisions | Rapier kinematic character controller |
 | **Camera** | Third-person follow camera, collision, indoor/outdoor rules, cutscene takeover | `three-mesh-bvh` raycasts |
 | **See-through hull** | Cuts away what hides the character from the camera: walls and other decks by a hole, furniture only while it hides her | TSL material node. Doc: [`../features/see-through-hull.md`](../features/see-through-hull.md); next: [rules plan](../plans/features/see-through-rules.md) |
-| **Interaction** | Finds what the player is looking at or near, shows a prompt, runs the verb: *pick up*, *use*, *open*, *talk*, *scan* | Data from glTF custom properties |
-| **Physics objects** | Small objects that can be picked up, carried, dropped, thrown | Rapier rigid bodies |
+| **Interaction** | Finds what the player is looking at or near, shows a prompt, runs the verb: *use*, *open*, *talk*, *scan*, and *pick up* for the few curated objects | Data from glTF custom properties |
+| **Physics objects** | Small objects that can be picked up, carried, dropped, thrown. **Open** (owner, 2026-10-23): not needed by the curated pick-ups so far (the coffee mug is attached to her and scripted), kept for a future interaction that needs it ([decision log](../decision-log.md)) | Rapier rigid bodies |
 | **Devices** | Objects with their own behaviour: boombox, doors, lockers, levers, ship controls, screens | One small class per device type, configured from data |
 | **Dialogue** | Runs the Ink story; hands lines and choices to a presenter. **Built (passes 1, 2: 2026-10-21, 22): lines and conversations, no choices (owner: maybe never)** ([dialogue](../features/dialogue.md)) | `inkjs` |
 | **Presenters** | Show dialogue in the right form: VN box (face-to-face; **built**, `DialogueBox.svelte`), comm chat, barks (one-liners above the character), subtitles (cutscenes) | Svelte UI overlay |

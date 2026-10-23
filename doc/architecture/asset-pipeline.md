@@ -115,7 +115,7 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 | `zone_indoor_*`, `zone_outdoor_*` | Trigger volumes that switch indoor/outdoor rules | `zone_indoor_cockpit` |
 | `boundary_soft`, `boundary_hard` | Outdoor boundary volumes | |
 | `spawn_*` | Player and NPC spawn points | `spawn_player_copilot_seat` |
-| `mass: <kg>` | Physics mass for pickable objects | `mass: 0.3` |
+| `mass: <kg>` | Physics mass for pickable objects. **Open since 2026-10-23** (no physics props for now, kept for a future interaction: [decision log](../decision-log.md)) | `mass: 0.3` |
 
 ## Before the next export
 

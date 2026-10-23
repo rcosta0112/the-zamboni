@@ -28,7 +28,7 @@
 
 ## Fit with the scope ([`architecture/scope.md`](../../../architecture/scope.md))
 
-- **Good fit.** Using devices and picking up most small objects are *Core* (the immersive-sim pillar); the scanner adds a *Scannable* component; checkpoint saves reset doors and props on reload, which is "the definition's defaults"; it answers the asset pipeline's open question (placement in Blender, behaviour in data); kinds repeat (about 17 doors, lockers, hatches, many pickables, repeated landing sites).
+- **Good fit.** Using devices and picking up most small objects are *Core* (the immersive-sim pillar; **since 2026-10-23 picking up is curated events only**, a few objects; physics props open); the scanner adds a *Scannable* component; checkpoint saves reset doors and props on reload, which is "the definition's defaults"; it answers the asset pipeline's open question (placement in Blender, behaviour in data); kinds repeat (about 17 doors, lockers, hatches, many pickables, repeated landing sites).
 
 | Pattern | Fit | At this game's size |
 |---|---|---|
@@ -44,7 +44,7 @@
 
 - **Conflict:** the decision log's *The ship's reference file* (2026-10-12) puts behaviour in tags on the file's objects. With components the file carries only each object's **kind and id**; behaviour moves to the game's definitions. A decision-log entry when this is approved.
 - **Story state stays in Ink** (the single source of truth, [`architecture/README.md`](../../../architecture/README.md)): a door locked until a story beat reads Ink, not a second copy in a component.
-- **Draw calls** (60 fps on the PC, 30 on the MacBook, [`performance.md`](performance.md)): small props are merged per room today; pickables must be objects of their own. The plan for pickables has to weigh the cost.
+- **Draw calls** (60 fps on the PC, 30 on the MacBook, [`performance.md`](performance.md)): small props are merged per room today; pickables must be objects of their own. The plan for pickables has to weigh the cost. **Update 2026-10-23:** curated pick-ups only, so a handful of objects of their own, each when its event is built.
 - **Gamepad first**, as everywhere.
 
 ## The work (to plan when it's taken up)

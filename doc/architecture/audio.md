@@ -9,7 +9,7 @@
 | **Music (score)** | Travelling themes, landing-site themes, cutscene cues | No |
 | **Music (in-world)** | The boombox and its cassettes, maybe a radio | Yes, comes from the device |
 | **Ambience** | Ship hum, engines, wind outside, cockpit beeps | Mostly no; some local loops yes |
-| **Sound effects** | Footsteps by surface, doors, lockers, pickups and drops, devices, scanner, backpack | Yes |
+| **Sound effects** | Footsteps by surface, doors, lockers, the curated pick-ups (the mug…), devices, scanner, backpack | Yes |
 | **UI** | Comm notifications, chat typing, dialogue typing, prompts, mission data entry added, camera shutter | No |
 | **Dialogue** | **None: there's no spoken dialogue** (owner, 2026-10-08). Text only, with typing sounds | No |
 

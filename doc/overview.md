@@ -7,7 +7,7 @@ For how it's built, see [`architecture/`](architecture/README.md). For the story
 ## Key facts at a glance
 
 - **Length:** about **one hour** of gameplay. Deliberately very short.
-- **Genre:** story and exploration first. A visual novel's storytelling with an immersive sim's "everything is interactable" world.
+- **Genre:** story and exploration first. A visual novel's storytelling with an immersive sim's interactive world: devices to use, people to talk to, and objects picked up where the story makes something of it.
 - **No violence.** Short action segments may be considered, but the concept is storytelling and exploration.
 - **Not open world.** Small, bounded areas around wherever the ship lands.
 - **Minimal branching.** Dialogue has choices, but the story is mostly linear.
@@ -17,7 +17,7 @@ For how it's built, see [`architecture/`](architecture/README.md). For the story
 
 1. **Storytelling.** The game is a road trip with a crew going through some stuff. Conversations carry it, in person and over the comm.
 2. **Exploration.** Walking around the ship and the landing sites, finding ruins, artifacts and animals, and documenting them.
-3. **Immersive-sim interactivity.** Everything should be interactable. Most small objects can be picked up; devices like the boombox and the ship's controls can be used.
+3. **Immersive-sim interactivity.** Plenty to interact with: devices like the boombox, the doors, lockers and the ship's controls can be used, and the crew talked to. **Objects are picked up only as curated events** (the coffee mug, the jetpacks), added case by case; there's no free pick-up of every small object. Physics on objects stays possible for a future interaction (owner, 2026-10-23: [decision log](decision-log.md)).
 
 ## The crew and the mission
 
@@ -41,7 +41,7 @@ The game alternates between two kinds of section, joined by cutscenes:
 |---|---|
 | Third-person character | The player character walks freely inside and outside the ship |
 | See-through hull | Walls and hull between the camera and the character are cut away, so the camera can stay outside tight interiors. Plan: [`features/see-through-hull.md`](features/see-through-hull.md) |
-| Interaction | Everything interactable: pick up small objects, use devices (boombox, ship controls, doors, lockers…) |
+| Interaction | Use devices (boombox, ship controls, doors, lockers…); objects picked up as curated events only, added case by case (the coffee mug, the jetpacks) |
 | Face-to-face dialogue | Visual-novel style: a horizontal box at the bottom of the screen with dialogue options |
 | Comm | The main character has a comm (the in-world word for a smartphone), laid out like a smartphone with app icons. Apps: **chat** (many conversations happen here), **mission data** (the wildlife, ruins and artifacts documented so far), and a **camera** as a nice-to-have |
 | Scanner | A handheld device used on ruins and artifacts; scanning adds an entry to the mission data, viewed on the comm |
