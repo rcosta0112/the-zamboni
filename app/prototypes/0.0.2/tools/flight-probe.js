@@ -3,7 +3,7 @@
 //
 //     node tools/probe-01.mjs tools/flight-probe.js --game --shots .export/flight
 //
-// About 70 s. A new game: cutscene 1's card is up, a skip takes it away; cutscene 2 runs out. Then `chapter-1` from the
+// About 70 s. A new game: cutscene 1 plays (tools/cutscene-1-probe.js looks at it), a skip ends it; cutscene 2 runs out. Then `chapter-1` from the
 // start: the story's `ship_flying`, the ship's noise, her outfit, the viewport open; each thing the
 // flight rules lock offers its knot's prompt and says its line, and the outer doors stay shut; an
 // inner door still works. Then `landed`: nothing locked, the noise off.
@@ -13,14 +13,15 @@ const director = w.__director(), story = w.__story(), interaction = w.__interact
 const results = [];
 const report = (ok, what, detail) => results.push(`${ok ? 'PASS' : 'FAIL'}  ${what}${detail ? `  (${detail})` : ''}`);
 
-// The animatic's card after NEW GAME (a fresh profile has no save: START is a new game).
-const card = document.querySelector('#animatic');
-report(w.__start().animatic > 0 && !card.hidden, 'the animatic card is up after a new game', `left ${w.__start().animatic.toFixed(1)} s`);
+// Cutscene 1 after NEW GAME (a fresh profile has no save: START is a new game).
+const cutscene = w.__cutscene();
+await until(() => cutscene.playing, 5000);
+report(cutscene.track?.id === 'cutscene-1', 'cutscene 1 plays after a new game', cutscene.track?.id);
 await shot('animatic');
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
 window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
-await until(() => card.hidden, 2000);
-report(card.hidden && w.__start().animatic === 0, 'a skip takes it away');
+await until(() => !cutscene.playing, 2000);
+report(!cutscene.playing, 'a skip ends it');
 // Cutscene 2 (watched) plays after it: its own probe (opening-probe.js) looks at it; here it's let run out.
 await until(() => !w.__watched()?.playing, 40000);
 

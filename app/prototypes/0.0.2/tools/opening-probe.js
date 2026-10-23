@@ -2,7 +2,7 @@
 //
 //     node tools/probe-01.mjs tools/opening-probe.js --game --shots .export/opening
 //
-// About 60 s. A new game: cutscene 1's card, skipped; then cutscene 2 plays by itself, nothing
+// About 60 s. A new game: cutscene 1, skipped; then cutscene 2 plays by itself, nothing
 // pressed: each line's speaker gets the camera (a screenshot per line), each line moves on by itself,
 // she doesn't move, the black bars are on; at its end the bars go, the save is written, and she walks.
 // Runs in the page (probe-01.mjs).
@@ -11,11 +11,12 @@ const results = [];
 const report = (ok, what, detail) => results.push(`${ok ? 'PASS' : 'FAIL'}  ${what}${detail ? `  (${detail})` : ''}`);
 const dialogue = w.__dialogue, character = w.__character;
 
-report(w.__start().animatic > 0, "cutscene 1's card after a new game");
+await until(() => w.__cutscene().playing, 5000);
+report(w.__cutscene().track?.id === 'cutscene-1', 'cutscene 1 after a new game');
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
 window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
 const started = await until(() => w.__watched()?.playing && dialogue.line, 3000);
-report(started, 'cutscene 2 starts after the card');
+report(started, 'cutscene 2 starts after cutscene 1');
 const feet = character.position.clone();
 const seen = [];
 const t0 = performance.now();

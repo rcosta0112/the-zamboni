@@ -1,9 +1,13 @@
 // The scenery going by while the ship flies: a treadmill (doc/plans/features/flying-scene.md, *How the
 // scenery works*). **The ship never moves**: the ground passes under it. A terrain is a data file
 // (`public/terrain/<id>.json`), its meshes in `<id>.glb` beside it: its speed and height, the ground
-// (one material per surface), the scatter (pools of instanced meshes sliding back; one that passes the
-// rear edge comes back at the front, somewhere new: nothing is created while it runs), the backdrop
-// (the same, far off and slower), the clouds (the same, in the air), the haze. Only the current terrain is built.
+// (one material per surface), the scatter (pools of instanced meshes), the backdrop (the same, far off
+// and slower), the clouds (the same, in the air), the haze. Only the current terrain is built.
+// **A pool's copies are made from where they are** (doc/plans/features/scenery-around-camera.md): the
+// plain is a grid of cells, each cell's copies decided by a hash of its place (how many, where, which
+// shape, how big, turned and tipped how), so a cell always holds the same rocks; each frame the cells
+// round the camera being drawn are shown, its copies within `reach` of it, sliding back with the ground. Every camera sees the
+// same rocks, the edge always `reach` from it (past the haze), and nothing is stored or created as it runs.
 // **The look is the owner's fly-by** (The Zamboni 1.10 - fly by animation.blend, 2026-10-23): its
 // ground (`Ice`: light blue, partly metallic, reflecting the sky; its roughness two noises, below), its `Rubble` (white, matte; ten of
 // its pieces in `ice-plain.glb`), scattered as its geometry nodes do (a density, scaled at random,
@@ -31,9 +35,12 @@ import { settings } from './settings';
 interface ScatterData {
   /** The terrain file's meshes (each a shape), or a placeholder made here: `boulder`, `peak` (a mountain), `cloud`. */
   mesh: 'file' | 'boulder' | 'peak' | 'cloud';
-  /** How many: a number, or per square metre of the band. */
-  count?: number;
-  density?: number;
+  /** How many per square metre. */
+  density: number;
+  /** The grid's cells, this many metres across. */
+  cell: number;
+  /** The copies shown reach this far from the camera, along the ground (m): past the full haze. */
+  reach: number;
   /** The meshes' unit: the file's sizes times this (m). */
   unit?: number;
   /** Scaled at random between the two, evenly (the fly-by's geometry nodes: 0 to 0.5). */
@@ -50,16 +57,12 @@ interface ScatterData {
   /** Smooth shading (the clouds); faceted otherwise. */
   smooth?: boolean;
   /**
-   * Faded out with distance from the ship (m): whole from the first, gone at the second; its shadow
-   * with it. So that what comes back at the front (or reaches the cameras' far plane) never pops in.
+   * Faded out with distance from the camera (m): whole from the first, gone at the second; its shadow
+   * with it. So that what comes in at the edge (or reaches the cameras' far plane) never pops in.
    */
   fade?: [number, number];
   /** Its opacity (and its shadow's) where it's whole: below 1, see-through. With `fade`. */
   opacity?: number;
-  /** The band it fills (m from the ship's centre): ahead, behind, to either side. */
-  ahead: number;
-  behind: number;
-  width: number;
   /** Kept clear either side of the ship's line (m): for a backdrop. */
   clear?: number;
   /** Its speed as a share of the ship's: below 1 for a backdrop. */
@@ -97,25 +100,31 @@ const LANDED_HAZE = { near: settings.hazeNear, far: settings.hazeFar };
 /** The roughness's noise: a repeating tile this many pixels across, with this many noise cells across it. */
 const NOISE_SIZE = 256;
 const NOISE_CELLS = 32;
-/** Floats kept per copy: x, z, turn, its size's share of the pool's range, two tilts, its height's share of its range. */
-const PER_COPY = 7;
 /** The scatter's pools hold this many copies at least: the panel's *Flight: rocks* › *count* goes up to it. */
 export const ROCKS_MAX = 6000;
+/** Each shape's mesh has room for this many times its even share (the hash doesn't share them evenly). */
+const SHARE_ROOM = 1.5;
+/** A point uniform (the camera in the group, for `fadeBy`). */
+const pointUniform = () => uniform(new THREE.Vector3());
+type Eye = ReturnType<typeof pointUniform>;
 
 /** One pool: its copies' places in the group, their meshes and their shadows. */
 interface Pool {
   data: ScatterData;
-  /** The copies shown (the scatter's: the panel's), the file's and how many there's room for. */
+  /** The copies shown last frame; about how many the file's density puts round the camera. */
   count: number;
   base: number;
+  /** Its density now (the rocks': scaled by the panel's count); room in each shape's mesh. */
+  density: number;
   capacity: number;
+  /** Its own hash: two pools never share a layout. */
+  seed: number;
   /** The scatter's (the rocks): its count and size follow the panel's *Flight: rocks*. */
   rocks: boolean;
   meshes: THREE.InstancedMesh[];
   shadows: THREE.InstancedMesh[];
   /** Each mesh's height, unscaled (m). */
   heights: number[];
-  copies: Float32Array;
 }
 
 export class Treadmill {
@@ -146,6 +155,11 @@ export class Treadmill {
   private readonly noise = noiseTile(NOISE_SIZE, NOISE_CELLS);
   private materials: THREE.Material[] = [];
   private random = mulberry32(1);
+  /** The hash's state, inside a cell (`cellStart`, `next`). */
+  private state = 0;
+  /** The camera being drawn, in the group: where the cells are shown round, and the fades measured from. */
+  private readonly eye: Eye = pointUniform();
+  private readonly counts: number[] = [];
   /** The sun's direction in the group (toward it): what the shadows are flattened along. */
   private readonly sun = uniform(new THREE.Vector3(0, 1, 0));
   private readonly m = new THREE.Matrix4();
@@ -230,7 +244,7 @@ export class Treadmill {
     this.groundTuned = '';
     this.travelled = 0;
     this.random = mulberry32(1); // the same scatter every time (screenshots compare)
-    for (const pool of all) this.pools.push(this.pool(pool, shapes, shadow, data.ground, data.scatter.includes(pool)));
+    all.forEach((pool, i) => this.pools.push(this.pool(pool, shapes, shadow, data.ground, data.scatter.includes(pool), i + 1)));
     settings.rockCount = this.pools.filter((p) => p.rocks).reduce((n, p) => n + p.base, 0);
     settings.rockSize = 1;
     this.rocksTuned = settings.rockCount;
@@ -238,17 +252,21 @@ export class Treadmill {
     console.info(`[0.0.2] terrain: ${id} (${this.pools.reduce((n, p) => n + p.count, 0)} copies in ${this.pools.reduce((n, p) => n + p.meshes.length * 2, 0)} draws)`);
   }
 
-  update(dt: number): void {
+  /** Moves it on by `dt`; `camera`: the one drawing this frame (the cells round it are shown); `pace`: the
+   *  speed times the terrain's (a cutscene's own). */
+  update(dt: number, camera: THREE.Camera, pace = 1): void {
     if (!this.group.visible) return;
     const g = this.group;
     g.position.set(this.centre.x, this.centre.belly - settings.flightHeight, this.centre.z);
     g.rotation.y = THREE.MathUtils.degToRad(settings.flightHeading);
-    const step = settings.flightSpeed * dt;
+    g.updateMatrixWorld();
+    const step = settings.flightSpeed * pace * dt;
     this.travelled += step;
     this.scroll.value = this.travelled % 1e5;
     this.tuneGround();
     this.tuneOutside();
     this.tuneRocks();
+    const eye = g.worldToLocal(camera.getWorldPosition(this.eye.value));
 
     // The sun's direction in the group: it stays put in the world while the group turns.
     const el = THREE.MathUtils.degToRad(settings.sunElevationDeg);
@@ -257,32 +275,73 @@ export class Treadmill {
 
     for (const pool of this.pools) {
       const d = pool.data;
-      const length = d.ahead + d.behind;
-      const c = pool.copies;
       const variants = pool.meshes.length;
       const unit = d.unit ?? 1;
       const [lo, hi] = d.scale;
       const grow = pool.rocks ? settings.rockSize : 1;
       const [low, high] = d.lift ?? [0, 0];
-      for (let i = 0; i < pool.count; i++) {
-        const k = i * PER_COPY;
-        c[k + 1]! += step * (d.parallax ?? 1);
-        if (c[k + 1]! > d.behind) {
-          // Past the rear edge: back to the front, somewhere new.
-          c[k + 1]! -= length;
-          this.place(c, k, d, false);
+      const tilt = d.tilt ?? 0;
+      const clear = d.clear ?? 0;
+      // The ground has moved this far back (+z in the group) under the ship: a cell's place on the
+      // ground is its place in the group less this. Worked out here in doubles; what's written is near
+      // the group's centre.
+      const moved = this.travelled * (d.parallax ?? 1);
+      const per = pool.density * d.cell * d.cell;
+      const reach2 = d.reach * d.reach;
+      const counts = this.counts;
+      counts.length = variants;
+      counts.fill(0);
+      const x0 = Math.floor((eye.x - d.reach) / d.cell);
+      const x1 = Math.floor((eye.x + d.reach) / d.cell);
+      const z0 = Math.floor((eye.z - moved - d.reach) / d.cell);
+      const z1 = Math.floor((eye.z - moved + d.reach) / d.cell);
+      for (let ix = x0; ix <= x1; ix++) {
+        for (let iz = z0; iz <= z1; iz++) {
+          this.cellStart(ix, iz, pool.seed);
+          const n = Math.floor(per + this.next());
+          for (let j = 0; j < n; j++) {
+            // Every number drawn whether it's shown or not: a copy's place never depends on another's.
+            const x = (ix + this.next()) * d.cell;
+            const z = (iz + this.next()) * d.cell + moved;
+            const v = Math.min(variants - 1, Math.floor(this.next() * variants));
+            const size = unit * grow * (lo + (hi - lo) * this.next());
+            const turn = this.next() * Math.PI * 2;
+            const tipX = this.next() * tilt;
+            const tipZ = this.next() * tilt;
+            const lift = low + (high - low) * this.next();
+            // Shown within `reach` of the camera along the ground (the haze is round: a square would
+            // draw rocks no one sees), off the ship's line, while there's room.
+            if ((x - eye.x) ** 2 + (z - eye.z) ** 2 > reach2 || Math.abs(x) < clear || counts[v]! >= pool.capacity) continue;
+            this.p.set(x, lift - (d.sink ?? 0) * pool.heights[v]! * size, z);
+            this.q.setFromEuler(this.e.set(tipX, turn, tipZ, 'YXZ'));
+            this.s.setScalar(size);
+            this.m.compose(this.p, this.q, this.s);
+            pool.meshes[v]!.setMatrixAt(counts[v]!++, this.m); // the shadows share it
+          }
         }
-        const v = i % variants;
-        const size = unit * grow * (lo + (hi - lo) * c[k + 3]!);
-        this.p.set(c[k]!, low + (high - low) * c[k + 6]! - (d.sink ?? 0) * pool.heights[v]! * size, c[k + 1]!);
-        this.q.setFromEuler(this.e.set(c[k + 4]!, c[k + 2]!, c[k + 5]!, 'YXZ'));
-        this.s.setScalar(size);
-        this.m.compose(this.p, this.q, this.s);
-        const n = Math.floor(i / variants);
-        pool.meshes[v]!.setMatrixAt(n, this.m); // the shadows share it
       }
-      for (const mesh of pool.meshes) mesh.instanceMatrix.needsUpdate = true;
+      pool.count = 0;
+      pool.meshes.forEach((mesh, v) => {
+        mesh.count = pool.shadows[v]!.count = counts[v]!;
+        mesh.instanceMatrix.needsUpdate = true;
+        pool.count += counts[v]!;
+      });
     }
+  }
+
+  /** The hash's state for one cell of a pool: the same cell, the same copies. */
+  private cellStart(ix: number, iz: number, seed: number): void {
+    let h = Math.imul(ix | 0, 0x27d4eb2d) ^ Math.imul(iz | 0, 0x165667b1) ^ Math.imul(seed, 0x9e3779b9);
+    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+    this.state = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) ^ (h >>> 16);
+  }
+
+  /** The cell's next number, 0..1 (mulberry32's step, without a function made per cell). */
+  private next(): number {
+    const a = (this.state = (this.state + 0x6d2b79f5) | 0);
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
   /** The panel's *Flight: rocks* › *count*: shared between the scatter's pools as the file's counts are. */
@@ -291,11 +350,8 @@ export class Treadmill {
     this.rocksTuned = settings.rockCount;
     const rocks = this.pools.filter((p) => p.rocks);
     const base = rocks.reduce((n, p) => n + p.base, 0);
-    for (const pool of rocks) {
-      pool.count = Math.min(pool.capacity, Math.round((pool.base * settings.rockCount) / Math.max(base, 1)));
-      const variants = pool.meshes.length;
-      pool.meshes.forEach((mesh, v) => (mesh.count = pool.shadows[v]!.count = Math.ceil(Math.max(pool.count - v, 0) / variants)));
-    }
+    // The density scaled: about that many round the camera.
+    for (const pool of rocks) pool.density = (pool.data.density * settings.rockCount) / Math.max(base, 1);
   }
 
   /** The panel's *Flight: outside light*: the outside's sky, the sun's tint and strength there, the reflections. */
@@ -355,7 +411,7 @@ export class Treadmill {
       // its height carries across it exactly; what comes from below the ground is left out. (Kept
       // where they were, the buried parts drew their footprints as shadow: shadows with no rock.)
       const sun = this.sun;
-      const fading = fade ? fadeBy(material, fade, opacity) : null;
+      const fading = fade ? fadeBy(material, fade, this.eye, opacity) : null;
       const height = varyingProperty('float', 'vHeight');
       material.positionNode = Fn(() => {
         const p = positionLocal;
@@ -374,13 +430,13 @@ export class Treadmill {
     return material;
   }
 
-  private pool(data: ScatterData, shapes: THREE.BufferGeometry[], groundShadow: THREE.MeshStandardNodeMaterial, ground: TerrainData['ground'], rocks: boolean): Pool {
+  private pool(data: ScatterData, shapes: THREE.BufferGeometry[], groundShadow: THREE.MeshStandardNodeMaterial, ground: TerrainData['ground'], rocks: boolean, seed: number): Pool {
     const material = new THREE.MeshStandardNodeMaterial({ color: linear(data.color), roughness: data.roughness, metalness: 0, flatShading: !data.smooth });
     this.outside(material);
     this.materials.push(material);
     let shadowMaterial = groundShadow;
     if (data.fade) {
-      const fading = fadeBy(material, data.fade, data.opacity);
+      const fading = fadeBy(material, data.fade, this.eye, data.opacity);
       material.positionNode = Fn(() => {
         fading(positionLocal);
         return positionLocal;
@@ -391,18 +447,20 @@ export class Treadmill {
       this.groundMaterials.push(shadowMaterial);
       this.groundTuned = '';
     }
-    const count = data.count ?? Math.round((data.density ?? 0) * (data.ahead + data.behind) * 2 * data.width);
-    // The rocks have room for more: the panel's count can go up without the meshes made again.
-    const capacity = rocks ? Math.max(count, ROCKS_MAX) : count;
+    // About how many round the camera.
+    const count = Math.round(data.density * Math.PI * data.reach ** 2);
+    // Each shape's room: its share of the most there can be (the rocks: the panel's maximum), with room
+    // to spare (the hash doesn't share them evenly).
+    const most = rocks ? Math.max(count, ROCKS_MAX) : count;
     const made = { boulder: boulderGeometry, peak: peakGeometry, cloud: cloudGeometry };
     const geometries = data.mesh === 'file' ? shapes : [0, 1, 2].map(() => made[data.mesh as keyof typeof made](this.random));
     const meshes: THREE.InstancedMesh[] = [];
     const shadows: THREE.InstancedMesh[] = [];
-    geometries.forEach((geometry, v) => {
-      const n = Math.ceil((capacity - v) / geometries.length);
-      const mesh = new THREE.InstancedMesh(geometry, material, n);
-      const shadow = new THREE.InstancedMesh(geometry, shadowMaterial, n);
-      mesh.count = shadow.count = Math.ceil((count - v) / geometries.length);
+    const capacity = Math.ceil((most / geometries.length) * SHARE_ROOM) + 8;
+    geometries.forEach((geometry) => {
+      const mesh = new THREE.InstancedMesh(geometry, material, capacity);
+      const shadow = new THREE.InstancedMesh(geometry, shadowMaterial, capacity);
+      mesh.count = shadow.count = 0;
       shadow.instanceMatrix = mesh.instanceMatrix;
       // They move every frame: their bounds at load would be wrong.
       mesh.frustumCulled = false;
@@ -420,12 +478,7 @@ export class Treadmill {
       g.computeBoundingBox();
       return g.boundingBox!.max.y - g.boundingBox!.min.y;
     });
-    const copies = new Float32Array(capacity * PER_COPY);
-    for (let i = 0; i < count; i++) this.place(copies, i * PER_COPY, data, true);
-    // The room for more placed from their own sequence: the file's scatter stays as it was.
-    const extra = mulberry32(2);
-    for (let i = count; i < capacity; i++) this.place(copies, i * PER_COPY, data, true, extra);
-    return { data, count, base: count, capacity, meshes, shadows, heights, copies, rocks };
+    return { data, count, base: count, density: data.density, capacity, meshes, shadows, heights, rocks, seed };
   }
 
   /** Lit by the outside's lights, the sun tinted (a flattened shadow replaces its received shadow after this). */
@@ -434,21 +487,6 @@ export class Treadmill {
     const tint = this.sunTint;
     // three calls it with the shadow (ShadowNode.js); the types leave the argument out.
     material.receivedShadowNode = ((shadow: THREE.Node<'float'>) => tint.mul(shadow)) as unknown as () => THREE.Node;
-  }
-
-  /** A copy somewhere new: across the band, at the front (or anywhere in it, at the start). */
-  private place(c: Float32Array, k: number, d: ScatterData, anywhere: boolean, r = this.random): void {
-    const clear = d.clear ?? 0;
-    const side = clear + r() * (d.width - clear);
-    c[k] = r() < 0.5 ? -side : side;
-    if (anywhere) c[k + 1] = -d.ahead + r() * (d.ahead + d.behind);
-    else c[k + 1] = c[k + 1]! - r() * 2; // a little spread, or they come back in a line
-    c[k + 2] = r() * Math.PI * 2;
-    c[k + 3] = r();
-    const tilt = d.tilt ?? 0;
-    c[k + 4] = r() * tilt;
-    c[k + 5] = r() * tilt;
-    c[k + 6] = r();
   }
 
   private clear(): void {
@@ -467,19 +505,19 @@ export class Treadmill {
 }
 
 /**
- * A material faded out with distance from the ship (the group's centre), from `fade[0]` to `fade[1]`
+ * A material faded out with distance from the camera (`eye`, in the group), from `fade[0]` to `fade[1]`
  * (m, along the ground). See-through, at most `opacity`; no depth written, so overlapping parts all
  * show. Returns what measures it at `p` (a point in the group), called in the material's
  * `positionNode`: a shadow passes its point from before it's flattened, so that it fades with what
  * casts it.
  */
-function fadeBy(material: THREE.NodeMaterial, fade: [number, number], opacity = 1): (p: typeof positionLocal) => void {
+function fadeBy(material: THREE.NodeMaterial, fade: [number, number], eye: Eye, opacity = 1): (p: typeof positionLocal) => void {
   const v = varyingProperty('float', 'vFade');
   material.opacityNode = v;
   material.transparent = true;
   material.depthWrite = false;
   return (p) => {
-    v.assign(float(1).sub(smoothstep(fade[0], fade[1], vec2(p.x, p.z).length())).mul(opacity));
+    v.assign(float(1).sub(smoothstep(fade[0], fade[1], vec2(p.x, p.z).sub(eye.xz).length())).mul(opacity));
   };
 }
 

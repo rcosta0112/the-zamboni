@@ -45,8 +45,6 @@ const TONE_MAPPING = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapp
 const MAX_STEPS = 5; // per frame, so a long pause doesn't spiral
 /** The start screen's music dies away over this long once the button is used (s). */
 const THEME_FADE = 1.5;
-/** The animatic's stand-in card stays this long unless skipped (s). */
-const ANIMATIC_SECONDS = 6;
 /** The start screen is taken away this long after the button is used (ms): its own fade is 600. */
 const SCREEN_LEAVES = 700;
 /** The start button comes after this many frames in a row made in under a tenth of a second... */
@@ -65,7 +63,7 @@ const WARM_LIMIT = 6;
 const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has('test');
 /**
  * Dev builds, `?scene=<id>`: a new game from that point of the game's order, which then goes on as
- * usual: `cutscene-1` (the animatic's card, then cutscene 2, then chapter 1: as a new game), `opening`
+ * usual: `cutscene-1` (cutscene 1, the fly-by, then cutscene 2, then chapter 1: as a new game), `opening`
  * (cutscene 2, then chapter 1), or a scene's id (`chapter-1`, `landed`, the checks'…). A save isn't
  * continued meanwhile. Not in production builds (`import.meta.env.DEV` is false there).
  */
@@ -74,7 +72,7 @@ const ASKED = import.meta.env.DEV ? new URLSearchParams(location.search).get('sc
 const ANIMATIC_STEPS = ['cutscene-1', 'opening'];
 const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
 /** What a new game plays before its first scene: the whole animatic, cutscene 2 only, or nothing. */
-const animaticFrom: 'card' | 'opening' | null = ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'card' : TESTING || ASKED ? null : 'card';
+const animaticFrom: 'cutscene-1' | 'opening' | null = ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : TESTING || ASKED ? null : 'cutscene-1';
 const KEPT: { ink: string; get: () => boolean | string; set: (value: unknown) => void }[] = [
   { ink: 'green_outfit', get: () => settings.outfit, set: (v) => (v === 'jumpsuit' || v === 'parka') && (settings.outfit = v) },
   { ink: 'green_jetpack', get: () => settings.wearingJetpack, set: (v) => typeof v === 'boolean' && (settings.wearingJetpack = v) },
@@ -90,10 +88,14 @@ async function start(): Promise<void> {
   const dialogue = new Dialogue((view) => dialogueBox.show(view), () => audio.play('ui_interact'), () => audio.play('ui_type'));
   const helpEl = document.querySelector<HTMLElement>('#help')!;
   // The animatic after NEW GAME (never shown again: *Continue* goes past it; not in the checks' game):
-  // cutscene 1's stand-in card, skippable, then cutscene 2 watched in the ship (`watched`).
-  const animaticEl = document.querySelector<HTMLElement>('#animatic')!;
+  // cutscene 1, the ship outside (`cutscene`, from the owner's fly-by), then cutscene 2 watched in the
+  // ship (`watched`). Each can be skipped.
   const barsEl = document.querySelector<HTMLElement>('#bars')!; // every cutscene's black bars
-  let animatic = 0; // s the card has left
+  let animatic: 'cutscene-1' | 'opening' | null = null; // the part last started
+  const playOpening = () => {
+    animatic = 'opening';
+    void watched?.play('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
+  };
 
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true;
@@ -176,10 +178,11 @@ async function start(): Promise<void> {
         story: null,
         cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
       };
-      cutscene = new CutscenePlayer(s.object, (command) => run(command, target));
+      cutscene = new CutscenePlayer(s.object, (command) => run(command, target), [s.shadowCaster, s.interiorShadowCaster, s.glassShadowCaster]);
       // A checkpoint at a cutscene's end: the scene's, with the story as it is then.
-      cutscene.onEnded = () => {
+      cutscene.onEnded = (id) => {
         if (begun && director?.current) checkpoint(director.current);
+        if (id === 'cutscene-1' && animatic === 'cutscene-1') playOpening();
       };
       // The story first: a scene's setup reads it.
       target.story = await GameStory.load(TESTING ? '/test/story.json' : '/story/story.json', (command) => run(command, target)).catch((err: unknown) => {
@@ -374,13 +377,16 @@ async function start(): Promise<void> {
       story?.reset();
       void director?.start(firstScene).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
     } else if (director?.current) checkpoint(director.current);
-    if (choice === 'new' && animaticFrom === 'card') {
-      animatic = ANIMATIC_SECONDS;
-      animaticEl.hidden = false;
+    if (choice === 'new' && animaticFrom === 'cutscene-1') {
       input.consumeSkip(); // the press that started it
+      animatic = 'cutscene-1';
+      void cutscene?.play('cutscene-1').catch((err: unknown) => {
+        console.warn('[0.0.2] cutscene 1 not played:', err);
+        playOpening();
+      });
     } else if (choice === 'new' && animaticFrom === 'opening') {
       input.consumeSkip();
-      void watched?.play('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
+      playOpening();
     }
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));
@@ -444,19 +450,10 @@ async function start(): Promise<void> {
       return;
     }
 
-    // The animatic's card: she waits behind it; a skip ends it.
-    if (animatic > 0) {
-      animatic = input.consumeSkip() ? 0 : Math.max(0, animatic - dt);
-      animaticEl.hidden = animatic === 0;
-      // Then cutscene 2, watched.
-      if (animatic === 0) void watched?.play('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
-      input.hold();
-      input.consumeInteract();
-    }
-
     // A cutscene: its own camera; she stands still, nothing can be used, the see-through is off.
     watched?.update(view.camera.aspect);
     const watching = (cutscene?.playing ?? false) || (watched?.playing ?? false);
+    character.root.visible = !(cutscene?.hides('her') ?? false);
     barsEl.classList.toggle('on', watching);
     if (cutscene?.playing) {
       if (input.consumeSkip()) cutscene.skip();
@@ -613,7 +610,7 @@ async function start(): Promise<void> {
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
-    treadmill?.update(dt);
+    treadmill?.update(dt, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera, cutscene?.track?.speed ?? 1);
     // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
     const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
     for (const camera of [view.camera, watched?.camera]) {
