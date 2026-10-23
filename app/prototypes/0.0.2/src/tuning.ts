@@ -122,7 +122,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   look.add(settings, 'sunElevationDeg', 5, 85, 1).name('sun elevation (°)');
   look.add(settings, 'sunAzimuthDeg', -180, 180, 1).name('sun direction (°)');
   look.add(settings, 'sunIntensity', 0, 15, 0.1).name('sun strength');
-  look.add(settings, 'worldStrength', 0, 3, 0.05).name('world strength');
+  look.add(settings, 'worldStrength', 0, 3, 0.05).name('world strength (its light)');
   look.add(settings, 'sunThroughGlass').name('sun through glass');
   look.add(settings, 'glassDim', 0, 1, 0.01).name('glass: dims the view');
   look.add(settings, 'glassHighlights', 0, 2, 0.01).name('glass: highlights');
@@ -132,7 +132,17 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');
   look.add(settings, 'metalReflections', 0, 2, 0.05).name('metal reflections');
+  const sky = look.addFolder('Sky gradient (background, ambient light, reflections)');
+  sky.addColor(settings, 'skyHorizon').name('horizon and below');
+  sky.addColor(settings, 'skyMiddle').name('middle');
+  sky.add(settings, 'skyMiddleAt', 0, 1, 0.001).name('middle at (0 horizon, 1 up)');
+  sky.addColor(settings, 'skyTop').name('straight up');
+  sky.add(settings, 'skyStrength', 0, 4, 0.01).name('strength, as seen (Blender world)');
+  const skyKeys = ['skyHorizon', 'skyMiddle', 'skyMiddleAt', 'skyTop', 'skyStrength', 'hazeColor'] as const;
+  sky.add({ print: () => console.info(Object.fromEntries(skyKeys.map((k) => [k, settings[k]]))) }, 'print').name('print the values (console)');
+  sky.close();
   look.add(settings, 'haze').name('distance haze');
+  look.addColor(settings, 'hazeColor').name('haze colour (× the sky strength)');
   look.add(settings, 'hazeNear', 0, 10000, 1).name('haze starts (m)');
   look.add(settings, 'hazeFar', 20, 20000, 1).name('haze full (m)');
   look.add(settings, 'showGrid').name('grid');

@@ -12,12 +12,10 @@ import { settings } from './settings';
 
 const FLOOR_SIZE = 400;
 
-/** Blender world ColorRamp: position (0..1 of "up") → linear RGB. */
-const WORLD_RAMP: [number, [number, number, number]][] = [
-  [0.0, [0.205, 0.831, 1.0]],
-  [0.327, [0.0, 0.468, 1.0]],
-  [1.0, [0.0, 0.209, 1.0]],
-];
+/** Blender world ColorRamp: position (0..1 of "up") → linear RGB. From the panel's *Sky* (`skyRamp`). */
+let WORLD_RAMP: [number, [number, number, number]][] = skyRamp();
+/** The panel's sky values the gradient was last built from. */
+let builtFrom = skyKey();
 /** Blender sun colour (linear). */
 const SUN_COLOR = new THREE.Color().setRGB(0.993, 1.0, 0.377, THREE.LinearSRGBColorSpace);
 
@@ -56,9 +54,8 @@ export function createWorld(scene: THREE.Scene): World {
   const ambient = new THREE.HemisphereLight(upperHemisphereColor(), linearColor(WORLD_RAMP[0]![1]), Math.PI * settings.worldStrength);
   scene.add(ambient);
 
-  // Distance haze in the horizon colour (the floor is finite; this hides its edge).
-  const horizon = WORLD_RAMP[0]![1];
-  scene.fog = new THREE.Fog(new THREE.Color().setRGB(horizon[0], horizon[1], horizon[2], THREE.LinearSRGBColorSpace), settings.hazeNear, settings.hazeFar);
+  // Distance haze (the floor is finite; this hides its edge).
+  scene.fog = new THREE.Fog(new THREE.Color(settings.hazeColor), settings.hazeNear, settings.hazeFar);
 
   const sun = new THREE.DirectionalLight(SUN_COLOR, settings.sunIntensity);
   sun.castShadow = true;
@@ -121,13 +118,47 @@ export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vect
     shadow.camera.updateProjectionMatrix();
   }
   world.ambient.intensity = Math.PI * settings.worldStrength * THREE.MathUtils.lerp(1, settings.worldIndoors, insideAmount);
-  scene.backgroundIntensity = settings.worldStrength;
+  scene.backgroundIntensity = settings.skyStrength;
   scene.environmentIntensity = settings.metalReflections; // no scene.environment: this scales the metals' envNode
 
   const f = scene.fog as THREE.Fog;
   f.near = settings.haze ? settings.hazeNear : 1e6;
   f.far = settings.haze ? settings.hazeFar : 1e6 + 1;
+  f.color.set(settings.hazeColor).multiplyScalar(settings.skyStrength); // as bright as the sky behind it
   gridOpacity.value = settings.showGrid ? 0.35 : 0;
+
+  // The panel's sky changed: the gradient again, in the background, the reflections and the ambient light.
+  const key = skyKey();
+  if (key !== builtFrom) {
+    builtFrom = key;
+    WORLD_RAMP = skyRamp();
+    // A new background: three turns it into a cube map once and keeps that until the texture is disposed.
+    const old = world.sky;
+    world.sky = worldGradientTexture(old.image.width, old.image.height);
+    scene.background = world.sky;
+    old.dispose();
+    fillGradient(world.reflections);
+    world.ambient.color.copy(upperHemisphereColor());
+    world.ambient.groundColor.copy(linearColor(WORLD_RAMP[0]![1]));
+  }
+}
+
+function skyKey(): string {
+  return `${settings.skyHorizon} ${settings.skyMiddle} ${settings.skyMiddleAt} ${settings.skyTop}`;
+}
+
+/** The ramp from the panel's sky colours (sRGB hex → linear). */
+function skyRamp(): [number, [number, number, number]][] {
+  const rgb = (hex: string): [number, number, number] => {
+    const c = new THREE.Color(hex);
+    return [c.r, c.g, c.b];
+  };
+  const middle = THREE.MathUtils.clamp(settings.skyMiddleAt, 0.001, 0.999);
+  return [
+    [0.0, rgb(settings.skyHorizon)],
+    [middle, rgb(settings.skyMiddle)],
+    [1.0, rgb(settings.skyTop)],
+  ];
 }
 
 function linearColor([r, g, b]: [number, number, number]): THREE.Color {
@@ -171,7 +202,19 @@ function ramp(t: number): [number, number, number] {
 
 /** Equirectangular texture of the world gradient: the ramp is driven by the direction's height (Blender's Z). */
 function worldGradientTexture(w: number, h: number): THREE.DataTexture {
-  const data = new Float32Array(w * h * 4);
+  const tex = new THREE.DataTexture(new Float32Array(w * h * 4), w, h, THREE.RGBAFormat, THREE.FloatType);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.LinearSRGBColorSpace;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearFilter;
+  fillGradient(tex);
+  return tex;
+}
+
+/** Writes the current ramp into a gradient texture (its reflections' PMREM is rebuilt from `needsUpdate`). */
+function fillGradient(tex: THREE.DataTexture): void {
+  const { width: w, height: h } = tex.image;
+  const data = tex.image.data as Float32Array;
   for (let y = 0; y < h; y++) {
     // Data row 0 is the bottom of the equirect (straight down): elevation −90° … +90°.
     const elevation = ((y + 0.5) / h - 0.5) * Math.PI;
@@ -184,13 +227,7 @@ function worldGradientTexture(w: number, h: number): THREE.DataTexture {
       data[i + 3] = 1;
     }
   }
-  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.FloatType);
-  tex.mapping = THREE.EquirectangularReflectionMapping;
-  tex.colorSpace = THREE.LinearSRGBColorSpace;
-  tex.magFilter = THREE.LinearFilter;
-  tex.minFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
-  return tex;
 }
 
 /** Near-white snow with very faint large-scale variation, plus an optional faint grid. `at`: where on the snow a point is (m). */

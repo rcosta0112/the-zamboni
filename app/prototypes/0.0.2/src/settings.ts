@@ -170,6 +170,16 @@ export const settings = {
   sunAzimuthDeg: -52, // 0 = behind the starting camera; negative = to its left
   sunIntensity: 7.5, // Blender sun strength (same units)
   worldStrength: 1.0, // Blender world strength
+  // The world gradient (world.ts): Blender's ColorRamp by the direction's height, Ease. The background,
+  // the ambient light and the metals' reflections all come from it.
+  skyHorizon: '#7debff', // at and below the horizon (linear 0.205, 0.831, 1)
+  skyMiddle: '#00b6ff', // the middle stop (linear 0, 0.468, 1)
+  skyMiddleAt: 0.25, // where the middle stop is: 0 the horizon, 1 straight up (owner, 2026-10-23: 0.25; Blender's 0.327 before)
+  skyTop: '#007eff', // straight up (linear 0, 0.209, 1)
+  // The background's strength alone (the light keeps `worldStrength`). 2: the fly-by's world (`The Zamboni 1.11 - fly by
+  // animation ACES.blend`); its F12 of the world alone matched the game's within a few levels at every
+  // height (owner, 2026-10-23: the sky at 1 looked like the horizon's colour went half-way up). 1 until then.
+  skyStrength: 2,
   worldIndoors: 0.5, // the world's (blue) light while she's inside the ship, as a share of its strength outside
   metalReflections: 0.5, // how strongly metal reflects the sky gradient
   sunlitRooms: ['crew quarters', 'cockpit'], // rooms with windows (the markers' `room`): their lights are tinted
@@ -183,7 +193,8 @@ export const settings = {
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   glassDim: 0.2, // how much the windows dim the view through them (owner, 2026-10-23: a bit darker from inside, just enough to notice the glass)
   glassHighlights: 0.5, // the windows' highlights (the cabin lights' reflections): 1 as lit; 0.3 was their strength until 2026-10-23
-  haze: true, // distance haze in the horizon colour, hides the floor's edge
+  haze: true, // distance haze, hides the floor's edge
+  hazeColor: '#7debff', // the sky's horizon colour until 2026-10-23 (owner: its own control); times `skyStrength`, as the sky behind it
   hazeNear: 60,
   hazeFar: 190,
   showGrid: false, // faint 1 m / 10 m grid for judging speed
