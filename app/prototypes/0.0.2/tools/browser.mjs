@@ -67,7 +67,8 @@ export async function openBrowser(chromePath, onEvent = () => {}) {
     }
   }
   const profile = mkdtempSync(join(tmpdir(), 'zamboni-smoke-'));
-  const chrome = spawn(chromePath, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1280,720', '--enable-unsafe-webgpu', '--no-first-run', '--mute-audio', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
+  // UNCAPPED=1: without Chrome's 60 fps cap, for measuring frame times.
+  const chrome = spawn(chromePath, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--window-size=1280,720', '--enable-unsafe-webgpu', '--no-first-run', '--mute-audio', ...(process.env.UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : []), 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
   const close = async () => {
     // Wait for Chrome to be gone (its files released) before removing the profile.
     if (chrome.exitCode === null && chrome.signalCode === null) {

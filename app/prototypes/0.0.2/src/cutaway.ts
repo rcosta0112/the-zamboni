@@ -18,7 +18,7 @@
 //   it has in the ship file, so through a cut you see what's behind it, not the surface's back.
 
 import * as THREE from 'three/webgpu';
-import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, positionWorld, screenCoordinate, select, smoothstep, clamp, texture, uniform, vec2, vec3, vec4 } from 'three/tsl';
+import { abs, bool, dot, float, floor, frontFacing, length, materialColor, mix, mod, normalWorld, output, positionWorld, screenCoordinate, select, smoothstep, clamp, texture, uniform, vec2, vec3, vec4 } from 'three/tsl';
 
 /** Shared by every cuttable material; updated each frame by updateCutaway(). */
 const u = {
@@ -33,6 +33,8 @@ const u = {
   furnitureFade: uniform(0), // furniture look: 0 = hole, 1 = whole-object fade
   minVisibility: uniform(0), // whole-object fade: how much of the object stays (0 = gone)
   showOccluders: uniform(0), // debug: tint furniture that is being cut
+  glassDim: uniform(0.1), // the glass: how much it dims what's behind it (0..1)
+  glassHighlights: uniform(1), // the glass: its highlights' strength (1: as lit)
   nearPart: uniform(0.5), // furniture in the hole is cut on this part of the way from the camera to her
   waistY: uniform(0), // ...but only above this height (her waist)
   ownColour: uniform(1), // cut surface: 1 = the surface's own colour, darkened; 0 = backColor
@@ -193,6 +195,18 @@ function cuttableCopy(source: THREE.MeshStandardMaterial, label: string): THREE.
   // Only the texture is used (three samples it by direction); the coordinate keeps it from asking
   // for the mesh's UVs, which untextured meshes no longer have (pipelines.ts).
   if (reflections && source.metalness >= 0.5 && !source.transparent) material.envNode = texture(reflections, vec2(0));
+  // The glass (see-through, metallic, untextured: the windows, the windshield): nearly invisible, as in
+  // Blender, its highlights kept (owner, 2026-10-23). Normal blending scaled its highlights by its
+  // opacity and laid its dark body over the view; here the highlights are added whole and what's
+  // behind is dimmed by `glassDim` alone (the body is black: metal, no reflection of the sky).
+  if (source.transparent && !source.map && source.metalness >= 0.5) {
+    material.blending = THREE.CustomBlending;
+    material.blendSrc = THREE.OneFactor;
+    material.blendDst = THREE.OneMinusSrcAlphaFactor;
+    material.blendSrcAlpha = THREE.OneFactor;
+    material.blendDstAlpha = THREE.OneMinusSrcAlphaFactor;
+    material.outputNode = vec4(output.rgb.mul(u.glassHighlights), u.glassDim);
+  }
   material.maskShadowNode = bool(true);
   return material;
 }
@@ -250,6 +264,8 @@ export interface CutawaySettings {
   fillColour: string; // the hull's gap
   holeEnd: 'square' | 'vertical' | 'round';
   holeBeyond: number; // m past her chest
+  glassDim: number; // 0..1: how much the glass dims what's behind it
+  glassHighlights: number; // the glass's highlights (1: as lit)
 }
 
 /**
@@ -275,4 +291,6 @@ export function updateCutaway(cameraPosition: THREE.Vector3, target: THREE.Vecto
   u.fillColour.value.set(s.fillColour);
   u.holeEnd.value = ['square', 'vertical', 'round'].indexOf(s.holeEnd);
   u.holeBeyond.value = s.holeBeyond;
+  u.glassDim.value = s.glassDim;
+  u.glassHighlights.value = s.glassHighlights;
 }

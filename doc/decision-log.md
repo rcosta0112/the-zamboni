@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-23 | The outside's own light | look | The scenery's materials lit by the game's sun (shared: one direction, its shadow map) and their own sky light, never dimmed indoors; the sun tinted there via the received shadow; tuned to the owner's reference (the fly-by's ice, sun share 0.65); the glass nearly invisible, its highlights kept |
 | 2026-10-23 | The scenery: a treadmill that looks like the owner's fly-by | look | The ship never moves; the ground and its rubble pass under it (a terrain is a data file and a `.glb`); scale, scatter and materials from the fly-by file (×1.486); shadows are the rubble flattened along the sun, drawn as the ice in shadow; the ice's roughness a noise tile made at load; the lighting unchanged |
 | 2026-10-23 | Picking up objects: curated events only | scope | No free pick-up of small objects; objects are picked up only as designed events (the coffee mug, the jetpacks), added case by case; physics props (drop, throw) open, kept for a future interaction |
 | 2026-10-22 | The game's story and the checks' story | architecture | The game loads its own story (`public/story/`, the owner's lines copied from the scene files) from `chapter-1`; the checks load the test story from `landed` with `?test` (dev builds), so the checks don't change as the script grows |
@@ -80,6 +81,23 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Rationale:** Nothing aboard changes; the look comes from the owner's own file; everything costs a few draws (21) and almost nothing on the GPU; more terrains (rocks, mountains, ocean) are data files.
 
 **Status:** Built (pass 4a), the owner's *good for now* (2026-10-23). The clouds, the frame time against the landed ship and cutscene 2's exterior shot are next. See [the plan](plans/features/flying-scene.md), `app/prototypes/0.0.2/src/terrain.ts`.
+
+**Update 2026-10-23 (pass 4b):** **the clouds are a third pool**, in the air (the terrain file's `clouds`, `lift` 40–60 m: just above the ship, as the owner asked): 14 low-poly cumulus made in code (faceted puffs, flat underneath, 60–140 m across), **their shadows flattened onto the ice the same way as the rubble's** (sharp, the ice in shadow). Alternatives: soft cloud shadows from a coverage texture read by the ice's shader (soft edges, and the rubble could be darkened under them too, but a second system to keep in step with the clouds); camera-facing soft sprites (don't match the faceted rubble and ship). **Measured** (outside, frame rate uncapped): the scenery costs about 3 ms a frame (moving the copies 1 ms on the CPU, the clouds 0.9, the rubble 0.8, the ice 0.6); the heap's low points hold steady over a minute.
+
+**Update 2026-10-23 (owner):** the clouds **smooth-shaded and 20 times bigger** (1.2–2.8 km across; still 40–60 m up), **6 instead of 14** (14 would cover the sky; the 6 cost 0.25 ms), in a band 3.2 km each way; and **faded in, not popped in**: each point's opacity falls with its distance from the ship (whole to 1.2 km, gone at 2 km, before the cameras' far plane), its shadow fading with the point that casts it. Then (owner) **10% opaque, their shadows too; 3 of them; their bases at 200 m**. Then (owner) **removed from the icy plain**: a new solution later; the code (`clouds` in a terrain file) stays; the panel's *Flight: clouds* removed.
+
+## [2026-10-23] — The outside's own light (look)
+
+**Context:** the sky, the ice and the rocks looked like separate things; in Blender (the fly-by) the world's blue fills the shadows and the yellow sun the lit faces. The game already uses the same world and sun, but **the world's blue is halved while she's inside** (`worldIndoors`, owner 2026-10-12: the rooms were too blue), which in the flying scene is always, and the ice's reflections were the metals' (0.5); 4a's white ice and blue glow made up for it (the owner: the ice looked too dark).
+
+**Decision (owner, 2026-10-23):** **the outside materials get their own lights** (`lightsNode`): the game's sun (the same light: **one direction inside and out, always**, and its shadow map, so the ship's shadow on the ice) and their own sky light, Blender's world, never dimmed indoors. The sun tinted and scaled there only through the received shadow. Tuned against the owner's reference frame: the fly-by's ice colour back, no glow, the outside's sun 0.65 (the fly-by's sun is lower: the same light on flat ice), reflections 0.5. The haze unchanged (the fly-by has no atmosphere: its distance blue is the ice's reflection). [Plan](plans/features/outside-light.md).
+
+**Alternatives considered:** a colour ramp in the outside materials; a masked grading pass (Blender's cryptomatte and ramp); one grade over the whole picture (changes the interior); for the ship's shadow, a second sun with its own shadow map (a second map's cost).
+
+**Rationale:** it fixes the light rather than painting over it; no extra pass, no extra shadow map (three keeps one light node per light); any terrain's materials get it.
+
+**Status:** built. The hull's outside stays on the scene's lights: to consider with the exterior cutscenes and landed scenes (owner). **Update 2026-10-23 (owner): the glass** nearly invisible, as in Blender, its highlights kept, the view from inside a bit darker: its highlights added whole, what's behind dimmed by a set share (custom blending), not its dark body laid over the view at its opacity (which also showed the highlights at 30%).
+
 ## [2026-10-23] — Picking up objects: curated events only (scope)
 
 **Context:** the scope listed *Pick up small objects (carry, drop, throw)* as core, with physics props as Rapier rigid bodies, under the pillar "everything interactable". The 2026-10-15 notes ([interaction plan](plans/features/interaction-doors.md#notes-for-picking-things-up-and-using-them-owner-2026-10-15)) had already flagged the costs: about 28 to 130 pickable objects, each an object of its own in the export (draw calls, see-through entries), attaching objects in or on other things, and back-in-place vs *throw*. Playtesting shows the interactions as built (doors, lockers, keypads, the boombox, the jetpack rack, the parka, the crew's conversations, remarks) give plenty to do.

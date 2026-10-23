@@ -17,6 +17,11 @@ await w.__director().start('chapter-1');
 await until(() => t.current === 'ice-plain' && t.group.children.length > 1, 10000);
 report(t.current === 'ice-plain' && t.group.visible, 'chapter-1 shows the icy plain', `${t.group.children.length} meshes`);
 report(!w.__world.floor.visible, 'the landed ground is hidden');
+// The outside's own light (doc/plans/features/outside-light.md): every material here uses it; its sun is the game's.
+const outsideLights = new Set();
+t.group.traverse((o) => o.material && outsideLights.add(o.material.lightsNode));
+const lightList = [...outsideLights][0]?.getLights?.() ?? [];
+report(outsideLights.size === 1 && !outsideLights.has(null) && lightList.includes(w.__world.sun), "the scenery lit by the outside's lights, with the game's sun", `${outsideLights.size} list, ${lightList.length} lights`);
 await wait(2000); // the new shaders' first frames stall
 const before = t.travelled;
 const t0 = performance.now();

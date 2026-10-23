@@ -3,7 +3,7 @@
 // (`public/terrain/<id>.json`), its meshes in `<id>.glb` beside it: its speed and height, the ground
 // (one material per surface), the scatter (pools of instanced meshes sliding back; one that passes the
 // rear edge comes back at the front, somewhere new: nothing is created while it runs), the backdrop
-// (the same, far off and slower), the haze. Only the current terrain is built.
+// (the same, far off and slower), the clouds (the same, in the air), the haze. Only the current terrain is built.
 // **The look is the owner's fly-by** (The Zamboni 1.10 - fly by animation.blend, 2026-10-23): its
 // ground (`Ice`: light blue, partly metallic, reflecting the sky; its roughness two noises, below), its `Rubble` (white, matte; ten of
 // its pieces in `ice-plain.glb`), scattered as its geometry nodes do (a density, scaled at random,
@@ -11,20 +11,26 @@
 // was smaller then). The lighting is the game's (the same sky and sun).
 // **The scatter's shadows** are its meshes again (sharing their matrices), flattened onto the ground
 // along the sun's direction in the shader, the part below the ground left out (the sun doesn't move
-// and the ground is flat): sharp at any distance, no shadow map. They're drawn
+// and the ground is flat): sharp at any distance, no shadow map. The clouds' shadows are made the same way. They're drawn
 // with the ground's material, wholly in the sun's shadow: what the ground is in shadow (the ship's shadow,
 // from the shadow map, looks the same).
 // Everything is in one group at the ship's centre, at the ground's height: turned, it turns the world
 // round the ship (`settings.flightHeading`), the sun staying where it is.
+// **The outside's own light** (doc/plans/features/outside-light.md): every material here is lit by the
+// game's sun (the same light: its direction and its shadow map, so the ship's shadow on the ice) and by
+// its own sky light, Blender's world, which the interior's dimming never reaches (`worldIndoors`). The
+// sun is tinted on these materials only, through their received shadow (three multiplies the sun's light
+// by it). Tuned on the panel's *Flight: outside light*.
 
 import * as THREE from 'three/webgpu';
-import { Fn, cameraViewMatrix, clamp, float, max, mix, positionLocal, texture, uniform, vec2, vec3, vec4 } from 'three/tsl';
+import { Fn, cameraViewMatrix, clamp, float, lights, mix, positionLocal, smoothstep, texture, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { settings } from './settings';
 
 interface ScatterData {
-  /** The terrain file's meshes (each a shape), or a placeholder made here: `boulder`, `peak` (a mountain). */
-  mesh: 'file' | 'boulder' | 'peak';
+  /** The terrain file's meshes (each a shape), or a placeholder made here: `boulder`, `peak` (a mountain), `cloud`. */
+  mesh: 'file' | 'boulder' | 'peak' | 'cloud';
   /** How many: a number, or per square metre of the band. */
   count?: number;
   density?: number;
@@ -34,11 +40,22 @@ interface ScatterData {
   scale: [number, number];
   /** Tipped up to this far (radians) about both level axes; turned any way about the vertical. */
   tilt?: number;
-  /** The share of its height below the ground (0: centred on it). */
+  /** Moved down by this share of its height (each mesh's own, as scaled; 0: centred on the ground). */
   sink?: number;
+  /** Its base this high above the ground (m), at random between the two: for clouds. */
+  lift?: [number, number];
   /** Its material: linear RGB. */
   color: [number, number, number];
   roughness: number;
+  /** Smooth shading (the clouds); faceted otherwise. */
+  smooth?: boolean;
+  /**
+   * Faded out with distance from the ship (m): whole from the first, gone at the second; its shadow
+   * with it. So that what comes back at the front (or reaches the cameras' far plane) never pops in.
+   */
+  fade?: [number, number];
+  /** Its opacity (and its shadow's) where it's whole: below 1, see-through. With `fade`. */
+  opacity?: number;
   /** The band it fills (m from the ship's centre): ahead, behind, to either side. */
   ahead: number;
   behind: number;
@@ -66,6 +83,8 @@ export interface TerrainData {
   };
   scatter: ScatterData[];
   backdrop: ScatterData[];
+  /** Clouds: a pool in the air (`lift`), its shadows flattened onto the ground as the scatter's are. */
+  clouds?: ScatterData[];
   haze: { near: number; far: number };
 }
 
@@ -78,8 +97,8 @@ const LANDED_HAZE = { near: settings.hazeNear, far: settings.hazeFar };
 /** The roughness's noise: a repeating tile this many pixels across, with this many noise cells across it. */
 const NOISE_SIZE = 256;
 const NOISE_CELLS = 32;
-/** Floats kept per copy: x, z, turn, three scales (one for now: the fly-by's), two tilts. */
-const PER_COPY = 8;
+/** Floats kept per copy: x, z, turn, its size's share of the pool's range, two tilts, its height's share of its range. */
+const PER_COPY = 7;
 
 /** One pool: its copies' places in the group, their meshes and their shadows. */
 interface Pool {
@@ -87,6 +106,8 @@ interface Pool {
   count: number;
   meshes: THREE.InstancedMesh[];
   shadows: THREE.InstancedMesh[];
+  /** Each mesh's height, unscaled (m). */
+  heights: number[];
   copies: Float32Array;
 }
 
@@ -123,6 +144,15 @@ export class Treadmill {
   private readonly e = new THREE.Euler();
   private readonly p = new THREE.Vector3();
   private readonly s = new THREE.Vector3();
+  /** The outside's sky light: kept out of the scene, so only the materials here get it. */
+  private readonly outsideSky = new THREE.HemisphereLight();
+  /** The lights the materials here use instead of the scene's: the game's sun and the outside's sky. */
+  private readonly outsideLights;
+  /** The sun's colour on the outside only (white: as the game's), times its strength there. */
+  private readonly sunTint = uniform(new THREE.Color(1, 1, 1));
+  /** The sky's reflection on the ice: the panel's strength over the metals' (`scene.environmentIntensity` scales both). */
+  private readonly reflect = uniform(1);
+  private readonly tint = new THREE.Color();
 
   constructor(
     scene: THREE.Scene,
@@ -132,7 +162,12 @@ export class Treadmill {
     private readonly landedFloor: THREE.Object3D,
     /** The sky's gradient, for the ground to reflect (as the ship's metals do: cutaway.ts). */
     private readonly reflections: THREE.Texture,
+    /** The game's sun. */
+    sun: THREE.DirectionalLight,
   ) {
+    this.outsideSky.position.set(0, 1, 0); // light from above: its own colour; from below: the other
+    this.outsideSky.updateMatrixWorld();
+    this.outsideLights = lights([sun, this.outsideSky]);
     // Its size and material: the terrain's (set).
     this.ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2));
     this.ground.receiveShadow = true;
@@ -156,7 +191,8 @@ export class Treadmill {
     const response = await fetch(`/terrain/${id}.json`);
     if (!response.ok || !response.headers.get('content-type')?.includes('json')) throw new Error(`no terrain "${id}"`);
     const data = (await response.json()) as TerrainData;
-    const usesFile = [...data.scatter, ...data.backdrop].some((d) => d.mesh === 'file');
+    const all = [...data.scatter, ...data.backdrop, ...(data.clouds ?? [])];
+    const usesFile = all.some((d) => d.mesh === 'file');
     const shapes = usesFile ? await fileMeshes(`/terrain/${id}.glb`) : [];
     if (this.current !== id) return; // another was asked for meanwhile
     settings.flightSpeed = data.speed;
@@ -185,7 +221,7 @@ export class Treadmill {
     this.groundTuned = '';
     this.travelled = 0;
     this.random = mulberry32(1); // the same scatter every time (screenshots compare)
-    for (const pool of [...data.scatter, ...data.backdrop]) this.pools.push(this.pool(pool, shapes, shadow));
+    for (const pool of all) this.pools.push(this.pool(pool, shapes, shadow, data.ground));
     this.group.visible = true;
     console.info(`[0.0.2] terrain: ${id} (${this.pools.reduce((n, p) => n + p.count, 0)} copies in ${this.pools.reduce((n, p) => n + p.meshes.length * 2, 0)} draws)`);
   }
@@ -199,6 +235,7 @@ export class Treadmill {
     this.travelled += step;
     this.scroll.value = this.travelled % 1e5;
     this.tuneGround();
+    this.tuneOutside();
 
     // The sun's direction in the group: it stays put in the world while the group turns.
     const el = THREE.MathUtils.degToRad(settings.sunElevationDeg);
@@ -210,6 +247,9 @@ export class Treadmill {
       const length = d.ahead + d.behind;
       const c = pool.copies;
       const variants = pool.meshes.length;
+      const unit = d.unit ?? 1;
+      const [lo, hi] = d.scale;
+      const [low, high] = d.lift ?? [0, 0];
       for (let i = 0; i < pool.count; i++) {
         const k = i * PER_COPY;
         c[k + 1]! += step * (d.parallax ?? 1);
@@ -218,16 +258,26 @@ export class Treadmill {
           c[k + 1]! -= length;
           this.place(c, k, d, false);
         }
-        this.p.set(c[k]!, -(d.sink ?? 0) * c[k + 4]!, c[k + 1]!);
-        this.q.setFromEuler(this.e.set(c[k + 6]!, c[k + 2]!, c[k + 7]!, 'YXZ'));
-        this.s.set(c[k + 3]!, c[k + 4]!, c[k + 5]!);
-        this.m.compose(this.p, this.q, this.s);
         const v = i % variants;
+        const size = unit * (lo + (hi - lo) * c[k + 3]!);
+        this.p.set(c[k]!, low + (high - low) * c[k + 6]! - (d.sink ?? 0) * pool.heights[v]! * size, c[k + 1]!);
+        this.q.setFromEuler(this.e.set(c[k + 4]!, c[k + 2]!, c[k + 5]!, 'YXZ'));
+        this.s.setScalar(size);
+        this.m.compose(this.p, this.q, this.s);
         const n = Math.floor(i / variants);
         pool.meshes[v]!.setMatrixAt(n, this.m); // the shadows share it
       }
       for (const mesh of pool.meshes) mesh.instanceMatrix.needsUpdate = true;
     }
+  }
+
+  /** The panel's *Flight: outside light*: the outside's sky, the sun's tint and strength there, the reflections. */
+  private tuneOutside(): void {
+    this.outsideSky.intensity = Math.PI * settings.outsideSkyStrength; // π: Blender's world radiance as irradiance (world.ts)
+    this.outsideSky.color.set(settings.outsideSkyColor);
+    this.outsideSky.groundColor.set(settings.outsideBelowColor);
+    this.sunTint.value.copy(this.tint.set(settings.outsideSunTint)).multiplyScalar(settings.outsideSunStrength);
+    this.reflect.value = settings.outsideReflections / Math.max(settings.metalReflections, 1e-3);
   }
 
   /** The tuning panel's values on the ground's materials, when they change. */
@@ -264,22 +314,30 @@ export class Treadmill {
   }
 
   /** The ground's material; the shadows' is the same lit by the sky alone. */
-  private groundMaterial(ground: TerrainData['ground'], shadow: boolean): THREE.MeshStandardNodeMaterial {
+  private groundMaterial(ground: TerrainData['ground'], shadow: boolean, fade?: [number, number], opacity = 1): THREE.MeshStandardNodeMaterial {
     const material = new THREE.MeshStandardNodeMaterial({ color: linear(ground.color), metalness: ground.metalness, emissive: linear(ground.emissive ?? [0, 0, 0]) });
     material.roughnessNode = this.roughness();
     // Only the texture is used (sampled by direction); the coordinate keeps it from asking for UVs.
-    material.envNode = texture(this.reflections, vec2(0));
+    material.envNode = texture(this.reflections, vec2(0)).mul(this.reflect);
+    this.outside(material);
     if (shadow) {
       // Wholly in the sun's shadow (its meshes receive shadows for this): lit by the sky alone.
       material.receivedShadowNode = Fn(() => float(0));
-      // Each point (placed by its copy's matrix) moved along the sun's direction down to the ground;
-      // what's below the ground stays where it is, under it.
+      // Each point (placed by its copy's matrix) moved along the sun's direction onto the ground, the
+      // buried ones too (up toward the sun): one flat projection, so each triangle stays a triangle and
+      // its height carries across it exactly; what comes from below the ground is left out. (Kept
+      // where they were, the buried parts drew their footprints as shadow: shadows with no rock.)
       const sun = this.sun;
+      const fading = fade ? fadeBy(material, fade, opacity) : null;
+      const height = varyingProperty('float', 'vHeight');
       material.positionNode = Fn(() => {
         const p = positionLocal;
-        const h = max(p.y, 0).div(sun.y);
+        fading?.(p);
+        height.assign(p.y);
+        const h = p.y.div(sun.y);
         return vec3(p.x.sub(sun.x.mul(h)), SHADOW_LIFT, p.z.sub(sun.z.mul(h)));
       })();
+      material.maskNode = height.greaterThanEqual(0);
       // Lit as the ground is: facing up.
       material.normalNode = cameraViewMatrix.mul(vec4(0, 1, 0, 0)).xyz;
       material.polygonOffset = true;
@@ -289,11 +347,26 @@ export class Treadmill {
     return material;
   }
 
-  private pool(data: ScatterData, shapes: THREE.BufferGeometry[], shadowMaterial: THREE.Material): Pool {
-    const material = new THREE.MeshStandardNodeMaterial({ color: linear(data.color), roughness: data.roughness, metalness: 0, flatShading: true });
+  private pool(data: ScatterData, shapes: THREE.BufferGeometry[], groundShadow: THREE.MeshStandardNodeMaterial, ground: TerrainData['ground']): Pool {
+    const material = new THREE.MeshStandardNodeMaterial({ color: linear(data.color), roughness: data.roughness, metalness: 0, flatShading: !data.smooth });
+    this.outside(material);
     this.materials.push(material);
+    let shadowMaterial = groundShadow;
+    if (data.fade) {
+      const fading = fadeBy(material, data.fade, data.opacity);
+      material.positionNode = Fn(() => {
+        fading(positionLocal);
+        return positionLocal;
+      })();
+      // Its own shadows' material: the ground's in shadow, fading with it.
+      shadowMaterial = this.groundMaterial(ground, true, data.fade, data.opacity);
+      this.materials.push(shadowMaterial);
+      this.groundMaterials.push(shadowMaterial);
+      this.groundTuned = '';
+    }
     const count = data.count ?? Math.round((data.density ?? 0) * (data.ahead + data.behind) * 2 * data.width);
-    const geometries = data.mesh === 'file' ? shapes : [0, 1, 2].map(() => (data.mesh === 'peak' ? peakGeometry(this.random) : boulderGeometry(this.random)));
+    const made = { boulder: boulderGeometry, peak: peakGeometry, cloud: cloudGeometry };
+    const geometries = data.mesh === 'file' ? shapes : [0, 1, 2].map(() => made[data.mesh as keyof typeof made](this.random));
     const meshes: THREE.InstancedMesh[] = [];
     const shadows: THREE.InstancedMesh[] = [];
     geometries.forEach((geometry, v) => {
@@ -306,14 +379,28 @@ export class Treadmill {
       shadow.frustumCulled = false;
       mesh.receiveShadow = true; // the ship's shadow passes over them
       shadow.receiveShadow = true; // so that its material can say it's in shadow
+      // Fading, they're see-through: drawn before the ship's glass and the like (all nearer).
+      if (data.fade) mesh.renderOrder = shadow.renderOrder = -1;
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       meshes.push(mesh);
       shadows.push(shadow);
       this.group.add(shadow, mesh);
     });
+    const heights = geometries.map((g) => {
+      g.computeBoundingBox();
+      return g.boundingBox!.max.y - g.boundingBox!.min.y;
+    });
     const copies = new Float32Array(count * PER_COPY);
     for (let i = 0; i < count; i++) this.place(copies, i * PER_COPY, data, true);
-    return { data, count, meshes, shadows, copies };
+    return { data, count, meshes, shadows, heights, copies };
+  }
+
+  /** Lit by the outside's lights, the sun tinted (a flattened shadow replaces its received shadow after this). */
+  private outside(material: THREE.MeshStandardNodeMaterial): void {
+    material.lightsNode = this.outsideLights;
+    const tint = this.sunTint;
+    // three calls it with the shadow (ShadowNode.js); the types leave the argument out.
+    material.receivedShadowNode = ((shadow: THREE.Node<'float'>) => tint.mul(shadow)) as unknown as () => THREE.Node;
   }
 
   /** A copy somewhere new: across the band, at the front (or anywhere in it, at the start). */
@@ -325,13 +412,11 @@ export class Treadmill {
     if (anywhere) c[k + 1] = -d.ahead + r() * (d.ahead + d.behind);
     else c[k + 1] = c[k + 1]! - r() * 2; // a little spread, or they come back in a line
     c[k + 2] = r() * Math.PI * 2;
-    const unit = d.unit ?? 1;
-    const [lo, hi] = d.scale;
-    const size = unit * (lo + (hi - lo) * r());
-    for (let a = 3; a < 6; a++) c[k + a] = size;
+    c[k + 3] = r();
     const tilt = d.tilt ?? 0;
-    c[k + 6] = r() * tilt;
-    c[k + 7] = r() * tilt;
+    c[k + 4] = r() * tilt;
+    c[k + 5] = r() * tilt;
+    c[k + 6] = r();
   }
 
   private clear(): void {
@@ -347,6 +432,23 @@ export class Treadmill {
     this.materials = [];
     this.groundMaterials = [];
   }
+}
+
+/**
+ * A material faded out with distance from the ship (the group's centre), from `fade[0]` to `fade[1]`
+ * (m, along the ground). See-through, at most `opacity`; no depth written, so overlapping parts all
+ * show. Returns what measures it at `p` (a point in the group), called in the material's
+ * `positionNode`: a shadow passes its point from before it's flattened, so that it fades with what
+ * casts it.
+ */
+function fadeBy(material: THREE.NodeMaterial, fade: [number, number], opacity = 1): (p: typeof positionLocal) => void {
+  const v = varyingProperty('float', 'vFade');
+  material.opacityNode = v;
+  material.transparent = true;
+  material.depthWrite = false;
+  return (p) => {
+    v.assign(float(1).sub(smoothstep(fade[0], fade[1], vec2(p.x, p.z).length())).mul(opacity));
+  };
 }
 
 /** The terrain file's meshes, each a shape (centred where it was exported). */
@@ -415,6 +517,32 @@ function boulderGeometry(random: () => number): THREE.BufferGeometry {
 /** A mountain, about 1 m across and 0.6 high, its base at 0. */
 function peakGeometry(random: () => number): THREE.BufferGeometry {
   return jitter(new THREE.ConeGeometry(0.5, 0.6, 7, 2).translate(0, 0.3, 0).toNonIndexed(), random, 0.15);
+}
+
+/**
+ * A cumulus, about 1 m across and 0.4 high, its base flat at 0: a few lumpy puffs side by side,
+ * cut level underneath. Its corners shared, for smooth shading.
+ */
+function cloudGeometry(random: () => number): THREE.BufferGeometry {
+  const puffs: THREE.BufferGeometry[] = [];
+  const n = 5 + Math.floor(random() * 3);
+  for (let i = 0; i < n; i++) {
+    const r = 0.16 + random() * 0.14;
+    const puff = jitter(new THREE.IcosahedronGeometry(r, 2), random, 0.06);
+    // The middle ones bigger and higher, as a cumulus heaps up.
+    const x = (i / (n - 1) - 0.5) * 0.7;
+    puff.translate(x, r * (0.4 + 0.4 * (1 - Math.abs(x) * 2)), (random() - 0.5) * 0.3);
+    puffs.push(puff);
+  }
+  const g = mergeGeometries(puffs)!;
+  puffs.forEach((p) => p.dispose());
+  const pos = g.getAttribute('position') as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) if (pos.getY(i) < 0) pos.setY(i, 0);
+  g.deleteAttribute('normal');
+  const smooth = mergeVertices(g);
+  g.dispose();
+  smooth.computeVertexNormals();
+  return smooth;
 }
 
 /**

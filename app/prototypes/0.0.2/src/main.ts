@@ -205,7 +205,7 @@ async function start(): Promise<void> {
       });
       // The scenery round the ship's centre, under its belly (the hull's bottom).
       const shipBox = new THREE.Box3().setFromObject(s.object);
-      treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections);
+      treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
       director.onTravel = (terrain) => void treadmill?.set(terrain).catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
       // A save at each scene start, once the game has begun (not the scene under the start screen).
       director.onStarted = (id) => {
@@ -268,7 +268,7 @@ async function start(): Promise<void> {
   if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __cutscene: () => cutscene, __watched: () => watched, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
-  const gui = createTuningPanel({ pixelRatio: () => resize() }, () => ({
+  const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
     feet: character.position.toArray().map(round),
     yaw: round(view.yaw),
     pitch: round(view.pitch),
@@ -598,6 +598,8 @@ async function start(): Promise<void> {
       fillColour: settings.hullGapBlack ? '#000000' : settings.hullGapColour,
       holeEnd: settings.holeEnd,
       holeBeyond: settings.holeBeyond,
+      glassDim: settings.glassDim,
+      glassHighlights: settings.glassHighlights,
     });
     // A conversation: the button completes the line, then the next, picks a topic, or ends it.
     const talking = dialogue.active;

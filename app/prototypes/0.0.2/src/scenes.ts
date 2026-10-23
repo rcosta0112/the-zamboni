@@ -39,7 +39,9 @@ export const TEST_SCENE = 'landed';
  * What the flight rules lock (owner, 2026-10-22): the outer doors and hatches (their keypads with
  * them), the jetpacks and her parka. By kind; the roof hatch by id (the floor hatch is a hatch too).
  */
-const FLIGHT_LOCKED = { kinds: ['ramp', 'drop-door', 'jetpack', 'outfit'], ids: ['top-hatch-lower', 'top-hatch-upper'] };
+const FLIGHT_LOCKED = { kinds: ['jetpack', 'outfit'], ids: [] as string[] };
+/** The outer doors, also locked in flight unless the tuning panel says otherwise (`settings.outerDoorsLocked`). */
+const OUTER_DOORS = { kinds: ['ramp', 'drop-door'], ids: ['top-hatch-lower', 'top-hatch-upper'] };
 
 /** A scene's file: the game's, else the checks'. (Vite answers a missing file with the page: not JSON.) */
 async function sceneFile(id: string): Promise<SceneData> {
@@ -87,8 +89,8 @@ export class SceneDirector {
     this.onTravel?.(scene.travel?.terrain ?? null);
     if (this.target.story?.get('ship_flying') !== undefined) this.target.story.set('ship_flying', flying);
     if (flying) {
-      const ids = [...FLIGHT_LOCKED.ids, ...[...this.ship.entities.all()].filter((e) => FLIGHT_LOCKED.kinds.includes(e.kind)).map((e) => e.id)];
-      for (const id of ids) run({ do: 'lock', id }, this.target);
+      for (const id of this.ids(FLIGHT_LOCKED)) run({ do: 'lock', id }, this.target);
+      if (settings.outerDoorsLocked) for (const id of this.ids(OUTER_DOORS)) run({ do: 'lock', id }, this.target);
     }
     for (const command of scene.setup) run(command, this.target);
     updateShip(this.ship, 0, true);
@@ -96,5 +98,16 @@ export class SceneDirector {
     this.current = id;
     console.info(`[0.0.2] scene: ${id}`);
     this.onStarted?.(id);
+  }
+
+  /** The tuning panel's *outer doors locked*, now: in flight they lock or unlock; landed they're never locked. */
+  applyOuterDoors(): void {
+    if (!settings.shipFlying) return;
+    for (const id of this.ids(OUTER_DOORS)) run({ do: settings.outerDoorsLocked ? 'lock' : 'unlock', id }, this.target);
+  }
+
+  /** The ids of a list: its own, and every entity of its kinds. */
+  private ids(list: { kinds: string[]; ids: string[] }): string[] {
+    return [...list.ids, ...[...this.ship.entities.all()].filter((e) => list.kinds.includes(e.kind)).map((e) => e.id)];
   }
 }

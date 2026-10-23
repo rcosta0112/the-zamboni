@@ -181,6 +181,8 @@ export const settings = {
   shadowRangeIndoors: 25, // the sun patches inside stay sharp
   shadowRangeOutdoors: 50,
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
+  glassDim: 0.2, // how much the windows dim the view through them (owner, 2026-10-23: a bit darker from inside, just enough to notice the glass)
+  glassHighlights: 0.5, // the windows' highlights (the cabin lights' reflections): 1 as lit; 0.3 was their strength until 2026-10-23
   haze: true, // distance haze in the horizon colour, hides the floor's edge
   hazeNear: 60,
   hazeFar: 190,
@@ -276,6 +278,7 @@ export const settings = {
   volumeUi: 1, // the interface's sounds (the start button's click)
   volumeInteraction: 1, // the placeholder sounds of doors, panels, the lever, the ramp and the ladder, as a set
   volumeSteps: 1, // her footsteps and landings
+  outerDoorsLocked: true, // in flight (the flight rules); off on the tuning panel: they open, for testing
   shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
   shipNoiseOutdoors: 0.4, // its level outside the ship, as a share of inside
   // The wind (owner, 2026-10-14): full outside; inside, as a share of that: faint, and louder in the
@@ -299,6 +302,14 @@ export const settings = {
   groundCoarse: 119, // m: the big noise's cells across the flight (4 times as long along it)
   groundFine: 1.19, // m: the fine noise's (averaged out in the distance)
   groundGlow: '#004495',
+  // The outside's own light (terrain.ts; doc/plans/features/outside-light.md): the scenery's materials
+  // get the game's sun and their own sky light, Blender's world, never dimmed indoors.
+  outsideSkyStrength: 1, // Blender's world strength
+  outsideSkyColor: '#139eff', // light from above: the world gradient's cosine-weighted average (world.ts)
+  outsideBelowColor: '#7debff', // from below: the cyan under the horizon
+  outsideSunTint: '#ffffff', // times the sun's colour, on the outside only
+  outsideSunStrength: 0.65, // share of the sun's strength, on the outside only: the fly-by's sun is at 13° (sin 0.22 on flat ice), ours at 20° (0.34)
+  outsideReflections: 0.5, // the sky's reflection on the ice (Blender: 1, paler here; the ship's metals: metalReflections)
 
   // Rendering
   maxPixelRatio: 2, // below 1 renders fewer pixels than the screen has (down to 0.1)

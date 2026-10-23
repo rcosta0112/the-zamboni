@@ -152,6 +152,8 @@ A **big task** (CLAUDE.md rule 5): about 20 hours of agent work over seven passe
 
 > **[Agent note]** **Pass 4 in three stops** (2026-10-22): **4a** the treadmill, the ground, the boulders and their flattened shadows, the haze, the terrain file; **4b** the clouds and their shadows, the measurements (frame time, heap) and the screenshots against the video; **4c** the exterior shot below, once reviewed.
 >
+> **4b built** (2026-10-23; [what exists](../../features/scenery.md)): the clouds a third pool in the air, their shadows flattened as the rubble's; measured: the scenery about 3 ms a frame from outside (uncapped), the heap steady. No clouds in the video to compare with; the 4a screenshots unchanged otherwise.
+>
 > **The exterior shot, proposed (to review; guesses until SC-120 is answered):**
 > - **Where:** after Adam Red's *"Setting the course. Hang on."*, a shot with no line in `opening.json` (`{ "shot": "exterior-turn", "seconds": 6 }`), *skip* moves on as for a line.
 > - **The angle (guess):** behind the ship and to its left, a little above, the camera fixed to the ship (the world turning under it reads as the ship turning), wide enough to see the ground and the boulders sweep round.

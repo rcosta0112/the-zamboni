@@ -17,7 +17,7 @@ export function antialiasEnabled(): boolean {
   }
 }
 
-export function createTuningPanel(onChange: { pixelRatio: () => void }, describeView: () => object) {
+export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors: () => void }, describeView: () => object) {
   const gui = new GUI({ title: `Tuning · ${__VERSION__}  ( \` or View button )` });
 
   const move = gui.addFolder('Movement');
@@ -123,6 +123,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   look.add(settings, 'sunIntensity', 0, 15, 0.1).name('sun strength');
   look.add(settings, 'worldStrength', 0, 3, 0.05).name('world strength');
   look.add(settings, 'sunThroughGlass').name('sun through glass');
+  look.add(settings, 'glassDim', 0, 1, 0.01).name('glass: dims the view');
+  look.add(settings, 'glassHighlights', 0, 2, 0.01).name('glass: highlights');
   look.add(settings, 'shadowMapSize', [1024, 2048, 4096]).name('shadow map (px)');
   look.add(settings, 'shadowRangeIndoors', 8, 40, 1).name('shadow range indoors (m)');
   look.add(settings, 'shadowRangeOutdoors', 8, 100, 1).name('shadow range outdoors (m)');
@@ -138,6 +140,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   look.add(settings, 'flightHeading', -180, 180, 1).name('flight: heading (°)').listen();
   look.add(settings, 'showColliders').name('show colliders');
 
+  look.add(settings, 'outerDoorsLocked').name('flight: outer doors locked').onChange(onChange.outerDoors);
   // The ground under the flying ship (terrain.ts): set from the terrain's file when it's shown.
   const ground = gui.addFolder('Flight: ground material');
   ground.addColor(settings, 'groundColor').name('colour').listen();
@@ -149,6 +152,17 @@ export function createTuningPanel(onChange: { pixelRatio: () => void }, describe
   ground.addColor(settings, 'groundGlow').name('glow (emission)').listen();
   ground.add({ print: () => console.info(`"ground": ${JSON.stringify(groundData())}`) }, 'print').name('print for the terrain file (console)');
   ground.close();
+  // The outside's own light (terrain.ts): the scenery's materials only; the interior keeps the scene's.
+  const outside = gui.addFolder('Flight: outside light');
+  outside.add(settings, 'outsideSkyStrength', 0, 4, 0.01).name('sky: strength (Blender world)');
+  outside.addColor(settings, 'outsideSkyColor').name('sky: light from above');
+  outside.addColor(settings, 'outsideBelowColor').name('sky: light from below');
+  outside.addColor(settings, 'outsideSunTint').name('sun: tint');
+  outside.add(settings, 'outsideSunStrength', 0, 2, 0.01).name('sun: strength (share)');
+  outside.add(settings, 'outsideReflections', 0, 2, 0.01).name('sky reflections on the ice');
+  const outsideKeys = ['outsideSkyStrength', 'outsideSkyColor', 'outsideBelowColor', 'outsideSunTint', 'outsideSunStrength', 'outsideReflections'] as const;
+  outside.add({ print: () => console.info(Object.fromEntries(outsideKeys.map((k) => [k, settings[k]]))) }, 'print').name('print the values (console)');
+  outside.close();
   look.add(settings, 'cargoRampOpen').name('cargo ramp open').listen();
 
   const interact = gui.addFolder('Interaction');
