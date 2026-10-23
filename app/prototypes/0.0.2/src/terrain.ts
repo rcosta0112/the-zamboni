@@ -99,11 +99,18 @@ const NOISE_SIZE = 256;
 const NOISE_CELLS = 32;
 /** Floats kept per copy: x, z, turn, its size's share of the pool's range, two tilts, its height's share of its range. */
 const PER_COPY = 7;
+/** The scatter's pools hold this many copies at least: the panel's *Flight: rocks* › *count* goes up to it. */
+export const ROCKS_MAX = 6000;
 
 /** One pool: its copies' places in the group, their meshes and their shadows. */
 interface Pool {
   data: ScatterData;
+  /** The copies shown (the scatter's: the panel's), the file's and how many there's room for. */
   count: number;
+  base: number;
+  capacity: number;
+  /** The scatter's (the rocks): its count and size follow the panel's *Flight: rocks*. */
+  rocks: boolean;
   meshes: THREE.InstancedMesh[];
   shadows: THREE.InstancedMesh[];
   /** Each mesh's height, unscaled (m). */
@@ -124,6 +131,8 @@ export class Treadmill {
   /** The ground's and its shadows' materials: the tuning panel's values go to both. */
   private groundMaterials: THREE.MeshStandardNodeMaterial[] = [];
   private groundTuned = '';
+  /** The panel's rock count last applied. */
+  private rocksTuned = 0;
   /** Each noise's cells along the flight over across (the fly-by's plane was stretched). */
   private stretch: [number, number] = [1, 1];
   /** The ground's roughness: the ramp's ends, and the two noises' frequencies (1/m, across and along). */
@@ -221,7 +230,10 @@ export class Treadmill {
     this.groundTuned = '';
     this.travelled = 0;
     this.random = mulberry32(1); // the same scatter every time (screenshots compare)
-    for (const pool of all) this.pools.push(this.pool(pool, shapes, shadow, data.ground));
+    for (const pool of all) this.pools.push(this.pool(pool, shapes, shadow, data.ground, data.scatter.includes(pool)));
+    settings.rockCount = this.pools.filter((p) => p.rocks).reduce((n, p) => n + p.base, 0);
+    settings.rockSize = 1;
+    this.rocksTuned = settings.rockCount;
     this.group.visible = true;
     console.info(`[0.0.2] terrain: ${id} (${this.pools.reduce((n, p) => n + p.count, 0)} copies in ${this.pools.reduce((n, p) => n + p.meshes.length * 2, 0)} draws)`);
   }
@@ -236,6 +248,7 @@ export class Treadmill {
     this.scroll.value = this.travelled % 1e5;
     this.tuneGround();
     this.tuneOutside();
+    this.tuneRocks();
 
     // The sun's direction in the group: it stays put in the world while the group turns.
     const el = THREE.MathUtils.degToRad(settings.sunElevationDeg);
@@ -249,6 +262,7 @@ export class Treadmill {
       const variants = pool.meshes.length;
       const unit = d.unit ?? 1;
       const [lo, hi] = d.scale;
+      const grow = pool.rocks ? settings.rockSize : 1;
       const [low, high] = d.lift ?? [0, 0];
       for (let i = 0; i < pool.count; i++) {
         const k = i * PER_COPY;
@@ -259,7 +273,7 @@ export class Treadmill {
           this.place(c, k, d, false);
         }
         const v = i % variants;
-        const size = unit * (lo + (hi - lo) * c[k + 3]!);
+        const size = unit * grow * (lo + (hi - lo) * c[k + 3]!);
         this.p.set(c[k]!, low + (high - low) * c[k + 6]! - (d.sink ?? 0) * pool.heights[v]! * size, c[k + 1]!);
         this.q.setFromEuler(this.e.set(c[k + 4]!, c[k + 2]!, c[k + 5]!, 'YXZ'));
         this.s.setScalar(size);
@@ -268,6 +282,19 @@ export class Treadmill {
         pool.meshes[v]!.setMatrixAt(n, this.m); // the shadows share it
       }
       for (const mesh of pool.meshes) mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  /** The panel's *Flight: rocks* › *count*: shared between the scatter's pools as the file's counts are. */
+  private tuneRocks(): void {
+    if (settings.rockCount === this.rocksTuned) return;
+    this.rocksTuned = settings.rockCount;
+    const rocks = this.pools.filter((p) => p.rocks);
+    const base = rocks.reduce((n, p) => n + p.base, 0);
+    for (const pool of rocks) {
+      pool.count = Math.min(pool.capacity, Math.round((pool.base * settings.rockCount) / Math.max(base, 1)));
+      const variants = pool.meshes.length;
+      pool.meshes.forEach((mesh, v) => (mesh.count = pool.shadows[v]!.count = Math.ceil(Math.max(pool.count - v, 0) / variants)));
     }
   }
 
@@ -347,7 +374,7 @@ export class Treadmill {
     return material;
   }
 
-  private pool(data: ScatterData, shapes: THREE.BufferGeometry[], groundShadow: THREE.MeshStandardNodeMaterial, ground: TerrainData['ground']): Pool {
+  private pool(data: ScatterData, shapes: THREE.BufferGeometry[], groundShadow: THREE.MeshStandardNodeMaterial, ground: TerrainData['ground'], rocks: boolean): Pool {
     const material = new THREE.MeshStandardNodeMaterial({ color: linear(data.color), roughness: data.roughness, metalness: 0, flatShading: !data.smooth });
     this.outside(material);
     this.materials.push(material);
@@ -365,14 +392,17 @@ export class Treadmill {
       this.groundTuned = '';
     }
     const count = data.count ?? Math.round((data.density ?? 0) * (data.ahead + data.behind) * 2 * data.width);
+    // The rocks have room for more: the panel's count can go up without the meshes made again.
+    const capacity = rocks ? Math.max(count, ROCKS_MAX) : count;
     const made = { boulder: boulderGeometry, peak: peakGeometry, cloud: cloudGeometry };
     const geometries = data.mesh === 'file' ? shapes : [0, 1, 2].map(() => made[data.mesh as keyof typeof made](this.random));
     const meshes: THREE.InstancedMesh[] = [];
     const shadows: THREE.InstancedMesh[] = [];
     geometries.forEach((geometry, v) => {
-      const n = Math.ceil((count - v) / geometries.length);
+      const n = Math.ceil((capacity - v) / geometries.length);
       const mesh = new THREE.InstancedMesh(geometry, material, n);
       const shadow = new THREE.InstancedMesh(geometry, shadowMaterial, n);
+      mesh.count = shadow.count = Math.ceil((count - v) / geometries.length);
       shadow.instanceMatrix = mesh.instanceMatrix;
       // They move every frame: their bounds at load would be wrong.
       mesh.frustumCulled = false;
@@ -390,9 +420,12 @@ export class Treadmill {
       g.computeBoundingBox();
       return g.boundingBox!.max.y - g.boundingBox!.min.y;
     });
-    const copies = new Float32Array(count * PER_COPY);
+    const copies = new Float32Array(capacity * PER_COPY);
     for (let i = 0; i < count; i++) this.place(copies, i * PER_COPY, data, true);
-    return { data, count, meshes, shadows, heights, copies };
+    // The room for more placed from their own sequence: the file's scatter stays as it was.
+    const extra = mulberry32(2);
+    for (let i = count; i < capacity; i++) this.place(copies, i * PER_COPY, data, true, extra);
+    return { data, count, base: count, capacity, meshes, shadows, heights, copies, rocks };
   }
 
   /** Lit by the outside's lights, the sun tinted (a flattened shadow replaces its received shadow after this). */
@@ -404,8 +437,7 @@ export class Treadmill {
   }
 
   /** A copy somewhere new: across the band, at the front (or anywhere in it, at the start). */
-  private place(c: Float32Array, k: number, d: ScatterData, anywhere: boolean): void {
-    const r = this.random;
+  private place(c: Float32Array, k: number, d: ScatterData, anywhere: boolean, r = this.random): void {
     const clear = d.clear ?? 0;
     const side = clear + r() * (d.width - clear);
     c[k] = r() < 0.5 ? -side : side;

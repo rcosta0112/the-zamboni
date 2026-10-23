@@ -5,6 +5,7 @@
 import * as THREE from 'three/webgpu';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { settings } from './settings';
+import { ROCKS_MAX } from './terrain';
 
 const ANTIALIAS_KEY = 'zamboni-01-antialias';
 
@@ -152,6 +153,11 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   ground.addColor(settings, 'groundGlow').name('glow (emission)').listen();
   ground.add({ print: () => console.info(`"ground": ${JSON.stringify(groundData())}`) }, 'print').name('print for the terrain file (console)');
   ground.close();
+  // The rocks (terrain.ts): set from the terrain's file when it's shown.
+  const rocks = gui.addFolder('Flight: rocks');
+  rocks.add(settings, 'rockCount', 0, ROCKS_MAX, 1).name('count').listen();
+  rocks.add(settings, 'rockSize', 0.1, 5, 0.01).name("size (× the file's)").listen();
+  rocks.close();
   // The outside's own light (terrain.ts): the scenery's materials only; the interior keeps the scene's.
   const outside = gui.addFolder('Flight: outside light');
   outside.add(settings, 'outsideSkyStrength', 0, 4, 0.01).name('sky: strength (Blender world)');

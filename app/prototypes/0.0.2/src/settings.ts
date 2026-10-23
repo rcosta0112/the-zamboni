@@ -302,6 +302,9 @@ export const settings = {
   groundCoarse: 119, // m: the big noise's cells across the flight (4 times as long along it)
   groundFine: 1.19, // m: the fine noise's (averaged out in the distance)
   groundGlow: '#004495',
+  // The rocks on the ground (the terrain file's scatter; terrain.ts), reset from the file when it's shown.
+  rockCount: 50, // copies, all the scatter's pools together (up to terrain.ts ROCKS_MAX)
+  rockSize: 1, // times the file's sizes (their sinking scales with them)
   // The outside's own light (terrain.ts; doc/plans/features/outside-light.md): the scenery's materials
   // get the game's sun and their own sky light, Blender's world, never dimmed indoors.
   outsideSkyStrength: 1, // Blender's world strength
