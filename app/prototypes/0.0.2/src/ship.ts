@@ -10,6 +10,7 @@
 // doors (side door, hatches, fridge, galley and lockers) are in doors.ts.
 
 import * as THREE from 'three/webgpu';
+import { positionLocal, uniform } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
@@ -28,6 +29,8 @@ const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 /** The ship's collider in its file; every other mesh there is a collision box. */
 const COLLIDER = 'zamboni_col';
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
+/** Raised while the ship flies (`settings.landingGearUp`). */
+export const LANDING_GEAR = ['Landing Gear Back Left', 'Landing Gear Back Right', 'Landing Gear Front'];
 
 const RAMP_SECONDS = 1.5; // time to open or close
 
@@ -36,7 +39,7 @@ const RAMP_SECONDS = 1.5; // time to open or close
  * cargo ramp, engineering window) and the turbines. See-through from scratch (owner, 2026-10-14):
  * only these are drawn; everything inside is hidden while the see-through hull is on.
  */
-const SHELL = [
+export const SHELL = [
   'Hull_Merged', 'Windshield', 'Side Door', 'Top Hatch Upper', 'Cargo Ramp', 'Engineering Window Left', 'Engineering Window Right',
   'Turbine Left', 'Turbine Right', 'Turbine.001', 'Turbine.002',
 ];
@@ -143,6 +146,14 @@ export interface Ship {
   interiorMovingCasters: THREE.Mesh[];
   /** The same for its glass (windows, windshield): casts only while the sun isn't let through. */
   glassShadowCaster: THREE.Mesh;
+  /**
+   * The landing gear and its height in the file (landed): raised while the ship flies. Casts its own
+   * shadow. Raised, what would come up through the cargo floor isn't drawn (`above`: that height, in
+   * its own space).
+   */
+  landingGear: { node: THREE.Object3D; restY: number; above: { value: number } }[];
+  /** The cargo floor's top, in the ship's space. */
+  cargoFloorY: number;
 }
 
 /** Layer of the merged shadow caster: the sun's shadow camera renders it, the view camera doesn't. */
@@ -265,6 +276,19 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   const doors = createDoors(object, physics, hingeAt, entities);
   for (const door of doors) door.units.push(...cutUnits.filter((u) => isInside(u.object, door.hinge)));
   for (const unit of cutUnits) if (unit.bulkhead && !unit.attachedTo) unit.cameraWall = true;
+  const landingGear: Ship['landingGear'] = [];
+  object.traverse((node) => {
+    if (!LANDING_GEAR.some((name) => named(node, name))) return;
+    const above = uniform(Infinity);
+    // Its own copies of the materials (they're the hull's too), cut off above the floor.
+    node.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const own = (m: THREE.Material) => Object.assign(m.clone() as THREE.MeshStandardNodeMaterial, { maskNode: positionLocal.y.lessThan(above) });
+      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(own) : own(mesh.material);
+    });
+    landingGear.push({ node, restY: node.position.y, above });
+  });
 
   const ship: Ship = {
     object,
@@ -307,8 +331,10 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
         return ship.rampAmount;
       },
     },
-    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
+    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
     interiorMovingCasters: [],
+    landingGear,
+    cargoFloorY: object.worldToLocal(new THREE.Vector3(0, floorBox.max.y, 0)).y,
   };
   entities.of(rampDoor)?.components.push(ship.rampState);
   // Left casting by mergeShadowCasters: the moving parts.
@@ -607,6 +633,11 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   const interiorShown = !(settings.seeThrough && settings.seeThroughStage === 'hull only');
   ship.interiorShadowCaster.visible = interiorShown;
   for (const mesh of ship.interiorMovingCasters) mesh.castShadow = interiorShown;
+  for (const gear of ship.landingGear) {
+    const up = settings.shipFlying ? settings.landingGearUp : 0;
+    gear.node.position.y = gear.restY + up;
+    gear.above.value = up > 0 ? ship.cargoFloorY - gear.node.position.y : Infinity;
+  }
   if (pusher) updateAutoDoors(ship.doors, pusher.feet(), settings.zamboniHeight);
   for (const door of ship.doors) door.update(dt, force, pusher);
   if (ship.rampState.paused && !force) return;

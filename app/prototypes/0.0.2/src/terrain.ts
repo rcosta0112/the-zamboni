@@ -27,10 +27,11 @@
 // by it). Tuned on the panel's *Flight: outside light*.
 
 import * as THREE from 'three/webgpu';
-import { Fn, cameraViewMatrix, clamp, float, lights, mix, positionLocal, smoothstep, texture, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
+import { Fn, cameraViewMatrix, clamp, float, floor, lights, mix, mod, normalize, positionLocal, select, smoothstep, texture, textureLevel, transformNormalToView, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { settings } from './settings';
+import { sunDegrees } from './world';
 
 interface ScatterData {
   /** The terrain file's meshes (each a shape), or a placeholder made here: `boulder`, `peak` (a mountain), `cloud`. */
@@ -88,6 +89,13 @@ export interface TerrainData {
   backdrop: ScatterData[];
   /** Clouds: a pool in the air (`lift`), its shadows flattened onto the ground as the scatter's are. */
   clouds?: ScatterData[];
+  /**
+   * Hills and valleys (owner, 2026-10-23: as the fly-by's displaced ground): a height at each point of
+   * a grid (`cell`: its spacing across and along the flight, m), random between 0 and `height` (m),
+   * the ground's triangles between them, smooth-shaded. The fly-by's F12 ground: 100 x 200 units
+   * apart, heights within 5 units (x1.4856 here).
+   */
+  hills?: { cell: [number, number]; height: number };
   haze: { near: number; far: number };
 }
 
@@ -100,6 +108,8 @@ const LANDED_HAZE = { near: settings.hazeNear, far: settings.hazeFar };
 /** The roughness's noise: a repeating tile this many pixels across, with this many noise cells across it. */
 const NOISE_SIZE = 256;
 const NOISE_CELLS = 32;
+/** The hills' heights: a repeating grid this many points across (the ground's points read it). */
+const HILLS_SIZE = 256;
 /** The scatter's pools hold this many copies at least: the panel's *Flight: rocks* › *count* goes up to it. */
 export const ROCKS_MAX = 6000;
 /** Each shape's mesh has room for this many times its even share (the hash doesn't share them evenly). */
@@ -149,8 +159,19 @@ export class Treadmill {
   private readonly roughHigh = uniform(1);
   private readonly coarse = uniform(new THREE.Vector2(0.01, 0.01));
   private readonly fine = uniform(new THREE.Vector2(1, 1));
+  private readonly fineAmount = uniform(1);
   /** The ground's scroll (m): what the ship has travelled, kept small enough for the shader. */
   private readonly scroll = uniform(0);
+  /**
+   * The hills (`TerrainData.hills`): each grid point's height as a share of `hillHeight`, the grid's
+   * spacing (m), and how far the ground has moved over it (m, within one repeat of the grid).
+   */
+  private readonly hillValues = hillGrid(HILLS_SIZE);
+  private readonly hillTexture = hillTexture(this.hillValues, HILLS_SIZE);
+  private hills: { cell: [number, number]; height: number } = { cell: [1e6, 1e6], height: 0 };
+  private readonly hillCell = uniform(new THREE.Vector2(1e6, 1e6));
+  private readonly hillHeight = uniform(0);
+  private readonly hillShift = uniform(0);
   /** The noise both roughness layers read, made once. */
   private readonly noise = noiseTile(NOISE_SIZE, NOISE_CELLS);
   private materials: THREE.Material[] = [];
@@ -234,8 +255,17 @@ export class Treadmill {
     settings.groundGlow = `#${linear(data.ground.emissive ?? [0, 0, 0]).getHexString()}`;
     this.far = data.haze.far * GROUND_MARGIN;
     const size = 2 * this.far;
+    this.hills = data.hills ?? { cell: [1e6, 1e6], height: 0 };
+    this.hillCell.value.set(...this.hills.cell);
+    this.hillHeight.value = this.hills.height;
+    // On the hills' grid, its points the ground's (an even number of cells each way, so that the middle
+    // one is on the grid's origin); without hills, flat, one quad.
+    const cells = (spacing: number) => 2 * Math.ceil(size / spacing / 2);
+    const [across, along] = [cells(this.hills.cell[0]), cells(this.hills.cell[1])];
     this.ground.geometry.dispose();
-    this.ground.geometry = new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2);
+    this.ground.geometry = data.hills
+      ? new THREE.PlaneGeometry(across * this.hills.cell[0], along * this.hills.cell[1], across, along).rotateX(-Math.PI / 2)
+      : new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2);
     const ground = this.groundMaterial(data.ground, false);
     const shadow = this.groundMaterial(data.ground, true);
     this.ground.material = ground;
@@ -255,6 +285,7 @@ export class Treadmill {
   /** Moves it on by `dt`; `camera`: the one drawing this frame (the cells round it are shown); `pace`: the
    *  speed times the terrain's (a cutscene's own). */
   update(dt: number, camera: THREE.Camera, pace = 1): void {
+    this.tuneOutside(); // the hull's outside uses it landed too (exterior.ts)
     if (!this.group.visible) return;
     const g = this.group;
     g.position.set(this.centre.x, this.centre.belly - settings.flightHeight, this.centre.z);
@@ -263,14 +294,15 @@ export class Treadmill {
     const step = settings.flightSpeed * pace * dt;
     this.travelled += step;
     this.scroll.value = this.travelled % 1e5;
+    this.hillShift.value = this.travelled % (HILLS_SIZE * this.hills.cell[1]);
     this.tuneGround();
-    this.tuneOutside();
     this.tuneRocks();
     const eye = g.worldToLocal(camera.getWorldPosition(this.eye.value));
 
     // The sun's direction in the group: it stays put in the world while the group turns.
-    const el = THREE.MathUtils.degToRad(settings.sunElevationDeg);
-    const az = THREE.MathUtils.degToRad(settings.sunAzimuthDeg) - g.rotation.y;
+    const sunAt = sunDegrees();
+    const el = THREE.MathUtils.degToRad(sunAt.elevation);
+    const az = THREE.MathUtils.degToRad(sunAt.azimuth) - g.rotation.y;
     this.sun.value.set(Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az));
 
     for (const pool of this.pools) {
@@ -312,7 +344,8 @@ export class Treadmill {
             // Shown within `reach` of the camera along the ground (the haze is round: a square would
             // draw rocks no one sees), off the ship's line, while there's room.
             if ((x - eye.x) ** 2 + (z - eye.z) ** 2 > reach2 || Math.abs(x) < clear || counts[v]! >= pool.capacity) continue;
-            this.p.set(x, lift - (d.sink ?? 0) * pool.heights[v]! * size, z);
+            const ground = pool.rocks ? this.heightAt(x, z - this.travelled) : 0; // on the hills
+            this.p.set(x, ground + lift - (d.sink ?? 0) * pool.heights[v]! * size, z);
             this.q.setFromEuler(this.e.set(tipX, turn, tipZ, 'YXZ'));
             this.s.setScalar(size);
             this.m.compose(this.p, this.q, this.s);
@@ -365,7 +398,7 @@ export class Treadmill {
 
   /** The tuning panel's values on the ground's materials, when they change. */
   private tuneGround(): void {
-    const tuned = `${settings.groundColor} ${settings.groundMetalness} ${settings.groundGlow} ${settings.groundRoughnessLow} ${settings.groundRoughnessHigh} ${settings.groundCoarse} ${settings.groundFine}`;
+    const tuned = `${settings.groundColor} ${settings.groundMetalness} ${settings.groundGlow} ${settings.groundRoughnessLow} ${settings.groundRoughnessHigh} ${settings.groundCoarse} ${settings.groundFine} ${settings.groundFineAmount}`;
     if (tuned === this.groundTuned) return;
     this.groundTuned = tuned;
     for (const m of this.groundMaterials) {
@@ -378,6 +411,7 @@ export class Treadmill {
     // A cell's size (m) as a frequency; along the flight stretched as the file has it.
     this.coarse.value.set(1 / settings.groundCoarse, 1 / (settings.groundCoarse * this.stretch[0]));
     this.fine.value.set(1 / settings.groundFine, 1 / (settings.groundFine * this.stretch[1]));
+    this.fineAmount.value = settings.groundFineAmount;
   }
 
   /**
@@ -390,10 +424,58 @@ export class Treadmill {
    * fine one out (to its mean, 0) where its cells get smaller than a pixel: no shimmer in the distance.
    * The big noise repeats every 32 of its cells (15 km), the fine one every 38 m (unseen at its size).
    */
+  /**
+   * The hills' height (m) at a point of the ground (x across, z along, the ground's own: the group's
+   * less what it has travelled): the grid's triangles as PlaneGeometry makes them (each cell split
+   * along the diagonal from (i, j + 1) to (i + 1, j)), so that the rocks sit on what's drawn.
+   */
+  heightAt(x: number, z: number): number {
+    if (this.hills.height === 0) return 0;
+    const [cx, cz] = this.hills.cell;
+    const u = x / cx;
+    const v = z / cz;
+    const i = Math.floor(u);
+    const j = Math.floor(v);
+    const fu = u - i;
+    const fv = v - j;
+    const n = HILLS_SIZE;
+    const at = (a: number, b: number) => this.hillValues[(((b % n) + n) % n) * n + (((a % n) + n) % n)]!;
+    const h =
+      fu + fv <= 1
+        ? at(i, j) + (at(i + 1, j) - at(i, j)) * fu + (at(i, j + 1) - at(i, j)) * fv
+        : at(i + 1, j + 1) + (at(i, j + 1) - at(i + 1, j + 1)) * (1 - fu) + (at(i + 1, j) - at(i + 1, j + 1)) * (1 - fv);
+    return (h - 0.5) * this.hills.height;
+  }
+
+  /** `heightAt` in a shader: `x`, `z` in the group (what the ground has travelled is taken off here). */
+  private hillAt(x: THREE.Node<'float'>, z: THREE.Node<'float'>): THREE.Node<'float'> {
+    const u = x.div(this.hillCell.x);
+    const v = z.sub(this.hillShift).div(this.hillCell.y);
+    const i = floor(u);
+    const j = floor(v);
+    const fu = u.sub(i);
+    const fv = v.sub(j);
+    const at = (a: THREE.Node<'float'>, b: THREE.Node<'float'>) => textureLevel(this.hillTexture, vec2(a.add(0.5), b.add(0.5)).div(HILLS_SIZE), float(0)).r;
+    const a = at(i, j);
+    const b = at(i, j.add(1));
+    const c = at(i.add(1), j.add(1));
+    const d = at(i.add(1), j);
+    const near = a.add(d.sub(a).mul(fu)).add(b.sub(a).mul(fv));
+    const far = c.add(b.sub(c).mul(float(1).sub(fu))).add(d.sub(c).mul(float(1).sub(fv)));
+    return select(fu.add(fv).lessThanEqual(1), near, far).sub(0.5).mul(this.hillHeight);
+  }
+
+  /** The hills' smooth normal at a point (the group's space): from the heights a cell either way, as Blender's smooth shading. */
+  private hillNormal(x: THREE.Node<'float'>, z: THREE.Node<'float'>): THREE.Node<'vec3'> {
+    const dx = this.hillAt(x.add(this.hillCell.x), z).sub(this.hillAt(x.sub(this.hillCell.x), z)).div(this.hillCell.x.mul(2));
+    const dz = this.hillAt(x, z.add(this.hillCell.y)).sub(this.hillAt(x, z.sub(this.hillCell.y))).div(this.hillCell.y.mul(2));
+    return normalize(vec3(dx.negate(), 1, dz.negate()));
+  }
+
   private roughness() {
     const at = vec2(positionLocal.x, positionLocal.z.sub(this.scroll)).div(NOISE_CELLS);
     const read = (frequency: typeof this.coarse) => texture(this.noise, at.mul(frequency)).r.mul(2).sub(1);
-    return mix(this.roughLow, this.roughHigh, clamp(read(this.coarse).add(read(this.fine)), 0, 1));
+    return mix(this.roughLow, this.roughHigh, clamp(read(this.coarse).add(read(this.fine).mul(this.fineAmount)), 0, 1));
   }
 
   /** The ground's material; the shadows' is the same lit by the sky alone. */
@@ -403,6 +485,19 @@ export class Treadmill {
     // Only the texture is used (sampled by direction); the coordinate keeps it from asking for UVs.
     material.envNode = texture(this.reflections, vec2(0)).mul(this.reflect);
     this.outside(material);
+    if (!shadow) {
+      // The hills: the ground's points are the grid's, moved on with the ground by what it has
+      // travelled into the cell, then back a whole cell (onto the same heights) as it crosses one: the
+      // hills go by, the triangles never slide over them.
+      const normal = varyingProperty('vec3', 'vHillNormal');
+      material.positionNode = Fn(() => {
+        const p = positionLocal;
+        const z = p.z.add(mod(this.hillShift, this.hillCell.y));
+        normal.assign(this.hillNormal(p.x, z));
+        return vec3(p.x, this.hillAt(p.x, z), z);
+      })();
+      material.normalNode = transformNormalToView(normal);
+    }
     if (shadow) {
       // Wholly in the sun's shadow (its meshes receive shadows for this): lit by the sky alone.
       material.receivedShadowNode = Fn(() => float(0));
@@ -413,16 +508,23 @@ export class Treadmill {
       const sun = this.sun;
       const fading = fade ? fadeBy(material, fade, this.eye, opacity) : null;
       const height = varyingProperty('float', 'vHeight');
+      // With hills: onto the plane at the ground's height under the point, then set on the ground where
+      // that lands (the hills are gentle: a shadow's triangles stay close to the slope).
+      const up = varyingProperty('vec3', 'vShadowUp');
       material.positionNode = Fn(() => {
         const p = positionLocal;
         fading?.(p);
-        height.assign(p.y);
-        const h = p.y.div(sun.y);
-        return vec3(p.x.sub(sun.x.mul(h)), SHADOW_LIFT, p.z.sub(sun.z.mul(h)));
+        const below = this.hillAt(p.x, p.z);
+        height.assign(p.y.sub(below));
+        const h = p.y.sub(below).div(sun.y);
+        const x = p.x.sub(sun.x.mul(h));
+        const z = p.z.sub(sun.z.mul(h));
+        up.assign(this.hillNormal(x, z));
+        return vec3(x, this.hillAt(x, z).add(SHADOW_LIFT), z);
       })();
       material.maskNode = height.greaterThanEqual(0);
-      // Lit as the ground is: facing up.
-      material.normalNode = cameraViewMatrix.mul(vec4(0, 1, 0, 0)).xyz;
+      // Lit as the ground is: facing as the hills face there.
+      material.normalNode = cameraViewMatrix.mul(vec4(up, 0)).xyz;
       material.polygonOffset = true;
       material.polygonOffsetFactor = -2;
       material.polygonOffsetUnits = -2;
@@ -482,6 +584,15 @@ export class Treadmill {
   }
 
   /** Lit by the outside's lights, the sun tinted (a flattened shadow replaces its received shadow after this). */
+  /**
+   * A material from elsewhere (the hull's outside, exterior.ts) lit as the scenery is: the sun and the
+   * outside's sky, the sun's tint there; metal reflects the sky at the outside's strength.
+   */
+  lightOutside(material: THREE.MeshStandardNodeMaterial, reflects = material.envNode !== null): void {
+    this.outside(material);
+    if (reflects) material.envNode = texture(this.reflections, vec2(0)).mul(this.reflect);
+  }
+
   private outside(material: THREE.MeshStandardNodeMaterial): void {
     material.lightsNode = this.outsideLights;
     const tint = this.sunTint;
@@ -570,6 +681,23 @@ function noiseTile(size: number, cells: number): THREE.DataTexture {
   tex.magFilter = THREE.LinearFilter;
   tex.minFilter = THREE.LinearMipmapLinearFilter;
   tex.generateMipmaps = true;
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** The hills' grid: a height share (0..1) per point, random, the same every time. */
+function hillGrid(size: number): Float32Array {
+  const random = mulberry32(11);
+  return Float32Array.from({ length: size * size }, () => random());
+}
+
+/** The grid as a texture the shaders read point by point (nearest, repeating). */
+function hillTexture(values: Float32Array, size: number): THREE.DataTexture {
+  const tex = new THREE.DataTexture(values, size, size, THREE.RedFormat, THREE.FloatType);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = tex.minFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
   tex.colorSpace = THREE.NoColorSpace;
   tex.needsUpdate = true;
   return tex;

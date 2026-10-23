@@ -294,6 +294,16 @@ export const settings = {
   flightSpeed: 174, // m/s (the owner's fly-by, 2026-10-23)
   flightHeight: 14, // m from the ship's belly down to the ground
   flightHeading: 0, // ° turned to the right since the scene started (the ground turns the other way)
+  landingGearUp: 0.75, // m the landing gear rises in flight: its feet flush with the hull's bottom (owner, 2026-10-23)
+  // The thrusters' flames in flight, exterior cutscenes only (flames.ts; SC-121): the fly-by's cones and its *Thruster 2*
+  // material, an emission of (0.888, 0.768, 0.371) linear, faded out along the cone, with a grain.
+  thrusterFlames: true,
+  thrusterFlameColor: '#f2e4a2',
+  thrusterFlameStrength: 2, // its brightness, before tone mapping
+  thrusterFlameFade: 0.6, // share of the cone where it's nearly gone (the fly-by's ramp: 0.595)
+  thrusterFlameGrain: 0.5, // how much the grain dims it (0 = none)
+  thrusterFlameGrainSize: 0.08, // m
+  thrusterFlameSpeed: 20, // m/s the grain runs back along the flame
   // The ground's material (and its shadows'), from the terrain's file: colours as the picker shows them.
   groundColor: '#59b3ff',
   groundMetalness: 0.384,
@@ -301,17 +311,23 @@ export const settings = {
   groundRoughnessHigh: 1,
   groundCoarse: 119, // m: the big noise's cells across the flight (4 times as long along it)
   groundFine: 1.19, // m: the fine noise's (averaged out in the distance)
+  groundFineAmount: 0.25, // the fine noise's share: 1 is the fly-by's, but Blender's samples average it out and the game showed it as a grain; at 0.25 the grain measures as the F12 render's (owner, 2026-10-23)
   groundGlow: '#004495',
   // The rocks on the ground (the terrain file's scatter; terrain.ts), reset from the file when it's shown.
   rockCount: 50, // copies, all the scatter's pools together (up to terrain.ts ROCKS_MAX)
   rockSize: 1, // times the file's sizes (their sinking scales with them)
   // The outside's own light (terrain.ts; doc/plans/features/outside-light.md): the scenery's materials
   // get the game's sun and their own sky light, Blender's world, never dimmed indoors.
-  outsideSkyStrength: 1, // Blender's world strength
+  outsideSkyStrength: 2, // Blender's world strength (owner, 2026-10-23: 2 in the fly-by's ACES copy, `The Zamboni 1.11 - fly by animation ACES.blend`)
   outsideSkyColor: '#139eff', // light from above: the world gradient's cosine-weighted average (world.ts)
   outsideBelowColor: '#7debff', // from below: the cyan under the horizon
   outsideSunTint: '#ffffff', // times the sun's colour, on the outside only
-  outsideSunStrength: 0.65, // share of the sun's strength, on the outside only: the fly-by's sun is at 13° (sin 0.22 on flat ice), ours at 20° (0.34)
+  outsideSunStrength: 1, // share of the sun's strength, on the outside only (0.65 until the sun in flight was the fly-by's, 2026-10-23)
+  exteriorGlassReflections: 6, // the glass seen from outside (exterior.ts): its sky reflection, times the outside's (6: pale and sky-lit as the fly-by's at frame 240, its world at 2)
+  // The sun in flight, as the fly-by's against the ship (2026-10-23: the landed one is 90° round from
+  // it, behind the ship; it put a white glare on the ice): Blender's sun rotation (1.337, 0, 6.931).
+  flightSunElevationDeg: 13.4,
+  flightSunAzimuthDeg: -142.9,
   outsideReflections: 0.5, // the sky's reflection on the ice (Blender: 1, paler here; the ship's metals: metalReflections)
 
   // Rendering

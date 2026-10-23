@@ -19,6 +19,8 @@ import { CutscenePlayer } from './cutscene';
 import { Dialogue } from './dialogue';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
+import { ThrusterFlames } from './flames';
+import { ExteriorLook } from './exterior';
 import { Footsteps } from './footsteps';
 import { crewInteractables, Interaction, respectLocks, shipInteractables, storyInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
@@ -133,6 +135,8 @@ async function start(): Promise<void> {
   let story: GameStory | null = null;
   let cutscene: CutscenePlayer | null = null;
   let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
+  let flames: ThrusterFlames | null = null; // behind the turbines in exterior cutscenes
+  let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
   let saved: SaveData | null = null; // the checkpoint save read at load: *Continue*
   let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
@@ -155,6 +159,10 @@ async function start(): Promise<void> {
       roomLights = new RoomLights(scene, markers);
       roomLights.update(character.position, 0);
       console.info(`[0.0.2] room lights: ${markers.map((m) => m.name).join(', ')}`);
+      flames = await ThrusterFlames.load(s.object).catch((err: unknown) => {
+        console.warn('[0.0.2] thruster flames not shown:', err);
+        return null;
+      });
       // Build the ship's shaders now, not the first time each part comes into view (that stalled
       // the first frames). compileAsync skips what's outside the view, so culling is off meanwhile.
       const culled: THREE.Object3D[] = [];
@@ -210,6 +218,21 @@ async function start(): Promise<void> {
       const shipBox = new THREE.Box3().setFromObject(s.object);
       treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
       director.onTravel = (terrain) => void treadmill?.set(terrain).catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
+      // The hull's outside as the exterior shots light it: its shaders built now, not at the first cut.
+      const outside = treadmill;
+      exterior = new ExteriorLook(s, (m, reflects) => outside.lightOutside(m, reflects));
+      exterior.set(true);
+      const unculled: THREE.Object3D[] = [];
+      s.object.traverse((o) => {
+        if (o.frustumCulled) unculled.push(o);
+        o.frustumCulled = false;
+      });
+      const compiling = performance.now();
+      await renderer.compileAsync(scene, view.camera);
+      for (const o of unculled) o.frustumCulled = true;
+      exterior.set(false);
+      exterior.compiledIn = Math.round(performance.now() - compiling);
+      console.info(`[0.0.2] the hull's outside: shaders compiled in ${exterior.compiledIn} ms`);
       // A save at each scene start, once the game has begun (not the scene under the start screen).
       director.onStarted = (id) => {
         if (begun) checkpoint(id);
@@ -268,7 +291,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __cutscene: () => cutscene, __watched: () => watched, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -610,7 +633,13 @@ async function start(): Promise<void> {
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
-    treadmill?.update(dt, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera, cutscene?.track?.speed ?? 1);
+    // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
+    flames?.update(cutscene?.playing ?? false);
+    // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any
+    // scene; inside, as the interior is (owner, 2026-10-23: the interior's light unchanged).
+    const drawing = cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera;
+    exterior?.set(ship !== null && !ship.interior.containsPoint(drawing.position));
+    treadmill?.update(dt, drawing, cutscene?.track?.speed ?? 1);
     // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
     const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
     for (const camera of [view.camera, watched?.camera]) {

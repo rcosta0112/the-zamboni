@@ -37,6 +37,7 @@ Open items: **in Linear** (team Studio Cataplasma, `SC`; [how it's organized](ar
 | [Placeholder sounds for the interactions, and footsteps](features/interaction-sounds.md) | Prototype 01 | Built 2026-10-13; the owner's to listen to |
 | [The start screen (progress bar, start button, click, Part 1's soundtrack)](features/start-screen.md) | Prototype 01 | Built 2026-10-13; the owner's to look at and listen to |
 | [Moving through the ship, and the ladder both ways](features/movement-and-ladder.md) | Prototype 01 | Built 2026-10-13; the owner's to play, then the boxes go into the ship file |
+| [The exterior shots' look (the ice, the hull, the glass)](features/exterior-look.md) | The flying scene | Built 2026-10-23 (five passes); the owner: no issues |
 | [Taking a jetpack from the rack (Dr. Green's model from the ship file)](features/dr-green-jetpack-model.md) | Prototype 01 | Built 2026-10-14; the owner's to play |
 | [The auto-parachute: the jetpack slows a long fall (item 34)](features/auto-parachute.md) | Prototype 01 | Built 2026-10-14; the owner's to play |
 | [The jetpack's exhaust glow, as in Part 1 (item 38)](features/jetpack-glow.md) | Prototype 01 | Done 2026-10-14 |

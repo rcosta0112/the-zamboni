@@ -139,7 +139,17 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   look.add(settings, 'flightSpeed', 0, 4000, 10).name('flight: speed (m/s)').listen();
   look.add(settings, 'flightHeight', 1, 1000, 1).name('flight: height (m)').listen();
   look.add(settings, 'flightHeading', -180, 180, 1).name('flight: heading (°)').listen();
+  look.add(settings, 'landingGearUp', 0, 1.5, 0.01).name('flight: landing gear raised (m)');
   look.add(settings, 'showColliders').name('show colliders');
+  const flames = gui.addFolder('Flight: thruster flames');
+  flames.add(settings, 'thrusterFlames').name('shown');
+  flames.addColor(settings, 'thrusterFlameColor').name('colour');
+  flames.add(settings, 'thrusterFlameStrength', 0, 20, 0.1).name('brightness');
+  flames.add(settings, 'thrusterFlameFade', 0.05, 1, 0.01).name('fades by (share of length)');
+  flames.add(settings, 'thrusterFlameGrain', 0, 1, 0.01).name('grain');
+  flames.add(settings, 'thrusterFlameGrainSize', 0.005, 1, 0.005).name('grain size (m)');
+  flames.add(settings, 'thrusterFlameSpeed', 0, 200, 1).name('grain speed (m/s)');
+  flames.close();
 
   look.add(settings, 'outerDoorsLocked').name('flight: outer doors locked').onChange(onChange.outerDoors);
   // The ground under the flying ship (terrain.ts): set from the terrain's file when it's shown.
@@ -150,6 +160,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   ground.add(settings, 'groundRoughnessHigh', 0, 1, 0.01).name('roughness: high').listen();
   ground.add(settings, 'groundCoarse', 5, 1000, 1).name('roughness: big noise (m)').listen();
   ground.add(settings, 'groundFine', 0.1, 20, 0.01).name('roughness: fine noise (m)').listen();
+  ground.add(settings, 'groundFineAmount', 0, 1, 0.01).name('roughness: fine noise (share)');
   ground.addColor(settings, 'groundGlow').name('glow (emission)').listen();
   ground.add({ print: () => console.info(`"ground": ${JSON.stringify(groundData())}`) }, 'print').name('print for the terrain file (console)');
   ground.close();
@@ -166,6 +177,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   outside.addColor(settings, 'outsideSunTint').name('sun: tint');
   outside.add(settings, 'outsideSunStrength', 0, 2, 0.01).name('sun: strength (share)');
   outside.add(settings, 'outsideReflections', 0, 2, 0.01).name('sky reflections on the ice');
+  outside.add(settings, 'exteriorGlassReflections', 0, 8, 0.05).name('glass from outside: reflections');
+  outside.add(settings, 'flightSunElevationDeg', 5, 85, 0.1).name('sun in flight: elevation (°)');
+  outside.add(settings, 'flightSunAzimuthDeg', -180, 180, 0.1).name('sun in flight: direction (°)');
   const outsideKeys = ['outsideSkyStrength', 'outsideSkyColor', 'outsideBelowColor', 'outsideSunTint', 'outsideSunStrength', 'outsideReflections'] as const;
   outside.add({ print: () => console.info(Object.fromEntries(outsideKeys.map((k) => [k, settings[k]]))) }, 'print').name('print the values (console)');
   outside.close();

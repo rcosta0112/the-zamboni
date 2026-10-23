@@ -13,6 +13,7 @@ SCALE = 1.4856  # 1.10's units to the game's metres
 STEP = 1  # frames between keys: every frame, on a curve in the game (`smooth`; every 2 judders)
 END = 430  # the last frame used (owner, 2026-10-23; the file runs to 540)
 SWAY = 0.5  # the ship's noise, times the file's (owner, 2026-10-23): the camera tracks the calmer ship
+SHAKE = 0.5  # the camera's shake (Camera Shakify), times the file's (owner, 2026-10-23)
 OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', 'public', 'cutscenes', 'cutscene-1.json')
 FAR = 4000  # m: past the icy plain's haze (3,000)
 NEAR = 5  # m: nothing comes closer (the ship stays 30 m off or more); finer depth far off
@@ -43,7 +44,10 @@ for fc in curves(ship.animation_data.action):  # in memory: the file is never sa
     for mod in fc.modifiers:
         if mod.type == 'NOISE':
             mod.strength *= SWAY
-
+shakes = [c for c in cam.constraints if c.name.startswith('CameraShakify')]
+for c in shakes:  # the add-on's constraints, their drivers taken off so the new value holds
+    cam.driver_remove(f'constraints["{c.name}"].influence')
+    c.influence *= SHAKE
 
 def fov():
     """The lens's height on screen at 16:9 (the bars keep it near that), from its width: keyed too."""
@@ -97,4 +101,4 @@ os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, 'w', newline='\n') as f:
     json.dump(track, f, separators=(',', ':'))
 fovs = [k['fov'] for k in keys]
-print(f'cutscene-1: {len(keys)} keys over {track["duration"]} s, fov {min(fovs):.1f}-{max(fovs):.1f}, written to {OUT}')
+print(f'cutscene-1: {len(keys)} keys over {track["duration"]} s, fov {min(fovs):.1f}-{max(fovs):.1f}, shake influence {", ".join(f"{c.influence:.3g}" for c in shakes)}, written to {OUT}')

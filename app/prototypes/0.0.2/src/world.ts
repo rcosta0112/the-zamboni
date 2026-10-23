@@ -84,9 +84,17 @@ export function createWorld(scene: THREE.Scene): World {
  * far she is inside the ship, where the world's blue light is turned down (it has no way in but the
  * windows, and it made the rooms too blue; owner, 2026-10-12).
  */
+/** The sun's elevation and direction now (degrees): the flight's while the ship flies. */
+export function sunDegrees(): { elevation: number; azimuth: number } {
+  return settings.shipFlying
+    ? { elevation: settings.flightSunElevationDeg, azimuth: settings.flightSunAzimuthDeg }
+    : { elevation: settings.sunElevationDeg, azimuth: settings.sunAzimuthDeg };
+}
+
 export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3, insideAmount: number): void {
-  const el = THREE.MathUtils.degToRad(settings.sunElevationDeg);
-  const az = THREE.MathUtils.degToRad(settings.sunAzimuthDeg);
+  const sunAt = sunDegrees();
+  const el = THREE.MathUtils.degToRad(sunAt.elevation);
+  const az = THREE.MathUtils.degToRad(sunAt.azimuth);
   const dist = 30;
   world.sun.position.set(
     target.x + Math.cos(el) * Math.sin(az) * dist,

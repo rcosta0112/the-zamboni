@@ -9,5 +9,6 @@
     { "mesh": "file", "unit": 1.486, "density": 0.0000132, "cell": 400, "reach": 3400, "scale": [0, 7.5], "tilt": 1, "sink": 0.2, "color": [0.8, 0.9, 1], "roughness": 1 }
   ],
   "backdrop": [],
+  "hills": { "cell": [37.1, 74.3], "height": 12.3 },
   "haze": { "near": 500, "far": 3000 }
 }
