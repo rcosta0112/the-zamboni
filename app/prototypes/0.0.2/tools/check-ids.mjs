@@ -77,6 +77,10 @@ function command(where, c) {
       checked++;
       if (c.set !== 'jumpsuit' && c.set !== 'parka') problems.push(`${where}: no outfit "${c.set}" (jumpsuit, parka)`);
       return;
+    case 'seat':
+      checked++;
+      if (c.id !== 'green') problems.push(`${where}: only "green" can be seated so far, not "${c.id}"`);
+      return;
     case 'swap-exterior':
       return;
     default:

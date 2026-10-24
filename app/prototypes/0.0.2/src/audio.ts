@@ -77,6 +77,8 @@ export class GameAudio {
   private voices = new Map<string, Voice>();
   private noise: StreamLoop | null = null;
   private noiseAmount = 0;
+  /** The ship's noise kept off whatever the ship does: under the start screen (main.ts, until the game begins). */
+  noiseHeld = true;
   /** Streamed cues that repeat, each faded in and out (`setLoop`). */
   private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number; level: number }>();
   /** Decoded sounds: how many there are, and how many have arrived (or failed). */
@@ -301,7 +303,7 @@ export class GameAudio {
 
     // The ship's noise: one file (the two plane sounds mixed: tools/encode-audio.mjs) looping while
     // the ship is flying, quieter outside the ship.
-    const target = settings.shipFlying && running ? 1 : 0;
+    const target = settings.shipFlying && running && !this.noiseHeld ? 1 : 0;
     const step = dt / NOISE_FADE;
     this.noiseAmount = this.noiseAmount < target ? Math.min(target, this.noiseAmount + step) : Math.max(target, this.noiseAmount - step);
     if (this.noiseAmount === 0 && target === 0) {

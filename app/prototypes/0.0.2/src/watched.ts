@@ -20,7 +20,6 @@ import * as THREE from 'three/webgpu';
 import { fromBlender } from './commands';
 import type { Dialogue } from './dialogue';
 import type { Entities } from './entities';
-import { settings } from './settings';
 import type { GameStory } from './story';
 
 type Vec = [number, number, number];
@@ -69,6 +68,8 @@ export class WatchedConversation {
   /** The speaker the camera is on (for checks). */
   speaker: string | null = null;
   private data: WatchedData | null = null;
+  /** The conversations fetched so far, by id. */
+  private readonly loaded = new Map<string, WatchedData>();
   /** What can stand between the camera and the speaker: the ship's opaque meshes (not glass, not the crew). */
   private solid: THREE.Mesh[] | null = null;
   private readonly ray = new THREE.Raycaster();
@@ -78,18 +79,34 @@ export class WatchedConversation {
     private readonly entities: Entities,
     private readonly story: GameStory,
     private readonly dialogue: Dialogue,
-    /** Her feet (world). */
-    private readonly player: () => THREE.Vector3,
+    /** Her head (world): main.ts, from her head bone (she may be seated). */
+    private readonly herHead: () => THREE.Vector3,
   ) {}
 
-  async play(id: string): Promise<void> {
+  /** Fetches a conversation's data (once), so a later `play` starts it at once: main.ts loads cutscene 2's with the game. */
+  async load(id: string): Promise<WatchedData> {
+    const known = this.loaded.get(id);
+    if (known) return known;
     const response = await fetch(`/conversations/${id}.json`);
     if (!response.ok || !response.headers.get('content-type')?.includes('json')) throw new Error(`no conversation "${id}"`);
-    this.data = (await response.json()) as WatchedData;
+    const data = (await response.json()) as WatchedData;
+    this.loaded.set(id, data);
+    return data;
+  }
+
+  /** Starts it, the camera on the first speaker; on this frame if it was loaded. */
+  async play(id: string, aspect = this.camera.aspect): Promise<void> {
+    this.data = this.loaded.get(id) ?? (await this.load(id));
     this.playing = true;
     this.speaker = null;
     this.dialogue.autoNext = this.data.wait;
     this.story.run(this.data.knot);
+    this.update(aspect);
+  }
+
+  /** Ends it now: the box closes (as at its last line), and `update` sees it. */
+  skip(): void {
+    if (this.playing && this.dialogue.active) this.dialogue.end();
   }
 
   /** Per frame: the camera on the line's speaker (a cut when it changes); the end when the box closes. */
@@ -166,13 +183,10 @@ export class WatchedConversation {
     return solid;
   }
 
-  /** A character's head (world): hers from her feet, the crew's from their bounds. */
+  /** A character's head (world): hers from main.ts, the crew's from their bounds. */
   private head(id: string): THREE.Vector3 {
     const object = id === 'green' ? null : this.entities.get(id)?.object;
-    if (!object) {
-      const feet = this.player();
-      return feet.clone().setY(feet.y + settings.zamboniHeight - HEAD_BELOW_TOP);
-    }
+    if (!object) return this.herHead().clone();
     const box = new THREE.Box3().setFromObject(object, true);
     return box.getCenter(new THREE.Vector3()).setY(box.max.y - HEAD_BELOW_TOP);
   }

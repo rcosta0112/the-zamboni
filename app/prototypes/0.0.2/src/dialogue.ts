@@ -105,7 +105,8 @@ export class Dialogue {
     return this.typed >= [...(this.lines[this.index]?.text ?? '')].length;
   }
 
-  private end(): void {
+  /** Ends it now (also a watched conversation's skip). */
+  end(): void {
     this.lines = [];
     this.index = 0;
     this.topics = [];

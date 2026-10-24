@@ -812,7 +812,7 @@ const WALKWAY_STEP = 0.1;
  * A pivot at the moving part's recorded `hinge` (ship space, from the export), with the part
  * attached to it (keeping its place). Rotating the pivot swings the part around its hinge.
  */
-function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
+export function hingeAt(ship: THREE.Object3D, part: THREE.Object3D): THREE.Object3D {
   // `hinge`, not `pivot`: three's GLTFLoader consumes a `pivot` extra on a node with children.
   const p = part.userData.hinge as [number, number, number] | undefined;
   if (!p) throw new Error(`"${part.name}" has no hinge recorded (re-export with tools/export-ship.py)`);

@@ -7,7 +7,7 @@
 //   are moved onto it at load (`dress`), so one mixer animates both and a swap only shows and hides.
 // Blends standing → walking → running by speed, keeping walk and run on the same step
 // (shared phase), and plays the jump while airborne. Flying (the jetpack), Part 1's Flying clip
-// loops, blended in and out over FLY_BLEND.
+// loops, blended in and out over FLY_BLEND. Seated (`seated`), her piloting loop is all that's shown.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -67,10 +67,17 @@ export class AnimatedModel {
     climbClip?: THREE.AnimationClip,
     /** Her outfits' things (`outfitParts`, `dress`); none on Part 1's. */
     private outfits: Partial<Record<Outfit, THREE.Object3D[]>> = {},
+    /** Her piloting loop, played while seated (none on Part 1's). */
+    pilotClip?: THREE.AnimationClip,
   ) {
     this.object = object;
     this.mixer = new THREE.AnimationMixer(object);
     if (climbClip) this.climbing = new Climbing(object, climbClip, this.mixer);
+    if (pilotClip) {
+      this.piloting = this.mixer.clipAction(pilotClip);
+      this.piloting.play();
+      this.piloting.setEffectiveWeight(0);
+    }
 
     const action = (name: string) => {
       const clip = THREE.AnimationClip.findByName(animations, name);
@@ -166,6 +173,11 @@ export class AnimatedModel {
   /** The climbing animation, if this model has one. */
   readonly climbing: Climbing | null = null;
 
+  /** Her piloting loop, if this model has one. */
+  private readonly piloting: THREE.AnimationAction | null = null;
+  /** In her seat: the piloting loop alone (main.ts, while she's seated; at its tag's place). */
+  seated = false;
+
   /** The ladder's animation, for the climb; null without one. */
   get climb(): ClimbClip | null {
     return this.climbing;
@@ -215,8 +227,11 @@ export class AnimatedModel {
     // Climbing, the ladder's animation is all that's shown, at the time the climb gives it.
     const climbing = clipTime !== null && this.climbing !== null;
     this.climbing?.show(climbing ? clipTime : null);
-    if (climbing) this.animSpeed = 0;
-    const rest = (1 - this.flyWeight) * (climbing ? 0 : 1);
+    // Seated, the piloting loop is all that's shown (no blend: she's placed in the seat at once).
+    const seated = this.seated && this.piloting !== null;
+    this.piloting?.setEffectiveWeight(seated ? 1 : 0);
+    if (climbing || seated) this.animSpeed = 0;
+    const rest = (1 - this.flyWeight) * (climbing || seated ? 0 : 1);
     const wJump = grounded ? 0 : rest;
     const ground = grounded ? rest : 0;
 
@@ -224,7 +239,7 @@ export class AnimatedModel {
     walking.setEffectiveWeight(wWalk * ground);
     running.setEffectiveWeight(wRun * ground);
     jumping.setEffectiveWeight(wJump);
-    flyingClip.setEffectiveWeight(climbing ? 0 : this.flyWeight);
+    flyingClip.setEffectiveWeight(climbing || seated ? 0 : this.flyWeight);
 
     this.mixer.update(dt);
   }
@@ -305,9 +320,17 @@ class Climbing implements ClimbClip {
 
 const BODY = 'Body';
 
-/** Where the climbing animation starts, in the ship's space (glTF axes): her feet and facing. */
+/** Where the climbing animation starts, in the ship's space (glTF axes): her feet and facing; its clip's name. */
 export interface ClimbTag {
+  clip?: string;
   start: [number, number, number];
+  facing: [number, number, number];
+}
+
+/** Where she sits for her piloting loop, in the ship's space (glTF axes): her feet (the armature's place) and facing; its clip's name. */
+export interface PilotTag {
+  clip: string;
+  at: [number, number, number];
   facing: [number, number, number];
 }
 
@@ -316,7 +339,7 @@ export interface ClimbTag {
  * tall in the file, as in the game (since 2026-10-19), so she's shown at the file's size unless
  * the tuning panel's height changes it.
  */
-export async function loadModels(onProgress: (share: number) => void = () => undefined): Promise<{ models: Record<ModelId, AnimatedModel>; climbTag: ClimbTag | null }> {
+export async function loadModels(onProgress: (share: number) => void = () => undefined): Promise<{ models: Record<ModelId, AnimatedModel>; climbTag: ClimbTag | null; pilotTag: PilotTag | null }> {
   const loader = new GLTFLoader();
   const [a, b, c] = downloads(3, onProgress);
   const [part1, zamboni, jumpsuit] = await Promise.all([loader.loadAsync(PART1_URL, a), loader.loadAsync(ZAMBONI_URL, b), loader.loadAsync(JUMPSUIT_URL, c)]);
@@ -325,9 +348,18 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   const zamboniHeight = new THREE.Box3().setFromObject(zamboni.scene).getSize(new THREE.Vector3()).y;
   const outfits = { parka: outfitParts(zamboni.scene), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
   let climbTag: ClimbTag | null = null;
+  let pilotTag: PilotTag | null = null;
   zamboni.scene.traverse((o) => {
     if (o.userData.climb) climbTag = o.userData.climb as ClimbTag;
+    if (o.userData.pilot) pilotTag = o.userData.pilot as PilotTag;
   });
+  // Her clips by the tags' names (export-crew-character.py); a file from before the tags named them: the first is the ladder's.
+  const clip = (name: string | undefined) => (name ? THREE.AnimationClip.findByName(zamboni.animations, name) : undefined) ?? undefined;
+  const climbClip = clip((climbTag as ClimbTag | null)?.clip) ?? zamboni.animations[0];
+  const pilotClip = clip((pilotTag as PilotTag | null)?.clip);
+  // Without the tracks of bones her skeleton doesn't have (`Hand_r.IK`, an IK target left out of the export: they'd only warn).
+  for (const c of [climbClip, pilotClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
+  if (pilotTag && !pilotClip) console.warn(`[0.0.2] her model has no clip "${(pilotTag as PilotTag).clip}" (the pilot tag's)`);
   const zamboniClips = retargetClips(part1.scene, zamboni.scene, part1.animations, {
     yawFixDeg: settings.retargetYawFixDeg,
   });
@@ -335,10 +367,11 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   return {
     models: {
       part1: new AnimatedModel(part1.scene, part1.animations, 180, () => 1),
-      // Her model's only animation is the ladder's (export-crew-character.py --clip).
-      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, zamboni.animations[0], outfits),
+      // Her model's animations are the ladder's and her piloting (export-crew-character.py --clip, --loop).
+      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip),
     },
     climbTag,
+    pilotTag,
   };
 }
 

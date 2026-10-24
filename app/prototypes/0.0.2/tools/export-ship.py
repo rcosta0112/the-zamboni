@@ -140,6 +140,23 @@ for door in doors:
             print(f'NOTE: {c.name!r} hangs on the door {door.name!r} but is not in the list: not exported')
 moving = doors + door_children + [ob for ob in objects if ob.get('moving')]
 
+# A part on an armature that isn't exported (the joystick, turned by its armature's damped track
+# towards her hand: 2026-10-24): taken off it where the armature stands without its constraints,
+# its armature modifier dropped; the game turns it about its origin (`hinge`), so it moves too.
+for ob in objects:
+    rig = ob.parent
+    if rig is None or rig.type != 'ARMATURE' or rig in in_scene:
+        continue
+    world = rig.matrix_basis @ ob.matrix_parent_inverse @ ob.matrix_basis
+    ob.parent = None
+    ob.matrix_world = world
+    for m in [m for m in ob.modifiers if m.type == 'ARMATURE']:
+        ob.modifiers.remove(m)
+    if ob.animation_data:
+        ob.animation_data_clear()
+    moving.append(ob)
+    print(f'UNRIGGED: {ob.name!r} off its armature {rig.name!r} (not exported), at its unconstrained place')
+
 # Every moving part at its rest pose, whatever the file has (rest_poses.py): nothing animated.
 drop_actions([ob for ob in objects if is_moving(ob)])
 put_at_rest([ob for ob in objects if is_moving(ob)], in_scene)

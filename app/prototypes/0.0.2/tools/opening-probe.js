@@ -4,7 +4,8 @@
 //
 // About 60 s. A new game: cutscene 1, skipped; then cutscene 2 plays by itself, nothing
 // pressed: each line's speaker gets the camera (a screenshot per line), each line moves on by itself,
-// she doesn't move, the black bars are on; at its end the bars go, the save is written, and she walks.
+// she doesn't move, the black bars are on; at its end the bars go, the save is written, and she gets
+// up from her seat (piloting-loop.md) and walks.
 // Runs in the page (probe-01.mjs).
 
 const results = [];
@@ -13,8 +14,10 @@ const dialogue = w.__dialogue, character = w.__character;
 
 await until(() => w.__cutscene().playing, 5000);
 report(w.__cutscene().track?.id === 'cutscene-1', 'cutscene 1 after a new game');
-window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
-window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
+// Skipped by holding E for 3 s (skip-prompt.ts).
+window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+await until(() => !w.__cutscene().playing, 5000);
+window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
 const started = await until(() => w.__watched()?.playing && dialogue.line, 3000);
 report(started, 'cutscene 2 starts after cutscene 1');
 const feet = character.position.clone();
@@ -44,7 +47,11 @@ report(!document.querySelector('#bars').classList.contains('on'), 'the bars are 
 await wait(1500);
 const save = await w.__save.read();
 report(save?.checkpoint === 'chapter-1' && Date.now() - Date.parse(save.savedAt) < 3000, 'saved at its end', `checkpoint ${save?.checkpoint}`);
-// Chapter 1 is playable: she walks back from her seat (S: away from where the camera looks).
+// Chapter 1 is playable: she starts seated; Get up (E), then she walks back from her seat (S: away from where the camera looks).
+report(character.model?.seated === true, 'chapter 1 starts her seated');
+window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
+await until(() => character.model?.seated === false, 3000);
 const before = character.position.clone();
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS' }));
 await wait(1200);

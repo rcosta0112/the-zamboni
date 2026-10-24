@@ -95,7 +95,10 @@
   "Fire Extinguisher Clamp.002",
   "Cockpit Door Panel Front",
   "Polaroid",
-  "Gojira poster"
+  "Gojira poster",
+  "Seat.005",
+  "Back seat.003",
+  "Joystick"
  ],
  "props": [
   {
@@ -778,11 +781,6 @@
   },
   {
    "name": "Plane.005",
-   "group": "Cockpit",
-   "seeThrough": "solid"
-  },
-  {
-   "name": "Seat.006",
    "group": "Cockpit",
    "seeThrough": "solid"
   },

@@ -83,6 +83,7 @@ export class SceneDirector {
     }
     this.target.disabled.clear();
     this.target.locked.clear();
+    this.target.seated.clear();
     // The flight rules, before the setup (its `if` may read `ship_flying`).
     const flying = scene.travel !== undefined;
     settings.shipFlying = flying;

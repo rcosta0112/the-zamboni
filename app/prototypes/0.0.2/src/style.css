@@ -81,10 +81,10 @@ body {
 
 /* Placed next to the interaction target each frame (interaction.ts sets the transform). */
 /* The prompt: white with black text, as the dialogue box (owner, 2026-10-22); the button in an outline. */
-#prompt {
+/* A cutscene's "Hold ◯ to skip" (skip-prompt.ts): the same look, at the bottom right. */
+#prompt,
+#skip {
   position: fixed;
-  left: 0;
-  top: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -98,7 +98,18 @@ body {
   white-space: pre;
 }
 
-#prompt .glyph {
+#prompt {
+  left: 0;
+  top: 0;
+}
+
+#skip {
+  right: 24px;
+  bottom: 24px;
+}
+
+#prompt .glyph,
+#skip .glyph {
   display: grid;
   place-content: center;
   min-width: 22px;
@@ -138,6 +149,7 @@ body {
   scale: 1;
 }
 
-#prompt[hidden] {
+#prompt[hidden],
+#skip[hidden] {
   display: none;
 }

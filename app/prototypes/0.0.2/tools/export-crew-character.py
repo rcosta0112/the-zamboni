@@ -11,7 +11,11 @@ nothing is saved back.
 
 - Exports mesh + skeleton, and no animation but ``--clip`` (the ladder clip since 2026-10-19:
   baked with its IK solved, from the armature it was made on; ``--clip-start`` tags where it
-  starts in the ship as ``climb``). Part 1's walk, run, jump and flight come from Part 1's file.
+  starts in the ship as ``climb``) and ``--loop`` (her piloting since 2026-10-24: baked the same
+  way over ``--loop-frames``, each curve's end eased onto its start so it loops, a key every
+  ``--loop-step`` frames kept (export.mjs's ``thin`` step drops the frames the exporter samples in
+  between); ``--loop-at`` tags where it's played in the ship as ``--loop-tag``). Part 1's walk,
+  run, jump and flight come from Part 1's file.
 - Modifiers are applied (mirrored halves, subdivision), **keeping shape keys** (the hood's
   ``jetpack``): the glTF exporter drops shape keys when it applies modifiers itself, so each part's
   modifiers other than the Armature are baked here, once per shape key, and the keys are rebuilt
@@ -47,6 +51,11 @@ parser.add_argument('--out', required=True)
 parser.add_argument('--force-double-sided', action='store_true', help='temporary workaround: export every material double-sided')
 parser.add_argument('--clip', help='an action to export with the model, baked (IK solved into the bones)')
 parser.add_argument('--clip-start', help='the armature posed where the clip starts in the ship (its place and facing go into the `climb` tag)')
+parser.add_argument('--loop', help='a looping action to export with the model, baked like --clip')
+parser.add_argument('--loop-frames', default='0-200', help="the loop's frames: first-last, the last the same pose as the first")
+parser.add_argument('--loop-step', type=int, default=4, help='a key every this many frames')
+parser.add_argument('--loop-at', help='the armature posed where the loop is played in the ship (its place and facing tagged)')
+parser.add_argument('--loop-tag', default='pilot', help='the tag on the armature for --loop-at')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
 switch_collections()  # as export-collections.json says, whatever the file has
@@ -70,7 +79,11 @@ for option, name in (('--clip', args.clip), ('--clip-start', args.clip_start)):
     if name and name not in (bpy.data.actions if option == '--clip' else bpy.data.objects):
         print(f'STOP: {option} {name!r} is not in the file (renamed or deleted?): exported without the clip')
         args.clip = args.clip_start = None
-show([armature, *parts] + ([bpy.data.objects[args.clip_start]] if args.clip_start else []), render=True)  # hidden in the file or not
+for option, name in (('--loop', args.loop), ('--loop-at', args.loop_at)):
+    if name and name not in (bpy.data.actions if option == '--loop' else bpy.data.objects):
+        print(f'STOP: {option} {name!r} is not in the file (renamed or deleted?): exported without the loop')
+        args.loop = args.loop_at = None
+show([armature, *parts] + [bpy.data.objects[n] for n in (args.clip_start, args.loop_at) if n], render=True)  # hidden in the file or not
 
 # Which bones actually carry weights, after modifiers (mirror) are applied?
 depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -109,13 +122,24 @@ for mat in sorted(materials, key=lambda m: m.name):
 # bones. Only the bones are keyed (her place in the ship comes from --clip-start). Where it starts:
 # that armature's place and facing at the first frame, in the ship's space (glTF axes), tagged
 # `climb` on the armature.
-baked = None
-if args.clip:
-    clip = bpy.data.actions[args.clip]
-    first, last = (int(f) for f in clip.frame_range)
+def bake(name, first, last):
+    """The action played on the armature, baked with its constraints on: a new action, named as it."""
+    action = bpy.data.actions[name]
     ad = armature.animation_data or armature.animation_data_create()
-    ad.action = clip
-    ad.action_slot = clip.slots[0]
+    ad.action = action
+    # The slot an object playing it uses (green_piloting has a second slot, its curves without the
+    # noise, 2026-10-24), else the first.
+    players = [ob for ob in bpy.data.objects
+               if ob is not armature and ob.animation_data and ob.animation_data.action == action and ob.animation_data.action_slot]
+    ad.action_slot = players[0].animation_data.action_slot if players else action.slots[0]
+    # Its pose first: what the action doesn't key stays as the object playing it has it (green_piloting
+    # doesn't key Body's location; the copy's pose raises her 5 cm into the seat, 2026-10-24).
+    if players:
+        for pb in armature.pose.bones:
+            src = players[0].pose.bones.get(pb.name)
+            if src:
+                pb.rotation_mode = src.rotation_mode
+                pb.location, pb.rotation_quaternion, pb.rotation_euler, pb.scale = src.location, src.rotation_quaternion, src.rotation_euler, src.scale
     bpy.ops.object.select_all(action='DESELECT')  # in object mode: switch_collections()
     armature.hide_set(False)
     armature.hide_viewport = False
@@ -124,20 +148,78 @@ if args.clip:
     bpy.ops.object.mode_set(mode='POSE')
     bpy.ops.nla.bake(frame_start=first, frame_end=last, only_selected=False, visual_keying=True, clear_constraints=False, use_current_action=False, bake_types={'POSE'})
     bpy.ops.object.mode_set(mode='OBJECT')
-    baked = ad.action
-    baked.name = args.clip + ' (baked)'
-    baked.name = args.clip  # glTF names the animation after its action
+    result = ad.action
+    action.name = name + ' (source)'  # or the baked one would be named `<name>.001`
+    result.name = name  # the NLA track (below) is named as this, and glTF names the animation after it
+    ad.action = None
+    return result
+
+
+def place_tag(ob, frame):
+    """An armature's place and facing at a frame, in the ship's space (glTF axes)."""
+    bpy.context.scene.frame_set(frame)
+    m = ob.matrix_world
+    at, facing = m.translation, (m.to_3x3() @ Vector((0.0, -1.0, 0.0))).normalized()
+    return [at.x, at.z, -at.y], [facing.x, facing.z, -facing.y]
+
+
+def fcurves_of(action):
+    return [f for layer in action.layers for strip in layer.strips for bag in strip.channelbags for f in bag.fcurves]
+
+
+def make_loop(action, first, last, step, ease=30):
+    """Each curve's last `ease` frames bent onto its first frame's value (the seam closed, whatever
+    the noise does), then a key every `step` frames kept, smooth between. Returns the seam's
+    largest jump before."""
+    worst = 0.0
+    for f in fcurves_of(action):
+        jump = f.evaluate(last) - f.evaluate(first)
+        worst = max(worst, abs(jump))
+        for k in f.keyframe_points:
+            t = (k.co.x - (last - ease)) / ease
+            if t > 0:
+                s = t * t * (3 - 2 * t)
+                k.co.y -= jump * s
+        for k in [k for k in f.keyframe_points if round(k.co.x - first) % step][::-1]:
+            f.keyframe_points.remove(k, fast=True)
+        for k in f.keyframe_points:
+            k.interpolation = 'BEZIER'
+            k.handle_left_type = k.handle_right_type = 'AUTO_CLAMPED'
+        f.update()
+    return worst
+
+
+baked = None
+tracks = []
+if args.clip:
+    clip = bpy.data.actions[args.clip]
+    first, last = (int(f) for f in clip.frame_range)
+    baked = bake(args.clip, first, last)
+    tracks.append(baked)
     if args.clip_start:
-        start = bpy.data.objects[args.clip_start]
-        bpy.context.scene.frame_set(first)
-        m = start.matrix_world
-        at, facing = m.translation, (m.to_3x3() @ Vector((0.0, -1.0, 0.0))).normalized()
-        armature['climb'] = {
-            'clip': args.clip,
-            'start': [at.x, at.z, -at.y],
-            'facing': [facing.x, facing.z, -facing.y],
-        }
+        start, facing = place_tag(bpy.data.objects[args.clip_start], first)
+        armature['climb'] = {'clip': args.clip, 'start': start, 'facing': facing}
     print(f'CLIP: {args.clip!r}: frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked' + (f'; starts at {tuple(round(v, 3) for v in armature["climb"]["start"])}' if args.clip_start else ''))
+if args.loop:
+    first, last = (int(f) for f in args.loop_frames.split('-'))
+    looped = bake(args.loop, first, last)
+    seam = make_loop(looped, first, last, args.loop_step)
+    after = max(abs(f.evaluate(last) - f.evaluate(first)) for f in fcurves_of(looped))
+    tracks.append(looped)
+    baked = baked or looped
+    if args.loop_at:
+        at, facing = place_tag(bpy.data.objects[args.loop_at], first)
+        armature[args.loop_tag] = {'clip': args.loop, 'at': at, 'facing': facing}
+    keys = max(len(f.keyframe_points) for f in fcurves_of(looped))
+    print(f'LOOP: {args.loop!r}: frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked, {keys} keys a curve; the seam\'s largest jump {seam:.4f} -> {after:.6f}' + (f'; {args.loop_tag} at {tuple(round(v, 3) for v in at)}' if args.loop_at else ''))
+# Each clip an NLA track of its own: the exporter writes one animation per track, named after it.
+if tracks:
+    ad = armature.animation_data
+    for action in tracks:
+        track = ad.nla_tracks.new()
+        track.name = action.name
+        strip = track.strips.new(action.name, int(action.frame_range[0]), action)
+        strip.action_slot = action.slots[0]
 
 # Export in the rest pose, standing at the origin (the crew file has characters posed and placed
 # in a layout). Rotation and scale are kept. With a clip, the pose follows it (the mesh and the
@@ -145,9 +227,7 @@ if args.clip:
 armature.data.pose_position = 'POSE' if baked else 'REST'
 armature.location = (0.0, 0.0, 0.0)
 if armature.animation_data:
-    armature.animation_data.action = baked
-    if baked:
-        armature.animation_data.action_slot = baked.slots[0]
+    armature.animation_data.action = None  # the clips are on NLA tracks
 for pb in armature.pose.bones:
     pb.location = (0.0, 0.0, 0.0)
     pb.rotation_quaternion = (1.0, 0.0, 0.0, 0.0)
@@ -228,9 +308,9 @@ bpy.ops.export_scene.gltf(
     use_selection=True,
     use_active_scene=True,
     export_animations=baked is not None,
-    export_animation_mode='ACTIVE_ACTIONS',  # only the clip: not every action whose bones match
+    export_animation_mode='NLA_TRACKS',  # only the clips: not every action whose bones match
     export_force_sampling=True,
-    export_extras=True,  # the `climb` tag
+    export_extras=True,  # the `climb` and loop tags
     export_def_bones=True,
     export_apply=False,  # applied above, keeping shape keys
     export_morph=True,

@@ -374,6 +374,8 @@ export class Interaction {
   private lastChest = new THREE.Vector3();
   /** The rooms a box is in (`Ship.roomsOf`); none set: no room rule. */
   roomsOf: ((box: THREE.Box3) => string[]) | null = null;
+  /** The one target while set, wherever she and the camera look (main.ts: *Get up* while she's seated). */
+  only: Interactable | null = null;
   /** The prompt's two parts: the button, and what it does. */
   private glyph = document.createElement('span');
   private verb = document.createElement('span');
@@ -433,7 +435,7 @@ export class Interaction {
       const b = best[by];
       if (score < b.score - 1e-3 || (Math.abs(score - b.score) <= 1e-3 && distance < b.distance)) Object.assign(b, { item, score, distance });
     };
-    for (const item of this.items) {
+    for (const item of this.only ? [] : this.items) {
       if (item.available && !item.available()) continue;
       if (this.disabled.size && item.objects.some((o) => this.disabled.has(o.userData.id as string))) continue;
       this.bounds(item);
@@ -467,7 +469,7 @@ export class Interaction {
       if (side <= maxFacing) consider('facing', item, side + up * VERTICAL_SHARE - hold, distance);
     }
     // The one moved last; nothing in its cone: the other's.
-    this.target = best[this.aimBy].item ?? best[this.aimBy === 'camera' ? 'facing' : 'camera'].item;
+    this.target = this.only ?? best[this.aimBy].item ?? best[this.aimBy === 'camera' ? 'facing' : 'camera'].item;
     this.targetBy = this.aimBy;
     if (pressed && this.target && !this.pending) {
       const target = this.target;

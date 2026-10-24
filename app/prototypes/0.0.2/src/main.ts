@@ -11,12 +11,13 @@ import { FollowCamera } from './camera';
 import { Character } from './character';
 import { run, type CommandTarget } from './commands';
 import { Input } from './input';
-import { loadModels, type ClimbTag, type Outfit } from './model';
+import { loadModels, type ClimbTag, type Outfit, type PilotTag } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
 import { CutscenePlayer } from './cutscene';
 import { Dialogue } from './dialogue';
+import type { Interactable } from './interaction';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { ThrusterFlames } from './flames';
@@ -24,6 +25,7 @@ import { ExteriorLook } from './exterior';
 import { Footsteps } from './footsteps';
 import { crewInteractables, Interaction, respectLocks, shipInteractables, storyInteractables } from './interaction';
 import { JetpackRack } from './jetpack';
+import { Joystick } from './joystick';
 import { LockerClothes } from './clothes';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
@@ -32,6 +34,7 @@ import { readSave, clearSave, writeSave, type SaveData } from './save';
 import { FIRST_SCENE, SceneDirector, TEST_SCENE } from './scenes';
 import { GameStory } from './story';
 import { WatchedConversation } from './watched';
+import { SkipPrompt } from './skip-prompt';
 import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import StartScreen, { type StartChoice } from './StartScreen.svelte';
@@ -43,6 +46,13 @@ import { createWorld, updateWorld } from './world';
 import { Treadmill } from './terrain';
 
 const STEP = 1 / 60; // fixed simulation step
+/** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
+const HAND = 'Hand_l';
+const HAND_LENGTH = 0.141;
+/** Without her model, her head is this far under the top of her height (m), as watched.ts takes the crew's. */
+const HEAD_BELOW_TOP = 0.12;
+/** Where cutscene 2's shots aim at her head, this far above her `Head` bone (m): standing, the old guess from her height (1.11 above her feet; the bone 0.695). */
+const HEAD_ABOVE_BONE = 0.415;
 const TONE_MAPPING = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
 const MAX_STEPS = 5; // per frame, so a long pause doesn't spiral
 /** The start screen's music dies away over this long once the button is used (s). */
@@ -93,10 +103,11 @@ async function start(): Promise<void> {
   // cutscene 1, the ship outside (`cutscene`, from the owner's fly-by), then cutscene 2 watched in the
   // ship (`watched`). Each can be skipped.
   const barsEl = document.querySelector<HTMLElement>('#bars')!; // every cutscene's black bars
+  const skipPrompt = new SkipPrompt(document.querySelector<HTMLElement>('#skip')!);
   let animatic: 'cutscene-1' | 'opening' | null = null; // the part last started
   const playOpening = () => {
     animatic = 'opening';
-    void watched?.play('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
+    void watched?.play('opening', view.camera.aspect).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
   };
 
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
@@ -126,6 +137,15 @@ async function start(): Promise<void> {
   let interaction: Interaction | null = null;
   let ladders: LadderClimb | null = null;
   let climbTag: ClimbTag | null = null;
+  let pilotTag: PilotTag | null = null; // where she sits piloting (her model's `pilot` tag)
+  // Seated (the `seat` command, chapter 1's start): her piloting loop in her seat, held there until
+  // she gets up (*Get up*: placed where the scene starts her, the aisle behind the seat).
+  const seated = new Set<string>();
+  let aisle: { at: THREE.Vector3; yaw: number } | null = null; // where the scene started her
+  let getUp: Interactable | null = null;
+  let joystick: Joystick | null = null;
+  const hand = new THREE.Vector3();
+  const handAxis = new THREE.Vector3();
   let boombox: Boombox | null = null;
   let rack: JetpackRack | null = null;
   let clothes: LockerClothes | null = null;
@@ -142,9 +162,10 @@ async function start(): Promise<void> {
   let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
   loadModels((share) => loading.set('models', share))
-    .then(({ models, climbTag: tag }) => {
+    .then(({ models, climbTag: tag, pilotTag: pilot }) => {
       loading.set('models', 1);
       climbTag = tag;
+      pilotTag = pilot;
       character.setModels(models);
       return loadShip(scene, physics, (share) => loading.set('ship', share));
     })
@@ -182,6 +203,7 @@ async function start(): Promise<void> {
         entities: s.entities,
         disabled,
         locked: new Set(),
+        seated,
         play: (id, at) => audio.play(id, at),
         story: null,
         cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
@@ -204,16 +226,34 @@ async function start(): Promise<void> {
         dialogue.onChoose = (index) => story?.choose(index);
       }
       dialogue.onEnded = saveNow;
-      if (story) watched = new WatchedConversation(s.object, s.entities, story, dialogue, () => character.position);
+      if (story) watched = new WatchedConversation(s.object, s.entities, story, dialogue, herHead);
+      // The animatic's data now, so each part starts on the frame it's asked for (no frame of the ship's inside before it).
+      if (animaticFrom === 'cutscene-1') await cutscene.load('cutscene-1').catch((err: unknown) => console.warn('[0.0.2] cutscene 1 not loaded:', err));
+      if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
+      // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
+      const seat = s.entities.get('cockpit-seat-pilot')?.object ?? null;
       director = new SceneDirector(s, target, (at, yaw) => {
-        physics.teleport(at);
-        character.position.copy(at);
-        character.verticalVelocity = 0;
-        character.speed = 0;
-        character.velocity.set(0, 0, 0);
-        view.yaw = yaw;
-        character.facing = yaw; // she faces the way the camera looks
+        aisle = { at: at.clone(), yaw };
+        const sitting = seated.has('green') ? tagPlace(s.object, pilotTag?.at, pilotTag?.facing) : null;
+        if (seated.has('green') && !sitting) {
+          console.warn('[0.0.2] her model has no pilot tag: she starts standing');
+          seated.delete('green');
+        }
+        if (sitting) placeHer(sitting.feet, sitting.facing);
+        else placeHer(at, yaw);
       });
+      if (seat) {
+        getUp = {
+          name: 'Get up',
+          objects: [seat],
+          verb: () => 'Get up',
+          act: () => {
+            seated.delete('green');
+            if (aisle) placeHer(aisle.at, aisle.yaw);
+          },
+        };
+      } else console.warn('[0.0.2] the ship has no cockpit-seat-pilot: she cannot get up from it');
+      joystick = Joystick.find(s.object);
       // The scenery round the ship's centre, under its belly (the hull's bottom).
       const shipBox = new THREE.Box3().setFromObject(s.object);
       treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
@@ -291,7 +331,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -329,6 +369,27 @@ async function start(): Promise<void> {
   let wasWatching = false; // a cutscene played last frame
   const chest = new THREE.Vector3();
   const stepChest = new THREE.Vector3();
+
+  /** Her feet there (world), facing `yaw`, the camera behind her: a scene's start, her seat, getting up. */
+  function placeHer(at: THREE.Vector3, yaw: number): void {
+    physics.teleport(at);
+    character.position.copy(at);
+    character.verticalVelocity = 0;
+    character.speed = 0;
+    character.velocity.set(0, 0, 0);
+    view.yaw = yaw;
+    character.facing = yaw; // she faces the way the camera looks
+    character.settle(); // while seated no step moves her: drawn where she is
+  }
+
+  /** Her head (world), for cutscene 2's shots: from her `Head` bone as the animation has it (seated too); from her feet without a model. */
+  const headPoint = new THREE.Vector3();
+  function herHead(): THREE.Vector3 {
+    const bone = character.model?.object.getObjectByName('Head');
+    if (!bone) return headPoint.copy(character.position).setY(character.position.y + settings.zamboniHeight - HEAD_BELOW_TOP);
+    bone.updateWorldMatrix(true, false);
+    return bone.getWorldPosition(headPoint).setY(headPoint.y + HEAD_ABOVE_BONE);
+  }
 
   // How a moving door moves her: sideways, through her controller; not while she's on a ladder.
   const pusher: Pusher = {
@@ -414,6 +475,7 @@ async function start(): Promise<void> {
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));
     audio.setLoop('mus_part1_theme', false, THEME_FADE);
+    audio.noiseHeld = false; // the ship's noise, held under the start screen
     // A click captures the mouse, as clicking the view does.
     if (byPointer) void Promise.resolve(canvas.requestPointerLock()).catch(() => undefined);
     gui.show();
@@ -476,14 +538,16 @@ async function start(): Promise<void> {
     // A cutscene: its own camera; she stands still, nothing can be used, the see-through is off.
     watched?.update(view.camera.aspect);
     const watching = (cutscene?.playing ?? false) || (watched?.playing ?? false);
-    character.root.visible = !(cutscene?.hides('her') ?? false);
     barsEl.classList.toggle('on', watching);
+    // Any press shows "Hold ◯ to skip"; held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
+    const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice);
     if (cutscene?.playing) {
-      if (input.consumeSkip()) cutscene.skip();
+      if (skipping) cutscene.skip();
       else cutscene.update(dt, view.camera.aspect);
       input.consumeJump();
       input.consumeLook(dt);
-    } else input.consumeSkip(); // what's pressed in play isn't a skip later
+    } else if (skipping) watched?.skip();
+    character.root.visible = !(cutscene?.hides('her') ?? false); // after a skip, shown on the same frame
     // A watched conversation: the presses go to the box; no jump, the camera is its own.
     if (watched?.playing) {
       input.consumeJump();
@@ -496,7 +560,7 @@ async function start(): Promise<void> {
       // Indoors: the same "inside" test as the see-through hull, on the simulated position.
       stepChest.copy(character.position).y += settings.cutTargetHeight;
       const indoors = ship !== null && ship.interior.containsPoint(stepChest);
-      if (!watching && !ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
+      if (!watching && !seated.has('green') && !ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
       // Doors and the ramp after her own move: a moving door pushes her out of its way.
       if (ship) updateShip(ship, STEP, false, pusher);
       accumulator -= STEP;
@@ -544,8 +608,19 @@ async function start(): Promise<void> {
       );
     }
 
+    // Seated: her piloting loop in her seat (no move, no jump: the camera still turns); the joystick at her left hand.
+    const sitting = seated.has('green');
+    if (sitting) input.consumeJump();
+    if (character.model) character.model.seated = sitting;
     character.render(accumulator / STEP);
     character.animate(dt);
+    const handBone = sitting ? (character.model?.object.getObjectByName(HAND) ?? null) : null;
+    if (handBone) {
+      handBone.updateWorldMatrix(true, false);
+      // The bone's tail: along its Y axis from its head.
+      handBone.getWorldPosition(hand).addScaledVector(handAxis.setFromMatrixColumn(handBone.matrixWorld, 1).normalize(), HAND_LENGTH);
+    }
+    joystick?.update(handBone ? hand : null);
     // Inside the ship: the hull is cut and the camera doesn't collide. Outside: camera collision.
     chest.copy(character.root.position).y += settings.cutTargetHeight;
     const inside = ship !== null && ship.interior.containsPoint(chest);
@@ -625,20 +700,23 @@ async function start(): Promise<void> {
     const talking = dialogue.active;
     const step = input.consumeChoiceStep();
     dialogue.update(dt, talking && input.consumeAdvance(), talking ? step : 0, input.lastDevice);
-    helpEl.hidden = dialogue.active; // it sits where the box goes
+    helpEl.hidden = dialogue.active || watching; // it sits where the box and the skip prompt go
     // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
     const pressed = input.consumeInteract();
     // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor
     // while she talks, nor for a moment after.
+    if (interaction) interaction.only = sitting ? getUp : null;
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     updateWorld(world, scene, character.root.position, indoorLight);
     // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
     flames?.update(cutscene?.playing ?? false);
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any
-    // scene; inside, as the interior is (owner, 2026-10-23: the interior's light unchanged).
+    // scene; inside, as the interior is (owner, 2026-10-23: the interior's light unchanged). Not for
+    // cutscene 2: its shots are of the cockpit, even when the long lens backs out through a window
+    // (the glass as the sky's mirror washed them out).
     const drawing = cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera;
-    exterior?.set(ship !== null && !ship.interior.containsPoint(drawing.position));
+    exterior?.set(ship !== null && !watched?.playing && !ship.interior.containsPoint(drawing.position));
     treadmill?.update(dt, drawing, cutscene?.track?.speed ?? 1);
     // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
     const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
@@ -674,10 +752,15 @@ function easeTo(value: number, target: number, step: number): number {
 
 /** Where the climbing animation starts, in the world: from the `climb` tag on her model (ship space). */
 function climbStart(ship: THREE.Object3D, tag: ClimbTag | null): ClimbStart | null {
-  if (!tag) return null;
+  return tag ? tagPlace(ship, tag.start, tag.facing) : null;
+}
+
+/** A tag's place on her model (ship space: her feet and facing) in the world: the climb's start, her seat. */
+function tagPlace(ship: THREE.Object3D, at: [number, number, number] | undefined, facing: [number, number, number] | undefined): ClimbStart | null {
+  if (!at || !facing) return null;
   ship.updateMatrixWorld(true);
-  const feet = ship.localToWorld(new THREE.Vector3(...tag.start));
-  const ahead = ship.localToWorld(new THREE.Vector3(...tag.start).add(new THREE.Vector3(...tag.facing))).sub(feet);
+  const feet = ship.localToWorld(new THREE.Vector3(...at));
+  const ahead = ship.localToWorld(new THREE.Vector3(...at).add(new THREE.Vector3(...facing))).sub(feet);
   ahead.y = 0;
   return { feet, facing: facingOf(ahead.normalize()) };
 }

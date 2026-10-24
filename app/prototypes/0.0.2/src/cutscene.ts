@@ -103,6 +103,8 @@ export class CutscenePlayer {
   /** Called once a cutscene has ended (played out or skipped): the checkpoint (main.ts). */
   onEnded: ((id: string) => void) | null = null;
   private nextEvent = 0;
+  /** The tracks fetched so far, by id. */
+  private readonly loaded = new Map<string, Track>();
   /** The ship's own place while one plays: the camera's keys are from it, and it goes back there. */
   private readonly rest = new THREE.Object3D();
   private readonly tilt = new THREE.Quaternion();
@@ -124,7 +126,10 @@ export class CutscenePlayer {
     return this.track !== null;
   }
 
-  async play(id: string): Promise<void> {
+  /** Fetches a track (once), so a later `play` starts it at once: main.ts loads the animatic's with the game. */
+  async load(id: string): Promise<Track> {
+    const known = this.loaded.get(id);
+    if (known) return known;
     // The game's first, then the checks' (a missing file comes back as the page: not JSON).
     let response: Response | null = null;
     for (const folder of ['/cutscenes', '/test/cutscenes']) {
@@ -137,6 +142,13 @@ export class CutscenePlayer {
     if (!response) throw new Error(`no cutscene "${id}"`);
     const track = (await response.json()) as Track;
     track.events.sort((a, b) => a.t - b.t);
+    this.loaded.set(id, track);
+    return track;
+  }
+
+  /** Starts it; on this frame if it was loaded (no frame of the game's camera before it). */
+  async play(id: string): Promise<void> {
+    const track = this.loaded.get(id) ?? (await this.load(id));
     if (this.track) this.putBack();
     this.rest.position.copy(this.ship.position);
     this.rest.quaternion.copy(this.ship.quaternion);

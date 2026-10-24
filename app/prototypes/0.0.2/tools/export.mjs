@@ -59,6 +59,12 @@ const JOBS = {
         // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
         '--clip', 'Dr. Green - Ladder x1.25',
         '--clip-start', 'Dr. Green Jump suit',
+        // Her piloting loop (2026-10-24), made on her copy sitting in her seat for cutscene 2:
+        // where that copy sits is tagged `pilot`; a key every 4 frames (`thin` below).
+        '--loop', 'green_piloting',
+        '--loop-frames', '0-200',
+        '--loop-step', '4',
+        '--loop-at', 'Dr. Green Jump suit.001',
         '--out', join(raw, 'green-parka.glb'),
       ],
       [
@@ -68,7 +74,8 @@ const JOBS = {
         '--out', join(raw, 'green-jumpsuit.glb'),
       ],
     ],
-    files: { 'green-parka.glb': ['copy'], 'green-jumpsuit.glb': ['copy'] },
+    // thin:<animation>:<step>: that clip keeps a key every <step> frames (thin-clip.mjs).
+    files: { 'green-parka.glb': ['thin:green_piloting:4', 'copy'], 'green-jumpsuit.glb': ['copy'] },
   },
 };
 const job = JOBS[what];
@@ -174,7 +181,7 @@ if (blender.error || (log.match(/^EXPORTED /gm) ?? []).length < argLists.length)
   console.error(log.split(/\r?\n/).filter((l) => /^(SCALE|STOP):|Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);
 }
-const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE|ID)\b/.test(l));
+const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE|ID|LOOP)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
 // 2. Resize, dedup, drop the unused UVs, compress, into the waiting folder.
@@ -186,15 +193,18 @@ for (const [name, steps] of Object.entries(job.files)) {
       copyFileSync(from, join(waiting, name));
       continue;
     }
-    const to = step === 'meshopt' ? join(waiting, name) : join(raw, name.replace('.glb', `-${step}.glb`));
-    const done = step === 'uvs'
+    const [kind, ...params] = step.split(':');
+    const to = step === 'meshopt' ? join(waiting, name) : join(raw, name.replace('.glb', `-${kind}.glb`));
+    const done = kind === 'uvs'
       ? run(process.execPath, [join(PROTO, 'tools', 'drop-uvs.mjs'), from, to])
-      : run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
+      : kind === 'thin'
+        ? run(process.execPath, [join(PROTO, 'tools', 'thin-clip.mjs'), from, to, ...params])
+        : run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
     if (done.status !== 0) {
-      console.error(`export: ${step === 'uvs' ? 'drop-uvs' : `gltf-transform ${step}`} failed on ${name}\n${done.stdout}\n${done.stderr}`);
+      console.error(`export: ${kind === 'uvs' ? 'drop-uvs' : kind === 'thin' ? 'thin-clip' : `gltf-transform ${step}`} failed on ${name}\n${done.stdout}\n${done.stderr}`);
       process.exit(1);
     }
-    stepLines.push(...(done.stdout ?? '').split(/\r?\n/).filter((l) => l.startsWith('UVS:')).map((l) => `${name}: ${l.slice(5)}`));
+    stepLines.push(...(done.stdout ?? '').split(/\r?\n/).filter((l) => /^(UVS|THIN):/.test(l)).map((l) => `${name}: ${l.slice(l.indexOf(':') + 2)}`));
     from = to;
   }
 }

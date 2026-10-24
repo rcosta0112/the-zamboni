@@ -485,6 +485,12 @@ export class Character {
     this.verticalVelocity = Math.min(-landing, this.verticalVelocity + brake * dt);
   }
 
+  /** Placed, not moved (a scene's start, her seat): drawn there at once, not on the way from where she was. */
+  settle(): void {
+    this.prevPosition.copy(this.position);
+    this.prevFacing = this.facing;
+  }
+
   /**
    * On a ladder: placed directly (no physics move, no gravity), facing `facing`. Shown standing:
    * there's no climbing animation yet.

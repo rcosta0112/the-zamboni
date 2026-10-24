@@ -18,8 +18,10 @@ const cutscene = w.__cutscene();
 await until(() => cutscene.playing, 5000);
 report(cutscene.track?.id === 'cutscene-1', 'cutscene 1 plays after a new game', cutscene.track?.id);
 await shot('animatic');
-window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space' }));
-window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space' }));
+// Skipped by holding E for 3 s (skip-prompt.ts).
+window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+await until(() => !cutscene.playing, 5000);
+window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
 await until(() => !cutscene.playing, 2000);
 report(!cutscene.playing, 'a skip ends it');
 // Cutscene 2 (watched) plays after it: its own probe (opening-probe.js) looks at it; here it's let run out.
@@ -36,6 +38,12 @@ report(viewport.every((d) => d?.open && d.amount === 1), 'the viewport is open',
 await until(() => w.__audio.playing().includes('amb_ship_noise'), 5000);
 report(w.__audio.playing().includes('amb_ship_noise'), "the ship's noise plays", w.__audio.playing().join(', '));
 await shot('chapter-1-start');
+// She starts seated (piloting-probe.js looks at it): up first, as a player would.
+await until(() => !w.__dialogue.cooling && !w.__dialogue.active, 3000); // the cooldown after cutscene 2's box
+window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
+report(await until(() => w.__character.model?.seated === false, 3000), 'Get up: she stands');
+await wait(800); // the use's cooldown
 
 // Each locked thing: its prompt and its line, by its target (the interactions' list).
 let heard = null;

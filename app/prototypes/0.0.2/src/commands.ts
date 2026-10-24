@@ -34,6 +34,8 @@ export type Command = (
   | { do: 'cutscene'; id: string }
   /** Dress her: the jumpsuit or the parka. */
   | { do: 'outfit'; set: Outfit }
+  /** Seat a character in their seat, playing their seated loop (only hers so far: `green`, piloting, until she gets up). */
+  | { do: 'seat'; id: string }
 ) & {
   /** Only if this story variable is true (set, not zero, not empty). */
   if?: string;
@@ -48,6 +50,8 @@ export interface CommandTarget {
   disabled: Set<string>;
   /** The ids locked that don't open (a jetpack, her parka): `respectLocks` reads it. */
   locked: Set<string>;
+  /** The characters seated (`seat`): main.ts places her at her seat while she's in it. */
+  seated: Set<string>;
   play: (cue: CueId, at?: THREE.Object3D) => void;
   /** Null until it's loaded (or if it couldn't be): `if` / `unless` then count as false. */
   story: GameStory | null;
@@ -63,7 +67,7 @@ export function run(command: Command, target: CommandTarget): void {
   const truth = (name: string) => Boolean(target.story?.get(name));
   if (command.if !== undefined && !truth(command.if)) return;
   if (command.unless !== undefined && truth(command.unless)) return;
-  const entity = 'id' in command && command.do !== 'cutscene' ? target.entities.get(command.id) : null;
+  const entity = 'id' in command && command.do !== 'cutscene' && command.do !== 'seat' ? target.entities.get(command.id) : null;
   const missing = () => console.warn(`[0.0.2] ${command.do}: no "${'id' in command ? command.id : ''}" that can do it`);
   switch (command.do) {
     case 'set': {
@@ -108,6 +112,10 @@ export function run(command: Command, target: CommandTarget): void {
       return;
     case 'outfit':
       settings.outfit = command.set;
+      return;
+    case 'seat':
+      if (command.id !== 'green') return console.warn(`[0.0.2] seat: only "green" can be seated so far, not "${command.id}"`);
+      target.seated.add(command.id);
       return;
     case 'swap-exterior':
       console.warn(`[0.0.2] swap-exterior isn't built yet (${command.site})`);
