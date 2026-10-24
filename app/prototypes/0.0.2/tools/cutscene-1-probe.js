@@ -3,7 +3,8 @@
 //
 //     node tools/probe-01.mjs tools/cutscene-1-probe.js --game --shots .export/cutscene-1
 //
-// About 40 s. A new game plays cutscene 1: the camera where the fly-by has it (in the ship's own
+// About 40 s. A new game plays cutscene 1 (black until its first frames are quick: it lifts with the
+// cutscene from its start, and no long frame after): the camera where the fly-by has it (in the ship's own
 // space, at three times), the ship swaying and the camera not with it, Dr. Green hidden, a screenshot
 // at each time, its shadow casters swaying with it; a press shows the skip prompt; held 3 s, E skips:
 // that puts them back, shows her and starts cutscene 2, which is skipped the same way.
@@ -17,6 +18,19 @@ await until(() => cutscene.playing, 5000);
 report(cutscene.track?.id === 'cutscene-1' && w.__start().animatic === 'cutscene-1', 'a new game plays cutscene 1', cutscene.track?.id);
 report(!character.root.visible, 'Dr. Green is hidden');
 report(document.querySelector('#bars').classList.contains('on'), 'the black bars are on');
+// Black from the press until its first frames are quick (SC-132): it lifts with the cutscene back at 0.
+const black = document.querySelector('#black');
+const blackAtStart = black.classList.contains('on');
+let liftedAt = null, longAfter = 0, lastFrame = performance.now();
+for (const end = performance.now() + 8000; performance.now() < end && (liftedAt === null || performance.now() - lastFrame < 1500); ) {
+  await new Promise(requestAnimationFrame);
+  const now = performance.now();
+  if (liftedAt !== null && now - lastFrame > 100) longAfter++;
+  if (liftedAt === null && !black.classList.contains('on')) liftedAt = cutscene.time;
+  lastFrame = now;
+  if (liftedAt !== null && cutscene.time > 1.5) break;
+}
+report(blackAtStart && liftedAt !== null && liftedAt < 0.1 && longAfter === 0, 'black after the press, lifted with the cutscene from its start, no long frame after', `on at first: ${blackAtStart}; the cutscene at ${liftedAt?.toFixed(3)} s when it lifted; ${longAfter} frames over 100 ms after`);
 await until(() => w.__treadmill()?.group.visible, 10000);
 // The scenery at the track's speed, times the terrain's, while it plays: from 2 s in, past the stall of
 // about a second in its first frames (found 2026-10-24, not fixed: SC-131).

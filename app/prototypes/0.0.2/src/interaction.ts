@@ -302,9 +302,11 @@ function shown(object: THREE.Object3D): boolean {
  * The targets, minding locks: while what one controls is locked, it runs the story's knot for it
  * (`use_<id>` of its first object, through the commands), prompted by the knot's `# verb:` tag
  * ("Use" without one); with no knot, it says "Locked" and does nothing. A knot tagged `# instead`
- * runs whether it's locked or not (someone else's locker: she says so, it stays shut).
+ * runs whether it's locked or not (someone else's locker: she says so, it stays shut). A door (or
+ * its keypad or panel) still locked once its knot has run calls `refused`: the "wrong" sound (owner,
+ * 2026-10-24). A knot that unlocks it (a code typed in) makes no wrong sound.
  */
-export function respectLocks(items: Interactable[], story: () => GameStory | null, run: (command: Command) => void, lockedIds: ReadonlySet<string> = new Set()): Interactable[] {
+export function respectLocks(items: Interactable[], story: () => GameStory | null, run: (command: Command) => void, lockedIds: ReadonlySet<string> = new Set(), refused: () => void = () => undefined): Interactable[] {
   return items.map((item) => {
     const controls = item.controls ?? [];
     const id = item.objects[0]?.userData.id as string | undefined;
@@ -327,6 +329,7 @@ export function respectLocks(items: Interactable[], story: () => GameStory | nul
         if (!locked() && !instead()) return item.act();
         const k = knot();
         if (k) run({ do: 'story', knot: k });
+        if (controls.some((c) => c.locked)) refused();
       },
     };
   });

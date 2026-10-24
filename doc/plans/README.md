@@ -59,6 +59,7 @@ Open items: **in Linear** (team Studio Cataplasma, `SC`; [how it's organized](ar
 | [The outside's own light (the scenery's materials lit as Blender's world)](features/outside-light.md) | 0.0.2 | Built 2026-10-23; the glass next |
 | [The scenery round the camera, not the ship (cells made from their place)](features/scenery-around-camera.md) | 0.0.2 | Built 2026-10-23 (owner: "write the plan and run it") |
 | [Dr. Green piloting: cutscene 2 and the start of chapter 1](features/piloting-loop.md) | The flying scene | Approved 2026-10-24; in progress |
+| [Black after NEW GAME, until cutscene 1 runs smoothly (SC-132)](features/black-before-cutscene-1.md) | The flying scene | Built 2026-10-24 (owner: "go for 132") |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format

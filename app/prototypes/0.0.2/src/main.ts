@@ -64,6 +64,12 @@ const WARM_FRAMES = 5;
 /** ...or this long after the load (s), on a machine where no frame is that quick. */
 const WARM_LIMIT = 6;
 /**
+ * After NEW GAME the screen is black while cutscene 1 runs behind it (SC-132): its first frames stall
+ * once, about half a second in (SC-131). The black goes when the cutscene has passed this time (s)
+ * and WARM_FRAMES quick frames have followed, or after WARM_LIMIT; the cutscene starts over under its fade.
+ */
+const BLACK_HELD = 1;
+/**
  * What the save keeps of her beyond the story (owner, 2026-10-22: the player never repeats an action
  * unless the story asks for it): each a setting kept with an Ink variable. The list grows as we go
  * (doc/plans/architecture/game-architecture/saving.md).
@@ -312,7 +318,7 @@ async function start(): Promise<void> {
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
       const storyTargets = storyInteractables(s.entities, () => target.story, (command) => run(command, target));
       const items = [...shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState), ...crewTargets, ...storyTargets];
-      interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target), target.locked), physics, document.querySelector<HTMLElement>('#prompt')!, (then) => audio.play('ui_interact', undefined, then));
+      interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target), target.locked, () => audio.play('ui_wrong')), physics, document.querySelector<HTMLElement>('#prompt')!, (then) => audio.play('ui_interact', undefined, then));
       interaction.roomsOf = s.roomsOf;
       interaction.disabled = disabled;
       // After everything that measures the ship with rays (the ladders, the doors' ramp).
@@ -335,7 +341,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -437,6 +443,9 @@ async function start(): Promise<void> {
   // Start / Options. Clicking the view captures the mouse again and resumes; so does any gamepad
   // button. The sound stops with the game. Not before the game has begun: the start screen is up.
   const pausedEl = document.querySelector<HTMLElement>('#paused')!;
+  const blackEl = document.querySelector<HTMLElement>('#black')!;
+  /** The black after NEW GAME, while it's up (BLACK_HELD): how long, and the quick frames in a row. */
+  let black: { time: number; smooth: number } | null = null;
   let paused = false;
   const setPaused = (on: boolean) => {
     if (!begun) return;
@@ -468,6 +477,8 @@ async function start(): Promise<void> {
     if (choice === 'new' && animaticFrom === 'cutscene-1') {
       input.consumeSkip(); // the press that started it
       animatic = 'cutscene-1';
+      blackEl.classList.add('on');
+      black = { time: 0, smooth: 0 };
       void cutscene?.play('cutscene-1').catch((err: unknown) => {
         console.warn('[0.0.2] cutscene 1 not played:', err);
         playOpening();
@@ -551,6 +562,20 @@ async function start(): Promise<void> {
       input.consumeJump();
       input.consumeLook(dt);
     } else if (skipping) watched?.skip();
+    if (black) {
+      black.time += dt;
+      black.smooth = dt < 0.1 ? black.smooth + 1 : 0;
+      const going = cutscene?.playing ?? false;
+      // Skipped (or it failed to start): the black goes now.
+      if ((!going && black.time > 0.5) || black.time > WARM_LIMIT || (going && cutscene!.time >= BLACK_HELD && black.smooth >= WARM_FRAMES)) {
+        if (going) {
+          cutscene!.time = 0;
+          cutscene!.update(0, view.camera.aspect);
+        }
+        blackEl.classList.remove('on');
+        black = null;
+      }
+    }
     character.root.visible = !(cutscene?.hides('her') ?? false); // after a skip, shown on the same frame
     // A watched conversation: the presses go to the box; no jump, the camera is its own.
     if (watched?.playing) {

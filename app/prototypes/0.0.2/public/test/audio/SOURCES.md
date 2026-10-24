@@ -42,6 +42,12 @@ Plan: [`doc/plans/features/start-screen.md`](../../../../../../doc/plans/feature
 
 The click on every interaction and every press in the dialogue box (`ui_interact` in `cues.json`) plays `sfx_latch_open.m4a`, faster and on the `ui` bus.
 
+## A locked door (2026-10-24)
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `ui_wrong.m4a` | `incorrect.wav` in the owner's Eigodojo project (`eigodojo/packages/ui/src/assets/sfx/`; 0.17 s, 44.1 kHz stereo), whole, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 48 kbit/s mono. Plays when a door (its keypad, its panel) is still locked after she tries it | Not known | Not known: where Eigodojo's file came from isn't recorded |
+
 ## The jetpack (2026-10-14)
 
 | Game file | Source | Author | License |

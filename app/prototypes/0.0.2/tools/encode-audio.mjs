@@ -36,7 +36,10 @@ const NOISE = { name: 'amb_ship_noise_loop', a: 'plane_cessna152_flight-52790_01
 // from the Islands project (44.1 kHz, kept): it fades in and out, so only the part between is kept
 // ([from, to] in s), and the game crossfades its end into its start.
 const ISLANDS = process.env.ISLANDS_AUDIO ?? 'C:/Users/31658/Projects/Islands-29a650/Assets/Audio';
+// A locked door's "wrong" (owner, 2026-10-24): Eigodojo's wrong-answer sound, from its UI package.
+const EIGODOJO = process.env.EIGODOJO_SFX ?? 'C:/Users/31658/Desktop/Eigodojo/eigodojo/packages/ui/src/assets/sfx';
 const ELSEWHERE = [
+  ['ui_wrong', join(EIGODOJO, 'incorrect.wav'), '48k', 1],
   ['mus_part1_theme', join(PART1, 'Background Music.wav'), '128k', 2],
   ['sfx_jetpack_loop', join(PART1, 'Thrusters.mp3'), '64k', 2],
   ['amb_wind_loop', join(ISLANDS, 'Wind-Mark_DiAngelo-1940285615.mp3'), '64k', 2, undefined, [1, 26.5]],
