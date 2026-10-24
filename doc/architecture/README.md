@@ -53,7 +53,7 @@ Title ─▶ Travelling ──── cutscene: landing ────▶ Cutscene 
 | **Cutscenes** | Plays authored timelines: camera and character animation from Blender, plus events (dialogue lines, sounds, mode changes) | Three's `AnimationMixer` + event track from data |
 | **Story state** | Flags and progress (what's been scanned, who's been talked to, chapter) | Ink variables are the single source of truth; the world reads them |
 | **Audio** | Music, ambience, positional sound effects, UI sounds, mix buses | Web Audio. See [`audio.md`](audio.md) |
-| **Save** | Checkpoint saves: story state, mission data, chat history; props reset on reload ([`platform.md`](platform.md)) | Ink state JSON in IndexedDB. Scope: see [`scope.md`](scope.md) |
+| **Save** | Checkpoint saves: story state, mission data, chat history; props reset on reload ([`platform.md`](platform.md)) | Ink state JSON in IndexedDB. Scope: see [`scope.md`](scope.md). **Off in the game for now** (owner, 2026-10-24; on in `?test`; decision log) |
 | **Input** | Actions (move, look, jump/fly, interact, comm, pause…) mapped to the **gamepad (primary)** and keyboard/mouse (secondary); button prompts follow the last device used | Gamepad API, browser events |
 
 > **[Agent note]** For the Camera system, from the owner (2026-10-08): **most of the game is spent in the ship, so every camera angle there should look good and interesting**, even if it takes a lot of extra work and exceptions. Bad angles will happen in a third-person game; mitigate them as much as possible. The see-through rules ([plan](../plans/features/see-through-rules.md)) handle what's cut; the camera itself avoiding bad angles (sliding along walls, not passing behind lockers, preferred angles per room) is still to be planned.

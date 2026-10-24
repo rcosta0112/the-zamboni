@@ -159,6 +159,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   flames.add(settings, 'thrusterFlameGrain', 0, 1, 0.01).name('grain');
   flames.add(settings, 'thrusterFlameGrainSize', 0.005, 1, 0.005).name('grain size (m)');
   flames.add(settings, 'thrusterFlameSpeed', 0, 200, 1).name('grain speed (m/s)');
+  flames.add(settings, 'thrusterFlameFlicker', 0, 1, 0.01).name('flicker');
+  flames.add(settings, 'thrusterFlameFlickerLength', 0, 0.9, 0.01).name('flicker: length lost');
+  flames.add(settings, 'thrusterFlameFlickerRate', 0, 60, 0.5).name('flicker: speed');
   flames.close();
 
   look.add(settings, 'outerDoorsLocked').name('flight: outer doors locked').onChange(onChange.outerDoors);

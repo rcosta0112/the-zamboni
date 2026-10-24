@@ -315,6 +315,9 @@ export const settings = {
   thrusterFlameGrain: 0.5, // how much the grain dims it (0 = none)
   thrusterFlameGrainSize: 0.08, // m
   thrusterFlameSpeed: 20, // m/s the grain runs back along the flame
+  thrusterFlameFlicker: 0.3, // how much each flame dims as it flickers, each on its own (0 = none; owner, 2026-10-24)
+  thrusterFlameFlickerLength: 0.15, // share of its length it loses at the flicker's dimmest
+  thrusterFlameFlickerRate: 12, // how fast it flickers (noise cells per second)
   // The ground's material (and its shadows'), from the terrain's file: colours as the picker shows them.
   groundColor: '#59b3ff',
   groundMetalness: 0.384,

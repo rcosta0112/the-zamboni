@@ -80,6 +80,8 @@ const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has(
  * continued meanwhile. Not in production builds (`import.meta.env.DEV` is false there).
  */
 const ASKED = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
+/** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
+const SAVING = TESTING;
 /** The animatic's parts, before the first scene. */
 const ANIMATIC_STEPS = ['cutscene-1', 'opening'];
 const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
@@ -277,10 +279,12 @@ async function start(): Promise<void> {
       director.onStarted = (id) => {
         if (begun) checkpoint(id);
       };
-      saved = await readSave().catch((err: unknown) => {
-        console.warn('[0.0.2] save not read:', err);
-        return null;
-      });
+      saved = !SAVING
+        ? null
+        : await readSave().catch((err: unknown) => {
+            console.warn('[0.0.2] save not read:', err);
+            return null;
+          });
       // Under the start screen: the save's scene, as *Continue* will find it (a new game's if the
       // address asks for a scene).
       if (saved && !ASKED && (await startFrom(saved))) shown = 'continue';
@@ -417,7 +421,7 @@ async function start(): Promise<void> {
 
   /** The checkpoint save: the scene just started and the story's state. */
   function checkpoint(id: string): void {
-    if (!story) return;
+    if (!story || !SAVING) return;
     void writeSave({ checkpoint: id, location: 'ship', story: story.state(), missionData: [], chat: [] }).catch((err: unknown) => console.warn('[0.0.2] not saved:', err));
   }
 

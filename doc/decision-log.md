@@ -256,6 +256,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 *Update 2026-10-20 (pass 6):* **the tags that name another thing say its id** (owner: option A): `controls` and `opensWith` were rewritten from Blender names to ids in 1.21, and the ship export stops on one naming no id (rather than a table of links in the game's code, option B: everything about an instance stays on it in the file). The game finds everything it uses by `kind` (the `interact` and `device` tags are no longer read; `UNTAGGED` gone); static scenery stays found by name. `npm run check` checks every id named by the scenes, cutscene tracks and Ink against `ids.json` and the crew (`tools/check-ids.mjs`).
 
+*Update 2026-10-24 (owner: "let's disable the save / continue feature for now"):* **saving is off in the game for now**: nothing is read at load (no *Continue*, only the start button) and nothing is written (`SAVING` in `main.ts`). A save already in the browser is left as it is, unread. **It stays on in the checks' game (`?test`)**, whose probes test the save (`conversation-probe`, `cutscene-save-probe`). The decision itself (checkpoint saves, 2026-10-08) stands; switching it back on is the one constant.
+
 ---
 
 ## [2026-10-20] — The export puts moving parts at their recorded rest pose (pipeline)
