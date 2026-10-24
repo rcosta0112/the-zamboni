@@ -1,7 +1,7 @@
 <!--
-  A progress bar: the button's outlined base, filling from the left. The same size as a Button, so
-  one can take the other's place without anything moving. Not in the mockups: proposed with the
-  start screen (doc/plans/features/start-screen.md).
+  A progress bar: a plain strip 4 px tall, filling from the left in the text's colour over a track a
+  little darker than what's under it (owner, 2026-10-24, SC-135). As wide as its container: the
+  screen places it (the start screen: along the window's bottom edge).
   `value`: 0..1.
 -->
 <script lang="ts">
@@ -20,19 +20,16 @@
 <style>
   .bar {
     position: relative;
-    box-sizing: border-box;
-    /* Whole pixels, as the button it gives way to. */
-    width: round(calc(226 * var(--ui-unit)), 1px);
-    height: round(calc(55 * var(--ui-unit)), 1px);
+    width: 100%;
+    height: 4px;
     overflow: clip;
-    border: var(--line) solid var(--color-white);
-    border-radius: var(--radius-control);
+    background-color: var(--color-track);
   }
 
   .fill {
     position: absolute;
     inset: 0;
-    background-color: var(--color-fill-active);
+    background-color: var(--color-white);
     transform-origin: left;
     transition: scale 200ms linear;
   }

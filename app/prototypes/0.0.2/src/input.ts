@@ -86,6 +86,12 @@ export class Input {
     canvas.addEventListener('mousedown', (e) => {
       if (e.button === 0) this.confirmLatched = true;
     });
+    // A click anywhere also shows a cutscene's skip prompt (owner, 2026-10-24): the window's, since
+    // the cutscene's black and bars lie over the canvas.
+    window.addEventListener('mousedown', () => {
+      this.skipLatched = true;
+      this.lastDevice = 'keyboard';
+    });
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
       this.mouseDX += e.movementX;
@@ -221,7 +227,7 @@ export class Input {
     return this.keys.has('KeyE') || this.padButtons[PAD_B] === true;
   }
 
-  /** True once per press that shows a cutscene's skip prompt (any pad button but Start and View; any key but the panel's). */
+  /** True once per press that shows a cutscene's skip prompt (any pad button but Start and View; any key but the panel's; a click). */
   consumeSkip(): boolean {
     const s = this.skipLatched;
     this.skipLatched = false;

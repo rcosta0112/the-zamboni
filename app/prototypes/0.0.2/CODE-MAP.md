@@ -5,7 +5,7 @@
 | File | Owns | Start at |
 |---|---|---|
 | `main.ts` | Start-up and load order; `?test` (dev: the checks' story, from `landed`); `?scene=<id>` (dev: a new game from that point of the game's order: `cutscene-1`, `opening`, a scene's id); when the start button comes and what using it does; the animatic after NEW GAME (cutscene 1, the fly-by, then cutscene 2 watched); the fixed 60 Hz step; the frame loop (who is called, in what order); dev hooks on `window` | `start`, `begin` |
-| `StartScreen.svelte` | The start screen: the mockup's layout, the bar then the buttons (START, or CONTINUE and NEW GAME when there's a save), which keys choose and use them | `press`, `move`, `setProgress`, `setReady` |
+| `StartScreen.svelte` | The start screen: the mockup's layout faded in, the progress strip at the bottom then the buttons (START, or CONTINUE and NEW GAME when there's a save), which keys choose and use them | `press`, `move`, `setProgress`, `setReady` |
 | `loading.ts` | What the start screen's bar measures: the load's parts (downloads, the shaders object by object, the warm-up frames) and their shares | `LoadProgress`, `downloads` |
 | `settings.ts` | Every tunable value and its starting point | `settings` |
 | `tuning.ts` | The tuning panel (lil-gui): one folder per area | `createTuningPanel` |

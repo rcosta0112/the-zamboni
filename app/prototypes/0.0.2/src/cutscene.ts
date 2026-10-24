@@ -126,6 +126,16 @@ export class CutscenePlayer {
     return this.track !== null;
   }
 
+  /** 0..1: how far the shot playing has zoomed in, from its first key's lens to its narrowest (the sound's mix: main.ts). */
+  get zoomed(): number {
+    const track = this.track;
+    if (!track) return 0;
+    const shot = [...track.shots].reverse().find((s) => s.start <= this.time) ?? track.shots[0]!;
+    const first = shot.camera[0]!.fov;
+    const narrowest = Math.min(...shot.camera.map((k) => k.fov));
+    return first > narrowest ? THREE.MathUtils.clamp((first - this.camera.fov) / (first - narrowest), 0, 1) : 0;
+  }
+
   /** Fetches a track (once), so a later `play` starts it at once: main.ts loads the animatic's with the game. */
   async load(id: string): Promise<Track> {
     const known = this.loaded.get(id);

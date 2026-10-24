@@ -1,6 +1,8 @@
 <!--
   The start screen: the mockup's layout (Figma, "The Zamboni", Desktop - 4), covering the 3D view.
-  A progress bar while the game loads, then the buttons in its place: START, or CONTINUE (the
+  Everything fades in once its fonts and images are there (owner, 2026-10-24, SC-135): the
+  background's texture, then the subheader, then the title, over the plain blue. A progress strip
+  along the window's bottom edge while the game loads, then the buttons: START, or CONTINUE (the
   checkpoint save) above NEW GAME when there's a save. Everything is placed on the mockup's
   1440 × 1024 frame, which is scaled to fit the window (--ui-unit: one mockup pixel).
   A button is used with a click, or Enter or Space on the chosen one; the arrows (or W / S) choose.
@@ -13,6 +15,7 @@
 </script>
 
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
   import { Button, ProgressBar } from '@zamboni/ui';
 
@@ -33,6 +36,25 @@
   // With a gamepad or the keyboard the chosen button is the one they're on: it looks hovered until
   // the mouse moves.
   let highlighted = $state(true);
+
+  // The fade-in starts once the fonts and the images are there, so nothing pops in during it.
+  let shown = $state(false);
+  onMount(() => {
+    const image = (src: string) =>
+      new Promise<void>((done) => {
+        const img = new Image();
+        img.onload = img.onerror = () => done();
+        img.src = src;
+      });
+    void Promise.all([
+      document.fonts.load('400 36px Afacad'),
+      document.fonts.load("400 96px 'Digital Desolation Plus'"),
+      image('/ui/start-background.png'),
+      image('/ui/start-pattern.png'),
+    ])
+      .catch(() => undefined)
+      .then(() => requestAnimationFrame(() => (shown = true)));
+  });
 
   /** How long the button stays down when a key or a gamepad button uses it (ms). */
   const PRESS = 120;
@@ -94,8 +116,10 @@
 
 <svelte:window onkeydown={keydown} onpointermove={() => (highlighted = false)} />
 
-<div class="screen" class:leaving>
-  <div class="pattern"></div>
+<div class="screen" class:leaving class:shown>
+  <div class="backdrop">
+    <div class="pattern"></div>
+  </div>
   <div class="frame">
     <p class="series">Big Moon Tiny Moon</p>
     <h1 class="title">
@@ -111,12 +135,13 @@
             <Button highlighted={highlighted && i === chosen} pressed={pressed && i === chosen} onclick={(e) => click(e, i)}>{button.label}</Button>
           </div>
         {/each}
-      {:else}
-        <div class="slot" out:fade={{ duration: 300 }}>
-          <ProgressBar value={progress} />
-        </div>
       {/if}
   </div>
+  {#if !ready}
+    <div class="progress" out:fade={{ duration: 300 }}>
+      <ProgressBar value={progress} />
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -125,7 +150,7 @@
     position: fixed;
     inset: 0;
     overflow: hidden;
-    background: var(--color-sky) url('/ui/start-background.png') center / cover no-repeat;
+    background: var(--color-sky);
     color: var(--color-white);
     user-select: none;
     transition: opacity 600ms ease-out;
@@ -134,6 +159,37 @@
   .screen.leaving {
     opacity: 0;
     pointer-events: none;
+  }
+
+  /* The fade-in: the texture, then the subheader, then the title (the strip with the texture). */
+  .backdrop,
+  .series,
+  .title,
+  .progress {
+    opacity: 0;
+    transition: opacity 2400ms ease-out;
+  }
+
+  .series {
+    transition-delay: 1000ms;
+  }
+
+  .title {
+    transition-delay: 2000ms;
+  }
+
+  .shown .backdrop,
+  .shown .series,
+  .shown .title,
+  .shown .progress {
+    opacity: 1;
+  }
+
+  /* The mockup's blue image, a soft gradient, over the flat blue. */
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background: url('/ui/start-background.png') center / cover no-repeat;
   }
 
   /* White lines on black, added to the blue under it. */
@@ -209,10 +265,16 @@
     height: round(calc(55 * var(--ui-unit)), 1px);
   }
 
-  /* The bar going and the first button coming are both there for a moment: one over the other.
-     A second button (NEW GAME) goes below the first: not in the mockup, a placeholder gap of 20. */
+  /* A second button (NEW GAME) goes below the first: not in the mockup, a placeholder gap of 20. */
   .control {
     --button-step: round(calc(75 * var(--ui-unit)), 1px);
+  }
+
+  .progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 
   .slot {

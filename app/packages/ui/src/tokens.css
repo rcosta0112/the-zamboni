@@ -29,7 +29,8 @@
   --color-sky: #3db3dd; /* the start screen's background image, flat: shown until the image is there */
   --color-sky-deep: #26a3ca; /* the glow behind the title */
   --color-fill-hover: rgb(255 255 255 / 0.14); /* a control under the pointer, or the one a gamepad is on */
-  --color-fill-active: rgb(255 255 255 / 0.26); /* a control pressed; the filled part of a progress bar */
+  --color-fill-active: rgb(255 255 255 / 0.26); /* a control pressed */
+  --color-track: rgb(0 0 0 / 0.12); /* a progress bar's empty part: a little darker than what's under it */
   --color-ink: #1d1f24; /* text on white: the dialogue box (a placeholder, not from the mockup) */
 
   /* Type */

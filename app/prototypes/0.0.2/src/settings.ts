@@ -296,6 +296,10 @@ export const settings = {
   // cargo bay with the ramp and the side door open (each by the size of its opening).
   windIndoors: 0.08,
   windCargoOpen: 0.4, // in the cargo bay with both open; with one, less (wind.ts)
+  // An exterior cutscene (owner, 2026-10-24): the wind alone at first; as the camera zooms in, the
+  // ship's noise comes up to this share of its level inside, and the wind goes down to this, under it.
+  cutsceneShipNoiseEnd: 0.85,
+  cutsceneWindEnd: 0.3,
   boomboxFullWithin: 1.5, // m from the listener (the camera): at full volume within this...
   boomboxGoneAt: 12, // ...and silent from here. A guess: UE's values aren't readable
   boomboxVibration: 1, // how much it shakes while a track plays (0 = still)

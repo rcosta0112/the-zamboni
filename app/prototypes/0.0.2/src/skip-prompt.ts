@@ -1,4 +1,4 @@
-// Skipping a cutscene (owner, 2026-10-23, SC-126): any press while one plays shows "Hold ◯ to skip"
+// Skipping a cutscene (owner, 2026-10-23, SC-126): any press (or a click, 2026-10-24) while one plays shows "Hold ◯ to skip"
 // at the bottom right (E on the keyboard: the prompt shows the last device used); holding the button
 // that long skips it. No ring or bar fills while it's held (owner). Both cutscenes: cutscene 1 (the
 // player) and cutscene 2 (the watched conversation). After a skip the button must be let go before

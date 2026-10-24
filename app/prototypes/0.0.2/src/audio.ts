@@ -79,6 +79,8 @@ export class GameAudio {
   private noiseAmount = 0;
   /** The ship's noise kept off whatever the ship does: under the start screen (main.ts, until the game begins). */
   noiseHeld = true;
+  /** The ship's noise times this: mixed in as an exterior cutscene's camera zooms in (main.ts). */
+  noiseShare = 1;
   /** Streamed cues that repeat, each faded in and out (`setLoop`). */
   private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number; level: number }>();
   /** Decoded sounds: how many there are, and how many have arrived (or failed). */
@@ -314,7 +316,7 @@ export class GameAudio {
     this.noise ??= new StreamLoop(this.context, BASE + cue.file, this.buses.ambience, cue.crossfade ?? 2);
     const where = THREE.MathUtils.lerp(settings.shipNoiseOutdoors, 1, indoors);
     this.noise.start();
-    this.noise.update((cue.volume ?? 1) * this.noiseAmount * where);
+    this.noise.update((cue.volume ?? 1) * this.noiseAmount * where * this.noiseShare);
   }
 
   private voice(id: CueId, cue: Cue, at?: THREE.Object3D): Voice {

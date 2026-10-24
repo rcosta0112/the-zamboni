@@ -54,10 +54,11 @@ export class Wind {
   /**
    * Per frame, once the game has begun.
    * @param chest her chest, for where she is
+   * @param outside heard from an exterior cutscene's camera: the wind as outside, times this (its fade-in); null in play
    */
-  update(dt: number, chest: THREE.Vector3, ship: Ship | null): void {
+  update(dt: number, chest: THREE.Vector3, ship: Ship | null, outside: number | null = null): void {
     const known = ship !== null && this.bulkhead !== null;
-    const inside = known && ship.interior.containsPoint(chest) && this.v.subVectors(chest, this.hinge).dot(this.aft) < 0;
+    const inside = outside === null && known && ship.interior.containsPoint(chest) && this.v.subVectors(chest, this.hinge).dot(this.aft) < 0;
     const inCargo = inside && chest.y < ship.upperFloorY && this.v.subVectors(chest, this.bulkhead!).dot(this.aft) > 0;
     const step = Math.max(0, dt) / FADE;
     this.indoors = ease(this.indoors, inside ? 1 : 0, step);
@@ -66,7 +67,7 @@ export class Wind {
     const open = (ship?.rampAmount ?? 0) * RAMP_AREA + (this.sideDoor?.amount ?? 0) * SIDE_DOOR_AREA;
     const share = Math.sqrt(open / (RAMP_AREA + SIDE_DOOR_AREA));
     const level = THREE.MathUtils.lerp(settings.windIndoors, settings.windCargoOpen, share * this.cargo);
-    this.level = THREE.MathUtils.lerp(1, level, this.indoors);
+    this.level = THREE.MathUtils.lerp(1, level, this.indoors) * (outside ?? 1);
     // Faded in over 2 s when the game begins.
     this.audio.setLoop('amb_wind', true, 2, this.level);
   }

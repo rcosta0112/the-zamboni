@@ -2,7 +2,7 @@
 
 **Status:** *built 2026-10-13* in prototype 01; the owner's to look at and listen to. Plan: [`../plans/features/start-screen.md`](../plans/features/start-screen.md).
 
-The first thing the player sees: the title, a progress bar while the game loads, then the *START* button in the bar's place.
+The first thing the player sees: the title, a progress strip along the bottom of the window while the game loads, then the *START* button.
 
 - **Mockup:** [The Zamboni, *Desktop - 4*](https://www.figma.com/design/3x6wVCPPBUmzOp6IucXxsh/The-Zamboni?node-id=1-19) (1440 × 1024).
 - **The button's states:** from [Eigodojo's *AnswerButton*](https://www.figma.com/design/vYxN400FtsLyLYiRTzvlCg/Eigodojo?node-id=274-838), in the Zamboni mockup's colours.
@@ -17,9 +17,11 @@ Everything is placed on the mockup's 1440 × 1024 frame, and the frame is scaled
 | Background | The mockup's blue image (`start-background.png`, a soft gradient), stretched over the window; over it the line pattern (`start-pattern.png`, a 600 px tile), added to the blue at 24 %. The mockup's third layer (a radial gradient at 0 %) is left out |
 | *Big Moon Tiny Moon* | Afacad Regular 36, white, letters 10.8 apart, centred, above the title |
 | *The Zamboni* | Digital Desolation Plus 96, white, a little above the middle. Behind it a blurred copy in `#26a3ca` at 50 % (2 right, 9 down); over it a 1 px white outline of the same text at 59 % (6 right, 8 down) |
-| Bar, then button | 226 × 55, 163 under the title's centre. **Centred**: in the mockup it's 17 px left of the title's centre, which looked like a slip. **Snapped to whole pixels**, position and size (owner, 2026-10-14), so its 1 px outlines are crisp at any window size; the lip (2 px) and the outlines (1 px) don't scale |
+| Button | 226 × 55, 163 under the title's centre. **Centred**: in the mockup it's 17 px left of the title's centre, which looked like a slip. **Snapped to whole pixels**, position and size (owner, 2026-10-14), so its 1 px outlines are crisp at any window size; the lip (2 px) and the outlines (1 px) don't scale |
 
 **The 3D view isn't shown**: the screen covers it, and the tuning panel is hidden until the game starts.
+
+**Everything fades in** (owner, 2026-10-24, SC-135) over the plain blue (`--color-sky`, there at once): the background's texture (the blue image and the line pattern) and the progress strip over 2.4 s, the subheader from 1 s, the title from 2 s, each over 2.4 s (all in about 4.4 s; owner, 2026-10-24: twice the first try's). It starts once the two fonts and the two images are there (`document.fonts.load`, the images loaded), so nothing pops in during it.
 
 ## The button
 
@@ -38,7 +40,9 @@ The hover fill is the agent's proposal: the mockup has only white and the blues,
 
 ## The progress bar
 
-Not in either mockup; the agent's proposal. The button's outer outline, in the same place, with a white fill at 26 % growing from the left. When the load ends, the bar fades out and the button fades in over it (0.3 s): the outline doesn't move.
+**A plain strip 4 px tall along the window's bottom edge**, the whole width (owner, 2026-10-24, SC-135): its track a little darker than the screen's blue (`--color-track`, black at 12 % over it), its fill the text's white, growing from the left. When the load ends, the strip fades out and the button fades in (0.3 s). [`ProgressBar`](../../app/packages/ui/src/ProgressBar.svelte) in `packages/ui` is the strip; the screen places it.
+
+> **[Agent note]** Before 2026-10-24 it was the agent's proposal: the button's outer outline in the button's place, a white fill at 26 % growing in it.
 
 What it measures ([`loading.ts`](../../app/prototypes/0.0.2/src/loading.ts)): each part of the load has a fixed share of the bar.
 

@@ -69,6 +69,8 @@ const WARM_LIMIT = 6;
  * and WARM_FRAMES quick frames have followed, or after WARM_LIMIT; the cutscene starts over under its fade.
  */
 const BLACK_HELD = 1;
+/** An exterior cutscene's wind fades in over this long from its start (s; owner, 2026-10-24). */
+const WIND_FADE_IN = 3;
 /**
  * What the save keeps of her beyond the story (owner, 2026-10-22: the player never repeats an action
  * unless the story asks for it): each a setting kept with an Ink variable. The list grows as we go
@@ -374,6 +376,7 @@ async function start(): Promise<void> {
   // See-through hull: furniture cuts 0 outside the ship, eased to 1 inside; the structure's hole
   // eased to 1 while something solid hides her.
   let insideAmount = 0;
+  let heardOutside = false; // an exterior cutscene plays: the sound is heard from its camera, outside
   let indoorLight = 0; // 0..1, eased: she's inside the ship (whether or not the see-through hull is on)
   let holeAmount = 0;
   let wasWatching = false; // a cutscene played last frame
@@ -506,7 +509,9 @@ async function start(): Promise<void> {
     if (dialogue.active) input.hold();
     // Sound: a gamepad button turns it on, as a key or a click does (if the browser counts it).
     if (input.padPressed) void audio.unlock();
-    audio.update(dt, indoorLight);
+    // An exterior cutscene: the ship's noise mixed in as the camera zooms in, up to nearly its level inside.
+    audio.noiseShare = heardOutside ? (cutscene?.zoomed ?? 1) * settings.cutsceneShipNoiseEnd : 1;
+    audio.update(dt, heardOutside ? 1 : indoorLight);
     if (!begun) {
       // The start screen covers the view, and nothing is simulated.
       loading.set('sounds', audio.loadedShare);
@@ -656,7 +661,9 @@ async function start(): Promise<void> {
     // Above the ground she's on the ship (its ramps, before she's "inside"): the ground is flat for now.
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     // Not under the start screen: its music is heard there.
-    if (begun) wind.update(dt, chest, ship);
+    // An exterior cutscene starts with the wind alone, faded in from its start, and lowered under the
+    // ship's noise as the camera zooms in (owner, 2026-10-24).
+    if (begun) wind.update(dt, chest, ship, heardOutside ? Math.min(1, cutscene!.time / WIND_FADE_IN) * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.zoomed) : null);
     // Indoors: inside the hull, in front of the bulkheads and the crew quarters' furniture.
     const s = ship;
     view.collide = !inside
@@ -746,6 +753,7 @@ async function start(): Promise<void> {
     // (the glass as the sky's mirror washed them out).
     const drawing = cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera;
     exterior?.set(ship !== null && !watched?.playing && !ship.interior.containsPoint(drawing.position));
+    heardOutside = ship !== null && (cutscene?.playing ?? false) && !ship.interior.containsPoint(cutscene!.camera.position);
     treadmill?.update(dt, drawing, cutscene?.track?.speed ?? 1);
     // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
     const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
