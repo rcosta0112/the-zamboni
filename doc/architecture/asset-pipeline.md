@@ -48,7 +48,7 @@ Copied on 2026-10-08 from `The Zamboni.archive` (the newest versions only). The 
 
 **Backface culling on.** Double-sided materials cost performance (every hidden back face is drawn too). Thin parts that need a back get real geometry in Blender; the export reports any double-sided material (owner, 2026-10-08).
 
-**Lighting:** interiors get baked lighting (Cycles bake to lightmaps on a second UV set), since the web renderer has no real-time global illumination. The baking workflow is to be worked out in the vertical slice.
+**Lighting:** interiors get baked lighting (Cycles bake to lightmaps on a second UV set), since the web renderer has no real-time global illumination. The baking workflow is to be worked out in the vertical slice. **Update 2026-10-24 (owner): no light baking in the web build**; the ship stays lit in real time. Notes for a packaged build: [`lighting.md`](lighting.md).
 
 **Characters:** source file `models/The Crew 1.09 Dr. Green.blend`. One shared skeleton for the humans, their outfits and Adam; mitten hands. Each human has at least two outfits (indoor jumpsuit with a name tag, outdoor parka), each its own mesh and texture. Adam is a single rigid-block mesh; both bodies share one animation set. Details and file split: [game architecture plan: characters](../plans/architecture/game-architecture/characters.md); they move here once confirmed.
 
@@ -190,4 +190,4 @@ Objects are recognised by **name prefix** and configured with **custom propertie
 
 - Should levels be laid out entirely in Blender, or should some placement (props, triggers) live in data files?
 - Which existing exports in `resources/export/` are still current, and which need re-exporting from the latest `.blend`?
-- Lightmap baking: Blender's own bake, or a dedicated tool?
+- ~~Lightmap baking: Blender's own bake, or a dedicated tool?~~ No baking in the web build (owner, 2026-10-24: [`lighting.md`](lighting.md)).

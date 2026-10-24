@@ -19,6 +19,7 @@ doc/
     platform.md        delivery (web, offline app, hosting), input, test machines, performance targets
     prototypes.md      the prototype workspace: structure, rules, naming, list of prototypes
     stack.md           engine, libraries, versions, tooling
+    lighting.md        lighting and the rendered look: real-time only on the web; notes for a packaged build
     scope.md           what's in, what's out, size targets
     asset-pipeline.md  Blender → glTF, naming contract between art and code
     audio.md           sound effects, music and dialogue audio workflow (open)

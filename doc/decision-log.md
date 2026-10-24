@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-24 | No light baking in the web build | look | The ship stays lit in real time (sun and its shadow map, room lights, sky); lightmaps cost download, a second UV set and a bake per change; notes kept for a packaged build in `architecture/lighting.md`; whether post-processing is worth it: a later pass |
 | 2026-10-23 | The outside's own light | look | The scenery's materials lit by the game's sun (shared: one direction, its shadow map) and their own sky light, never dimmed indoors; the sun tinted there via the received shadow; tuned to the owner's reference (the fly-by's ice, sun share 0.65); the glass nearly invisible, its highlights kept |
 | 2026-10-23 | The scenery: a treadmill that looks like the owner's fly-by | look | The ship never moves; the ground and its rubble pass under it (the rubble made from its cells' places, round the camera drawn: update) (a terrain is a data file and a `.glb`); scale, scatter and materials from the fly-by file (×1.486); shadows are the rubble flattened along the sun, drawn as the ice in shadow; the ice's roughness a noise tile made at load; the lighting unchanged |
 | 2026-10-23 | Picking up objects: curated events only | scope | No free pick-up of small objects; objects are picked up only as designed events (the coffee mug, the jetpacks), added case by case; physics props (drop, throw) open, kept for a future interaction |
@@ -87,6 +88,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Update 2026-10-23 (owner):** the clouds **smooth-shaded and 20 times bigger** (1.2–2.8 km across; still 40–60 m up), **6 instead of 14** (14 would cover the sky; the 6 cost 0.25 ms), in a band 3.2 km each way; and **faded in, not popped in**: each point's opacity falls with its distance from the ship (whole to 1.2 km, gone at 2 km, before the cameras' far plane), its shadow fading with the point that casts it. Then (owner) **10% opaque, their shadows too; 3 of them; their bases at 200 m**. Then (owner) **removed from the icy plain**: a new solution later; the code (`clouds` in a terrain file) stays; the panel's *Flight: clouds* removed.
 
 **Update 2026-10-23 (owner: *"should we make the rock band be relative to the camera position?"*, then *"write the plan and run it"*; [plan](plans/features/scenery-around-camera.md)):** **the copies are made from where they are, round the camera being drawn**, not recycled in a band round the ship. The plain is a grid of cells (400 m); a hash of a cell's place decides its copies (how many from the density, where, the shape, size, turn, tilts); each frame the copies within `reach` (3.4 km, past the full haze) of whichever camera draws are shown, sliding back with the ground. **Why:** cutscene 1's camera, high and looking back, saw the band's edges (rocks popping) until the band was resized for it; now no shot needs its own band, every camera sees the same rocks in the same places (a cut keeps them), and nothing repeats. Alternatives: a repeating tile shifted round the camera in the shader (no CPU, but the same layout every 6.4 km, or a per-tile variation hard to share between the shapes' meshes); keeping the band and sizing it for every shot. **Measured:** the CPU's part 0.2 ms a frame (was about 1 ms); 476 rocks drawn at the owner's density (the old band held 50), about 1.5 ms more a frame from outside, within the measurement's spread.
+
+## [2026-10-24] — No light baking in the web build (look)
+
+**Context:** the docs planned baked lighting for the ship's interior (lightmaps on a second UV set: [asset pipeline](architecture/asset-pipeline.md), [performance](plans/architecture/game-architecture/performance.md#lighting)); never built, the lighting work on hold (SC-56). The owner asked what the look of their reference render (path-traced) would take and cost: most of it is bounce light, which only a bake gets cheaply. Measured: ~400 m² of interior, one 2048² lightmap at 1.5 cm per texel, about 1–4 MB to download.
+
+**Decision (owner, 2026-10-24):** *"light baking is not worth it for a web application."* The ship stays lit in real time, as now. The notes (the look's parts and their cost, lightmap sizes, bloom, anti-aliasing, subsurface scattering) are kept in [`architecture/lighting.md`](architecture/lighting.md) in case a packaged application is made. **Whether post-processing (bloom, AO, contact shadows) is worth it: a pass later** (owner, same day; SC-136).
+
+**Alternatives considered:** lightmaps for the interior (the plan until now); vertex lighting baked into colours; SSGI (bounce light from what's on screen: 3–8+ ms, smears).
+
+**Rationale:** in a web game a bake costs download, a second UV set on every baked mesh (the export strips UVs to keep pipelines and load time down) and a bake after every change to the ship; it can't follow moving doors or a moving sun. In a packaged build download matters less, so the question can come back there.
+
+**Status:** decided.
 
 ## [2026-10-23] — The outside's own light (look)
 

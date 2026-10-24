@@ -52,6 +52,8 @@ On the web, the biggest threat to "smooth" isn't download time but **hitches**: 
 
 ### Lighting
 
+> **[Agent note]** **Superseded 2026-10-24 (owner): no light baking in the web build**; the interior stays real-time. Lightmap sizes measured and the rest of the notes: [`architecture/lighting.md`](../../../architecture/lighting.md). Whether post-processing is worth it: a later pass.
+
 **Ship interior: baked.** The web renderer has no real-time global illumination, so real-time lights alone make the ship look flat.
 
 | | Download | Look | Cost |

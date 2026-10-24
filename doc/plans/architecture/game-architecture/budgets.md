@@ -45,7 +45,7 @@ At runtime, collision meshes cost a little memory in the physics engine and no G
 | Triangles on screen | ≤ 1 M | The whole ship is ~107k today |
 | Unique materials (shader variants) | ≤ 30 | Each new one compiles a shader, a cause of stutter ([performance](performance.md#stutter)) |
 | Texture memory on the GPU | ≤ 512 MB | Integrated GPUs share system RAM; browsers kill tabs that use too much |
-| Real-time lights | 1 shadowed sun/key light + ≤ 4 small unshadowed lights near the player | Baked lighting does the rest |
+| Real-time lights | 1 shadowed sun/key light + ≤ 4 small unshadowed lights near the player | Baked lighting does the rest (**no baking in the web build**, owner 2026-10-24: [lighting](../../../architecture/lighting.md)) |
 | Physics bodies | Static collision as above; ≤ 200 dynamic props awake at once (none so far: physics props open since 2026-10-23) | Sleeping bodies cost almost nothing |
 
 ## Conventions that make the budgets reachable

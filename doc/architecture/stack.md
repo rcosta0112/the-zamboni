@@ -32,7 +32,7 @@ Part 1 used Yarn (`Dialog 1.01.yarn`). **Decided (owner, 2026-10-08): Ink.** `in
 
 ## Tooling
 
-- **Blender** for modelling, level layout, lighting bakes and cutscene animation; export to glTF. See [`asset-pipeline.md`](asset-pipeline.md).
+- **Blender** for modelling, level layout and cutscene animation (no lighting bakes in the web build: [`lighting.md`](lighting.md)); export to glTF. See [`asset-pipeline.md`](asset-pipeline.md).
 - **Inky** (Ink's editor) for writing and testing dialogue, optional; `.ink` files can also be edited as plain text.
 - **Browser automation** (Playwright) so the agent can run the game, take screenshots and read console errors.
 - **Node** v22 (installed: v22.13.1).
