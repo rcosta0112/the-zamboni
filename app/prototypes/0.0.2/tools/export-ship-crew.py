@@ -19,9 +19,13 @@ then cap the textures at 512 px and compress (Meshopt) into public/test/, from a
   her mug, and her action as one clip. Bones flagged as deforming but carrying no weights are left
   out (see "Before the next export" in doc/architecture/asset-pipeline.md), as in
   export-crew-character.py.
-- The other characters in the scene (the visible `Crew.001` collection: both Adam bodies and
-  Dr. Ogawa; not Dr. Green's copy, she's the player) have no animation: their posed meshes are
-  baked to static meshes.
+- The other characters in the scene (both Adam bodies and Dr. Ogawa; not Dr. Green's copy, she's
+  the player) have no animation: their posed meshes are baked to static meshes.
+- **Where they're read from** (2026-10-26, 1.22 with the owner's cutscene 2): the collection
+  ``SCENE`` (``Scenes`` › ``01-cutscene-flight-2``), switched on for this export only (it's off in
+  export-collections.json, so the ship export leaves it out). One placement for cutscene 2 and the
+  flight after it (owner, 2026-10-26: "both, for now"); a copy per scene comes later. Until then
+  the characters were in ``Crew.001`` (now empty) and ``Crew``.
 - Sizes: exported as placed in the file, which is the game 1:1 since 2026-10-19 (scale_check.py
   stops the export otherwise). Each character's height relative to Dr. Green is checked against
   HEIGHTS and a ``NOTE:`` printed when it's 2% off. (Until then the crew was modelled bigger in the
@@ -52,13 +56,14 @@ from bake_materials import bake_node_materials
 from export_collections import show, switch_collections
 from scale_check import check_scale
 
+SCENE = '01-cutscene-flight-2'
 ANIMATED = {'Dr. Kaufman': ('Dr. Kaufman.002', ['Dr. KaufmanMesh.003', 'Mug.003'])}
 # Each character's stable id (the game's structure, *Ids*: doc/plans/architecture/game-architecture/ship-names.md).
 CREW_IDS = {'Dr. Kaufman': 'kaufman', 'Dr. Ogawa': 'ogawa', 'Adam (Red)': 'adam-red', 'Adam (Blue)': 'adam-blue'}
 STATIC = {
-    'Adam (Red)': 'Adam',
-    'Adam (Blue)': 'Adam Blue.001',
-    'Dr. Ogawa': 'Dr. Ogawa Jumpsuit.001',
+    'Adam (Red)': 'Adam Red',
+    'Adam (Blue)': 'Adam Blue',
+    'Dr. Ogawa': 'Dr. Ogawa Jumpsuit',
 }
 
 # Standing height relative to Dr. Green (owner, 2026-10-09: Dr. Kaufman is shorter, Dr. Ogawa about
@@ -76,6 +81,21 @@ args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 # what's switched off, and the crew came out at the origin, unposed and unmirrored, with `Cockpit`
 # switched off (2026-10-19).
 switch_collections()
+
+
+def switch_on(layer, path=()):
+    """SCENE's layer collection and those above it included (True if found under `layer`)."""
+    if layer.collection.name == SCENE:
+        for above in path:
+            above.exclude = False
+        layer.exclude = False
+        return True
+    return any(switch_on(child, (*path, layer)) for child in layer.children)
+
+
+if not any(switch_on(layer) for layer in bpy.context.view_layer.layer_collection.children):
+    print(f'STOP: no collection {SCENE!r}: the crew can\'t be placed')
+bpy.context.view_layer.update()
 # Hidden in the viewport, a character wouldn't be evaluated (posed, mirrored): shown in memory.
 _crew = [bpy.data.objects[n] for n in [*STATIC.values(), *(a for a, _ in ANIMATED.values())] if n in bpy.data.objects]
 show([o for a in _crew for o in (a, *a.children_recursive)] + [bpy.data.objects[n] for _, parts in ANIMATED.values() for n in parts if n in bpy.data.objects])

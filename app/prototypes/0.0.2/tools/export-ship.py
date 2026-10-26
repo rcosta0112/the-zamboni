@@ -143,9 +143,17 @@ moving = doors + door_children + [ob for ob in objects if ob.get('moving')]
 # A part on an armature that isn't exported (the joystick, turned by its armature's damped track
 # towards her hand: 2026-10-24): taken off it where the armature stands without its constraints,
 # its armature modifier dropped; the game turns it about its origin (`hinge`), so it moves too.
+# Since 2026-10-26 the joysticks' armatures are in `Cockpit` (on): an armature turned toward another
+# armature (a character's hand) counts as one the game replaces, wherever it is (the monitor's arm
+# has a constraint of its own, not toward a character: baked, posed).
+def constrained(rig):
+    cons = [*rig.constraints, *(c for b in rig.pose.bones for c in b.constraints)]
+    return any(getattr(c, 'target', None) and c.target.type == 'ARMATURE' and c.target != rig for c in cons)
+
+
 for ob in objects:
     rig = ob.parent
-    if rig is None or rig.type != 'ARMATURE' or rig in in_scene:
+    if rig is None or rig.type != 'ARMATURE' or (rig in in_scene and not constrained(rig)):
         continue
     world = rig.matrix_basis @ ob.matrix_parent_inverse @ ob.matrix_basis
     ob.parent = None

@@ -5,9 +5,15 @@ pairs under two names (`Dark Teal` -> `Teal Dark`, `Darkest Teal` -> `Teal Darke
 colour, `Dark Brown` -> `Brown Dark`; the skins: `Skin White`, `Skin Asian`), and the *Flat* materials (no principled shader: they don't look
 right here) into their closest base. Every kept material ends single-sided. Run again: 0 changes.
 
+Run again 2026-10-26 on 1.22 (owner: "merge the materials"): Dr. Ogawa's new mesh and headphones had
+their own copies (`Black.002`, `Gray.002`… and `Skin 2 - Asian.001`, the colour of `Skin Asian`).
+`Dark Gray.001` (0.025) is a colour of its own, between `Black` and `Gray Dark`: made single-sided,
+its name left to the owner. The copy of the file is named with the day it's made.
+
     blender -b --python app/prototypes/0.0.2/tools/merge-materials.py -- --file "<file>.blend" [--save]
 """
 
+import datetime
 import os
 import re
 import shutil
@@ -22,11 +28,12 @@ bpy.ops.wm.open_mainfile(filepath=FILE)  # with its UI: the owner's layout is ke
 
 # Merged by name, beyond Blender's .001 copies (the owner's answers, 2026-10-21).
 RENAMED = {'Dark Teal': 'Teal Dark', 'Darkest Teal': 'Teal Darkest', 'Dark Brown': 'Brown Dark', 'Blue Flat': 'Blue',
-           'Skin 3 - Asian': 'Skin 2 - Asian'}
+           'Skin 3 - Asian': 'Skin 2 - Asian', 'Skin 2 - Asian.001': 'Skin Asian'}
 # Then renamed (owner, 2026-10-21): one skin material per skin colour.
 NAMES = {'Skin 2 - Asian': 'Skin Asian', 'Skin 2 - White': 'Skin White'}
 FLAT_TO = {'Black Flat': 'Black'}  # checked below: merged only if the flat colour is close to the base's
 CLOSE = 0.03
+SINGLE_SIDED = ['Dark Gray.001']  # kept as it is, culling on (2026-10-26)
 
 
 def users(m):
@@ -79,6 +86,13 @@ for m in {new for _, new in merges}:
         print(f'MERGE: {m.name} made single-sided')
         changes += 1
 
+for name in SINGLE_SIDED:
+    m = bpy.data.materials.get(name)
+    if m and not m.use_backface_culling:
+        m.use_backface_culling = True
+        print(f'MERGE: {name} made single-sided')
+        changes += 1
+
 for old, new in NAMES.items():
     if old in bpy.data.materials and new not in bpy.data.materials:
         bpy.data.materials[old].name = new
@@ -112,7 +126,7 @@ for m in skins:
 
 print(f'MERGE: {changes} changes')
 if SAVE and changes:
-    copy = FILE.replace('.blend', ' (before merging materials, 2026-10-21).blend')
+    copy = FILE.replace('.blend', f' (before merging materials, {datetime.date.today()}).blend')
     if not os.path.exists(copy):
         shutil.copy2(FILE, copy)
     bpy.ops.wm.save_mainfile()

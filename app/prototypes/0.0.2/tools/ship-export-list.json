@@ -81,24 +81,40 @@
   "Cargo Ramp Keypad",
   "Engineering Door Panel Front",
   "Cockpit Door Panel Back",
-  "Seat",
-  "Seat.002",
   "Dials.002",
   "Monitor.001",
-  "Back seat",
   "Seat.001",
   "Back seat.001",
-  "Seat.004",
-  "Back seat.002",
-  "Monitor.003",
   "Signal Receiver.001",
   "Fire Extinguisher Clamp.002",
   "Cockpit Door Panel Front",
   "Polaroid",
   "Gojira poster",
-  "Seat.005",
-  "Back seat.003",
-  "Joystick"
+  "Joystick",
+  "Seat base right",
+  "Foot Rest",
+  "Joystick base",
+  "Joystick left",
+  "Seat base left",
+  "Seat left",
+  "Seat back left",
+  "Foot Rest.001",
+  "Joystick base left",
+  "Seat base left.002",
+  "Seat left.002",
+  "Seat back left.002",
+  "Foot Rest.003",
+  "Joystick base left.002",
+  "Dials.004",
+  "Seat base left.001",
+  "Seat left.001",
+  "Seat back left.001",
+  "Foot Rest.002",
+  "Signal Receiver.002",
+  "Dials.001",
+  "Dials.003",
+  "Dial.008",
+  "Dial.009"
  ],
  "props": [
   {
@@ -770,11 +786,6 @@
    "group": "Cargo Bay"
   },
   {
-   "name": "Seat.003",
-   "group": "Cockpit",
-   "seeThrough": "solid"
-  },
-  {
    "name": "Plane.003",
    "group": "Cockpit",
    "seeThrough": "solid"
@@ -805,14 +816,57 @@
    "seeThrough": "solid"
   },
   {
-   "name": "Keyboard.003",
+   "name": "Fire Extinguisher.002",
    "group": "Cockpit",
    "seeThrough": "solid"
   },
   {
-   "name": "Fire Extinguisher.002",
-   "group": "Cockpit",
-   "seeThrough": "solid"
+   "name": "Dial.002",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Switch.002",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Switch.003",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.003",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.004",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.005",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.006",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.007",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.010",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Dial.011",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Plane.001",
+   "group": "Cockpit"
+  },
+  {
+   "name": "Plane.006",
+   "group": "Cockpit"
   }
  ],
  "collision": [

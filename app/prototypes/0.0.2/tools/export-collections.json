@@ -34,7 +34,8 @@
  "Game Lights": true,
  "Game Collision": true,
  "Player": true,
- "Signal Receiver": true,
+ "Signal Station": true,
  "Scenes": false,
- "01-cutscene-flight-2": false
+ "01-cutscene-flight-2": false,
+ "cameras": false
 }

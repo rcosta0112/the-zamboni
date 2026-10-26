@@ -12,6 +12,10 @@
 // turned a little at a time, either way, until one sees them (through a window); if none does, it
 // stops in front of the wall. The lens is set to frame the character from where it ends up. A speaker with no shot gets one the same way from beside
 // their seat, on their outboard side (the owner's for the pilot's seat, mirrored).
+// **The owner's cameras** (2026-10-26, 1.22): a shot with a `camera` (tools/cutscene-cameras.py, from
+// the ship file) is placed exactly so, its view across kept whatever the screen's shape (the black
+// bars cut top and bottom); the rest above is for a speaker without one. `opening`: a shot held alone
+// for `hold` seconds before the first line (the wide shot of the cockpit; owner).
 // main.ts treats it as a cutscene while it plays (she stands still, nothing can be used, the
 // see-through is off, the crew drawn, the black bars) and renders through its camera.
 // Plan: doc/plans/features/flying-scene.md (pass 1, the animatic)
@@ -24,7 +28,20 @@ import type { GameStory } from './story';
 
 type Vec = [number, number, number];
 
+/** A camera from the ship file (Blender coordinates, the ship's space). */
+export interface FileCamera {
+  at: Vec;
+  /** Its -Z axis: where it looks. */
+  forward: Vec;
+  /** Its +Y axis. */
+  up: Vec;
+  /** Its view across (degrees). */
+  fov: number;
+}
+
 export interface Shot {
+  /** The owner's camera: placed exactly so (the fields below are then unused). */
+  camera?: FileCamera;
   /** Where the camera looks from (it may back away along the line to its subject). */
   from?: Vec;
   /** What it looks at, if not the speaker's head. */
@@ -40,6 +57,8 @@ export interface WatchedData {
   wait: number;
   /** The shot per speaker (character id), in the ship file's Blender coordinates. */
   shots: Record<string, Shot>;
+  /** A shot held alone before the first line: `shot` names one of `shots`. */
+  opening?: { shot: string; hold: number };
 }
 
 /** The long lens's widest view (degrees, vertical): about 70 mm on a full-frame camera. */
@@ -73,6 +92,10 @@ export class WatchedConversation {
   /** What can stand between the camera and the speaker: the ship's opaque meshes (not glass, not the crew). */
   private solid: THREE.Mesh[] | null = null;
   private readonly ray = new THREE.Raycaster();
+  /** The opening shot's time left (s); the knot starts when it runs out. */
+  private holding = 0;
+  /** The view across of the camera in use (degrees), if it's the file's: the lens follows the screen's shape. */
+  private across: number | null = null;
 
   constructor(
     private readonly ship: THREE.Object3D,
@@ -100,36 +123,76 @@ export class WatchedConversation {
     this.playing = true;
     this.speaker = null;
     this.dialogue.autoNext = this.data.wait;
+    const opening = this.data.opening;
+    const shot = opening ? this.data.shots[opening.shot] : undefined;
+    if (opening && shot) {
+      this.holding = opening.hold;
+      this.speaker = opening.shot;
+      this.aim(opening.shot, shot, aspect);
+      return;
+    }
     this.story.run(this.data.knot);
-    this.update(aspect);
+    this.update(aspect, 0);
   }
 
   /** Ends it now: the box closes (as at its last line), and `update` sees it. */
   skip(): void {
+    if (this.playing && this.holding > 0) this.startLines();
     if (this.playing && this.dialogue.active) this.dialogue.end();
   }
 
+  /** The opening shot over: the knot's lines. */
+  private startLines(): void {
+    this.holding = 0;
+    if (this.data) this.story.run(this.data.knot);
+  }
+
   /** Per frame: the camera on the line's speaker (a cut when it changes); the end when the box closes. */
-  update(aspect: number): void {
+  update(aspect: number, dt: number): void {
     if (!this.playing) return;
+    if (this.holding > 0) {
+      this.holding -= dt;
+      this.fit(aspect);
+      if (this.holding > 0) return;
+      this.startLines();
+    }
     if (!this.dialogue.active) {
       this.playing = false;
       this.dialogue.autoNext = null;
       return;
     }
-    if (this.camera.aspect !== aspect) {
-      this.camera.aspect = aspect;
-      this.camera.updateProjectionMatrix();
-    }
+    this.fit(aspect);
     const id = this.dialogue.line?.id ?? null;
     if (id === null || id === this.speaker) return;
     this.speaker = id;
-    this.aim(id, this.data?.shots[id] ?? {});
+    this.aim(id, this.data?.shots[id] ?? {}, aspect);
+  }
+
+  /** The screen's shape; a file camera's lens kept to its view across. */
+  private fit(aspect: number): void {
+    if (this.camera.aspect === aspect) return;
+    this.camera.aspect = aspect;
+    if (this.across !== null) this.camera.fov = verticalFov(this.across, aspect);
+    this.camera.updateProjectionMatrix();
   }
 
   /** The camera on the speaker (or the shot's `look`), from the shot's side, backed off for the lens, the lens set to frame them. */
-  private aim(id: string, shot: Shot): void {
+  private aim(id: string, shot: Shot, aspect: number): void {
     const world = (v: Vec) => this.ship.localToWorld(fromBlender(v));
+    if (shot.camera) {
+      // The owner's camera, exactly: its axes turned as the ship is.
+      const turn = this.ship.getWorldQuaternion(new THREE.Quaternion());
+      const { at, forward, up, fov } = shot.camera;
+      this.camera.position.copy(world(at));
+      this.camera.up.copy(fromBlender(up).applyQuaternion(turn));
+      this.camera.lookAt(this.camera.position.clone().add(fromBlender(forward).applyQuaternion(turn)));
+      this.across = fov;
+      this.camera.aspect = aspect;
+      this.camera.fov = verticalFov(fov, aspect);
+      this.camera.updateProjectionMatrix();
+      return;
+    }
+    this.across = null;
     const head = this.head(id);
     const frame = shot.look ? (shot.frame ?? FRAME_WIDE) : (shot.frame ?? FRAME);
     const target = shot.look ? world(shot.look) : head.clone().setY(head.y - FRAME_BELOW_HEAD);
@@ -190,4 +253,9 @@ export class WatchedConversation {
     const box = new THREE.Box3().setFromObject(object, true);
     return box.getCenter(new THREE.Vector3()).setY(box.max.y - HEAD_BELOW_TOP);
   }
+}
+
+/** The vertical view (degrees) that gives this view across on a screen of this shape. */
+function verticalFov(across: number, aspect: number): number {
+  return THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(across / 2)) / aspect));
 }

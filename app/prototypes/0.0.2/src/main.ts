@@ -556,7 +556,7 @@ async function start(): Promise<void> {
     }
 
     // A cutscene: its own camera; she stands still, nothing can be used, the see-through is off.
-    watched?.update(view.camera.aspect);
+    watched?.update(view.camera.aspect, dt);
     const watching = (cutscene?.playing ?? false) || (watched?.playing ?? false);
     barsEl.classList.toggle('on', watching);
     // Any press shows "Hold ◯ to skip"; held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
