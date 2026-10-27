@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-27 | Plans estimate the agent's build and the review rounds apart | process | Each pass gives two figures, the agent's build time and the expected review rounds with the owner; the *As built* note records the actual time next to them; build estimates are a fifth of the old ones |
 | 2026-10-24 | No light baking in the web build | look | The ship stays lit in real time (sun and its shadow map, room lights, sky); lightmaps cost download, a second UV set and a bake per change; notes kept for a packaged build in `architecture/lighting.md`; whether post-processing is worth it: a later pass |
 | 2026-10-23 | The outside's own light | look | The scenery's materials lit by the game's sun (shared: one direction, its shadow map) and their own sky light, never dimmed indoors; the sun tinted there via the received shadow; tuned to the owner's reference (the fly-by's ice, sun share 0.65); the glass nearly invisible, its highlights kept |
 | 2026-10-23 | The scenery: a treadmill that looks like the owner's fly-by | look | The ship never moves; the ground and its rubble pass under it (the rubble made from its cells' places, round the camera drawn: update) (a terrain is a data file and a `.glb`); scale, scatter and materials from the fly-by file (×1.486); shadows are the rubble flattened along the sun, drawn as the ice in shadow; the ice's roughness a noise tile made at load; the lighting unchanged |
@@ -58,6 +59,24 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-27] — Plans estimate the agent's build and the review rounds apart (process)
+
+**Context:** The owner checked execution time against the plans' estimates (2026-10-27). The hour estimates were written by the agent, for its own work. Measured from the session logs (the agent's working time, from each message to its last action, with waits over 10 minutes left out), they ran **4–10× too high** for the build. The game's structure was estimated at 16¼ h and built in about 3 h; the exterior look at 6½–8½ h, built in about 45 min. Robust exports, the locker outfits, the dialogue passes and the piloting loop came in at about a fifth of their estimates or less. Only prompt choice and the flying scene's pass 4 came near their estimates, and there the time went on the owner's rounds of changes after looking, which no estimate counted.
+
+**Decision:**
+- Each pass in a plan gives **two figures**: *agent build* (the agent's working time, checks included) and *review rounds* (how many rounds of changes with the owner are likely, and roughly how long each takes).
+- Build estimates are calibrated on the measured times: about **a fifth of the old figures**.
+- Each pass's *As built* note records the **actual time** next to the estimate, so the calibration can be checked again.
+- The plan format in [`plans/README.md`](plans/README.md) says so.
+
+**Alternatives considered:** no hour estimates, only the weekly budget's tokens (the hook already reports them, but hours are what the owner plans a day with); one figure scaled down (it would still hide where the time goes: the build or the rounds).
+
+**Rationale:** the estimates are for scheduling. Too high, they make the plans useless for that and flag tasks as "big" (CLAUDE.md, rule 5) when they aren't. Splitting off the review rounds shows the part that depends on the owner's time, which is now most of a pass's length.
+
+**Status:** Decided (owner, 2026-10-27: "go"). Plans written before this date keep their old figures.
 
 ---
 

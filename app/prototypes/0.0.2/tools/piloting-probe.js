@@ -4,7 +4,7 @@
 //
 // About 60 s. Cutscene 2 plays with her seated at the `pilot` tag, the loop playing, the joystick
 // following her left hand (a screenshot of her shot); it's skipped; chapter 1 starts her seated: she
-// can't walk, the prompt reads *Get up*; E puts her in the aisle (the scene's start), the joystick
+// can't walk, Adam's line, then the prompt reads *Get up*; E puts her in the aisle, then her line (the scene's start), the joystick
 // upright, and she walks. Also her `Head` bone against the old guess (standing), for HEAD_ABOVE_BONE.
 // Runs in the page (probe-01.mjs).
 
@@ -41,6 +41,11 @@ key('KeyW', true);
 await wait(1000);
 key('KeyW', false);
 report(character.position.distanceTo(seatedAt) < 0.01, "seated, she doesn't walk", `${character.position.distanceTo(seatedAt).toFixed(3)} m`);
+// Adam's line before Get up (owner, 2026-10-27): the prompt hidden while it shows.
+const adam = await until(() => dialogue.line?.id === 'adam-red', 3000);
+report(adam && /keep an eye on things/.test(dialogue.line.text) && document.querySelector('#prompt').hidden, "Adam's line first, no prompt yet", dialogue.line?.text);
+dialogue.end();
+await until(() => !dialogue.cooling, 3000);
 await until(() => !document.querySelector('#prompt').hidden, 3000);
 const verb = document.querySelector('#prompt')?.textContent ?? '';
 report(/Get up/.test(verb), 'the prompt reads Get up', verb.trim());
@@ -53,6 +58,10 @@ const aisle = new T.Vector3(-0.2, 3.74, 2.6); // the scene's start (-0.2, -2.6, 
 const there = w.__ship().object.localToWorld(aisle.clone());
 report(character.model?.seated === false && character.position.distanceTo(there) < 0.05, 'Get up: she is in the aisle', `${character.position.distanceTo(there).toFixed(3)} m from the start`);
 report(angle() < 0.01, 'the joystick upright', `${angle().toFixed(2)}°`);
+// Her line once up (owner, 2026-10-27).
+report(await until(() => dialogue.line?.id === 'green' && /stretch my legs/.test(dialogue.line.text), 3000), 'then her line', dialogue.line?.text);
+dialogue.end();
+await until(() => !dialogue.cooling, 3000);
 // Her head bone against the old guess (feet + height − 0.12), standing.
 const head = character.model?.object.getObjectByName('Head');
 if (head) {

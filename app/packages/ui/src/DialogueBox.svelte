@@ -48,7 +48,8 @@
     {:else}
       <p class="text">
         <span class="sr-only">{view.text}</span>
-        <span aria-hidden="true">{#each chars as char, i (i)}<span class:untyped={i >= view.typed}>{char}</span>{/each}</span>
+        <!-- New spans for each line: reused ones would fade out from the last line's full opacity, a flash. -->
+        {#key view.text}<span aria-hidden="true">{#each chars as char, i (i)}<span class:untyped={i >= view.typed}>{char}</span>{/each}</span>{/key}
       </p>
     {/if}
     <div class="prompt"><span class="glyph">{view.glyph}</span>{view.action}</div>

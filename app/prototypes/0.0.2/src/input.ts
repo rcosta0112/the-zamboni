@@ -59,7 +59,8 @@ export class Input {
   private analogPad: string | null = null;
   private onTogglePanel: () => void;
 
-  constructor(private canvas: HTMLCanvasElement, onTogglePanel: () => void) {
+  /** P, keyboard only (owner, 2026-10-27): the panel's *quality*, high (pixel ratio 1) or low (0.5). */
+  constructor(private canvas: HTMLCanvasElement, onTogglePanel: () => void, onQuality: () => void) {
     this.onTogglePanel = onTogglePanel;
 
     window.addEventListener('keydown', (e) => {
@@ -75,6 +76,10 @@ export class Input {
       // In a cutscene any key but the tuning panel's shows the skip prompt (Esc also releases the mouse: the game pauses).
       if (e.code !== 'Backquote') this.skipLatched = true;
       if (e.code === 'KeyY') settings.invertY = !settings.invertY;
+      if (e.code === 'KeyP') {
+        settings.pixelRatio = settings.pixelRatio === 1 ? 0.5 : 1;
+        onQuality();
+      }
       if (e.code === 'Backquote') this.onTogglePanel();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));

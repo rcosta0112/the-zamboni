@@ -69,7 +69,8 @@ Each plan has:
 - A **status** line: *draft*, *approved*, *in progress*, *done*, *superseded*, with dates.
 - **Goal** and **scope**: what's in and what's explicitly out.
 - **Constraints from the docs**: anything in `doc/` the plan must respect, with links. Conflicts are flagged, not silently resolved.
-- **The work**, in numbered stages, each small enough to check on its own.
+- **The work**, in numbered stages, each small enough to check on its own. Each pass gives **two time figures** ([decision, 2026-10-27](../decision-log.md)): *agent build* (the agent's working time, checks included; calibrated on the measured times, about a fifth of the estimates written before 2026-10-27) and *review rounds* (how many rounds of changes with the owner are likely, and roughly how long each takes).
+- An **As built** note per pass, once it's built, with the **actual time** next to the estimate (the agent's working time from the session logs; waits over 10 minutes left out).
 - **Options** where there's a real choice: each with its cost, and a recommendation.
 - **Done when**: how the result is checked, by the agent and by the owner.
 - **Open questions** for the owner.

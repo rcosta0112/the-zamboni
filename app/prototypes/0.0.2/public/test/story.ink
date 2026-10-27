@@ -106,6 +106,10 @@ Adam Blue: [Test] Placeholder line from Adam (Blue).
 Green: [Test] A second line, from her: Next, then End.
 -> DONE
 
+// The game's chapter 1 names it in its `begin` (a game scene may run with this story): silent here.
+=== chapter_1_start ===
+-> DONE
+
 === function command(name, id, value) ===
 // Without the game (the compiler's test run): nothing.
 ~ return

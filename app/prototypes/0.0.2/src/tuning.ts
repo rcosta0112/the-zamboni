@@ -9,12 +9,12 @@ import { ROCKS_MAX } from './terrain';
 
 const ANTIALIAS_KEY = 'zamboni-01-antialias';
 
-/** Anti-aliasing (MSAA) is fixed when the renderer is created, so it's kept in local storage and applied on reload. */
+/** Anti-aliasing (MSAA) is fixed when the renderer is created, so it's kept in local storage and applied on reload. Off unless turned on (owner, 2026-10-27). */
 export function antialiasEnabled(): boolean {
   try {
-    return localStorage.getItem(ANTIALIAS_KEY) !== '0';
+    return localStorage.getItem(ANTIALIAS_KEY) === '1';
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -265,7 +265,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   cut.add(settings, 'cameraCollidesBulkheads').name('camera in front of bulkheads, their doors');
 
   const render = gui.addFolder('Rendering');
-  render.add(settings, 'maxPixelRatio', 0.1, 3, 0.05).name('max pixel ratio').onChange(onChange.pixelRatio);
+  render.add(settings, 'pixelRatio', { 'high (1)': 1, 'low (0.5)': 0.5 }).name('quality').onChange(onChange.pixelRatio).listen();
+  render.add(settings, 'pixelRatio', 0.1, 3, 0.05).name('pixel ratio').onChange(onChange.pixelRatio).listen();
   render.add(settings, 'pixelated').name('pixelated upscale').onChange(onChange.pixelRatio);
   render.add({ antialias: antialiasEnabled() }, 'antialias').name('anti-aliasing (reloads)').onChange((on: boolean) => {
     try {

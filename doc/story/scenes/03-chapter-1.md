@@ -19,7 +19,7 @@ Thank you. I think I'll stretch my legs for a bit. Did anyone make coffee?
 **Kaufman**\
 *(no line yet)*
 
-*Dr. Ogawa is in the engineering working on the sensor array.*
+*Dr. Ogawa is sitting on the signal processing station.*
 
 **Green**\
 Can you tell what that signal is?

@@ -39,7 +39,9 @@ await until(() => w.__audio.playing().includes('amb_ship_noise'), 5000);
 report(w.__audio.playing().includes('amb_ship_noise'), "the ship's noise plays", w.__audio.playing().join(', '));
 await shot('chapter-1-start');
 // She starts seated (piloting-probe.js looks at it): up first, as a player would.
-await until(() => !w.__dialogue.cooling && !w.__dialogue.active, 3000); // the cooldown after cutscene 2's box
+// Adam's line comes first (the scene's `begin`): closed, then the box's cooldown.
+if (await until(() => w.__dialogue.active, 3000)) w.__dialogue.end();
+await until(() => !w.__dialogue.cooling && !w.__dialogue.active, 3000);
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
 window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
 report(await until(() => w.__character.model?.seated === false, 3000), 'Get up: she stands');

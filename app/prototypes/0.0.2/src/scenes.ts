@@ -28,6 +28,8 @@ export interface SceneData {
   /** The ship is flying: the flight rules, its noise; the terrain going by (`public/terrain/<id>.json`). */
   travel?: { terrain: string };
   setup: Command[];
+  /** Run once the player takes over: the game begun, any cutscene before the scene over (chapter 1: Adam's line before *Get up*). */
+  begin?: Command[];
 }
 
 /** A new game's first scene. */
@@ -59,6 +61,8 @@ export class SceneDirector {
   onStarted: ((id: string) => void) | null = null;
   /** Called with the scene's terrain, or null when the ship isn't flying: the scenery (main.ts). */
   onTravel: ((terrain: string | null) => void) | null = null;
+  /** The scene's `begin`, until `takeOver` runs it. */
+  private begin: Command[] = [];
 
   constructor(
     private readonly ship: Ship,
@@ -94,11 +98,19 @@ export class SceneDirector {
       if (settings.outerDoorsLocked) for (const id of this.ids(OUTER_DOORS)) run({ do: 'lock', id }, this.target);
     }
     for (const command of scene.setup) run(command, this.target);
+    this.begin = scene.begin ?? [];
     updateShip(this.ship, 0, true);
     this.placePlayer(this.ship.object.localToWorld(fromBlender(scene.player.at)), THREE.MathUtils.degToRad(scene.player.yaw));
     this.current = id;
     console.info(`[0.0.2] scene: ${id}`);
     this.onStarted?.(id);
+  }
+
+  /** The scene's `begin`, once (main.ts: each frame the player has control). */
+  takeOver(): void {
+    const commands = this.begin;
+    this.begin = [];
+    for (const command of commands) run(command, this.target);
   }
 
   /** The tuning panel's *outer doors locked*, now: in flight they lock or unlock; landed they're never locked. */

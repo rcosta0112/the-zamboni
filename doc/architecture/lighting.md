@@ -58,7 +58,7 @@ Planned since [`stack.md`](stack.md) (three's TSL bloom node) and budgeted in [p
 
 ## Anti-aliasing
 
-On by default: MSAA (4× under WebGPU), `antialias` on the renderer ([`main.ts`](../../app/prototypes/0.0.2/src/main.ts)); the panel's *anti-aliasing (reloads)* turns it off, kept in local storage.
+MSAA (4× under WebGPU), `antialias` on the renderer ([`main.ts`](../../app/prototypes/0.0.2/src/main.ts)): **off by default** (owner, 2026-10-27; on until then); the panel's *anti-aliasing (reloads)* turns it on, kept in local storage. The pixel ratio is the panel's *quality*: 1 (high, the default) or 0.5 (low), whatever the screen's own ratio (`settings.pixelRatio`); **P** switches it (keyboard only, owner, 2026-10-27).
 
 - **What turning it off gains: not measured.** Typically under 1 ms to about 2 ms at 1080p on a desktop GPU, more where many layers overlap (glows, the see-through) or on integrated graphics; nothing if the frame waits on the CPU.
 - **The fps readout can't show it** ([`stats.ts`](../../app/prototypes/0.0.2/src/stats.ts)): it measures time between frames, capped by the screen's refresh. Measuring needs the GPU's own frame time (the renderer's timestamp tracking under WebGPU) on the readout.

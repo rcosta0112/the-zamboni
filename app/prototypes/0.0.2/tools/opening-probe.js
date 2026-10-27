@@ -3,7 +3,7 @@
 //     node tools/probe-01.mjs tools/opening-probe.js --game --shots .export/opening
 //
 // About 60 s. A new game: cutscene 1, skipped; then cutscene 2 plays by itself, nothing
-// pressed: the wide shot of the cockpit first, alone for about 2 s (owner, 2026-10-26), then each
+// pressed: the wide shot of the cockpit first, alone for about 4 s (owner, 2026-10-26; 2 s longer, 2026-10-27), then each
 // line's speaker gets their camera, where the ship file has it (a screenshot per line), each line moves on by itself,
 // she doesn't move, the black bars are on; at its end the bars go, the save is written, and she gets
 // up from her seat (piloting-loop.md) and walks.
@@ -34,7 +34,7 @@ await wait(300);
 await shot('line-00-opening');
 const started = await until(() => w.__watched()?.playing && dialogue.line, 4000);
 const held = (performance.now() - openedAt) / 1000;
-report(started && held > 1.7 && held < 2.6, 'cutscene 2 starts after cutscene 1, its first line after the wide shot', `held ${held.toFixed(1)} s`);
+report(started && held > 3.7 && held < 4.6, 'cutscene 2 starts after cutscene 1, its first line after the wide shot', `held ${held.toFixed(1)} s`);
 const placed = [];
 const feet = character.position.clone();
 const seen = [];
@@ -58,7 +58,7 @@ while (w.__watched()?.playing && performance.now() - t0 < 60000) {
 const took = (performance.now() - t0) / 1000;
 report(seen.length === 9, 'its nine lines, each on its own, nothing pressed', `${seen.length} lines in ${took.toFixed(1)} s`);
 report(placed.length === 9 && placed.every((p) => parseFloat(p.split(' ')[1]) < 1), "each line on its speaker's camera from the file", placed.join(', '));
-report(!w.__watched().playing && !dialogue.active, 'it ends by itself');
+report(!w.__watched().playing && (!dialogue.active || dialogue.line?.id === 'adam-red'), "it ends by itself (then chapter 1's first line, Adam's)", dialogue.line?.text);
 report(character.position.distanceTo(feet) < 0.05, "she didn't move", `${character.position.distanceTo(feet).toFixed(3)} m`);
 report(barsOn, 'the black bars were on while it played');
 report(!document.querySelector('#bars').classList.contains('on'), 'the bars are gone after it');
@@ -67,9 +67,15 @@ const save = await w.__save.read();
 report(save?.checkpoint === 'chapter-1' && Date.now() - Date.parse(save.savedAt) < 3000, 'saved at its end', `checkpoint ${save?.checkpoint}`);
 // Chapter 1 is playable: she starts seated; Get up (E), then she walks back from her seat (S: away from where the camera looks).
 report(character.model?.seated === true, 'chapter 1 starts her seated');
+// Adam's line first (piloting-probe.js looks at it): closed, then the box's cooldown.
+if (await until(() => dialogue.active, 3000)) dialogue.end();
+await until(() => !dialogue.cooling, 3000);
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
 window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
 await until(() => character.model?.seated === false, 3000);
+// Then her line: closed too.
+if (await until(() => dialogue.active, 3000)) dialogue.end();
+await until(() => !dialogue.cooling, 3000);
 const before = character.position.clone();
 window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyS' }));
 await wait(1200);

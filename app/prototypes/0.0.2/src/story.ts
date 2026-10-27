@@ -129,7 +129,8 @@ export class GameStory {
     return this.knot(`talk_${id.replaceAll('-', '_')}`);
   }
 
-  private knot(name: string): string | null {
+  /** The knot by that name, if the story has one. */
+  knot(name: string): string | null {
     return this.ink.KnotContainerWithName(name) ? name : null;
   }
 

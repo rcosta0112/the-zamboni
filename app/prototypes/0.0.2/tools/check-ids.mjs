@@ -93,6 +93,7 @@ for (const folder of ['public/scenes', 'public/test/scenes']) {
   for (const file of fs.readdirSync(path.join(root, folder)).filter((f) => f.endsWith('.json'))) {
     const scene = json(`${folder}/${file}`);
     scene.setup.forEach((c, i) => command(`scene ${folder}/${file}, setup ${i + 1}`, c));
+    (scene.begin ?? []).forEach((c, i) => command(`scene ${folder}/${file}, begin ${i + 1}`, c));
   }
 }
 [knots, vars] = [named(KNOT), named(VAR)];

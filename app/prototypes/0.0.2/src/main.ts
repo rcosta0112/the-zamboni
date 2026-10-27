@@ -260,6 +260,9 @@ async function start(): Promise<void> {
           act: () => {
             seated.delete('green');
             if (aisle) placeHer(aisle.at, aisle.yaw);
+            // Her line once up (chapter 1: the owner's), if the story has one.
+            const knot = story?.knot('got_up');
+            if (knot) story?.run(knot);
           },
         };
       } else console.warn('[0.0.2] the ship has no cockpit-seat-pilot: she cannot get up from it');
@@ -356,14 +359,14 @@ async function start(): Promise<void> {
     wearingJetpack: settings.wearingJetpack,
   }));
   gui.hide(); // until the start screen is gone: it would lie over it
-  const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()));
+  const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()), () => resize());
 
   const stats = new Stats(document.querySelector<HTMLElement>('#stats')!, backend);
   showHelp();
 
   const size = new THREE.Vector2();
   function resize(): void {
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, settings.maxPixelRatio));
+    renderer.setPixelRatio(settings.pixelRatio);
     // When the render is smaller than the window, the browser stretches it: hard square pixels, or smoothed.
     canvas.style.imageRendering = settings.pixelated ? 'pixelated' : 'auto';
     renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -588,6 +591,9 @@ async function start(): Promise<void> {
       input.consumeLook(dt);
     }
 
+    // The scene's `begin` once she's the player's: the game begun, the animatic over.
+    if (begun && !watching && !black) director?.takeOver();
+
     if (begun) accumulator += dt;
     let steps = 0;
     while (accumulator >= STEP && steps < MAX_STEPS) {
@@ -806,7 +812,7 @@ function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
     'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · B/◯ interact · Start/Options pause · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · ` tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · P quality · ` tuning\n' +
     'Ladder: at its foot, E / B to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }

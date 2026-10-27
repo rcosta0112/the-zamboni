@@ -349,7 +349,9 @@ export const settings = {
   outsideReflections: 0.5, // the sky's reflection on the ice (Blender: 1, paler here; the ship's metals: metalReflections)
 
   // Rendering
-  maxPixelRatio: 2, // below 1 renders fewer pixels than the screen has (down to 0.1)
+  // Pixels rendered per CSS pixel, whatever the screen's own ratio (owner, 2026-10-27: the panel's
+  // *quality* switches 1 and 0.5; until then it was the screen's, capped at 2). Below 1 renders fewer.
+  pixelRatio: 1,
   pixelated: true, // stretch a low-resolution render with hard, square pixels instead of smoothing it
 };
 

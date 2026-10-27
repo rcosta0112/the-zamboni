@@ -8,5 +8,6 @@
     { "do": "set", "id": "engineering-window-left", "state": "open" },
     { "do": "set", "id": "engineering-window-right", "state": "open" },
     { "do": "set", "id": "engineering-window-lever-handle", "state": "open" }
-  ]
+  ],
+  "begin": [{ "do": "story", "knot": "chapter_1_start" }]
 }

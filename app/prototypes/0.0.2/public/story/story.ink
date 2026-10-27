@@ -39,6 +39,17 @@ Adam Red: Setting the course. Hang on.
 // *External view of the ship changing course.* (not built: no scenery yet)
 -> DONE
 
+// Chapter 1 (doc/story/scenes/03-chapter-1.md, word for word). She starts in the copilot's seat:
+// Adam's line once the player has her (the scene's `begin`, after cutscene 2), then *Get up*; her
+// line once she's up (main.ts runs `got_up` when she gets up).
+=== chapter_1_start ===
+Adam: I can keep an eye on things if you need a break.
+-> DONE
+
+=== got_up ===
+Green: Thank you. I think I'll stretch my legs for a bit. Did anyone make coffee?
+-> DONE
+
 // The flight rules (owner, 2026-10-22, the flying scene's plan): while the ship is flying, the game
 // locks the outer doors and hatches (their keypads with them), the jetpacks and her parka; these
 // knots run instead. One line for all the outer doors (variations perhaps later).
@@ -131,8 +142,21 @@ Adam Blue: [Placeholder] Adam Blue's conversation.
 Kaufman: [Placeholder] Dr. Kaufman's conversation.
 -> DONE
 
+// Dr. Ogawa: the owner's exchange the first time; his one-liner after (not written yet).
 === talk_ogawa ===
-Ogawa: [Placeholder] Dr. Ogawa's conversation.
+{ talk_ogawa > 1: -> again }
+Green: Can you tell what that signal is?
+Ogawa: It’s not a beacon or a communication signal as far as I can tell.
+Ogawa: It’s pretty similar to the signature of a portal, but it’s a lot fainter and there are some gaps in the spectrum I can’t account for.
+Green: Care to speculate?
+// Ogawa: (...) (read as a pause)
+Ogawa: We don't have enough information.
+Ogawa: It could be another portal. It could be something else entirely.
+Ogawa: It could be a giant penguin.
+Ogawa: Dr. Kaufman would love that for sure.
+-> DONE
+= again
+Ogawa: [Placeholder] Dr. Ogawa's one-liner.
 -> DONE
 
 === function command(name, id, value) ===

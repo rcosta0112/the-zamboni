@@ -21,7 +21,7 @@ OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', 'public', 'convers
 PREFIX = 'cutscene-2-'
 # The cameras' names after the prefix -> the speaker's id in the story (`opening` is the wide shot).
 WHO = {'cockpit': 'opening', 'adam-red': 'adam-red', 'adam-blue': 'adam-blue', 'dr-green': 'green', 'dr-ogawa': 'ogawa'}
-HOLD = 2.0
+HOLD = 4.0
 
 
 def r(v):
