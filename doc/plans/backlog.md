@@ -1,6 +1,8 @@
 # Backlog
 
-> **[Agent note]** **The backlog is tracked in Linear since 2026-10-22** ([plan](architecture/linear.md)): team Studio Cataplasma (`SC`), one project per big piece of work and *The Zamboni: ongoing* for everything small, open or *later* (all labelled *The Zamboni*). Each issue keeps its item number in its title (`77 · …`). **New items are Linear issues only** (no new numbers). The table that was here (status of items 1–77 up to 2026-10-22) is in git history. The owner's own words are at the bottom, unchanged.
+> **[Agent note]** **Since 2026-10-28 open items are in [`doc/tasks.md`](../tasks.md)** (Linear dropped); the `SC-n` numbers below are kept there. The links still open the old Linear issues while the workspace exists.
+>
+> *Before:* **the backlog was tracked in Linear from 2026-10-22** ([plan](architecture/linear.md)): team Studio Cataplasma (`SC`), one project per big piece of work and *The Zamboni: ongoing* for everything small, open or *later* (all labelled *The Zamboni*). Each issue keeps its item number in its title (`77 · …`). **New items are Linear issues only** (no new numbers). The table that was here (status of items 1–77 up to 2026-10-22) is in git history. The owner's own words are at the bottom, unchanged.
 
 ## Items 1–77 and their issues
 

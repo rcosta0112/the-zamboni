@@ -1,5 +1,7 @@
 # Plan: tracking the work in Linear
 
+> **[Agent note]** **Superseded 2026-10-28** (owner: not worth the trouble): the owner's tasks are in [`doc/tasks.md`](../../tasks.md). Kept for history.
+
 **Status:** *approved* (owner, 2026-10-22: "write the plan and go"). Two passes, a stop between them. **Pass 1 done 2026-10-22** (SC-5 to SC-42); **pass 2 done 2026-10-22** (the projects, SC-43 to SC-115, the docs). Built.
 
 ## Goal

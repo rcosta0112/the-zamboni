@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-28 | The owner's tasks in `doc/tasks.md`, not Linear | process | Linear dropped (not worth the upkeep); one Markdown list grouped by kind (look at, decision, Blender, script, Figma, review), *Next up* first, the agent's queue at the bottom; the `SC-n` and item numbers kept, new tasks continue from SC-146 |
 | 2026-10-27 | Plans estimate the agent's build and the review rounds apart | process | Each pass gives two figures, the agent's build time and the expected review rounds with the owner; the *As built* note records the actual time next to them; build estimates are a fifth of the old ones |
 | 2026-10-24 | No light baking in the web build | look | The ship stays lit in real time (sun and its shadow map, room lights, sky); lightmaps cost download, a second UV set and a bake per change; notes kept for a packaged build in `architecture/lighting.md`; whether post-processing is worth it: a later pass |
 | 2026-10-23 | The outside's own light | look | The scenery's materials lit by the game's sun (shared: one direction, its shadow map) and their own sky light, never dimmed indoors; the sun tinted there via the received shadow; tuned to the owner's reference (the fly-by's ice, sun share 0.65); the glass nearly invisible, its highlights kept |
@@ -15,7 +16,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-23 | Picking up objects: curated events only | scope | No free pick-up of small objects; objects are picked up only as designed events (the coffee mug, the jetpacks), added case by case; physics props (drop, throw) open, kept for a future interaction |
 | 2026-10-22 | The game's story and the checks' story | architecture | The game loads its own story (`public/story/`, the owner's lines copied from the scene files) from `chapter-1`; the checks load the test story from `landed` with `?test` (dev builds), so the checks don't change as the script grows |
 | 2026-10-22 | A copy of each character per scene, in Blender | pipeline | A collection per scene (by its id) with a linked copy of each character, placed and animated for it: the copy's place is the mark, its action the loop; Dr. Green's in `Player` › `<scene>`; the game still loads one model per character |
-| 2026-10-22 | The work is tracked in Linear, for the owner | process | Linear (team `SC`) shows the owner's next task and how the project goes; one project per big piece of work, *The Zamboni: ongoing* for the rest; the agent keeps it current every session; the repo stays the source of truth |
+| 2026-10-22 | The work is tracked in Linear, for the owner | process | **Superseded 2026-10-28** by `doc/tasks.md`. Linear (team `SC`) shows the owner's next task and how the project goes; one project per big piece of work, *The Zamboni: ongoing* for the rest; the agent keeps it current every session; the repo stays the source of truth |
 | 2026-10-22 | Topics in conversations | feature | Ink choices as topics: the player picks what to ask from a list (up/down, the interact button); a heard topic goes, a leave topic stays; reverses pass 2's *no choices* |
 | 2026-10-22 | What the save keeps: what the player shouldn't have to do again | architecture | No action repeated unless the story asks for it: most interactions reset on a reload (doors, music); some are saved in Ink (for now her clothes and the jetpack), the list grows as we go; saved after each conversation and when one changes |
 | 2026-10-21 | One material per colour: a limited palette | look | One material per material colour (owner, 2026-10-22): `Black`, `Black Metal`, `Black Plastic` fine; `Teal`, `Teal 2`, `Teal.001` not; one `Black`, `Red`, `Blue`…; a different material of the same colour gets its own name (`Black Metal`, `Black Plastic`); no *Flat* materials (they skip the principled shader); `tools/merge-materials.py` merged 17 in 1.22 |
@@ -59,6 +60,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-10-28] — The owner's tasks in `doc/tasks.md`, not Linear (process)
+
+**Context:** since 2026-10-22 the work was tracked in Linear (entry below): issues, projects, comments and a project update every session. The owner: *"I don't think it's worth the trouble."* The goal stays the same: see at a glance what to work on next.
+
+**Decision (owner, 2026-10-28):** one Markdown list, [`tasks.md`](tasks.md): *Next up* (the few that unblock the most), then the owner's tasks grouped by kind: **look at** (built, to try), **decision**, **Blender**, **script**, **Figma**, **review and setup**; a new group when needed. At the bottom, the agent's queue (the flying scene's passes and what they wait on, the small and *later* items), for the overview. **The numbers are kept** (`SC-n`, and `77 ·` item numbers); new tasks continue from SC-146. The agent rewrites it at the end of every session; done items are removed (history in git). Linear is left as it is, unread and unwritten.
+
+**Alternatives:** keeping Linear with less upkeep (no comments or project updates); `doc/steps/current.md` as the list (it's the agent's handover, too dense to read at a glance).
+
+**Rationale:** one file next to the docs costs nothing to keep current and needs no tool switch; the details were in the docs already.
+
+**Status:** done. [`plans/architecture/linear.md`](plans/architecture/linear.md) superseded.
 
 ---
 
@@ -183,6 +198,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Alternatives:** the backlog file kept as the tracker (the owner reads Markdown to find their tasks); one Linear project for the whole game (its progress bar meaningless with the finished history in it); a project per area (never finishes); moving the project to another workspace (tried: not possible, and the GitHub connection had issues there).
 
 **Rationale:** the owner sees their own tasks first and each piece of work's progress at a glance; the docs keep the reasons and the details, so nothing is lost if Linear goes.
+
+*Update 2026-10-28:* **superseded**: Linear dropped, the owner's tasks are in [`tasks.md`](tasks.md) ([entry above](#2026-10-28--the-owners-tasks-in-doctasksmd-not-linear-process)).
 
 **Status:** built 2026-10-22: 12 projects, items 1–77 as issues SC-5 to SC-115 (the finished ones *Done*; items of backlog passes 1–4 marked *Built* taken as done), the owner's flying-scene tasks; `backlog.md` an index of items to issues.
 

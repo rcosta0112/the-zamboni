@@ -9,6 +9,7 @@ doc/
   README.md            this file: index + documentation conventions
   overview.md          the game: pitch, pillars, structure, features, constraints
   decision-log.md      every project decision, newest first
+  tasks.md             the owner's tasks at a glance (next up, by kind), and the agent's queue
   steps/               the project broken into steps (open-ended, added as we go)
     current.md         the work in progress: read first when picking the work up
   plans/               plans written before each step; not part of the final docs (see plans/README.md)

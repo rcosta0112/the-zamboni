@@ -16,12 +16,12 @@ plans/
 
 ## Index
 
-Open items: **in Linear** (team Studio Cataplasma, `SC`; [how it's organized](architecture/linear.md)); [`backlog.md`](backlog.md) maps items 1–77 to their issues. The state of the work in progress: [`../steps/current.md`](../steps/current.md).
+Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's queue; Linear dropped 2026-10-28); [`backlog.md`](backlog.md) maps items 1–77 to their `SC-n` numbers. The state of the work in progress: [`../steps/current.md`](../steps/current.md).
 
 | Plan | For step | Status |
 |---|---|---|
 | [Game architecture (levels, loading, budgets, characters, performance, saving, offline)](architecture/game-architecture/README.md) | [Step 1](../steps/01-docs-and-architecture.md) | Draft, for review |
-| [Tracking the work in Linear (the owner's tasks, the backlog)](architecture/linear.md) | Process | Built 2026-10-22 (two passes) |
+| [Tracking the work in Linear (the owner's tasks, the backlog)](architecture/linear.md) | Process | Built 2026-10-22 (two passes); superseded 2026-10-28 by `doc/tasks.md` |
 | [Repo and prototype workspace](architecture/repo-and-prototypes.md) | [Step 2](../steps/02-first-prototype.md) | Done |
 | [Prototype 01: walk](prototypes/01-walk.md) | [Step 2](../steps/02-first-prototype.md) | Built; frozen as 0.0.1 (2026-10-20) |
 | [Low-resolution rendering (was prototype 02)](prototypes/low-res.md) | [Step 2](../steps/02-first-prototype.md) | Set aside 2026-10-20; its features later (item 52) |
@@ -60,6 +60,7 @@ Open items: **in Linear** (team Studio Cataplasma, `SC`; [how it's organized](ar
 | [The scenery round the camera, not the ship (cells made from their place)](features/scenery-around-camera.md) | 0.0.2 | Built 2026-10-23 (owner: "write the plan and run it") |
 | [Dr. Green piloting: cutscene 2 and the start of chapter 1](features/piloting-loop.md) | The flying scene | Approved 2026-10-24; in progress |
 | [Black after NEW GAME, until cutscene 1 runs smoothly (SC-132)](features/black-before-cutscene-1.md) | The flying scene | Built 2026-10-24 (owner: "go for 132") |
+| [A hand-held feel for cutscene 2's cameras](features/handheld-cutscene-camera.md) | The flying scene | Built 2026-10-28 (free drift first); the owner's to look at |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 
 ## Plan format
