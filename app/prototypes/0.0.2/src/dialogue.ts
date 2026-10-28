@@ -10,7 +10,8 @@
 // the button picks it (`onChoose`), and the story's next lines (the answer) come back through `start`.
 // main.ts holds her still while one is on; the camera still turns (owner, 2026-10-21).
 // **Moving on by itself** (`autoNext`; a watched conversation, owner, 2026-10-22): a line typed out
-// waits that long, then the next comes (the last ends it); a press still completes or skips.
+// waits that long, then the next comes (the last ends it); a press still completes or skips. Half
+// as long before the same speaker's next line, unless the line is an ellipsis (owner, 2026-10-28).
 // Time is the game's: it stops with the pause.
 // Plan: doc/plans/features/dialogue.md (passes 1, 2, topics)
 
@@ -101,6 +102,14 @@ export class Dialogue {
     if (!going) this.sincePress = 0;
   }
 
+  /** The share of `autoNext` this line waits: half before the same speaker's next line (owner, 2026-10-28), all of it on an ellipsis line (a silent beat). */
+  private get waitShare(): number {
+    const line = this.lines[this.index];
+    const next = this.lines[this.index + 1];
+    if (!line || !next || next.id !== line.id || /^[.…\s]+$/.test(line.text)) return 1;
+    return 0.5;
+  }
+
   private get done(): boolean {
     return this.typed >= [...(this.lines[this.index]?.text ?? '')].length;
   }
@@ -124,7 +133,7 @@ export class Dialogue {
       return;
     }
     // A watched conversation: a line typed out moves on by itself, as a press would (without its click).
-    const auto = this.autoNext !== null && !this.choosing && this.done && (this.waited += dt) >= this.autoNext;
+    const auto = this.autoNext !== null && !this.choosing && this.done && (this.waited += dt) >= this.autoNext * this.waitShare;
     if (auto || (pressed && this.sincePress >= settings.dialogueDebounce)) {
       this.waited = 0;
       if (!auto) {
