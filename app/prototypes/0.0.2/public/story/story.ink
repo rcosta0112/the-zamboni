@@ -5,6 +5,8 @@
 // here are copied from them, word for word, and changed only by copying them again. A line not
 // written yet is a placeholder, marked `[Placeholder]` on screen. Comments are the agent's.
 // How the game reads it: doc/features/dialogue.md, and the header of the test story.
+// **One file per scene file** (2026-10-28), included below: knots only. This file keeps the
+// variables, the start and the `command` function. Knot and variable names are shared by all files.
 
 EXTERNAL command(name, id, value)
 
@@ -18,146 +20,8 @@ VAR green_jetpack = false
 
 -> DONE
 
-// Cutscene 2, the opening (doc/story/scenes/02-opening.md, word for word): watched, not played
-// (owner, 2026-10-22): the camera on whoever speaks, each line moving on by itself
-// (public/conversations/opening.json). Before chapter 1, after cutscene 1's card.
-=== cutscene_opening ===
-// *Aerial view of a frozen desert landscape. The Zamboni flies through the plain.* (cutscene 1's card for now)
-// Cockpit. Ogawa: (over the comms)
-Ogawa: Got a heading on the signal.
-// Green: (in the co-pilot seat)
-Green: How far?
-Ogawa: Hard to tell. A couple thousand kilometers.
-// Adam Red: (in the pilot seat)
-Adam Red: About 6 hours if this chunk of garbage holds up.
-Ogawa: Hey..
-// Adam Blue: (in the nav seat)
-Adam Blue: My apologies. This ship is a veritable work of art.
-Adam Blue: Is that a red light on engine 2?
-Ogawa: Burned capacitor. I’ll replace it when we land.
-Adam Red: Setting the course. Hang on.
-// *External view of the ship changing course.* (not built: no scenery yet)
--> DONE
-
-// Chapter 1 (doc/story/scenes/03-chapter-1.md, word for word). She starts in the copilot's seat:
-// Adam's line once the player has her (the scene's `begin`, after cutscene 2), then *Get up*; her
-// line once she's up (main.ts runs `got_up` when she gets up).
-=== chapter_1_start ===
-Adam: I can keep an eye on things if you need a break.
--> DONE
-
-=== got_up ===
-Green: Thank you. I think I'll stretch my legs for a bit. Did anyone make coffee?
--> DONE
-
-// The flight rules (owner, 2026-10-22, the flying scene's plan): while the ship is flying, the game
-// locks the outer doors and hatches (their keypads with them), the jetpacks and her parka; these
-// knots run instead. One line for all the outer doors (variations perhaps later).
-=== flight_outer_door ===
-Green: It's not safe to open that right now.
--> DONE
-
-=== use_side_door_keypad ===
-# verb: Open side door
-{ ship_flying: -> flight_outer_door }
--> DONE
-
-=== use_cargo_ramp_keypad ===
-# verb: Open cargo ramp
-{ ship_flying: -> flight_outer_door }
--> DONE
-
-=== use_top_hatch_lower ===
-# verb: Open roof hatch
-{ ship_flying: -> flight_outer_door }
--> DONE
-
-=== use_top_hatch_upper ===
-# verb: Open roof hatch
-{ ship_flying: -> flight_outer_door }
--> DONE
-
-// The jetpacks: locked only by the flight rules. Her jetpack is whichever the rack gives her.
-=== flight_jetpack ===
-Green: I don't need that right now
--> DONE
-
-=== use_jetpack_1 ===
-# verb: Take jetpack
--> flight_jetpack
-
-=== use_jetpack_2 ===
-# verb: Take jetpack
--> flight_jetpack
-
-=== use_jetpack_3 ===
-# verb: Take jetpack
--> flight_jetpack
-
-=== use_jetpack_4 ===
-# verb: Take jetpack
--> flight_jetpack
-
-// Her parka: locked only by the flight rules.
-=== use_green_parka ===
-# verb: Put on parka
-Green: it's too warm for that in here
--> DONE
-
-// The crew's lockers: hers stays shut (owner, 2026-10-21, the owner's lines).
-=== use_crew_locker_door_2 ===
-# verb: Open Dr. Kaufman's locker
-# instead
-Green: That's Dr. Kaufman's locker. I shouldn't open it.
--> DONE
-
-=== use_cargo_locker_door ===
-# verb: Open Dr. Ogawa's locker
-# instead
-Green: That's Dr. Ogawa's locker. I shouldn't open it.
--> DONE
-
-// The right-hand cockpit seat (id `cockpit-seat-pilot` until the rename: hers, the copilot's).
-// Landed: the owner's line. Flying: her seat's lines and *Sit down* are pass 2.
-=== use_cockpit_seat_pilot ===
-# verb: Look at the seat
-{ ship_flying:
-    Green: [Placeholder] Her seat, in flight (pass 2).
-- else:
-    Green: It's not time to go yet.
-}
--> DONE
-
-// The crew: placeholders until the owner's conversations (pass 2; the list of what to write is a
-// comment at the end of doc/story/scenes/03-chapter-1.md).
-=== talk_adam_red ===
-Adam Red: [Placeholder] Adam Red's conversation.
--> DONE
-
-=== talk_adam_blue ===
-Adam Blue: [Placeholder] Adam Blue's conversation.
--> DONE
-
-=== talk_kaufman ===
-Kaufman: [Placeholder] Dr. Kaufman's conversation.
--> DONE
-
-// Dr. Ogawa: the owner's exchange the first time; his one-liner after (not written yet).
-=== talk_ogawa ===
-{ talk_ogawa > 1: -> again }
-Green: Can you tell what that signal is?
-Ogawa: It’s not a beacon or a communication signal as far as I can tell.
-Ogawa: It’s pretty similar to the signature of a portal, but it’s a lot fainter and there are some gaps in the spectrum I can’t account for.
-Green: Care to speculate?
-// Ogawa: (...) (read as a pause)
-Ogawa: We don't have enough information.
-Ogawa: It could be another portal. It could be something else entirely.
-Ogawa: It could be a giant penguin.
-Ogawa: Dr. Kaufman would love that for sure.
--> DONE
-= again
-Ogawa: [Placeholder] Dr. Ogawa's one-liner.
--> DONE
+INCLUDE 02-opening.ink
+INCLUDE 03-chapter-1.ink
 
 === function command(name, id, value) ===
 // Without the game (the compiler's test run): nothing.

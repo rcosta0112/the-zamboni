@@ -4,29 +4,38 @@
 
 ### Cockpit
 
-**Ogawa** *(over the comms)*\
-Got a heading on the signal.
+**Ogawa** *(over the comms)*
+Got a fix on the signal.
 
-**Green** *(in the co-pilot seat)*\
+**Green** *(in the co-pilot seat)*
 How far?
 
-**Ogawa**\
-Hard to tell. A couple thousand kilometers.
+**Ogawa**
+Hard to tell.
+A couple thousand kilometers.
 
-**Adam Red** *(in the pilot seat)*\
+**Adam Red** *(in the pilot seat)*
 About 6 hours if this chunk of garbage holds up.
 
-**Ogawa**\
+**Ogawa**
 Hey..
 
-**Adam Blue** *(in the nav seat)*\
-My apologies. This ship is a veritable work of art.\
+**Adam Blue** *(in the nav seat)*
+My apologies.
+This ship is a veritable work of art.
+
+**Adam Red**
 Is that a red light on engine 2?
 
-**Ogawa**\
-Burned capacitor. I’ll replace it when we land.
+**Ogawa**
+...
+Burned capacitor.
+I’ll replace it when we land.
 
-**Adam Red**\
-Setting the course. Hang on.
+**Adam Blue**
+Setting the course. 
+
+**Green**
+Hang on.
 
 *External view of the ship changing course.*

@@ -56,8 +56,8 @@ while (w.__watched()?.playing && performance.now() - t0 < 60000) {
   await wait(100);
 }
 const took = (performance.now() - t0) / 1000;
-report(seen.length === 9, 'its nine lines, each on its own, nothing pressed', `${seen.length} lines in ${took.toFixed(1)} s`);
-report(placed.length === 9 && placed.every((p) => parseFloat(p.split(' ')[1]) < 1), "each line on its speaker's camera from the file", placed.join(', '));
+report(seen.length === 14, 'its fourteen lines, each on its own, nothing pressed', `${seen.length} lines in ${took.toFixed(1)} s`);
+report(placed.length === 14 && placed.every((p) => parseFloat(p.split(' ')[1]) < 1), "each line on its speaker's camera from the file", placed.join(', '));
 report(!w.__watched().playing && (!dialogue.active || dialogue.line?.id === 'adam-red'), "it ends by itself (then chapter 1's first line, Adam's)", dialogue.line?.text);
 report(character.position.distanceTo(feet) < 0.05, "she didn't move", `${character.position.distanceTo(feet).toFixed(3)} m`);
 report(barsOn, 'the black bars were on while it played');

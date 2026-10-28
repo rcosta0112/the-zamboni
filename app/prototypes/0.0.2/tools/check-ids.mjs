@@ -29,7 +29,9 @@ const openable = new Set(['ramp', ...[...doorKinds.matchAll(/^\s*'?([\w-]+)'?: d
 const cues = new Set(Object.keys(json('src/cues.json')));
 const tracks = new Set(fs.readdirSync(path.join(root, 'public/test/cutscenes')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)));
 const STORIES = ['public/story/story.ink', 'public/test/story.ink'];
-const inks = STORIES.map((file) => read(file));
+// A story is its file and the files it INCLUDEs from its folder (the game's: one per scene file; one level).
+const storyFiles = (file) => [file, ...[...read(file).matchAll(/^\s*INCLUDE\s+(\S+)/gm)].map((m) => path.posix.join(path.posix.dirname(file), m[1]))];
+const inks = STORIES.map((file) => storyFiles(file).map(read).join('\n'));
 // The game's scenes and the tracks may run with either story: a knot or variable they name must be in
 // both. The checks' scenes run with the test story only.
 const named = (re, of = inks) => of.map((ink) => new Set([...ink.matchAll(re)].map((m) => m[1]))).reduce((a, b) => new Set([...a].filter((x) => b.has(x))));
@@ -103,8 +105,8 @@ for (const id of tracks) {
   (track.end ?? []).forEach((c, i) => command(`cutscene ${id}, end ${i + 1}`, c));
 }
 const speakers = new Set([.../SPEAKERS: Record<string, string> = \{([^}]*)\}/.exec(read('src/story.ts'))?.[1].matchAll(/^\s*'?([\w ]+?)'?:/gm) ?? []].map((m) => m[1]));
-STORIES.forEach((file, at) => {
-  const ink = inks[at];
+STORIES.flatMap(storyFiles).forEach((file) => {
+  const ink = read(file);
   const storyKnots = new Set([...ink.matchAll(/^\s*===\s*(?:function\s+)?(\w+)/gm)].map((m) => m[1]));
   // Ink: `command("<name>", "<id>", "<value>")`, as story.ts turns it into a command.
   for (const [line, n] of ink.split(/\r?\n/).map((l, i) => [l, i + 1])) {

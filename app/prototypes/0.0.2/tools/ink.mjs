@@ -14,7 +14,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 let failed = false;
 for (const folder of ['public/story', 'public/test']) {
   const messages = [];
-  const compiler = new Compiler(readFileSync(join(root, folder, 'story.ink'), 'utf8'), { errorHandler: (message) => messages.push(message) });
+  // `INCLUDE <file>` reads from the story's own folder (the game's story: one file per scene file).
+  const fileHandler = { ResolveInkFilename: (name) => join(root, folder, name), LoadInkFileContents: (path) => readFileSync(path, 'utf8') };
+  const compiler = new Compiler(readFileSync(join(root, folder, 'story.ink'), 'utf8'), { errorHandler: (message) => messages.push(message), fileHandler });
   let story = null;
   try {
     story = compiler.Compile();

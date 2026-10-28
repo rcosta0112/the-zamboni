@@ -26,17 +26,18 @@ Can you tell what that signal is?
 
 **Ogawa**\
 It’s not a beacon or a communication signal as far as I can tell.\
-It’s pretty similar to the signature of a portal, but it’s a lot fainter and there are some gaps in the spectrum I can’t account for.
+It’s pretty similar to the signature of a portal, but it’s a lot fainter.
+There are some gaps in the spectrum I can’t account for.
 
 **Green**\
 Care to speculate?
 
 **Ogawa**\
-(...)
+...
 We don't have enough information.
 It could be another portal. It could be something else entirely.  
 
-**Ogawa**\
+**Green**\
 It could be a giant penguin.
 
 **Ogawa**\
