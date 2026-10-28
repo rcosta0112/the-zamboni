@@ -1,6 +1,6 @@
 # The flying scene: the Blender tasks
 
-**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). The owner's work in Blender for it, in the order the passes need it. Each line says what the game needs, not how to do it in Blender. **Tracked in Linear** (since 2026-10-22): each row links its issue, assigned to the owner; its status there is the one that counts.
+**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). The owner's work in Blender for it, in the order the passes need it. Each line says what the game needs, not how to do it in Blender. **Tracked in [`doc/tasks.md`](../../tasks.md)** (since 2026-10-28; Linear dropped): the `SC-n` numbers are kept there, and its status is the one that counts. The row links open the old Linear issues (history only).
 
 ## The ship file (`The Zamboni 1.22.blend`)
 

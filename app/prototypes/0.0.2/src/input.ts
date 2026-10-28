@@ -39,6 +39,8 @@ export class Input {
   menuStep = 0;
 
   private keys = new Set<string>();
+  /** The left mouse button is down (the window's: the cutscene's black and bars lie over the canvas). */
+  private leftHeld = false;
   private mouseDX = 0;
   private mouseDY = 0;
   private jumpLatched = false;
@@ -93,10 +95,15 @@ export class Input {
     });
     // A click anywhere also shows a cutscene's skip prompt (owner, 2026-10-24): the window's, since
     // the cutscene's black and bars lie over the canvas.
-    window.addEventListener('mousedown', () => {
+    window.addEventListener('mousedown', (e) => {
       this.skipLatched = true;
+      if (e.button === 0) this.leftHeld = true;
       this.lastDevice = 'keyboard';
     });
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 0) this.leftHeld = false;
+    });
+    window.addEventListener('blur', () => (this.leftHeld = false));
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
       this.mouseDX += e.movementX;
@@ -227,9 +234,9 @@ export class Input {
     this.jumpLatched = false;
   }
 
-  /** The button held to skip a cutscene is down: E, the pad's interact (B / Circle). */
+  /** The button held to skip a cutscene is down: the left mouse button (owner, 2026-10-28; E before), the pad's interact (B / Circle). */
   get skipHeld(): boolean {
-    return this.keys.has('KeyE') || this.padButtons[PAD_B] === true;
+    return this.leftHeld || this.padButtons[PAD_B] === true;
   }
 
   /** True once per press that shows a cutscene's skip prompt (any pad button but Start and View; any key but the panel's; a click). */

@@ -6,7 +6,7 @@
 // About 40 s. A new game plays cutscene 1 (black until its first frames are quick: it lifts with the
 // cutscene from its start, and no long frame after): the camera where the fly-by has it (in the ship's own
 // space, at three times), the ship swaying and the camera not with it, Dr. Green hidden, a screenshot
-// at each time, its shadow casters swaying with it; a press shows the skip prompt; held 3 s, E skips:
+// at each time, its shadow casters swaying with it; a press shows the skip prompt; held 2 s, the left mouse button skips:
 // that puts them back, shows her and starts cutscene 2, which is skipped the same way.
 // Runs in the page (probe-01.mjs).
 
@@ -63,37 +63,38 @@ for (const [t, at] of expected) {
 report(swayed > 0.3, 'the ship sways', `up to ${swayed.toFixed(2)}° off its own pose`);
 report(castersOff < 0.01, 'its shadow casters sway with it', `${castersOff.toFixed(3)}° apart at most`);
 
-// Skipping (SC-126): a press shows "Hold E to skip" and skips nothing; holding E for 3 s skips.
+// Skipping (SC-126): a press shows "Hold <mouse> to skip" and skips nothing; holding the left mouse button for 2 s skips (owner, 2026-10-28; E and 3 s before).
 const skip = w.__skip, el = document.querySelector('#skip');
 const key = (code, down) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code }));
+const mouse = (down) => window.dispatchEvent(new MouseEvent(down ? 'mousedown' : 'mouseup', { button: 0 }));
 cutscene.time = 1; // far from its end: it would run out by itself
 key('Space', true);
 key('Space', false);
 await wait(300);
-report(cutscene.playing && skip.shown && el.querySelector('.glyph').textContent === 'E', 'a press shows the skip prompt (the E key), and skips nothing', el.textContent);
+report(cutscene.playing && skip.shown && el.querySelector('.glyph svg') !== null, 'a press shows the skip prompt (the mouse icon), and skips nothing', el.textContent);
 await until(() => !skip.shown, 5000);
 report(!skip.shown && cutscene.playing, 'the prompt goes after 3 s');
-key('KeyE', true);
+mouse(true);
 const held = performance.now();
-await wait(1500);
-report(cutscene.playing && skip.shown, 'held 1.5 s: still playing, the prompt up');
+await wait(1000);
+report(cutscene.playing && skip.shown, 'held 1 s: still playing, the prompt up');
 await until(() => !cutscene.playing, 3000);
 const took = (performance.now() - held) / 1000;
-report(!cutscene.playing && took > 2.8 && took < 3.6, 'held 3 s, a skip ends it', `${took.toFixed(2)} s`);
+report(!cutscene.playing && took > 1.8 && took < 2.6, 'held 2 s, a skip ends it', `${took.toFixed(2)} s`);
 report(hull.quaternion.angleTo(cutscene.rest.quaternion) < 1e-6 && hull.position.distanceTo(cutscene.rest.position) < 1e-6, 'the ship back in its own pose');
 report(character.root.visible, 'Dr. Green shown again');
 report(caster.quaternion.angleTo(new w.__THREE.Quaternion()) < 1e-6 && caster.position.length() < 1e-6, 'the shadow casters back in place');
 const next = await until(() => w.__watched()?.playing, 3000);
 report(next, 'cutscene 2 starts after it');
-// Cutscene 2: E still held from the skip doesn't count; let go and held again, it skips too.
+// Cutscene 2: the button still held from the skip doesn't count; let go and held again, it skips too.
 await wait(3500);
 report(w.__watched().playing, 'the button still held: cutscene 2 not skipped');
-key('KeyE', false);
+mouse(false);
 await wait(200);
-key('KeyE', true);
+mouse(true);
 await until(() => !w.__watched().playing, 5000);
-key('KeyE', false);
-report(!w.__watched().playing && !w.__dialogue.active, 'held again 3 s, cutscene 2 skipped');
+mouse(false);
+report(!w.__watched().playing && !w.__dialogue.active, 'held again 2 s, cutscene 2 skipped');
 await wait(200);
 report(!skip.shown && !document.querySelector('#bars').classList.contains('on'), 'no prompt or bars after it');
 

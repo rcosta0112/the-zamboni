@@ -30,10 +30,10 @@ if (await until(() => w.__watched()?.speaker === 'green', 30000)) {
   await shot('cutscene-2-green');
   results.push(`      her shot: camera ${fmt(w.__watched().camera.position)}, her feet ${fmt(character.position)}`);
 }
-// Skipped by holding E for 3 s.
-key('KeyE', true);
+// Skipped by holding the left mouse button for 3 s.
+window.dispatchEvent(new MouseEvent('mousedown', { button: 0 }));
 await until(() => !w.__watched()?.playing, 6000);
-key('KeyE', false);
+window.dispatchEvent(new MouseEvent('mouseup', { button: 0 }));
 await wait(800);
 report(character.model?.seated === true, 'chapter 1 starts her seated');
 const seatedAt = character.position.clone();

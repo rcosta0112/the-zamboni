@@ -18,10 +18,10 @@ const cutscene = w.__cutscene();
 await until(() => cutscene.playing, 5000);
 report(cutscene.track?.id === 'cutscene-1', 'cutscene 1 plays after a new game', cutscene.track?.id);
 await shot('animatic');
-// Skipped by holding E for 3 s (skip-prompt.ts).
-window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+// Skipped by holding the left mouse button for 3 s (skip-prompt.ts).
+window.dispatchEvent(new MouseEvent('mousedown', { button: 0 }));
 await until(() => !cutscene.playing, 5000);
-window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
+window.dispatchEvent(new MouseEvent('mouseup', { button: 0 }));
 await until(() => !cutscene.playing, 2000);
 report(!cutscene.playing, 'a skip ends it');
 // Cutscene 2 (watched) plays after it: its own probe (opening-probe.js) looks at it; here it's let run out.

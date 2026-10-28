@@ -1,32 +1,14 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-146**.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-146**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
 *Updated 2026-10-28.*
 
 ## Next up
 
-1. **SC-141** · Look at cutscene 2's hand-held drift; tune it on the panel (*Camera* › *hand-held*). The values you settle on become the defaults.
-2. **SC-139** · Decide: swap the two Adam cameras or the bodies (below, *Decision*).
-3. **SC-120** · Answer the four questions on cutscene 2's exterior shot: it blocks the flying scene's pass 4c.
-4. **SC-13, SC-14, SC-15** · The Blender tasks that block the flying scene's pass 1, second half.
-
-## Look at (built, yours to try)
-
-At http://localhost:5202/ (reload; NEW GAME, or `?scene=opening` / `?scene=chapter-1`).
-
-- [ ] **SC-141** · Cutscene 2's cameras held by hand (free drift). [Plan](plans/features/handheld-cutscene-camera.md)
-- [ ] **SC-140** · Quality switch (P), anti-aliasing off, cutscene 2's wide shot held 4 s, chapter 1's start lines, Ogawa's conversation.
-- [ ] **SC-138** · 1.22's cockpit and crew poses; cutscene 2 on your cameras.
-- [ ] **SC-129** · Dr. Green seated in cutscene 2 and at chapter 1's start, *Get up* (E / B). [Plan](plans/features/piloting-loop.md)
-- [ ] **SC-137** · Cutscene 1's sound: wind faded in, the ship's noise mixed in with the zoom; a click shows the skip prompt.
-- [ ] **SC-135** · Start screen fades in; the progress bar a 4 px strip at the bottom.
-- [ ] **SC-134** · The *wrong* sound at a locked door.
-- [ ] **SC-132** · Black screen after NEW GAME instead of the freeze.
-- [ ] **SC-125** · Cutscene 1 (the fly-by copied from 1.10).
-- [ ] **SC-124** · The outside's own light; the glass a bit darker (`?scene=chapter-1`).
-- [ ] **SC-44** · 63 · Engineering seen from above: 110 ms a frame in the test browser. Check it on your GPU (the frame readout).
-- [ ] **SC-118, SC-119** · Pass 1's first try and cutscene 2's angles: **probably superseded** by SC-138 (your own cameras in 1.22). Tick them off if so.
+1. **SC-139** · Decide: swap the two Adam cameras or the bodies (below, *Decision*).
+2. **SC-120** · Answer the four questions on cutscene 2's exterior shot: it blocks the flying scene's pass 4c.
+3. **SC-13, SC-14, SC-15** · The Blender tasks that block the flying scene's pass 1, second half.
 
 ## Decision
 

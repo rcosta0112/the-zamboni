@@ -122,6 +122,26 @@ body {
 #skip {
   right: 24px;
   bottom: 24px;
+  overflow: hidden; /* the fill keeps to the rounded corners */
+}
+
+/* The mouse icon is its own outline. */
+#skip .glyph.mouse {
+  border: none;
+  min-width: 0;
+  padding: 0;
+}
+
+/* Fills left to right while the button is held (skip-prompt.ts sets the scale; owner, 2026-10-28). */
+#skip .fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
 }
 
 #prompt .glyph,

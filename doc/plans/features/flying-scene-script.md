@@ -1,6 +1,6 @@
 # The flying scene: the script tasks
 
-**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). What the owner writes for the flying scene and its cutscenes, and how the game reads it. The Blender work is in [its own doc](flying-scene-blender.md). **Tracked in Linear** (since 2026-10-22): each row links its issue, assigned to the owner.
+**Status:** *approved* with the [flying scene's plan](flying-scene.md) (2026-10-22). What the owner writes for the flying scene and its cutscenes, and how the game reads it. The Blender work is in [its own doc](flying-scene-blender.md). **Tracked in [`doc/tasks.md`](../../tasks.md)** (since 2026-10-28; Linear dropped): the `SC-n` numbers are kept there. The row links open the old Linear issues (history only).
 
 ## What to write
 

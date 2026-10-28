@@ -15,10 +15,10 @@ const dialogue = w.__dialogue, character = w.__character;
 
 await until(() => w.__cutscene().playing, 5000);
 report(w.__cutscene().track?.id === 'cutscene-1', 'cutscene 1 after a new game');
-// Skipped by holding E for 3 s (skip-prompt.ts).
-window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+// Skipped by holding the left mouse button for 3 s (skip-prompt.ts).
+window.dispatchEvent(new MouseEvent('mousedown', { button: 0 }));
 await until(() => !w.__cutscene().playing, 5000);
-window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE' }));
+window.dispatchEvent(new MouseEvent('mouseup', { button: 0 }));
 await until(() => w.__watched()?.playing, 3000);
 const data = await (await fetch('/conversations/opening.json')).json();
 const THREE = w.__THREE;

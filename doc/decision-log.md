@@ -75,6 +75,10 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status:** done. [`plans/architecture/linear.md`](plans/architecture/linear.md) superseded.
 
+**Update 2026-10-28 (owner):** for the record, **Linear was tried (2026-10-22 to 10-28) and turned out too complicated for a project this size**: the upkeep (issues, statuses, comments, project updates, docs linking issues) outweighed what it showed. **What replaced it:** [`doc/tasks.md`](tasks.md), one Markdown file in the repo, rewritten by the agent at the end of every session (rule in `CLAUDE.md`). No procedure reads or writes Linear any more; the old `linear.app` links in the backlog and the flying scene's docs are history only.
+
+**Update 2026-10-28 (owner):** the *Look at* group is removed. Built things aren't listed for the owner to try; when checking one blocks another task, the agent says so in chat (and it goes in *Next up*).
+
 ---
 
 ## [2026-10-27] — Plans estimate the agent's build and the review rounds apart (process)
