@@ -32,6 +32,12 @@ const openedAt = performance.now();
 report(w.__watched().speaker === 'opening' && !dialogue.line && off('opening') < 0.01, 'it opens on the wide shot, no line', `${w.__watched().speaker}, ${(off('opening') * 100).toFixed(1)} cm from the file's camera`);
 await wait(300);
 await shot('line-00-opening');
+// Held by hand (owner, 2026-10-28): the view drifts from the shot's rest pose, slowly and a little.
+const drift = () => w.__watched().camera.quaternion.angleTo(w.__watched().rest.quaternion) * 180 / Math.PI;
+const drifts = [];
+for (let i = 0; i < 10; i++) { drifts.push(drift()); await wait(200); }
+const most = Math.max(...drifts), moved = most - Math.min(...drifts);
+report(moved > 0.01 && most < 1, 'the camera drifts as if held by hand, a little', `${moved.toFixed(3)}° over 2 s, at most ${most.toFixed(2)}° from the shot`);
 const started = await until(() => w.__watched()?.playing && dialogue.line, 4000);
 const held = (performance.now() - openedAt) / 1000;
 report(started && held > 3.7 && held < 4.6, 'cutscene 2 starts after cutscene 1, its first line after the wide shot', `held ${held.toFixed(1)} s`);

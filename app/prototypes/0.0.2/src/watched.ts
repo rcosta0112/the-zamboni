@@ -16,6 +16,10 @@
 // the ship file) is placed exactly so, its view across kept whatever the screen's shape (the black
 // bars cut top and bottom); the rest above is for a speaker without one. `opening`: a shot held alone
 // for `hold` seconds before the first line (the wide shot of the cockpit; owner).
+// **Held by hand** (owner, 2026-10-28; doc/plans/features/handheld-cutscene-camera.md): each frame
+// the camera drifts slowly from the shot's rest pose (sums of slow sines, never a shake); the share
+// `handheldOrbit` of the turn is made about the speaker's head (their place on screen kept), the rest
+// on the camera itself (free drift). The wide shot orbits a point ahead of it instead.
 // main.ts treats it as a cutscene while it plays (she stands still, nothing can be used, the
 // see-through is off, the crew drawn, the black bars) and renders through its camera.
 // Plan: doc/plans/features/flying-scene.md (pass 1, the animatic)
@@ -24,6 +28,7 @@ import * as THREE from 'three/webgpu';
 import { fromBlender } from './commands';
 import type { Dialogue } from './dialogue';
 import type { Entities } from './entities';
+import { settings } from './settings';
 import type { GameStory } from './story';
 
 type Vec = [number, number, number];
@@ -79,6 +84,16 @@ const OWN_SEAT = 0.6;
 const TURNS = [15, -15, 30, -30, 45, -45, 60, -60, 75, -75];
 /** The head is this far under the top of a character's bounds (m). */
 const HEAD_BELOW_TOP = 0.12;
+/** The hand-held drift at strength 1 (degrees, either way): side to side, up and down, roll. */
+const SWAY_DEG = { yaw: 0.4, pitch: 0.25, roll: 0.2 };
+/** Each axis's waves at speed 1: [Hz, share, phase]; unrelated frequencies, so it never visibly repeats. */
+const WAVES: Record<keyof typeof SWAY_DEG, [number, number, number][]> = {
+  yaw: [[0.07, 0.5, 0.3], [0.17, 0.3, 2.1], [0.29, 0.2, 4.4]],
+  pitch: [[0.09, 0.5, 1.2], [0.21, 0.3, 5.0], [0.31, 0.2, 0.7]],
+  roll: [[0.06, 0.6, 3.3], [0.19, 0.4, 1.9]],
+};
+/** A shot with no speaker (the wide shot) orbits a point this far ahead (m). */
+const PIVOT_AHEAD = 3;
 
 export class WatchedConversation {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.05, 500);
@@ -96,6 +111,10 @@ export class WatchedConversation {
   private holding = 0;
   /** The view across of the camera in use (degrees), if it's the file's: the lens follows the screen's shape. */
   private across: number | null = null;
+  /** The shot's pose before the hand-held drift (exposed for checks), and what an orbit turns about. */
+  readonly rest = { position: new THREE.Vector3(), quaternion: new THREE.Quaternion(), pivot: new THREE.Vector3() };
+  /** The drift's clock (s at speed 1): runs on across cuts. */
+  private swayTime = 0;
 
   constructor(
     private readonly ship: THREE.Object3D,
@@ -153,7 +172,7 @@ export class WatchedConversation {
     if (this.holding > 0) {
       this.holding -= dt;
       this.fit(aspect);
-      if (this.holding > 0) return;
+      if (this.holding > 0) return this.sway(dt);
       this.startLines();
     }
     if (!this.dialogue.active) {
@@ -163,9 +182,39 @@ export class WatchedConversation {
     }
     this.fit(aspect);
     const id = this.dialogue.line?.id ?? null;
-    if (id === null || id === this.speaker) return;
-    this.speaker = id;
-    this.aim(id, this.data?.shots[id] ?? {}, aspect);
+    if (id !== null && id !== this.speaker) {
+      this.speaker = id;
+      this.aim(id, this.data?.shots[id] ?? {}, aspect);
+    }
+    this.sway(dt);
+  }
+
+  /** The hand-held drift: the rest pose turned, part about the pivot (orbit), part on the camera itself. */
+  private sway(dt: number): void {
+    const { position, quaternion, pivot } = this.rest;
+    const strength = settings.handheld ? settings.handheldStrength : 0;
+    this.swayTime += Math.max(0, dt) * settings.handheldSpeed;
+    const angle = (axis: keyof typeof SWAY_DEG) =>
+      THREE.MathUtils.degToRad(SWAY_DEG[axis] * strength) *
+      WAVES[axis].reduce((sum, [hz, share, phase]) => sum + share * Math.sin(2 * Math.PI * hz * this.swayTime + phase), 0);
+    const yaw = angle('yaw'), pitch = angle('pitch'), roll = angle('roll');
+    const orbit = THREE.MathUtils.clamp(settings.handheldOrbit, 0, 1);
+    // The orbit: about the world's up and the camera's right, through the pivot.
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quaternion);
+    const turn = new THREE.Quaternion()
+      .setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw * orbit)
+      .multiply(new THREE.Quaternion().setFromAxisAngle(right, pitch * orbit));
+    this.camera.position.copy(position).sub(pivot).applyQuaternion(turn).add(pivot);
+    // The free drift: on the camera's own axes, and the roll.
+    const own = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch * (1 - orbit), yaw * (1 - orbit), roll, 'YXZ'));
+    this.camera.quaternion.copy(turn).multiply(quaternion).multiply(own);
+  }
+
+  /** The camera's pose now is the shot's rest pose; it orbits `pivot` (or a point ahead of it). */
+  private setRest(pivot: THREE.Vector3 | null): void {
+    this.rest.position.copy(this.camera.position);
+    this.rest.quaternion.copy(this.camera.quaternion);
+    this.rest.pivot.copy(pivot ?? new THREE.Vector3(0, 0, -PIVOT_AHEAD).applyQuaternion(this.camera.quaternion).add(this.camera.position));
   }
 
   /** The screen's shape; a file camera's lens kept to its view across. */
@@ -190,6 +239,8 @@ export class WatchedConversation {
       this.camera.aspect = aspect;
       this.camera.fov = verticalFov(fov, aspect);
       this.camera.updateProjectionMatrix();
+      // The wide shot has no speaker to orbit.
+      this.setRest(id === this.data?.opening?.shot ? null : this.head(id));
       return;
     }
     this.across = null;
@@ -226,6 +277,7 @@ export class WatchedConversation {
     this.camera.lookAt(target);
     this.camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(frame / 2 / distance));
     this.camera.updateProjectionMatrix();
+    this.setRest(target);
   }
 
   /** The ship's meshes that hide what's behind them: drawn, not glass, not the crew (found once). */

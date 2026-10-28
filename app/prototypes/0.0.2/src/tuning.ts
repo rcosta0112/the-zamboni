@@ -98,6 +98,10 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   cam.add(settings, 'cameraMinDistance', 0.1, 1.5, 0.01).name('closest to her (m)');
   cam.add(settings, 'cameraFadeStart', 0.2, 3, 0.05).name('she fades from (m)');
   cam.add(settings, 'cameraFadeEnd', 0, 2, 0.05).name('she is gone at (m)');
+  cam.add(settings, 'handheld').name('cutscene 2: hand-held');
+  cam.add(settings, 'handheldStrength', 0, 4, 0.05).name('hand-held: strength');
+  cam.add(settings, 'handheldSpeed', 0.1, 4, 0.05).name('hand-held: speed');
+  cam.add(settings, 'handheldOrbit', 0, 1, 0.05).name('hand-held: orbit the speaker');
 
   const input = gui.addFolder('Input');
   input.add(settings, 'stickLookSpeed', 0.5, 6, 0.1).name('stick look (rad/s)');

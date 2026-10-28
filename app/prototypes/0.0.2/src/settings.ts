@@ -136,6 +136,14 @@ export const settings = {
   cameraMinDistance: 0.15, // m from her focus point; the near plane is 0.1
   cameraFadeStart: 1.0, // m: fully shown at this distance or farther
   cameraFadeEnd: 0.5, // m: gone at this distance or closer (her shadow stays)
+  // Cutscene 2's cameras held by hand (owner, 2026-10-28: subtle, no motion sickness; watched.ts):
+  // a slow drift on top of the file's camera. Strength 1 = ±0.4° side to side, ±0.25° up and down,
+  // ±0.2° roll; speed 1 = waves of about 0.07–0.3 Hz. Orbit: the share of the turn made about the
+  // speaker's head instead of the camera itself (0 = free drift, the owner's first try).
+  handheld: true,
+  handheldStrength: 1,
+  handheldSpeed: 1,
+  handheldOrbit: 0,
 
   // Input
   stickLookSpeed: 2.6, // rad/s at full right-stick deflection

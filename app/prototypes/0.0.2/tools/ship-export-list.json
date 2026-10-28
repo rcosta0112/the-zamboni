@@ -81,8 +81,8 @@
   "Cargo Ramp Keypad",
   "Engineering Door Panel Front",
   "Cockpit Door Panel Back",
-  "Dials.002",
-  "Monitor.001",
+  "Dashboard",
+  "Navigation Display",
   "Seat.001",
   "Back seat.001",
   "Signal Receiver.001",
@@ -100,12 +100,12 @@
   "Seat back left",
   "Foot Rest.001",
   "Joystick base left",
-  "Seat base left.002",
+  "Seat base right.001",
   "Seat left.002",
   "Seat back left.002",
   "Foot Rest.003",
   "Joystick base left.002",
-  "Dials.004",
+  "Sliders",
   "Seat base left.001",
   "Seat left.001",
   "Seat back left.001",
@@ -786,12 +786,12 @@
    "group": "Cargo Bay"
   },
   {
-   "name": "Plane.003",
+   "name": "Dashboard Keypad",
    "group": "Cockpit",
    "seeThrough": "solid"
   },
   {
-   "name": "Plane.005",
+   "name": "Dashboard Keypad.001",
    "group": "Cockpit",
    "seeThrough": "solid"
   },
