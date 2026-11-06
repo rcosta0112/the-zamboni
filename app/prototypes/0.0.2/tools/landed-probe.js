@@ -5,7 +5,7 @@
 // About 40 s. Chapter 1 starts her seated: Adam's line, *Get up*, her line; her seat then offers *Sit
 // down*: E seats her and the landing shot plays (the treadmill stopped, no flames, the gear down), the
 // landed scene under it; at its end she's seated, *Get up* says nothing; nothing is locked; outside she
-// stands on the terrain's hills.
+// stands on the terrain's hills; the rocks cast into the shadow map, the nearest ones collide.
 // Runs in the page (probe-01.mjs).
 
 const results = [];
@@ -69,4 +69,11 @@ await wait(500);
 report(character.grounded && Math.abs(character.position.y - ground) < 0.1, 'outside she stands on the hills, not the flat ground', `feet ${character.position.y.toFixed(2)}, the hills ${ground.toFixed(2)} there`);
 await wait(1500);
 await shot('outside');
+// The rocks (2026-11-06): all cast real shadows while parked; the nearest ones collide.
+const casting = [];
+w.__scene.traverse((o) => { if (o.isInstancedMesh && o.castShadow) casting.push(o); });
+report(casting.length > 0, 'parked: the rocks cast into the shadow map', `${casting.length} meshes`);
+const near = t.nearRocks.map((m) => new THREE.Box3().setFromObject(m)).sort((a, b) => b.getSize(new THREE.Vector3()).y - a.getSize(new THREE.Vector3()).y)[0];
+const middle = near?.getCenter(new THREE.Vector3());
+report(near && !w.__physics.fits(middle.setY(t.groundY(middle.x, middle.z) + 0.3)), 'the biggest rock near the ship collides', `${t.nearRocks.length} rocks within 500 m`);
 return results;

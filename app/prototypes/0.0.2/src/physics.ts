@@ -198,7 +198,7 @@ export class Physics {
    * Static convex colliders, one per mesh, in their current world position (the collision boxes):
    * each mesh's convex hull. `solid` as for `addStaticBox`. Returns how many, and a switch for all.
    */
-  addStaticConvex(meshes: THREE.Mesh[], solid = true): { count: number; setEnabled: (on: boolean) => void } {
+  addStaticConvex(meshes: THREE.Mesh[], solid = true): { count: number; setEnabled: (on: boolean) => void; remove: () => void } {
     const v = new THREE.Vector3();
     const colliders = meshes.map((mesh) => {
       mesh.updateWorldMatrix(true, false);
@@ -215,7 +215,11 @@ export class Physics {
       return collider;
     });
     this.world.step();
-    return { count: colliders.length, setEnabled: (on) => colliders.forEach((c) => c.setEnabled(on)) };
+    return {
+      count: colliders.length,
+      setEnabled: (on) => colliders.forEach((c) => c.setEnabled(on)),
+      remove: () => colliders.forEach((c) => this.world.removeCollider(c, false)),
+    };
   }
 
   /** A static triangle-mesh collider from world-space vertices; can be switched on and off. */

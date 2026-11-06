@@ -69,6 +69,10 @@ const WARM_LIMIT = 6;
  * and WARM_FRAMES quick frames have followed, or after WARM_LIMIT; the cutscene starts over under its fade.
  */
 const BLACK_HELD = 1;
+/** Landed on the plain: how far back along the sun the shadow camera sits (m), for the rocks nearest the ship (up to 190 m tall). */
+const LANDED_SUN_BACK = 260;
+/** Landed on the plain: the rocks' flattened shadows are left out this share of the shadow map's half-width round her. */
+const SHADOW_CUT_SHARE = 0.85;
 /** The landed scene's ground collider reaches this far round the ship (m): past where the jetpack takes her in a while. */
 const TERRAIN_COLLIDER = 2500;
 /** An exterior cutscene's wind fades in over this long from its start (s; owner, 2026-10-24). */
@@ -171,6 +175,7 @@ async function start(): Promise<void> {
   let story: GameStory | null = null;
   let cutscene: CutscenePlayer | null = null;
   let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
+  let rockColliders: { remove: () => void } | null = null; // the landed scene's nearest rocks
   let flames: ThrusterFlames | null = null; // behind the turbines in exterior cutscenes
   let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
@@ -310,7 +315,13 @@ async function start(): Promise<void> {
       director.onTravel = (terrain, parkedAt) =>
         void treadmill
           ?.set(terrain, parkedAt)
-          .then(() => physics.setGround(treadmill?.parkedAt != null ? treadmill.groundMesh(TERRAIN_COLLIDER) : null))
+          .then(() => {
+            const parked = treadmill?.parkedAt != null;
+            physics.setGround(parked ? treadmill!.groundMesh(TERRAIN_COLLIDER) : null);
+            // The rocks nearest the ship collide (their convex hulls).
+            rockColliders?.remove();
+            rockColliders = parked && treadmill!.nearRocks.length > 0 ? physics.addStaticConvex(treadmill!.nearRocks) : null;
+          })
           .catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
       view.groundAt = (x, z) => treadmill?.groundY(x, z) ?? 0;
       // The hull's outside as the exterior shots light it: its shaders built now, not at the first cut.
@@ -815,7 +826,10 @@ async function start(): Promise<void> {
     if (interaction) interaction.only = sitting ? getUp : null;
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
-    updateWorld(world, scene, character.root.position, indoorLight);
+    // Landed on the plain, the shadow camera reaches back to the big rocks' tops (terrain.ts `nearRocks`).
+    updateWorld(world, scene, character.root.position, indoorLight, treadmill?.parkedAt != null ? LANDED_SUN_BACK : 30);
+    // Where the shadow map reaches round her (its square's half-width, less a margin), the rocks' shadows are its own.
+    treadmill?.cutShadows(character.root.position.x, character.root.position.z, world.sun.shadow.camera.right * SHADOW_CUT_SHARE);
     // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
     flames?.update(cutscene?.playing ?? false);
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any

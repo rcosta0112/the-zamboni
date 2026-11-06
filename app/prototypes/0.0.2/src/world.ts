@@ -64,7 +64,7 @@ export function createWorld(scene: THREE.Scene): World {
   const s = sun.shadow.camera;
   s.near = 1;
   s.far = 80;
-  sun.shadow.bias = -0.0005;
+  sun.shadow.bias = SHADOW_BIAS;
   sun.shadow.normalBias = 0.02;
   scene.add(sun, sun.target);
 
@@ -82,17 +82,31 @@ export function createWorld(scene: THREE.Scene): World {
  * windows, and it made the rooms too blue; owner, 2026-10-12).
  */
 /** The sun's elevation and direction now (degrees): the flight's while the ship flies. */
+/** The sun's shadow depth bias with its shadow camera's far plane at 80 m (`updateWorld` scales it with the far plane). */
+const SHADOW_BIAS = -0.0005;
+
 export function sunDegrees(): { elevation: number; azimuth: number } {
   return settings.shipFlying
     ? { elevation: settings.flightSunElevationDeg, azimuth: settings.flightSunAzimuthDeg }
     : { elevation: settings.sunElevationDeg, azimuth: settings.sunAzimuthDeg };
 }
 
-export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3, insideAmount: number): void {
+/**
+ * @param sunBack how far back along the sun the shadow camera sits (m): what can cast onto her
+ *   surroundings. The ship needs 30; the landed scene's big rocks 260 (a 190 m rock's top is about
+ *   210 m back at the sun's 20°). The depth bias is scaled with it, so it stays the same in metres.
+ */
+export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3, insideAmount: number, sunBack = 30): void {
   const sunAt = sunDegrees();
   const el = THREE.MathUtils.degToRad(sunAt.elevation);
   const az = THREE.MathUtils.degToRad(sunAt.azimuth);
-  const dist = 30;
+  const dist = sunBack;
+  const far = sunBack + 50;
+  if (world.sun.shadow.camera.far !== far) {
+    world.sun.shadow.camera.far = far;
+    world.sun.shadow.bias = (SHADOW_BIAS * 80) / far;
+    world.sun.shadow.camera.updateProjectionMatrix();
+  }
   world.sun.position.set(
     target.x + Math.cos(el) * Math.sin(az) * dist,
     target.y + Math.sin(el) * dist,

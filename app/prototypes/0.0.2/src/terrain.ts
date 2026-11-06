@@ -26,10 +26,15 @@
 // sun is tinted on these materials only, through their received shadow (three multiplies the sun's light
 // by it). Tuned on the panel's *Flight: outside light*.
 // **Parked** (`park`, 2026-11-06: the landed scene): stopped at a spot along the terrain, the ground's
-// height at the ship's centre at its feet; `groundMesh` gives her collider the same triangles.
+// height at the ship's centre at its feet; `groundMesh` gives her collider the same triangles. **The
+// rocks cast real shadows** while parked (into the sun's shadow map: onto her, the ship, the hills and
+// themselves, 2026-11-06): round her, as far as the shadow map reaches (`cutShadows`), the flattened
+// shadows are left out, since their big triangles float over the dips between the hills (one hid her
+// legs); further off they stay. **The rocks nearest the ship collide** (`nearRocks`, within
+// NEAR_ROCKS: main.ts gives each a convex collider).
 
 import * as THREE from 'three/webgpu';
-import { Fn, cameraViewMatrix, clamp, float, floor, lights, mix, mod, normalize, positionLocal, select, smoothstep, texture, textureLevel, transformNormalToView, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
+import { Fn, cameraViewMatrix, length, clamp, float, floor, lights, mix, mod, normalize, positionLocal, select, smoothstep, texture, textureLevel, transformNormalToView, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries, mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { settings } from './settings';
@@ -101,6 +106,8 @@ export interface TerrainData {
   haze: { near: number; far: number };
 }
 
+/** Parked, the rocks this close to the ship's centre (m) collide (`nearRocks`). */
+export const NEAR_ROCKS = 500;
 /** The ground reaches this much past the full haze, each way. */
 const GROUND_MARGIN = 1.2;
 /** The flattened shadows sit this far above the ground (m), and are drawn in front of it. */
@@ -147,6 +154,11 @@ export class Treadmill {
   travelled = 0;
   /** Stopped this far along (the ship landed on it), or null: going by. */
   parkedAt: number | null = null;
+  /** Parked: the rocks nearest the ship, each its shape and its place in the world (not drawn: for their colliders). */
+  readonly nearRocks: THREE.Mesh[] = [];
+  /** Parked: where she is (x, z in the group) and the radius round her where the flattened shadows are left out (0: none). */
+  private readonly cutAt = uniform(new THREE.Vector2());
+  private readonly cutRadius = uniform(0);
   /** The terrain file's height above the ground, for flying again after a stop. */
   private height = 0;
   /** The cameras' far plane while it's shown: past the full haze. */
@@ -300,6 +312,8 @@ export class Treadmill {
    */
   private park(at: number | undefined): void {
     this.parkedAt = at ?? null;
+    this.clearNearRocks();
+    for (const pool of this.pools) if (pool.rocks) for (const mesh of pool.meshes) mesh.castShadow = at !== undefined;
     if (at === undefined) {
       settings.flightHeight = this.height;
       return;
@@ -307,6 +321,38 @@ export class Treadmill {
     this.travelled = at;
     settings.flightHeading = 0;
     settings.flightHeight = this.centre.belly + this.heightAt(0, -at);
+    this.place();
+    for (const pool of this.pools) {
+      if (!pool.rocks) continue;
+      this.eachCopy(pool, 0, 0, NEAR_ROCKS, () => true, (v, m) => {
+        const rock = new THREE.Mesh(pool.meshes[v]!.geometry);
+        rock.matrixAutoUpdate = false;
+        rock.matrixWorldAutoUpdate = false;
+        rock.matrixWorld.multiplyMatrices(this.group.matrixWorld, m);
+        this.nearRocks.push(rock);
+      });
+    }
+  }
+
+  private clearNearRocks(): void {
+    this.nearRocks.length = 0;
+  }
+
+  /**
+   * Parked: the flattened shadows left out within `radius` of a world point (her: as far round her as
+   * the sun's shadow map reaches, where the rocks' real shadows are drawn); 0, or not parked: none.
+   */
+  cutShadows(x: number, z: number, radius: number): void {
+    this.cutAt.value.set(x - this.group.position.x, z - this.group.position.z); // heading 0 while parked
+    this.cutRadius.value = this.parkedAt === null ? 0 : radius;
+  }
+
+  /** The group at the ship's centre, at the ground's height, turned by the heading. */
+  private place(): void {
+    const g = this.group;
+    g.position.set(this.centre.x, this.centre.belly - settings.flightHeight, this.centre.z);
+    g.rotation.y = THREE.MathUtils.degToRad(settings.flightHeading);
+    g.updateMatrixWorld(true);
   }
 
   /** The ground's height (world y) under a world point, while parked (0 otherwise: the flat snow). */
@@ -349,9 +395,7 @@ export class Treadmill {
     this.tuneOutside(); // the hull's outside uses it landed too (exterior.ts)
     if (!this.group.visible) return;
     const g = this.group;
-    g.position.set(this.centre.x, this.centre.belly - settings.flightHeight, this.centre.z);
-    g.rotation.y = THREE.MathUtils.degToRad(settings.flightHeading);
-    g.updateMatrixWorld();
+    this.place();
     const step = this.parkedAt === null ? settings.flightSpeed * pace * dt : 0;
     this.travelled += step;
     this.scroll.value = this.travelled % 1e5;
@@ -367,59 +411,67 @@ export class Treadmill {
     this.sun.value.set(Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az));
 
     for (const pool of this.pools) {
-      const d = pool.data;
       const variants = pool.meshes.length;
-      const unit = d.unit ?? 1;
-      const [lo, hi] = d.scale;
-      const grow = pool.rocks ? settings.rockSize : 1;
-      const [low, high] = d.lift ?? [0, 0];
-      const tilt = d.tilt ?? 0;
-      const clear = d.clear ?? 0;
-      // The ground has moved this far back (+z in the group) under the ship: a cell's place on the
-      // ground is its place in the group less this. Worked out here in doubles; what's written is near
-      // the group's centre.
-      const moved = this.travelled * (d.parallax ?? 1);
-      const per = pool.density * d.cell * d.cell;
-      const reach2 = d.reach * d.reach;
       const counts = this.counts;
       counts.length = variants;
       counts.fill(0);
-      const x0 = Math.floor((eye.x - d.reach) / d.cell);
-      const x1 = Math.floor((eye.x + d.reach) / d.cell);
-      const z0 = Math.floor((eye.z - moved - d.reach) / d.cell);
-      const z1 = Math.floor((eye.z - moved + d.reach) / d.cell);
-      for (let ix = x0; ix <= x1; ix++) {
-        for (let iz = z0; iz <= z1; iz++) {
-          this.cellStart(ix, iz, pool.seed);
-          const n = Math.floor(per + this.next());
-          for (let j = 0; j < n; j++) {
-            // Every number drawn whether it's shown or not: a copy's place never depends on another's.
-            const x = (ix + this.next()) * d.cell;
-            const z = (iz + this.next()) * d.cell + moved;
-            const v = Math.min(variants - 1, Math.floor(this.next() * variants));
-            const size = unit * grow * (lo + (hi - lo) * this.next());
-            const turn = this.next() * Math.PI * 2;
-            const tipX = this.next() * tilt;
-            const tipZ = this.next() * tilt;
-            const lift = low + (high - low) * this.next();
-            // Shown within `reach` of the camera along the ground (the haze is round: a square would
-            // draw rocks no one sees), off the ship's line, while there's room.
-            if ((x - eye.x) ** 2 + (z - eye.z) ** 2 > reach2 || Math.abs(x) < clear || counts[v]! >= pool.capacity) continue;
-            const ground = pool.rocks ? this.heightAt(x, z - this.travelled) : 0; // on the hills
-            this.p.set(x, ground + lift - (d.sink ?? 0) * pool.heights[v]! * size, z);
-            this.q.setFromEuler(this.e.set(tipX, turn, tipZ, 'YXZ'));
-            this.s.setScalar(size);
-            this.m.compose(this.p, this.q, this.s);
-            pool.meshes[v]!.setMatrixAt(counts[v]!++, this.m); // the shadows share it
-          }
-        }
-      }
+      // Within `reach` of the camera along the ground (the haze is round: a square would draw rocks no
+      // one sees), while there's room.
+      this.eachCopy(pool, eye.x, eye.z, pool.data.reach, (v) => counts[v]! < pool.capacity, (v, m) => pool.meshes[v]!.setMatrixAt(counts[v]!++, m)); // the shadows share it
       pool.count = 0;
       pool.meshes.forEach((mesh, v) => {
         mesh.count = pool.shadows[v]!.count = counts[v]!;
         mesh.instanceMatrix.needsUpdate = true;
         pool.count += counts[v]!;
       });
+    }
+  }
+
+  /**
+   * A pool's copies within `reach` of (x, z) in the group, off the ship's line (`clear`): `visit` with
+   * each one's shape and matrix in the group, if `room` has room for its shape. Every number is drawn
+   * whether it's shown or not: a copy's place never depends on another's.
+   */
+  private eachCopy(pool: Pool, ex: number, ez: number, reach: number, room: (v: number) => boolean, visit: (v: number, m: THREE.Matrix4) => void): void {
+    const d = pool.data;
+    const variants = pool.meshes.length;
+    const unit = d.unit ?? 1;
+    const [lo, hi] = d.scale;
+    const grow = pool.rocks ? settings.rockSize : 1;
+    const [low, high] = d.lift ?? [0, 0];
+    const tilt = d.tilt ?? 0;
+    const clear = d.clear ?? 0;
+    // The ground has moved this far back (+z in the group) under the ship: a cell's place on the
+    // ground is its place in the group less this. Worked out here in doubles; what's written is near
+    // the group's centre.
+    const moved = this.travelled * (d.parallax ?? 1);
+    const per = pool.density * d.cell * d.cell;
+    const reach2 = reach * reach;
+    const x0 = Math.floor((ex - reach) / d.cell);
+    const x1 = Math.floor((ex + reach) / d.cell);
+    const z0 = Math.floor((ez - moved - reach) / d.cell);
+    const z1 = Math.floor((ez - moved + reach) / d.cell);
+    for (let ix = x0; ix <= x1; ix++) {
+      for (let iz = z0; iz <= z1; iz++) {
+        this.cellStart(ix, iz, pool.seed);
+        const n = Math.floor(per + this.next());
+        for (let j = 0; j < n; j++) {
+          const x = (ix + this.next()) * d.cell;
+          const z = (iz + this.next()) * d.cell + moved;
+          const v = Math.min(variants - 1, Math.floor(this.next() * variants));
+          const size = unit * grow * (lo + (hi - lo) * this.next());
+          const turn = this.next() * Math.PI * 2;
+          const tipX = this.next() * tilt;
+          const tipZ = this.next() * tilt;
+          const lift = low + (high - low) * this.next();
+          if ((x - ex) ** 2 + (z - ez) ** 2 > reach2 || Math.abs(x) < clear || !room(v)) continue;
+          const ground = pool.rocks ? this.heightAt(x, z - this.travelled) : 0; // on the hills
+          this.p.set(x, ground + lift - (d.sink ?? 0) * pool.heights[v]! * size, z);
+          this.q.setFromEuler(this.e.set(tipX, turn, tipZ, 'YXZ'));
+          this.s.setScalar(size);
+          visit(v, this.m.compose(this.p, this.q, this.s));
+        }
+      }
     }
   }
 
@@ -572,6 +624,7 @@ export class Treadmill {
       // With hills: onto the plane at the ground's height under the point, then set on the ground where
       // that lands (the hills are gentle: a shadow's triangles stay close to the slope).
       const up = varyingProperty('vec3', 'vShadowUp');
+      const flat = varyingProperty('vec2', 'vShadowAt');
       material.positionNode = Fn(() => {
         const p = positionLocal;
         fading?.(p);
@@ -581,9 +634,11 @@ export class Treadmill {
         const x = p.x.sub(sun.x.mul(h));
         const z = p.z.sub(sun.z.mul(h));
         up.assign(this.hillNormal(x, z));
+        flat.assign(vec2(x, z));
         return vec3(x, this.hillAt(x, z).add(SHADOW_LIFT), z);
       })();
-      material.maskNode = height.greaterThanEqual(0);
+      // Not round her while parked: the rocks' real shadows are there (`cutShadows`).
+      material.maskNode = height.greaterThanEqual(0).and(length(flat.sub(this.cutAt)).greaterThanEqual(this.cutRadius));
       // Lit as the ground is: facing as the hills face there.
       material.normalNode = cameraViewMatrix.mul(vec4(up, 0)).xyz;
       material.polygonOffset = true;
@@ -662,6 +717,7 @@ export class Treadmill {
   }
 
   private clear(): void {
+    this.clearNearRocks();
     for (const pool of this.pools) {
       for (const mesh of [...pool.meshes, ...pool.shadows]) {
         this.group.remove(mesh);
