@@ -5,7 +5,7 @@
 // About 60 s. A new game: cutscene 1, skipped; then cutscene 2 plays by itself, nothing
 // pressed: the wide shot of the cockpit first, alone for about 4 s (owner, 2026-10-26; 2 s longer, 2026-10-27), then each
 // line's speaker gets their camera, where the ship file has it (a screenshot per line), each line moves on by itself,
-// she doesn't move, the black bars are on; at its end the bars go, the save is written, and she gets
+// she doesn't move, the black bars are on; then its exterior shot (the ship leaves the picture); at its end the bars go, the save is written, and she gets
 // up from her seat (piloting-loop.md) and walks.
 // Runs in the page (probe-01.mjs).
 
@@ -65,6 +65,24 @@ const took = (performance.now() - t0) / 1000;
 report(seen.length === 14, 'its fourteen lines, each on its own, nothing pressed', `${seen.length} lines in ${took.toFixed(1)} s`);
 report(placed.length === 14 && placed.every((p) => parseFloat(p.split(' ')[1]) < 1), "each line on its speaker's camera from the file", placed.join(', '));
 report(!w.__watched().playing && (!dialogue.active || dialogue.line?.id === 'adam-red'), "it ends by itself (then chapter 1's first line, Adam's)", dialogue.line?.text);
+// Then its exterior shot (a track, as cutscene 1; owner, 2026-10-28): the camera alone moves, the ship leaves the picture, it ends.
+report(w.__cutscene().playing && w.__cutscene().track?.id === 'cutscene-2-exterior', 'then its exterior shot, at once', w.__cutscene().track?.id);
+report(!character.root.visible, 'Dr. Green hidden in it, as in cutscene 1');
+const exteriorStart = performance.now();
+const hull = w.__ship().object;
+const onScreen = () => hull.getWorldPosition(new THREE.Vector3()).project(w.__cutscene().camera);
+const firstAt = onScreen();
+await shot('exterior-start');
+await until(() => w.__cutscene().time > 3.7, 6000);
+await shot('exterior-middle');
+await until(() => w.__cutscene().time > 7.3, 6000);
+const lastAt = onScreen();
+await shot('exterior-end');
+await until(() => !w.__cutscene().playing, 3000);
+const length = (performance.now() - exteriorStart) / 1000;
+report(Math.abs(firstAt.x) < 1 && Math.abs(firstAt.y) < 0.74, 'the ship in the picture at its start', `${firstAt.x.toFixed(2)}, ${firstAt.y.toFixed(2)}`);
+report(lastAt.x > 1 || lastAt.y > 0.74, 'the ship out of the picture (above the bars or past the right) at its end', `${lastAt.x.toFixed(2)}, ${lastAt.y.toFixed(2)}`);
+report(!w.__cutscene().playing && length > 6.5 && length < 9, 'it ends by itself after about 7.5 s', `${length.toFixed(1)} s`);
 report(character.position.distanceTo(feet) < 0.05, "she didn't move", `${character.position.distanceTo(feet).toFixed(3)} m`);
 report(barsOn, 'the black bars were on while it played');
 report(!document.querySelector('#bars').classList.contains('on'), 'the bars are gone after it');

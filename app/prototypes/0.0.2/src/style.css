@@ -97,7 +97,7 @@ body {
 
 /* Placed next to the interaction target each frame (interaction.ts sets the transform). */
 /* The prompt: white with black text, as the dialogue box (owner, 2026-10-22); the button in an outline. */
-/* A cutscene's "Hold ◯ to skip" (skip-prompt.ts): the same look, at the bottom right. */
+/* A cutscene's "Hold X to skip" (skip-prompt.ts): the same look, at the bottom right. */
 #prompt,
 #skip {
   position: fixed;

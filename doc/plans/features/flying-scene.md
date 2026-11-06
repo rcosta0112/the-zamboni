@@ -63,7 +63,7 @@ The same on every flight scene, so they belong to **the ship flying**, not to ea
 
 ## The coffee (its own pass)
 
-The owner will add details before the pass. **The basics (owner, 2026-10-22):** pour a coffee at the galley; walk round holding the mug; sips at random; **a comment after the first sip**. *Make coffee* (brewing it) is a nice-to-have, later.
+The owner will add details before the pass. *(SC-24, the four questions on the ladder, the mug, its model and talking with it, closed by the owner 2026-10-28, unanswered: to settle before pass 3.)* **The basics (owner, 2026-10-22):** pour a coffee at the galley; walk round holding the mug; sips at random; **a comment after the first sip**. *Make coffee* (brewing it) is a nice-to-have, later.
 
 - **The coffee maker** is in the galley; **its pot** is the owner's, ready ([Blender tasks](flying-scene-blender.md#the-coffee)). The maker gets an id and a kind (`coffee-maker`).
 - **Pour coffee** (the prompt): she pours (the owner's animation), and the mug is in her hand.
@@ -164,6 +164,10 @@ A **big task** (CLAUDE.md rule 5): about 20 hours of agent work over seven passe
 > **4b built** (2026-10-23; [what exists](../../features/scenery.md)): the clouds a third pool in the air, their shadows flattened as the rubble's; measured: the scenery about 3 ms a frame from outside (uncapped), the heap steady. No clouds in the video to compare with; the 4a screenshots unchanged otherwise.
 >
 > **The exterior shot, proposed (to review; guesses until SC-120 is answered):**
+>
+> **[Agent note]** **Update 2026-10-28: superseded by [cutscene-2-exterior.md](cutscene-2-exterior.md)** (the owner's reference file: the camera alone moves; no bank, no turn of the treadmill). The guesses below are kept as history.
+>
+> **[Agent note]** SC-120 closed by the owner (2026-10-28) without the four answers; how 4c goes on (build these guesses, or wait for the owner's description in `02-opening.md`) asked in chat. SC-139 closed the same day: cutscene 2's Adam cameras are correct as they are (owner).
 > - **Where:** after Adam Red's *"Setting the course. Hang on."*, a shot with no line in `opening.json` (`{ "shot": "exterior-turn", "seconds": 6 }`), *skip* moves on as for a line.
 > - **The angle (guess):** behind the ship and to its left, a little above, the camera fixed to the ship (the world turning under it reads as the ship turning), wide enough to see the ground and the boulders sweep round.
 > - **The length (guess):** 6 s: the bank in (1.5 s), the turn held (3 s), levelling out (1.5 s).
@@ -207,7 +211,9 @@ A **big task** (CLAUDE.md rule 5): about 20 hours of agent work over seven passe
 >
 > **Update 2026-10-23 (later):** the owner updated the fly-by's camera: a *Track To* on the ship, its influence keyed, and a keyed lens (59° to 21°). The script now reads the lens each frame and unwraps heading and roll; re-exported, the ship stays in frame throughout; the camera's path moved up to 95 m.
 
-**Pass 5: the kit from Blender (about 2 hours).** **Remind the owner at the start: their ice-boulder set is ready** (owner, 2026-10-22). The kit file linking the ship, `export:terrain` with its gate, the placeholders replaced. *Check:* the export's summary; the same screenshots.
+> **[Agent note]** 2026-10-28 (owner): **no getting-up or sitting-down animation** (SC-22, SC-23 removed): she leaves and takes the seat with no transition. SC-21 (sitting) done; SC-13 (the seating) and SC-14 (the copies per scene, to come as a task per scene) closed; Dr. Ogawa is in place at the signal station (SC-145 closed). SC-29 (the kit file) dropped: "the treadmill is done"; **pass 5 dropped** with it.
+
+**Pass 5: the kit from Blender (about 2 hours). Dropped (owner, 2026-10-28).** **Remind the owner at the start: their ice-boulder set is ready** (owner, 2026-10-22). The kit file linking the ship, `export:terrain` with its gate, the placeholders replaced. *Check:* the export's summary; the same screenshots.
 
 **Pass 6: the landing cutscene (about 3 hours).** From the owner's description: the ship's sway tried in its exterior shots; the treadmill slowing and the ground rising to the ship (the ship still doesn't move), the exterior swap (travel → today's ground: the stub built), the end state equal to `landed`'s setup, the checkpoint at its end, *skip*. *Check:* a probe plays it, skips it and compares its end with `landed`'s start.
 

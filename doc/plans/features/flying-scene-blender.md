@@ -6,8 +6,8 @@
 
 | | Task | For pass | Note |
 |---|---|---|---|
-| [SC-13](https://linear.app/eigodojo/issue/SC-13) | **Move Adam:** Adam Red into the pilot's seat (left, `Seat`), Adam Blue into the navigator's seat | 1 | The crew export takes their new places |
-| [SC-14](https://linear.app/eigodojo/issue/SC-14) | **A copy of each character per scene** (owner, 2026-10-22; replaces the marks): a collection `chapter-1` with a copy of each crew member, placed and animated for this scene; Dr. Green's copies in `Player` › `chapter-1`. [How](#a-copy-per-scene) | 1 | Today's crew (`Crew`, `Crew.001`) become the `landed` scene's copies |
+| ~~SC-13~~ closed (owner, 2026-10-28: the seating is correct) | **Move Adam:** Adam Red into the pilot's seat (left, `Seat`), Adam Blue into the navigator's seat | 1 | The crew export takes their new places |
+| ~~SC-14~~ closed (owner, 2026-10-28: too general; a task per scene instead) | **A copy of each character per scene** (owner, 2026-10-22; replaces the marks): a collection `chapter-1` with a copy of each crew member, placed and animated for this scene; Dr. Green's copies in `Player` › `chapter-1`. [How](#a-copy-per-scene) | 1 | Today's crew (`Crew`, `Crew.001`) become the `landed` scene's copies |
 | [SC-15](https://linear.app/eigodojo/issue/SC-15) | **Dr. Kaufman's book** (a prop she holds while reading) | 1 | With her reading loop |
 | — | Her seat's id `cockpit-seat-pilot` → `cockpit-seat-copilot` | 1 | **The agent's** (a script, the save announced first, a backup) |
 
@@ -15,11 +15,11 @@
 
 Named `<character>_<what>`, in the ship file, each on the character's copy for its scene ([a copy per scene](#a-copy-per-scene)). Stand-ins until each exists.
 
+> **[Agent note]** **No getting up or sitting down animation** (owner, 2026-10-28; SC-22, SC-23 removed): she goes from the seat to the corridor and back with no transition.
+
 | | Who | Animation | Loop? | Where | For pass | Stand-in |
 |---|---|---|---|---|---|---|
-| [SC-21](https://linear.app/eigodojo/issue/SC-21) | Dr. Green | **sitting** in her seat (the scene starts on it) | loop | `cockpit-seat-copilot` | 2 | her idle, in the seat |
-| [SC-22](https://linear.app/eigodojo/issue/SC-22) | Dr. Green | **getting up** from the seat to the corridor (starts on the sitting loop's pose, ends on her idle's) | once | the seat → the corridor | 2 | none: the seat waits for it |
-| [SC-23](https://linear.app/eigodojo/issue/SC-23) | Dr. Green | **sitting back down** (the reverse, at the scene's end) | once | the corridor → the seat | 2 | none |
+| ~~SC-21~~ done (owner, 2026-10-28: in the prototype) | Dr. Green | **sitting** in her seat (the scene starts on it) | loop | `cockpit-seat-copilot` | 2 | her idle, in the seat |
 | [SC-25](https://linear.app/eigodojo/issue/SC-25) | Dr. Green | **pouring** the coffee at the coffee maker | once | the galley | 3 | the mug appears in her hand |
 | [SC-26](https://linear.app/eigodojo/issue/SC-26) | Dr. Green | **holding the mug**: the arm's pose, layered over walk, run and idle (only the arm's bones are read) | pose | | 3 | none |
 | [SC-26](https://linear.app/eigodojo/issue/SC-26) | Dr. Green | **a sip** from the mug (the same arm) | once | | 3 | none |
@@ -27,7 +27,7 @@ Named `<character>_<what>`, in the ship file, each on the character's copy for i
 | [SC-17](https://linear.app/eigodojo/issue/SC-17) | Adam Blue | navigating (owner, 2026-10-22) | loop | the navigator's seat | 1 | today's pose |
 | [SC-18](https://linear.app/eigodojo/issue/SC-18) | Dr. Kaufman | reading a book, on the couch (owner, 2026-10-22) | loop | the crew quarters | 1 | today's idle |
 | [SC-19](https://linear.app/eigodojo/issue/SC-19) | Dr. Ogawa | standing, working on the sensor array on engineering's ceiling (owner, 2026-10-22) | loop | engineering | 1 | today's pose |
-| [SC-20](https://linear.app/eigodojo/issue/SC-20) | Each of the crew | talking: a nod, layered on top of their loop | while their line types | | 1 | a nod made in code |
+| SC-146 · SC-147 · SC-148 · SC-149 | Adam Red · Adam Blue · Dr. Kaufman · Dr. Ogawa (one task each, owner, 2026-10-28; was SC-20) | talking: a nod, layered on top of their loop | while their line types | | 1 | a nod made in code |
 | [SC-30](https://linear.app/eigodojo/issue/SC-30) | The ship | the landing gear lowering (no rig: moved by hand) | once | the landing cutscene | 6 | only if a shot shows it |
 
 ### A copy per scene

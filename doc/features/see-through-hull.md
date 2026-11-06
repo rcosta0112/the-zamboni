@@ -112,3 +112,5 @@ Measured 2026-10-08 on the owner's PC (GTX 1070, headless Chrome, WebGPU, 1280×
 - Oval or constant-on-screen-size hole, glowing rim (options from the original design notes).
 - A real trigger-volume system for "inside" (today: one box, the hull's bounds).
 - Tags set in Blender instead of by the export script.
+
+> **[Agent note]** **Good enough for now** (owner, 2026-10-28): the window frames half-cut by the hole (SC-43, item 61) closed as they are; a QA pass on the see-through shader later.

@@ -20,7 +20,7 @@ import type { Device } from './input';
 import { settings } from './settings';
 import { displayName, type Line } from './story';
 
-const GLYPH: Record<Device, string> = { gamepad: '◯', keyboard: 'E' };
+const GLYPH: Record<Device, string> = { gamepad: 'A', keyboard: 'E' };
 
 /** No topics (one array, so the box isn't redrawn for a new empty one each frame). */
 const NO_TOPICS: string[] = [];

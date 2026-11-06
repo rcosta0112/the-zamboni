@@ -70,6 +70,10 @@ export interface Track {
   end: Command[];
 }
 
+/** Cutscene 1's camera from the ship at its start and its end (m): the distances `heardNear` maps to 0 and 1. */
+const HEARD_FAR = 197;
+const HEARD_NEAR = 120;
+
 const DEG = Math.PI / 180;
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 /** Blender's Y in the ship's own space (`fromBlender`). */
@@ -134,6 +138,21 @@ export class CutscenePlayer {
     const first = shot.camera[0]!.fov;
     const narrowest = Math.min(...shot.camera.map((k) => k.fov));
     return first > narrowest ? THREE.MathUtils.clamp((first - this.camera.fov) / (first - narrowest), 0, 1) : 0;
+  }
+
+  /**
+   * 0..1: how close the shot playing sounds, for the mix of the ship's noise and the wind (main.ts):
+   * `zoomed` for a shot whose lens zooms (cutscene 1); otherwise from the camera's distance to the ship,
+   * on cutscene 1's scale (owner, 2026-11-06: cutscene 2's exterior shot, a fixed lens, mixed as the
+   * distances in cutscene 1): its camera starts HEARD_FAR from the ship (0) and ends HEARD_NEAR (1).
+   */
+  get heardNear(): number {
+    const track = this.track;
+    if (!track) return 0;
+    const shot = [...track.shots].reverse().find((s) => s.start <= this.time) ?? track.shots[0]!;
+    if (shot.camera.some((k) => k.fov !== shot.camera[0]!.fov)) return this.zoomed;
+    const distance = this.camera.position.distanceTo(this.rest.position);
+    return THREE.MathUtils.clamp((HEARD_FAR - distance) / (HEARD_FAR - HEARD_NEAR), 0, 1);
   }
 
   /** Fetches a track (once), so a later `play` starts it at once: main.ts loads the animatic's with the game. */

@@ -2,7 +2,7 @@
 // into a white-hot ball with a cyan halo by the camera's bloom. We have no bloom, so the halo is
 // painted into the sprite: one camera-facing sprite per nozzle, additive, a constant size on screen
 // (as Part 1's renderer kept its particles). Shown while she flies or the auto-parachute fires; with
-// an analog R2 it grows and dims with the trigger as the jet sound does, and it flickers on its own.
+// an analog ZR it grows and dims with the trigger as the jet sound does, and it flickers on its own.
 // Plan: doc/plans/features/jetpack-glow.md
 
 import * as THREE from 'three/webgpu';
@@ -119,7 +119,7 @@ export class Exhaust {
 
   /**
    * Per rendered frame, after the camera has moved. `jetpack`: the shown model's jetpack group (null
-   * if she has none on); `on`: flying or the auto-parachute firing; `trigger`: R2's value when it's
+   * if she has none on); `on`: flying or the auto-parachute firing; `trigger`: ZR's value when it's
    * flying her, else null; `shown`: how much of her shows (she fades with the camera close), 0..1.
    */
   update(dt: number, jetpack: THREE.Object3D | null, on: boolean, trigger: number | null, camera: THREE.PerspectiveCamera, shown = 1): void {
@@ -131,7 +131,7 @@ export class Exhaust {
     for (const g of this.glows) g.sprite.visible = visible;
     if (!visible) return;
 
-    // With an analog R2, as the jet sound: the trigger squared, from the low end to full.
+    // With an analog ZR, as the jet sound: the trigger squared, from the low end to full.
     const t = settings.jetSoundFollowsTrigger ? trigger : null;
     const level = t === null ? 1 : THREE.MathUtils.lerp(settings.exhaustLowLevel, 1, t * t);
 

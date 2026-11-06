@@ -2,7 +2,7 @@
 // Movement follows Part 1's controller: camera-relative input, accelerate to walk/run speed,
 // decelerate to a stop, turn smoothly toward the input, move along the facing direction.
 // The jetpack, with momentum (owner, 2026-10-14, "similar to the ship in Asteroids"): while it's on
-// there's no gravity and she has a velocity. Slow, she hovers (R2 sets her height, the stick drifts
+// there's no gravity and she has a velocity. Slow, she hovers (ZR sets her height, the stick drifts
 // her); fast, she flies (thrust where the stick points, forward being where the camera looks).
 // Letting go at speed she glides, losing momentum; on the ground at speed with the jet off she
 // skids to a stop. Plan: doc/plans/features/jetpack-hover-and-flight.md.
@@ -46,11 +46,11 @@ export class Character {
   /** How far the handover from hover to flight has gone, 0..1 (over `flightBlendTime`). */
   flightShare = 0;
   /**
-   * Flying by an analog R2: how far it's pressed (0..1), going to 1 as she goes into flight (for the
-   * jet's sound and glow); null otherwise (Space, a digital R2: R2 held fully).
+   * Flying by an analog ZR: how far it's pressed (0..1), going to 1 as she goes into flight (for the
+   * jet's sound and glow); null otherwise (Space, a digital ZR: ZR held fully).
    */
   flyTrigger: number | null = null;
-  /** Hovering by R2, in the hover band (its edges widen once she's in it). */
+  /** Hovering by ZR, in the hover band (its edges widen once she's in it). */
   hovering = false;
   /** The jet cut out at speed: she glides on her momentum. */
   gliding = false;
@@ -143,10 +143,10 @@ export class Character {
     const my = input.move.y;
     const amount = Math.min(1, Math.hypot(mx, my));
 
-    // Space and a digital R2 count as R2 held fully.
+    // Space and a digital ZR count as ZR held fully.
     const trigger = input.flyTrigger ?? 1;
-    // Hovering, on the ground only R2's climb band takes off; descending onto the ground lands her
-    // (she walks, rather than skimming the ground). In flight R2's depth doesn't matter.
+    // Hovering, on the ground only ZR's climb band takes off; descending onto the ground lands her
+    // (she walks, rather than skimming the ground). In flight ZR's depth doesn't matter.
     const takesOff = !this.grounded || this.inFlight || trigger > settings.hoverHigh;
     // Only with a jetpack on (taken from the rack); jumping doesn't need one.
     if (input.flyHeld && takesOff && settings.wearingJetpack) {
@@ -185,7 +185,7 @@ export class Character {
       this.speed = Math.max(0, this.speed - settings.deceleration * dt);
     }
 
-    // Jump (C, Cross); the jetpack has its own button (owner, 2026-10-12).
+    // Jump (C, B); the jetpack has its own button (owner, 2026-10-12).
     if (input.consumeJump() && (this.grounded || this.floating > 0)) this.jump();
     if (this.floating > 0) {
       // Just off the top of a ladder, over the opening: she stays level until she's over floor.
@@ -238,7 +238,7 @@ export class Character {
   /**
    * One fixed step with the jet on (owner, 2026-10-14). No gravity; her velocity carries over. Two
    * modes, picked by her horizontal speed, with an eased handover (`flightShare`):
-   * - **Hover** (slow): R2 sets her vertical speed (lower third descends, middle third holds, upper
+   * - **Hover** (slow): ZR sets her vertical speed (lower third descends, middle third holds, upper
    *   third climbs), which she eases toward. The stick's first `hoverStickShare` of its travel sets
    *   a drift of up to `hoverDriftSpeed`; past it, it thrusts.
    * - **Flight** (from `cruiseSpeed`, until she's back under the drift speed with the stick in its
@@ -299,7 +299,7 @@ export class Character {
       hx = (dx * k) / dt;
       hz = (dz * k) / dt;
     }
-    // Hover, vertically: R2's shape, -1..1: 0 across the hover band (wider once she's in it), smooth
+    // Hover, vertically: ZR's shape, -1..1: 0 across the hover band (wider once she's in it), smooth
     // ramps from its edges to the trigger's ends.
     const widen = this.hovering ? settings.hoverHysteresis : 0;
     const low = settings.hoverLow - widen;
@@ -348,7 +348,7 @@ export class Character {
   }
 
   /**
-   * The jet cuts out (R2 or Space let go). Faster than her run she glides, or skids if she's on the
+   * The jet cuts out (ZR or Space let go). Faster than her run she glides, or skids if she's on the
    * ground; slower, she falls as she does without a jetpack, from the speed she had.
    */
   private letGo(): void {

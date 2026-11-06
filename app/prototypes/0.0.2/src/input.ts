@@ -5,10 +5,13 @@ import { settings } from './settings';
 
 export type Device = 'gamepad' | 'keyboard';
 
-// Standard-mapping button indices (Xbox names).
-const PAD_A = 0;
-const PAD_B = 1; // Circle on a PlayStation controller
-const PAD_RT = 7; // right trigger (R2): fly; analog on most pads (owner, 2026-10-14)
+// Standard-mapping button indices, named as on a Nintendo controller (owner, 2026-10-28): the face
+// buttons by position, A on the right, B at the bottom, Y on the left, X at the top; the shoulders
+// L and R (4, 5), the triggers ZL and ZR (6, 7).
+const PAD_B = 0; // bottom: jump
+const PAD_A = 1; // right: interact, the dialogue box
+const PAD_X = 3; // top: held to skip a cutscene
+const PAD_RT = 7; // right trigger (ZR): fly; analog on most pads (owner, 2026-10-14)
 const PAD_VIEW = 8;
 /** A trigger value this far from both 0 and 1 shows the trigger is analog. */
 const ANALOG_MARGIN = 0.02;
@@ -23,11 +26,11 @@ export class Input {
   readonly move = { x: 0, y: 0 };
   /** Keyboard walk modifier (Shift). The stick walks by being pushed less far. */
   walkHeld = false;
-  /** The jetpack: held, not latched (Space, R2). */
+  /** The jetpack: held, not latched (Space, ZR). */
   flyHeld = false;
   /**
-   * How far R2 is pressed (0..1) when it's analog and flying her; null when she flies by Space or
-   * a digital trigger, which count as R2 held fully.
+   * How far ZR is pressed (0..1) when it's analog and flying her; null when she flies by Space or
+   * a digital trigger, which count as ZR held fully.
    */
   flyTrigger: number | null = null;
   lastDevice: Device = 'keyboard';
@@ -54,7 +57,7 @@ export class Input {
   private padLook = { x: 0, y: 0 };
   private menuStick = 0;
   /**
-   * The pad whose R2 has been seen between 0 and 1: it's analog. A digital trigger only ever reports
+   * The pad whose ZR has been seen between 0 and 1: it's analog. A digital trigger only ever reports
    * 0 or 1; an analog one passes through values between as it goes down, so it shows itself on its
    * first press. Until then it counts as digital.
    */
@@ -136,8 +139,8 @@ export class Input {
       const pressed = pad.buttons.map((b) => b.pressed);
       const justPressed = (i: number) => pressed[i] === true && this.padButtons[i] !== true;
       this.padPressed = pressed.some((_, i) => justPressed(i));
-      if (justPressed(PAD_A)) this.jumpLatched = true;
-      if (justPressed(PAD_B)) this.interactLatched = true;
+      if (justPressed(PAD_B)) this.jumpLatched = true;
+      if (justPressed(PAD_A)) this.interactLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
       // Any button shows a cutscene's skip prompt but pause and the tuning panel's.
@@ -171,7 +174,7 @@ export class Input {
     this.walkHeld = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
     const spaceFly = this.keys.has('Space');
     this.flyHeld = spaceFly || padFly;
-    // Space wins: held, it counts as R2 held fully whatever the trigger does.
+    // Space wins: held, it counts as ZR held fully whatever the trigger does.
     this.flyTrigger = spaceFly ? null : trigger;
 
     if (keyLen > 0) {
@@ -196,12 +199,12 @@ export class Input {
     return { yaw, pitch };
   }
 
-  /** The gamepad's R2 has shown itself to be analog. */
+  /** The gamepad's ZR has shown itself to be analog. */
   get analogTrigger(): boolean {
     return this.analogPad !== null;
   }
 
-  /** True once per interact press (E, gamepad B / Circle). An Enter or a click since is dropped. */
+  /** True once per interact press (E, gamepad A). An Enter or a click since is dropped. */
   consumeInteract(): boolean {
     const i = this.interactLatched;
     this.interactLatched = false;
@@ -234,9 +237,9 @@ export class Input {
     this.jumpLatched = false;
   }
 
-  /** The button held to skip a cutscene is down: the left mouse button (owner, 2026-10-28; E before), the pad's interact (B / Circle). */
+  /** The button held to skip a cutscene is down: the left mouse button (owner, 2026-10-28; E before), the pad's X (owner, 2026-10-28: A, interact, before; A also moves the dialogue on). */
   get skipHeld(): boolean {
-    return this.leftHeld || this.padButtons[PAD_B] === true;
+    return this.leftHeld || this.padButtons[PAD_X] === true;
   }
 
   /** True once per press that shows a cutscene's skip prompt (any pad button but Start and View; any key but the panel's; a click). */

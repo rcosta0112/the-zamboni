@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-10-28 | Controller buttons named as on a Nintendo controller | input | A B X Y by position (A right, B bottom, Y left, X top), shoulders L / R, triggers ZL / ZR, in every prompt and doc (Xbox / PlayStation names before); the buttons themselves unchanged (B jumps, A interacts and moves the dialogue on, ZR flies), but skipping a cutscene is held on **X** (was A, which also moves the dialogue on) |
 | 2026-10-28 | The owner's tasks in `doc/tasks.md`, not Linear | process | Linear dropped (not worth the upkeep); one Markdown list grouped by kind (look at, decision, Blender, script, Figma, review), *Next up* first, the agent's queue at the bottom; the `SC-n` and item numbers kept, new tasks continue from SC-146 |
 | 2026-10-27 | Plans estimate the agent's build and the review rounds apart | process | Each pass gives two figures, the agent's build time and the expected review rounds with the owner; the *As built* note records the actual time next to them; build estimates are a fifth of the old ones |
 | 2026-10-24 | No light baking in the web build | look | The ship stays lit in real time (sun and its shadow map, room lights, sky); lightmaps cost download, a second UV set and a bake per change; notes kept for a packaged build in `architecture/lighting.md`; whether post-processing is worth it: a later pass |

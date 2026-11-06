@@ -99,6 +99,10 @@ export class WatchedConversation {
   readonly camera = new THREE.PerspectiveCamera(50, 1, 0.05, 500);
   /** The conversation is on (from `play` to the dialogue's end). */
   playing = false;
+  /** Called once it has ended, played out or skipped (main.ts: cutscene 2's exterior shot after it). */
+  onEnded: ((skipped: boolean) => void) | null = null;
+  /** `skip` was used since `play`. */
+  private skipped = false;
   /** The speaker the camera is on (for checks). */
   speaker: string | null = null;
   private data: WatchedData | null = null;
@@ -140,6 +144,7 @@ export class WatchedConversation {
   async play(id: string, aspect = this.camera.aspect): Promise<void> {
     this.data = this.loaded.get(id) ?? (await this.load(id));
     this.playing = true;
+    this.skipped = false;
     this.speaker = null;
     this.dialogue.autoNext = this.data.wait;
     const opening = this.data.opening;
@@ -156,6 +161,7 @@ export class WatchedConversation {
 
   /** Ends it now: the box closes (as at its last line), and `update` sees it. */
   skip(): void {
+    if (this.playing) this.skipped = true;
     if (this.playing && this.holding > 0) this.startLines();
     if (this.playing && this.dialogue.active) this.dialogue.end();
   }
@@ -178,6 +184,7 @@ export class WatchedConversation {
     if (!this.dialogue.active) {
       this.playing = false;
       this.dialogue.autoNext = null;
+      this.onEnded?.(this.skipped);
       return;
     }
     this.fit(aspect);

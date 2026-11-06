@@ -18,7 +18,7 @@
     typed: number;
     /** What the button does now. */
     action: 'Skip' | 'Next' | 'End' | 'Choose';
-    /** The button, as the last device used names it (E, ◯). */
+    /** The button, as the last device used names it (E, A). */
     glyph: string;
     /** Her lines to choose from, shown in place of `text` (none: the line). */
     topics: string[];

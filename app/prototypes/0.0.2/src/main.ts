@@ -92,6 +92,8 @@ const ASKED = import.meta.env.DEV ? new URLSearchParams(location.search).get('sc
 const SAVING = TESTING;
 /** The animatic's parts, before the first scene. */
 const ANIMATIC_STEPS = ['cutscene-1', 'opening'];
+/** Cutscene 2's last shot, outside: the ship changing course (a track, as cutscene 1; owner, 2026-10-28). */
+const OPENING_EXTERIOR = 'cutscene-2-exterior';
 const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
 /** What a new game plays before its first scene: the whole animatic, cutscene 2 only, or nothing. */
 const animaticFrom: 'cutscene-1' | 'opening' | null = ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : TESTING || ASKED ? null : 'cutscene-1';
@@ -111,10 +113,11 @@ async function start(): Promise<void> {
   const helpEl = document.querySelector<HTMLElement>('#help')!;
   // The animatic after NEW GAME (never shown again: *Continue* goes past it; not in the checks' game):
   // cutscene 1, the ship outside (`cutscene`, from the owner's fly-by), then cutscene 2 watched in the
-  // ship (`watched`). Each can be skipped.
+  // ship (`watched`), ending on its exterior shot (`cutscene` again). Each can be skipped: a skip in the
+  // conversation skips the exterior shot too.
   const barsEl = document.querySelector<HTMLElement>('#bars')!; // every cutscene's black bars
   const skipPrompt = new SkipPrompt(document.querySelector<HTMLElement>('#skip')!);
-  let animatic: 'cutscene-1' | 'opening' | null = null; // the part last started
+  let animatic: 'cutscene-1' | 'opening' | typeof OPENING_EXTERIOR | null = null; // the part last started
   const playOpening = () => {
     animatic = 'opening';
     void watched?.play('opening', view.camera.aspect).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
@@ -237,9 +240,16 @@ async function start(): Promise<void> {
       }
       dialogue.onEnded = saveNow;
       if (story) watched = new WatchedConversation(s.object, s.entities, story, dialogue, herHead);
+      if (watched)
+        watched.onEnded = (skipped) => {
+          if (skipped || animatic !== 'opening') return;
+          animatic = OPENING_EXTERIOR;
+          void cutscene?.play(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not played:', err));
+        };
       // The animatic's data now, so each part starts on the frame it's asked for (no frame of the ship's inside before it).
       if (animaticFrom === 'cutscene-1') await cutscene.load('cutscene-1').catch((err: unknown) => console.warn('[0.0.2] cutscene 1 not loaded:', err));
       if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
+      if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
       const seat = s.entities.get('cockpit-seat-pilot')?.object ?? null;
       director = new SceneDirector(s, target, (at, yaw) => {
@@ -512,8 +522,10 @@ async function start(): Promise<void> {
     if (dialogue.active) input.hold();
     // Sound: a gamepad button turns it on, as a key or a click does (if the browser counts it).
     if (input.padPressed) void audio.unlock();
-    // An exterior cutscene: the ship's noise mixed in as the camera zooms in, up to nearly its level inside.
-    audio.noiseShare = heardOutside ? (cutscene?.zoomed ?? 1) * settings.cutsceneShipNoiseEnd : 1;
+    // An exterior cutscene: the ship's noise mixed in as the camera zooms in (or comes near, with a fixed
+    // lens: `heardNear`), up to nearly its level inside.
+    audio.noiseShare = heardOutside ? (cutscene?.heardNear ?? 1) * settings.cutsceneShipNoiseEnd : 1;
+    audio.noiseOpen = heardOutside;
     audio.update(dt, heardOutside ? 1 : indoorLight);
     if (!begun) {
       // The start screen covers the view, and nothing is simulated.
@@ -562,7 +574,7 @@ async function start(): Promise<void> {
     watched?.update(view.camera.aspect, dt);
     const watching = (cutscene?.playing ?? false) || (watched?.playing ?? false);
     barsEl.classList.toggle('on', watching);
-    // Any press shows "Hold ◯ to skip"; held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
+    // Any press shows "Hold X to skip"; held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
     const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice);
     if (cutscene?.playing) {
       if (skipping) cutscene.skip();
@@ -638,7 +650,7 @@ async function start(): Promise<void> {
       if (jetSounding) audio.play('sfx_jetpack_loop');
       else audio.stop('sfx_jetpack_loop', undefined, 0.1);
     }
-    // By R2 its level and pitch follow the trigger: quieter and lower hovering, full climbing.
+    // By ZR its level and pitch follow the trigger: quieter and lower hovering, full climbing.
     if (jetSounding) {
       const t = settings.jetSoundFollowsTrigger ? character.flyTrigger : null;
       audio.shape(
@@ -668,8 +680,8 @@ async function start(): Promise<void> {
     footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
     // Not under the start screen: its music is heard there.
     // An exterior cutscene starts with the wind alone, faded in from its start, and lowered under the
-    // ship's noise as the camera zooms in (owner, 2026-10-24).
-    if (begun) wind.update(dt, chest, ship, heardOutside ? Math.min(1, cutscene!.time / WIND_FADE_IN) * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.zoomed) : null);
+    // ship's noise as the camera zooms in or comes near (owner, 2026-10-24; 2026-11-06).
+    if (begun) wind.update(dt, chest, ship, heardOutside ? Math.min(1, cutscene!.time / WIND_FADE_IN) * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.heardNear) : null);
     // Indoors: inside the hull, in front of the bulkheads and the crew quarters' furniture.
     const s = ship;
     view.collide = !inside
@@ -743,7 +755,7 @@ async function start(): Promise<void> {
     const step = input.consumeChoiceStep();
     dialogue.update(dt, talking && input.consumeAdvance(), talking ? step : 0, input.lastDevice);
     helpEl.hidden = dialogue.active || watching; // it sits where the box and the skip prompt go
-    // Interaction: the target nearest the screen centre within her reach; E / Circle uses it.
+    // Interaction: the target nearest the screen centre within her reach; E / A uses it.
     const pressed = input.consumeInteract();
     // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor
     // while she talks, nor for a moment after.
@@ -811,9 +823,9 @@ function tagPlace(ship: THREE.Object3D, at: [number, number, number] | undefined
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · A jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · B/◯ interact · Start/Options pause · View: tuning\n' +
+    'Gamepad: left stick move · right stick camera · B jump · ZR fly (half-way hovers; push the stick to fly, let go to glide) · A interact · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
     'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · P quality · ` tuning\n' +
-    'Ladder: at its foot, E / B to climb; from the floor above, drop through the opening\n' +
+    'Ladder: at its foot, E / A to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }
 

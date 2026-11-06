@@ -1,4 +1,4 @@
-// Interaction: point at something and press E (keyboard) or Circle / B (gamepad) to use it.
+// Interaction: point at something and press E (keyboard) or A (gamepad) to use it.
 // "Pointing" in third person: of the things within her reach (from her chest, not hidden behind
 // something solid) and in her room (the ship's rooms; owner, 2026-10-22), the one aimed at most nearly, by **whichever the player moved last** (owner, 2026-10-22):
 // the camera (its cone: interactMaxAngleDeg across) or her facing (hers: interactFacingAngleDeg
@@ -335,7 +335,7 @@ export function respectLocks(items: Interactable[], story: () => GameStory | nul
   });
 }
 
-const GLYPH: Record<Device, string> = { gamepad: '◯', keyboard: 'E' };
+const GLYPH: Record<Device, string> = { gamepad: 'A', keyboard: 'E' };
 
 /** The prompt stays this far inside the screen's edges (px). */
 const EDGE = 8;

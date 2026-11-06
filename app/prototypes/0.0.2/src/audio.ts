@@ -64,6 +64,8 @@ interface Voice {
   last: string | null;
 }
 
+/** The ship's noise heard open: its low-pass this high (Hz), above hearing. */
+const OPEN_HZ = 20000;
 /** The ship's noise fades in and out over this long (s). */
 const NOISE_FADE = 1.5;
 
@@ -81,6 +83,11 @@ export class GameAudio {
   noiseHeld = true;
   /** The ship's noise times this: mixed in as an exterior cutscene's camera zooms in (main.ts). */
   noiseShare = 1;
+  /** The ship's noise heard from outside, open (an exterior cutscene's camera: main.ts); otherwise
+   *  muffled by the hull as much as she's inside (`shipNoiseMuffle`; owner, 2026-11-06). */
+  noiseOpen = false;
+  /** Muffles the ship's noise: a low-pass between it and the ambience bus. */
+  private noiseFilter: BiquadFilterNode;
   /** Streamed cues that repeat, each faded in and out (`setLoop`). */
   private loops = new Map<CueId, { stream: StreamLoop; amount: number; on: boolean; fade: number; level: number }>();
   /** Decoded sounds: how many there are, and how many have arrived (or failed). */
@@ -102,6 +109,10 @@ export class GameAudio {
       return gain;
     };
     this.buses = { music: bus(), ambience: bus(), sfx: bus(), ui: bus() };
+    this.noiseFilter = context.createBiquadFilter();
+    this.noiseFilter.type = 'lowpass';
+    this.noiseFilter.frequency.value = OPEN_HZ;
+    this.noiseFilter.connect(this.buses.ambience);
     const files = Object.values(cues).flatMap((cue: Cue) => (cue.stream ? [] : [...(cue.files ?? []), ...(cue.file ? [cue.file] : [])]));
     const unique = new Set(files);
     this.toLoad = unique.size;
@@ -313,8 +324,11 @@ export class GameAudio {
       return;
     }
     const cue = cues.amb_ship_noise;
-    this.noise ??= new StreamLoop(this.context, BASE + cue.file, this.buses.ambience, cue.crossfade ?? 2);
+    this.noise ??= new StreamLoop(this.context, BASE + cue.file, this.noiseFilter, cue.crossfade ?? 2);
     const where = THREE.MathUtils.lerp(settings.shipNoiseOutdoors, 1, indoors);
+    // Muffled inside: the cut-off eased from open to `shipNoiseMuffle` (evenly in pitch) as she goes in.
+    const muffled = this.noiseOpen ? 0 : indoors;
+    this.noiseFilter.frequency.setTargetAtTime(settings.shipNoiseMuffle * (OPEN_HZ / settings.shipNoiseMuffle) ** (1 - muffled), now, 0.05);
     this.noise.start();
     this.noise.update((cue.volume ?? 1) * this.noiseAmount * where * this.noiseShare);
   }

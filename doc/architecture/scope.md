@@ -21,7 +21,7 @@ Priority: **Core** = the game doesn't work without it. **Wanted** = planned. **M
 | Feature | Priority | Notes |
 |---|---|---|
 | Third-person controller + camera | Core | Probably two run speeds: outdoors and indoors |
-| Jump | Core | Its own button, apart from backpack flight (C / Cross; flight: Space / R2), so she can jump while wearing the backpack (owner, 2026-10-14; separate buttons since 2026-10-12) |
+| Jump | Core | Its own button, apart from backpack flight (C / pad B; flight: Space / ZR), so she can jump while wearing the backpack (owner, 2026-10-14; separate buttons since 2026-10-12) |
 | See-through hull | Core | [`../features/see-through-hull.md`](../features/see-through-hull.md) |
 | Ship interior, walkable during travel and landings | Core | |
 | Outdoor landing areas with soft + hard boundaries | Core | Bark first (*"I shouldn't get too far from the ship"*), invisible walls further out |

@@ -402,7 +402,7 @@ async function checks() {
     const rose = character.position.y - ground;
     const soundFlying = jet();
     const glowFlying = w.__exhaust.shown;
-    // Space is R2 held fully: up to the climb speed at the vertical acceleration, then steady.
+    // Space is ZR held fully: up to the climb speed at the vertical acceleration, then steady.
     const rise = settings.flyClimbSpeed;
     const expected = rise * (1.5 - rise / (2 * settings.flyVerticalAcceleration));
     key('Space', false);
@@ -444,7 +444,7 @@ async function checks() {
     const landed = await until(() => character.grounded, 6000);
     report(landed && character.position.y > ship.upperFloorY + 2, 'onto the ship\'s roof', `stands at ${fmt(character.position)}`);
 
-    // An analog R2 (a made-up pad): 90% climbs, 50% holds her height, 20% descends, released she
+    // An analog ZR (a made-up pad): 90% climbs, 50% holds her height, 20% descends, released she
     // lands; the flying clip plays while she flies. A digital trigger flies as Space.
     put(new T.Vector3(hull.max.x + 10, 0.05, centre.z));
     await until(() => character.grounded, 3000);
@@ -469,7 +469,7 @@ async function checks() {
     rt = 0;
     const down = await until(() => character.grounded && !character.flying, 8000);
     await wait(500);
-    report(climbed > 2 && Math.abs(drift) < 0.05 && descending < -0.5 && down && clipOn > 0.9 && flyClip() < 0.1, 'an analog R2: climbs, hovers half-way, descends, lands; the flying clip while she flies', `climbed ${climbed.toFixed(2)} m at 90%; drift ${drift.toFixed(3)} m over 1.5 s at 50%; ${descending.toFixed(2)} m/s at 20%; landed: ${down}; flying clip ${clipOn.toFixed(2)} â†’ ${flyClip().toFixed(2)}`);
+    report(climbed > 2 && Math.abs(drift) < 0.05 && descending < -0.5 && down && clipOn > 0.9 && flyClip() < 0.1, 'an analog ZR: climbs, hovers half-way, descends, lands; the flying clip while she flies', `climbed ${climbed.toFixed(2)} m at 90%; drift ${drift.toFixed(3)} m over 1.5 s at 50%; ${descending.toFixed(2)} m/s at 20%; landed: ${down}; flying clip ${clipOn.toFixed(2)} â†’ ${flyClip().toFixed(2)}`);
     padId = 'smoke digital pad';
     rt = 1;
     await wait(800);
@@ -477,7 +477,7 @@ async function checks() {
     rt = 0;
     await until(() => character.grounded, 8000);
     navigator.getGamepads = realPads;
-    report(digital.flying && digital.trigger === null, 'a digital R2 flies as Space', `flying: ${digital.flying}; trigger read as analog: ${digital.trigger !== null}`);
+    report(digital.flying && digital.trigger === null, 'a digital ZR flies as Space', `flying: ${digital.flying}; trigger read as analog: ${digital.trigger !== null}`);
 
     // Item 39, the jetpack with momentum (an analog pad, outdoors, flying away from the ship):
     // hover, flight, a reversal, coasting, the glide, the skid, the jet on the ground, letting go
@@ -507,7 +507,7 @@ async function checks() {
       stick(0.4);
       let drift = 0, dy = 0; const y1 = character.position.y;
       await frames(2000, () => { drift = Math.max(drift, hs()); dy = Math.max(dy, Math.abs(character.position.y - y1)); });
-      report(drift <= settings.hoverDriftSpeed + 0.05 && dy < 0.1 && !character.inFlight, 'the jetpack hovers: R2 half-way holds her height, a part push drifts her',
+      report(drift <= settings.hoverDriftSpeed + 0.05 && dy < 0.1 && !character.inFlight, 'the jetpack hovers: ZR half-way holds her height, a part push drifts her',
         `drift up to ${n(drift)} m/s (at most ${settings.hoverDriftSpeed}); height moved ${n(dy)} m over 2 s; in flight: ${character.inFlight}`);
 
       pad.rt = 1; stick(1);
@@ -549,7 +549,7 @@ async function checks() {
       stick(0);
       const s1 = speeds.find(([t]) => t > 500), s2 = speeds.find(([t]) => t > 1500);
       const lost = s1 && s2 ? (s1[1] - s2[1]) / ((s2[0] - s1[0]) / 1000) : NaN;
-      report(glided && Math.abs(lost - settings.glideDrag) < 1 && over < 0.5 && landX - g0.x > 30, 'R2 let go at speed: she glides, losing momentum, falling gently',
+      report(glided && Math.abs(lost - settings.glideDrag) < 1 && over < 0.5 && landX - g0.x > 30, 'ZR let go at speed: she glides, losing momentum, falling gently',
         `from ${n(g0.y)} m up at ${n(g0.speed)} m/s: lost ${n(lost)} m/s per s (setting ${settings.glideDrag}); fell faster than allowed by ${n(over)} m/s; covered ${landX === null ? '?' : n(landX - g0.x)} m`);
       const skid = landSpeed === null ? NaN : (landSpeed * landSpeed) / (2 * settings.skidFriction);
       report(skidded && stopX !== null && Math.abs(stopX - landX - skid) < 1.5, 'landing from the glide, she skids to a stop',
@@ -576,7 +576,7 @@ async function checks() {
       await wait(100);
       const gliding = character.gliding;
       const fell = await until(() => character.grounded, 4000);
-      report(!gliding && fell, 'R2 let go while hovering: she just falls', `glided: ${gliding}; landed: ${fell}`);
+      report(!gliding && fell, 'ZR let go while hovering: she just falls', `glided: ${gliding}; landed: ${fell}`);
       pad.rt = 0; stick(0);
       await wait(200);
       navigator.getGamepads = realPads;

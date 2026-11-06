@@ -1,4 +1,4 @@
-// Skipping a cutscene (owner, 2026-10-23, SC-126): any press (or a click, 2026-10-24) while one plays shows "Hold ◯ to skip"
+// Skipping a cutscene (owner, 2026-10-23, SC-126): any press (or a click, 2026-10-24) while one plays shows "Hold X to skip" (owner, 2026-10-28: the pad's X, ◯ before)
 // at the bottom right (on mouse and keyboard the left mouse button, an icon: owner, 2026-10-28, E before;
 // the prompt shows the last device used); holding the button
 // that long skips it. A bar along the prompt's bottom fills while it's held (owner, 2026-10-28; none
@@ -9,7 +9,7 @@
 import type { Device } from './input';
 
 const GLYPH: Record<Device, string> = {
-  gamepad: '◯',
+  gamepad: 'X',
   // A mouse, its left button filled.
   keyboard:
     '<svg viewBox="0 0 14 20" width="14" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="left mouse button">' +

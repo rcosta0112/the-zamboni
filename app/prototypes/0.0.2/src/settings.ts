@@ -36,9 +36,9 @@ export const settings = {
   hangerSwing: 5,
   hangerSwingRate: 0.8,
   hangerSwingTime: 1.5,
-  // The jetpack (held: R2, Space), with momentum (owner, 2026-10-14: "similar to the ship in
+  // The jetpack (held: ZR, Space), with momentum (owner, 2026-10-14: "similar to the ship in
   // Asteroids"; plan: doc/plans/features/jetpack-hover-and-flight.md). No gravity while it's on.
-  // Hover, while she's slow: R2 sets her height (below), and the stick's first hoverStickShare of
+  // Hover, while she's slow: ZR sets her height (below), and the stick's first hoverStickShare of
   // its travel sets a drift of up to hoverDriftSpeed, eased in and out at flyAcceleration and
   // flyDeceleration (Part 1's 6 and 120 m/s²); past that share it thrusts. Flight, from cruiseSpeed
   // until she's back under hoverDriftSpeed with the stick in its drift share: thrust (flyThrust
@@ -62,7 +62,7 @@ export const settings = {
   // with the jet on costs her this much speed (m/s²).
   flyLowest: 1.0,
   flyGroundDrag: 4,
-  // The jet cut out (R2 let go) faster than her run speed: she glides. Her speed falls off by
+  // The jet cut out (ZR let go) faster than her run speed: she glides. Her speed falls off by
   // glideDrag (m/s²); on the way down glideLift of gravity is cancelled at fly speed (less as she
   // slows), and her fall is held to glideSink (m/s) at fly speed, up to twice that at her run speed,
   // where the glide ends.
@@ -83,10 +83,10 @@ export const settings = {
   parachuteLandingSpeed: 2,
   parachuteBurst: 0.5,
 
-  // Hovering, R2 sets her vertical speed (owner, 2026-10-14): off below flyTriggerOff, descending
+  // Hovering, ZR sets her vertical speed (owner, 2026-10-14): off below flyTriggerOff, descending
   // in the lower third, holding her height in the middle third, climbing in the upper third, eased
-  // at flyVerticalAcceleration. A digital R2, or Space, counts as R2 held fully (climbing at
-  // flyClimbSpeed, Part 1's rise). In flight R2's depth doesn't matter.
+  // at flyVerticalAcceleration. A digital ZR, or Space, counts as ZR held fully (climbing at
+  // flyClimbSpeed, Part 1's rise). In flight ZR's depth doesn't matter.
   flyTriggerOff: 0.05,
   hoverLow: 0.33,
   hoverHigh: 0.67,
@@ -105,7 +105,7 @@ export const settings = {
   jetSoundHighRate: 1.15,
   // The exhaust glow (item 38): Part 1's, from the owner's video (2026-12-25 capture): a white core
   // and a cyan halo, together about 10 % of the screen's height. One sprite per nozzle, overlapping;
-  // its size is a share of the screen's height. With an analog R2 (and jetSoundFollowsTrigger) it
+  // its size is a share of the screen's height. With an analog ZR (and jetSoundFollowsTrigger) it
   // follows the trigger squared down to exhaustLowLevel, size and brightness, as the sound's level.
   // Flicker: a new size this many times a second, up to this share either way; shake: up to this far (m).
   exhaustGlow: true,
@@ -210,7 +210,7 @@ export const settings = {
   cargoRampOpen: true, // the Zamboni's cargo ramp, down to the ground (the way in: starts open)
   cargoRampByKeypad: null as boolean | null, // not for tuning: what the keypad last asked of the ramp, until it gets there
 
-  // Interaction: point (the screen centre) at something within her reach and press E / Circle.
+  // Interaction: point (the screen centre) at something within her reach and press E / A.
   interactReach: 1.0, // m, from her chest to the object's bounds
   interactDotReach: 1.2, // m: the dots show this far (whichever way she faces; owner, 2026-10-22)
   interactMaxAngleDeg: 30, // how far across from the screen centre a target may be
@@ -300,13 +300,15 @@ export const settings = {
   outerDoorsLocked: true, // in flight (the flight rules); off on the tuning panel: they open, for testing
   shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
   shipNoiseOutdoors: 0.4, // its level outside the ship, as a share of inside
+  shipNoiseMuffle: 700, // Hz: heard inside the ship, muffled by the hull: a low-pass this low (owner, 2026-11-06)
   // The wind (owner, 2026-10-14): full outside; inside, as a share of that: faint, and louder in the
   // cargo bay with the ramp and the side door open (each by the size of its opening).
   windIndoors: 0.08,
   windCargoOpen: 0.4, // in the cargo bay with both open; with one, less (wind.ts)
   // An exterior cutscene (owner, 2026-10-24): the wind alone at first; as the camera zooms in, the
   // ship's noise comes up to this share of its level inside, and the wind goes down to this, under it.
-  cutsceneShipNoiseEnd: 0.85,
+  // Louder than inside, and not muffled (owner, 2026-11-06; 0.85 before).
+  cutsceneShipNoiseEnd: 1.6,
   cutsceneWindEnd: 0.3,
   boomboxFullWithin: 1.5, // m from the listener (the camera): at full volume within this...
   boomboxGoneAt: 12, // ...and silent from here. A guess: UE's values aren't readable

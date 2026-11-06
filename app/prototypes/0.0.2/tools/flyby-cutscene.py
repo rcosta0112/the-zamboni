@@ -1,20 +1,31 @@
 # Cutscene 1 from the owner's fly-by: reads `The Zamboni 1.10 - fly by animation.blend` (never saves
-# it) and writes `public/cutscenes/cutscene-1.json`, the track cutscene.ts plays: the camera every
+# it) and writes `public/cutscenes/<id>.json` (`cutscene-1` unless an id is given), the track cutscene.ts plays: the camera every
 # STEP frames (its shake, its tracking of the ship and its lens included) and the ship's own movement
 # (its noise), both in the ship file's coordinates (1.22: the 1.10 ship moved down to its origin and
 # scaled by SCALE). Re-run when the fly-by changes:
 #   blender -b "resources/models/The Zamboni 1.10 - fly by animation.blend" --python app/prototypes/0.0.2/tools/flyby-cutscene.py
-# (from the project's root). Plan: doc/plans/features/flying-scene.md (cutscene 1, from the fly-by)
+# (from the project's root). Cutscene 2's exterior shot from the owner's copy of the 1.11 fly-by with its
+# own camera (only the camera is the file's; the rest as cutscene 1: the same halving, scale, height),
+# ended just after the ship has left the picture (`out`):
+#   blender -b "resources/models/The Zamboni - Opening Cutscene - Part 2 1.01.blend" --python app/prototypes/0.0.2/tools/flyby-cutscene.py -- cutscene-2-exterior out
+# Plan: doc/plans/features/flying-scene.md (cutscene 1, from the fly-by)
 
-import bpy, json, math, os
+import bpy, json, math, os, sys
+from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector
+
+ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
+ID = ARGS[0] if ARGS else 'cutscene-1'
+UNTIL_OUT = 'out' in ARGS[1:]  # end the track AFTER_OUT frames after the ship has left the picture (owner, 2026-10-28)
+AFTER_OUT = 6  # frames: 0.25 s
+BARS = 2.39  # the cutscenes' black bars (style.css #bars) cut the 16:9 picture to this
 
 SCALE = 1.4856  # 1.10's units to the game's metres
 STEP = 1  # frames between keys: every frame, on a curve in the game (`smooth`; every 2 judders)
 END = 430  # the last frame used (owner, 2026-10-23; the file runs to 540)
 SWAY = 0.5  # the ship's noise, times the file's (owner, 2026-10-23): the camera tracks the calmer ship
 SHAKE = 0.5  # the camera's shake (Camera Shakify), times the file's (owner, 2026-10-23)
-OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', 'public', 'cutscenes', 'cutscene-1.json')
+OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', 'public', 'cutscenes', f'{ID}.json')
 FAR = 4000  # m: past the icy plain's haze (3,000)
 NEAR = 5  # m: nothing comes closer (the ship stays 30 m off or more); finer depth far off
 
@@ -60,8 +71,23 @@ def unwrap(angle, before):
     return angle if before is None else before + (angle - before + 180) % 360 - 180
 
 
+
+def out_frame():
+    """The first frame the ship's box (its meshes') is wholly outside the picture between the bars."""
+    meshes = [ship] + [o for o in ship.children_recursive if o.type == 'MESH']
+    edge = (1 - (16 / 9) / BARS) / 2
+    for frame in range(scene.frame_start, scene.frame_end + 1):
+        scene.frame_set(frame)
+        seen = [world_to_camera_view(scene, cam, o.matrix_world @ Vector(c)) for o in meshes for c in o.bound_box]
+        xs, ys = [v.x for v in seen], [v.y for v in seen]
+        if max(xs) < 0 or min(xs) > 1 or max(ys) < edge or min(ys) > 1 - edge:
+            return frame
+    return scene.frame_end
+
+
 keys, sway = [], []
-start, end = scene.frame_start, min(END, scene.frame_end)
+start = scene.frame_start
+end = min(out_frame() + AFTER_OUT if UNTIL_OUT else END, scene.frame_end)
 for frame in list(range(start, end, STEP)) + [end]:
     scene.frame_set(frame)
     t = round((frame - start) / fps, 4)
@@ -89,7 +115,7 @@ for frame in list(range(start, end, STEP)) + [end]:
     })
 
 track = {
-    'id': 'cutscene-1',
+    'id': ID,
     'duration': round((end - start) / fps, 4),
     'shots': [{'start': 0, 'camera': keys, 'smooth': True, 'far': FAR, 'near': NEAR, 'seeThrough': 'off'}],
     'ship': sway,
@@ -101,4 +127,4 @@ os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, 'w', newline='\n') as f:
     json.dump(track, f, separators=(',', ':'))
 fovs = [k['fov'] for k in keys]
-print(f'cutscene-1: {len(keys)} keys over {track["duration"]} s, fov {min(fovs):.1f}-{max(fovs):.1f}, shake influence {", ".join(f"{c.influence:.3g}" for c in shakes)}, written to {OUT}')
+print(f'{ID}: frames {start}-{end}, {len(keys)} keys over {track["duration"]} s, fov {min(fovs):.1f}-{max(fovs):.1f}, shake influence {", ".join(f"{c.influence:.3g}" for c in shakes)}, written to {OUT}')
