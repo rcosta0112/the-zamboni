@@ -25,6 +25,8 @@
 // its own sky light, Blender's world, which the interior's dimming never reaches (`worldIndoors`). The
 // sun is tinted on these materials only, through their received shadow (three multiplies the sun's light
 // by it). Tuned on the panel's *Flight: outside light*.
+// **Parked** (`park`, 2026-11-06: the landed scene): stopped at a spot along the terrain, the ground's
+// height at the ship's centre at its feet; `groundMesh` gives her collider the same triangles.
 
 import * as THREE from 'three/webgpu';
 import { Fn, cameraViewMatrix, clamp, float, floor, lights, mix, mod, normalize, positionLocal, select, smoothstep, texture, textureLevel, transformNormalToView, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
@@ -143,6 +145,10 @@ export class Treadmill {
   current: string | null = null;
   /** Metres travelled since the terrain was set. */
   travelled = 0;
+  /** Stopped this far along (the ship landed on it), or null: going by. */
+  parkedAt: number | null = null;
+  /** The terrain file's height above the ground, for flying again after a stop. */
+  private height = 0;
   /** The cameras' far plane while it's shown: past the full haze. */
   far = 0;
   private readonly ground: THREE.Mesh;
@@ -220,9 +226,12 @@ export class Treadmill {
     scene.add(this.group);
   }
 
-  /** The scene's terrain (`travel.terrain`), or null when the ship isn't flying. */
-  async set(id: string | null): Promise<void> {
-    if (id === this.current) return;
+  /** The scene's terrain (`travel.terrain`, or `ground.terrain` stopped `parkedAt` metres along it), or null: the flat snow. */
+  async set(id: string | null, parkedAt?: number): Promise<void> {
+    if (id === this.current) {
+      if (id !== null) this.park(parkedAt);
+      return;
+    }
     this.clear();
     this.current = id;
     this.landedFloor.visible = id === null;
@@ -278,8 +287,60 @@ export class Treadmill {
     settings.rockCount = this.pools.filter((p) => p.rocks).reduce((n, p) => n + p.base, 0);
     settings.rockSize = 1;
     this.rocksTuned = settings.rockCount;
+    this.height = data.height;
+    this.park(parkedAt);
     this.group.visible = true;
     console.info(`[0.0.2] terrain: ${id} (${this.pools.reduce((n, p) => n + p.count, 0)} copies in ${this.pools.reduce((n, p) => n + p.meshes.length * 2, 0)} draws)`);
+  }
+
+  /**
+   * Stopped `at` metres along (the ship landed there), its heading 0 and the ground's height at the
+   * ship's centre at its feet (y 0, where the ship file's gear stands); none: going by again, at the
+   * file's height.
+   */
+  private park(at: number | undefined): void {
+    this.parkedAt = at ?? null;
+    if (at === undefined) {
+      settings.flightHeight = this.height;
+      return;
+    }
+    this.travelled = at;
+    settings.flightHeading = 0;
+    settings.flightHeight = this.centre.belly + this.heightAt(0, -at);
+  }
+
+  /** The ground's height (world y) under a world point, while parked (0 otherwise: the flat snow). */
+  groundY(x: number, z: number): number {
+    if (this.parkedAt === null || !this.current) return 0;
+    return this.centre.belly - settings.flightHeight + this.heightAt(x - this.centre.x, z - this.centre.z - this.travelled);
+  }
+
+  /**
+   * The parked ground as triangles (world coordinates, each facing up), `radius` metres round the
+   * ship's centre: the hills' grid points and its diagonals, as drawn (`heightAt`). For her collider.
+   */
+  groundMesh(radius: number): { positions: Float32Array; indices: Uint32Array } {
+    const [cx, cz] = this.hills.cell;
+    const y0 = this.centre.belly - settings.flightHeight;
+    const i0 = Math.floor(-radius / cx), i1 = Math.ceil(radius / cx);
+    const j0 = Math.floor((-radius - this.travelled) / cz), j1 = Math.ceil((radius - this.travelled) / cz);
+    const nx = i1 - i0 + 1, nz = j1 - j0 + 1;
+    const positions = new Float32Array(nx * nz * 3);
+    for (let j = 0; j < nz; j++) {
+      for (let i = 0; i < nx; i++) {
+        const x = (i0 + i) * cx, z = (j0 + j) * cz; // the ground's own
+        positions.set([this.centre.x + x, y0 + this.heightAt(x, z), this.centre.z + z + this.travelled], (j * nx + i) * 3);
+      }
+    }
+    const indices: number[] = [];
+    const at = (i: number, j: number) => j * nx + i;
+    for (let j = 0; j < nz - 1; j++) {
+      for (let i = 0; i < nx - 1; i++) {
+        // Split along (i, j + 1)–(i + 1, j), as heightAt; wound so that each faces up (+y).
+        indices.push(at(i, j), at(i, j + 1), at(i + 1, j), at(i + 1, j + 1), at(i + 1, j), at(i, j + 1));
+      }
+    }
+    return { positions, indices: Uint32Array.from(indices) };
   }
 
   /** Moves it on by `dt`; `camera`: the one drawing this frame (the cells round it are shown); `pace`: the
@@ -291,7 +352,7 @@ export class Treadmill {
     g.position.set(this.centre.x, this.centre.belly - settings.flightHeight, this.centre.z);
     g.rotation.y = THREE.MathUtils.degToRad(settings.flightHeading);
     g.updateMatrixWorld();
-    const step = settings.flightSpeed * pace * dt;
+    const step = this.parkedAt === null ? settings.flightSpeed * pace * dt : 0;
     this.travelled += step;
     this.scroll.value = this.travelled % 1e5;
     this.hillShift.value = this.travelled % (HILLS_SIZE * this.hills.cell[1]);

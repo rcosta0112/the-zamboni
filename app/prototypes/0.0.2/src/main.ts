@@ -69,6 +69,8 @@ const WARM_LIMIT = 6;
  * and WARM_FRAMES quick frames have followed, or after WARM_LIMIT; the cutscene starts over under its fade.
  */
 const BLACK_HELD = 1;
+/** The landed scene's ground collider reaches this far round the ship (m): past where the jetpack takes her in a while. */
+const TERRAIN_COLLIDER = 2500;
 /** An exterior cutscene's wind fades in over this long from its start (s; owner, 2026-10-24). */
 const WIND_FADE_IN = 3;
 /**
@@ -156,6 +158,7 @@ async function start(): Promise<void> {
   const seated = new Set<string>();
   let aisle: { at: THREE.Vector3; yaw: number } | null = null; // where the scene started her
   let getUp: Interactable | null = null;
+  let sitDown: Interactable | null = null; // *Sit down* at her seat, in a scene with `sitDown` (chapter 1: on to the landed scene)
   let joystick: Joystick | null = null;
   const hand = new THREE.Vector3();
   const handAxis = new THREE.Vector3();
@@ -220,6 +223,7 @@ async function start(): Promise<void> {
         play: (id, at) => audio.play(id, at),
         story: null,
         cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
+        scene: (id) => void goTo(id).catch((err: unknown) => console.warn(`[0.0.2] scene ${id} not started:`, err)),
       };
       cutscene = new CutscenePlayer(s.object, (command) => run(command, target), [s.shadowCaster, s.interiorShadowCaster, s.glassShadowCaster]);
       // A checkpoint at a cutscene's end: the scene's, with the story as it is then.
@@ -252,16 +256,26 @@ async function start(): Promise<void> {
       if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
       const seat = s.entities.get('cockpit-seat-pilot')?.object ?? null;
-      director = new SceneDirector(s, target, (at, yaw) => {
-        aisle = { at: at.clone(), yaw };
-        const sitting = seated.has('green') ? tagPlace(s.object, pilotTag?.at, pilotTag?.facing) : null;
-        if (seated.has('green') && !sitting) {
-          console.warn('[0.0.2] her model has no pilot tag: she starts standing');
+      /** Her in her seat if she's seated there (false, and standing, without her model's pilot tag). */
+      const sitHer = (): boolean => {
+        const sitting = tagPlace(s.object, pilotTag?.at, pilotTag?.facing);
+        if (!sitting) {
+          console.warn('[0.0.2] her model has no pilot tag: she stays standing');
           seated.delete('green');
+          return false;
         }
-        if (sitting) placeHer(sitting.feet, sitting.facing);
-        else placeHer(at, yaw);
-      });
+        placeHer(sitting.feet, sitting.facing);
+        return true;
+      };
+      director = new SceneDirector(
+        s,
+        target,
+        (at, yaw) => {
+          aisle = { at: at.clone(), yaw };
+          if (!seated.has('green') || !sitHer()) placeHer(at, yaw);
+        },
+        TESTING,
+      );
       if (seat) {
         getUp = {
           name: 'Get up',
@@ -270,9 +284,21 @@ async function start(): Promise<void> {
           act: () => {
             seated.delete('green');
             if (aisle) placeHer(aisle.at, aisle.yaw);
-            // Her line once up (chapter 1: the owner's), if the story has one.
-            const knot = story?.knot('got_up');
-            if (knot) story?.run(knot);
+            // What the scene does as she gets up (chapter 1: her line).
+            for (const command of director?.data?.getUp ?? []) run(command, target);
+          },
+        };
+        // Back in her seat, in a scene that says what that does (chapter 1: the landed scene; its
+        // requirements, Ogawa and the coffee, are the flying scene's pass 2).
+        sitDown = {
+          name: 'Sit down',
+          objects: [seat],
+          verb: () => 'Sit down',
+          available: () => !seated.has('green') && (director?.data?.sitDown?.length ?? 0) > 0,
+          act: () => {
+            seated.add('green');
+            sitHer();
+            for (const command of director?.data?.sitDown ?? []) run(command, target);
           },
         };
       } else console.warn('[0.0.2] the ship has no cockpit-seat-pilot: she cannot get up from it');
@@ -280,7 +306,13 @@ async function start(): Promise<void> {
       // The scenery round the ship's centre, under its belly (the hull's bottom).
       const shipBox = new THREE.Box3().setFromObject(s.object);
       treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
-      director.onTravel = (terrain) => void treadmill?.set(terrain).catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
+      // Landed on the terrain (the landed scene): her ground is its hills, not the flat snow's.
+      director.onTravel = (terrain, parkedAt) =>
+        void treadmill
+          ?.set(terrain, parkedAt)
+          .then(() => physics.setGround(treadmill?.parkedAt != null ? treadmill.groundMesh(TERRAIN_COLLIDER) : null))
+          .catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
+      view.groundAt = (x, z) => treadmill?.groundY(x, z) ?? 0;
       // The hull's outside as the exterior shots light it: its shaders built now, not at the first cut.
       const outside = treadmill;
       exterior = new ExteriorLook(s, (m, reflects) => outside.lightOutside(m, reflects));
@@ -332,6 +364,15 @@ async function start(): Promise<void> {
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables];
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
       const storyTargets = storyInteractables(s.entities, () => target.story, (command) => run(command, target));
+      // Her seat's own knot gives way to *Sit down* while that's offered.
+      const offered = sitDown;
+      if (offered && seat)
+        for (const t of storyTargets) {
+          if (t.objects[0] !== seat) continue;
+          const own = t.available;
+          t.available = () => !offered.available!() && (own?.() ?? true);
+        }
+      if (offered) storyTargets.push(offered);
       const items = [...shipInteractables(s.entities, s.doors, others, (id, at) => audio.play(id, at), s.rampState), ...crewTargets, ...storyTargets];
       interaction = new Interaction(respectLocks(items, () => target.story, (command) => run(command, target), target.locked, () => audio.play('ui_wrong')), physics, document.querySelector<HTMLElement>('#prompt')!, (then) => audio.play('ui_interact', undefined, then));
       interaction.roomsOf = s.roomsOf;
@@ -395,6 +436,18 @@ async function start(): Promise<void> {
   let wasWatching = false; // a cutscene played last frame
   const chest = new THREE.Vector3();
   const stepChest = new THREE.Vector3();
+
+  /**
+   * A scene started by the `scene` command (chapter 1's *Sit down*): it and its `intro` cutscene
+   * fetched first, then both on the same frame, so the old scene's state is never drawn under it.
+   */
+  async function goTo(id: string): Promise<void> {
+    if (!director) return;
+    const data = await director.load(id);
+    if (data.intro) await cutscene?.load(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not loaded:`, err));
+    director.apply(id, data);
+    if (data.intro) void cutscene?.play(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not played:`, err));
+  }
 
   /** Her feet there (world), facing `yaw`, the camera behind her: a scene's start, her seat, getting up. */
   function placeHer(at: THREE.Vector3, yaw: number): void {
@@ -676,8 +729,8 @@ async function start(): Promise<void> {
     // Inside the ship: the hull is cut and the camera doesn't collide. Outside: camera collision.
     chest.copy(character.root.position).y += settings.cutTargetHeight;
     const inside = ship !== null && ship.interior.containsPoint(chest);
-    // Above the ground she's on the ship (its ramps, before she's "inside"): the ground is flat for now.
-    footsteps.update(character, inside || character.position.y > 0.15, ladders?.climbing ?? false);
+    // Above the ground she's on the ship (its ramps, before she's "inside"); the landed scene's ground has hills.
+    footsteps.update(character, inside || character.position.y > view.groundAt(character.position.x, character.position.z) + 0.15, ladders?.climbing ?? false);
     // Not under the start screen: its music is heard there.
     // An exterior cutscene starts with the wind alone, faded in from its start, and lowered under the
     // ship's noise as the camera zooms in or comes near (owner, 2026-10-24; 2026-11-06).

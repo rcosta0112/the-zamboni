@@ -12,6 +12,8 @@ import * as THREE from 'three/webgpu';
 const OFFSET = 0.03;
 /** The same, for what has to leave her room to move (a door that stops against her): doors.ts. */
 export const CONTACT_GAP = OFFSET;
+/** The flat ground: 500 × 500 m at y = 0. */
+const FLAT_GROUND = { positions: new Float32Array([-250, 0, -250, 250, 0, -250, 250, 0, 250, -250, 0, 250]), indices: new Uint32Array([0, 2, 1, 0, 3, 2]) };
 /** Walking, she's kept on ground that falls away under her by up to this much a step (m). */
 const SNAP = 0.15;
 /** Steepest surface the character can stand on and walk up. */
@@ -63,10 +65,7 @@ export class Physics {
 
     // Ground: a flat 500 × 500 m triangle mesh at y = 0. (A huge box doesn't work: with Rapier
     // 0.19–0.21 the character controller sinks through a 1000 m cuboid; a mesh is robust.)
-    const h = 250;
-    this.ground = this.world.createCollider(
-      RAPIER.ColliderDesc.trimesh(new Float32Array([-h, 0, -h, h, 0, -h, h, 0, h, -h, 0, h]), new Uint32Array([0, 2, 1, 0, 3, 2])),
-    );
+    this.ground = this.world.createCollider(RAPIER.ColliderDesc.trimesh(FLAT_GROUND.positions, FLAT_GROUND.indices));
 
     // The capsule is a collider with no rigid body, moved directly to where the controller allows
     // (a kinematic body plus snap-to-ground let it sink through the ground after a long frame).
@@ -264,6 +263,16 @@ export class Physics {
     this.moved.set(0, 0, 0);
     this.world.step();
     this.feet.copy(feet);
+  }
+
+  /**
+   * Her ground: these triangles (world, each facing up: the landed scene's terrain, terrain.ts
+   * `groundMesh`), or null for the flat 500 m one at y = 0.
+   */
+  setGround(mesh: { positions: Float32Array; indices: Uint32Array } | null): void {
+    this.world.removeCollider(this.ground, false);
+    const { positions, indices } = mesh ?? FLAT_GROUND;
+    this.ground = this.world.createCollider(RAPIER.ColliderDesc.trimesh(positions, indices));
   }
 
   /**

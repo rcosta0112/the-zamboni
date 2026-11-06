@@ -1,0 +1,41 @@
+{
+  "id": "landing",
+  "duration": 6,
+  "shots": [
+    {
+      "start": 0,
+      "camera": [
+        {
+          "t": 0,
+          "at": [
+            16,
+            -26,
+            2.64
+          ],
+          "heading": 119.16,
+          "pitch": 0.28,
+          "fov": 30
+        },
+        {
+          "t": 6,
+          "at": [
+            12.5,
+            -20.5,
+            2.34
+          ],
+          "heading": 118.35,
+          "pitch": 1,
+          "fov": 30
+        }
+      ],
+      "far": 4000,
+      "seeThrough": "off"
+    }
+  ],
+  "speed": 0,
+  "hide": [
+    "her"
+  ],
+  "events": [],
+  "end": []
+}

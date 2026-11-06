@@ -9,5 +9,7 @@
     { "do": "set", "id": "engineering-window-right", "state": "open" },
     { "do": "set", "id": "engineering-window-lever-handle", "state": "open" }
   ],
-  "begin": [{ "do": "story", "knot": "chapter_1_start" }]
+  "begin": [{ "do": "story", "knot": "chapter_1_start" }],
+  "getUp": [{ "do": "story", "knot": "got_up" }],
+  "sitDown": [{ "do": "scene", "id": "landed" }]
 }

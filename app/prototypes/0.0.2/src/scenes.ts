@@ -8,8 +8,13 @@
 // **The flight rules** (owner, 2026-10-22), on every scene with `travel`: the outer doors and hatches,
 // the jetpacks and her parka locked (`FLIGHT_LOCKED`; their `use_<id>` knots say why), the story's
 // `ship_flying` set and the ship's noise on; the scenery going by (`onTravel`: terrain.ts).
+// **Landed on a terrain** (`ground`, 2026-11-06): the travel terrain shown stopped at a spot, the ship
+// on it (terrain.ts `park`). **Her seat** (chapter 1, owner 2026-11-06): `getUp` runs as she gets up,
+// `sitDown` (offered as *Sit down* while she stands) as she sits back down: chapter 1's goes to the
+// landed scene (the `scene` command), whose `intro` cutscene plays from its first frame.
 // Dev builds: `?scene=<id>` in the address starts a new game from another point (main.ts `ASKED`);
-// `__director().start('<id>')`.
+// `__director().start('<id>')`. With `?test` the checks' scenes are read first (their `landed` is the
+// ship as the checks were written for: her outside, the ramp open, the flat ground).
 // Plans: doc/plans/architecture/game-architecture/game-structure.md (*Locations and scenes*, pass 2),
 // doc/plans/features/flying-scene.md (*The flight rules*, pass 1)
 
@@ -27,9 +32,17 @@ export interface SceneData {
   player: { at: [number, number, number]; yaw: number };
   /** The ship is flying: the flight rules, its noise; the terrain going by (`public/terrain/<id>.json`). */
   travel?: { terrain: string };
+  /** The ship landed on a terrain: shown stopped, `at` metres along it (the flat snow without either). */
+  ground?: { terrain: string; at: number };
   setup: Command[];
   /** Run once the player takes over: the game begun, any cutscene before the scene over (chapter 1: Adam's line before *Get up*). */
   begin?: Command[];
+  /** Run as she gets up from her seat (chapter 1: her line). */
+  getUp?: Command[];
+  /** Offered as *Sit down* at her seat while she stands, run as she sits (she's seated first). Without it, the seat's own knot. */
+  sitDown?: Command[];
+  /** A cutscene played from the scene's first frame when the `scene` command starts it (not under the start screen, from a save or `?scene=`). */
+  intro?: string;
 }
 
 /** A new game's first scene. */
@@ -45,9 +58,10 @@ const FLIGHT_LOCKED = { kinds: ['jetpack', 'outfit'], ids: [] as string[] };
 /** The outer doors, also locked in flight unless the tuning panel says otherwise (`settings.outerDoorsLocked`). */
 const OUTER_DOORS = { kinds: ['ramp', 'drop-door'], ids: ['top-hatch-lower', 'top-hatch-upper'] };
 
-/** A scene's file: the game's, else the checks'. (Vite answers a missing file with the page: not JSON.) */
-async function sceneFile(id: string): Promise<SceneData> {
-  for (const url of [`/scenes/${id}.json`, `/test/scenes/${id}.json`]) {
+/** A scene's file: the game's, else the checks' (the checks' first with `testFirst`). (Vite answers a missing file with the page: not JSON.) */
+async function sceneFile(id: string, testFirst: boolean): Promise<SceneData> {
+  const urls = [`/scenes/${id}.json`, `/test/scenes/${id}.json`];
+  for (const url of testFirst ? urls.reverse() : urls) {
     const response = await fetch(url);
     if (response.ok && response.headers.get('content-type')?.includes('json')) return (await response.json()) as SceneData;
   }
@@ -59,8 +73,10 @@ export class SceneDirector {
   current: string | null = null;
   /** Called once a scene has started: the checkpoint save (main.ts). */
   onStarted: ((id: string) => void) | null = null;
-  /** Called with the scene's terrain, or null when the ship isn't flying: the scenery (main.ts). */
-  onTravel: ((terrain: string | null) => void) | null = null;
+  /** The data of the scene started last. */
+  data: SceneData | null = null;
+  /** Called with the scene's terrain (and where it's stopped, if the ship has landed on it), or null: the scenery (main.ts). */
+  onTravel: ((terrain: string | null, parkedAt?: number) => void) | null = null;
   /** The scene's `begin`, until `takeOver` runs it. */
   private begin: Command[] = [];
 
@@ -69,10 +85,17 @@ export class SceneDirector {
     private readonly target: CommandTarget,
     /** Put her there (world), the camera turned to `yaw` (radians). */
     private readonly placePlayer: (at: THREE.Vector3, yaw: number) => void,
+    /** The checks' scenes first (`?test`). */
+    private readonly testFirst = false,
   ) {}
 
   async start(id: string): Promise<void> {
-    this.apply(id, await sceneFile(id));
+    this.apply(id, await this.load(id));
+  }
+
+  /** A scene's data, without starting it. */
+  load(id: string): Promise<SceneData> {
+    return sceneFile(id, this.testFirst);
   }
 
   apply(id: string, scene: SceneData): void {
@@ -91,7 +114,8 @@ export class SceneDirector {
     // The flight rules, before the setup (its `if` may read `ship_flying`).
     const flying = scene.travel !== undefined;
     settings.shipFlying = flying;
-    this.onTravel?.(scene.travel?.terrain ?? null);
+    if (scene.ground) this.onTravel?.(scene.ground.terrain, scene.ground.at);
+    else this.onTravel?.(scene.travel?.terrain ?? null);
     if (this.target.story?.get('ship_flying') !== undefined) this.target.story.set('ship_flying', flying);
     if (flying) {
       for (const id of this.ids(FLIGHT_LOCKED)) run({ do: 'lock', id }, this.target);
@@ -102,6 +126,7 @@ export class SceneDirector {
     updateShip(this.ship, 0, true);
     this.placePlayer(this.ship.object.localToWorld(fromBlender(scene.player.at)), THREE.MathUtils.degToRad(scene.player.yaw));
     this.current = id;
+    this.data = scene;
     console.info(`[0.0.2] scene: ${id}`);
     this.onStarted?.(id);
   }

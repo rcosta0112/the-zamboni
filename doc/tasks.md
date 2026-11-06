@@ -1,16 +1,18 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-151**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-152**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
-*Updated 2026-10-28.*
+*Updated 2026-11-06.*
 
 ## Next up
 
+0. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
 1. **SC-15 · Dr. Kaufman's book: the Blender task that blocks the flying scene's pass 1, second half.
 2. **SC-143** · Ogawa *"(over the comms)"* in `02-opening.md` (below, *Script*).
 
 ## Decision
 
+- [ ] **SC-151** · The landed scene unlocks every door the flight locks (outer doors, hatches; the jetpacks and her parka are free). Kaufman's and Ogawa's lockers still refuse with your lines (2026-10-21) in every scene: keep that, or open them landed? [plan](plans/features/landed-scene.md#conflicts-with-the-docs-flagged)
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
 
 ## Blender
@@ -39,7 +41,7 @@ In `doc/story/scenes/`; until written, the game shows `[Placeholder]`. Spec: [fl
 - [ ] **SC-31** · Chapter 1: the crew's conversations (Adam Red and Blue, Kaufman, the rest of Ogawa's), topics, one-liners.
 - [ ] **SC-32** · Chapter 1: her refusal at the seat without coffee; the coffee remark entering the crew quarters; a line at the seat (optional).
 - [ ] **SC-33** · Chapter 1: the coffee's lines (pouring, after the first sip, pouring again).
-- [ ] **SC-34** · `04-cutscene-landing.md`: the landing cutscene's description. *(low priority)*
+- [ ] **SC-34** · `04-cutscene-landing.md`: the landing cutscene's description, or the animation reference you mentioned (2026-11-06; a placeholder shot stands in: `public/cutscenes/landing.json`). *(low priority)*
 - *Later:* **SC-35** cutscene 1's description; **SC-36** her remarks on things in flight (optional).
 
 ## Figma
@@ -67,7 +69,7 @@ Nothing open.
 | 3 · the coffee (SC-9) | not started | SC-25…27, SC-33 |
 | 4 · the scenery (SC-10) | 4a, 4b, 4c built (4c: cutscene 2's exterior shot, 2026-10-28) | the owner watches 4c |
 | 5 · the kit from Blender (SC-11) | dropped (owner, 2026-10-28) | |
-| 6 · the landing cutscene (SC-12) | not started | SC-34 |
+| 6 · the landing cutscene (SC-12) | the landed scene and a placeholder shot built 2026-11-06 ([plan](plans/features/landed-scene.md)); sitting down goes there without the requirements | SC-34 |
 
 **Also in progress:** SC-37 (71 · the dialogue system), SC-63 (41 · the see-through hull), SC-49 (66 · door edges stop her, partly done).
 

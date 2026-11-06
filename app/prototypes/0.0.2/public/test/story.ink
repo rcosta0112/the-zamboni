@@ -110,6 +110,10 @@ Green: [Test] A second line, from her: Next, then End.
 === chapter_1_start ===
 -> DONE
 
+// The same for its `getUp`.
+=== got_up ===
+-> DONE
+
 === function command(name, id, value) ===
 // Without the game (the compiler's test run): nothing.
 ~ return

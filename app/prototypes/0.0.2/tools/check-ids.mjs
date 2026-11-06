@@ -27,7 +27,10 @@ for (const [, id] of crew.matchAll(/:\s*'([^']+)'/g)) things.set(id, 'character'
 const doorKinds = /DOOR_KINDS = \{([\s\S]*?)\} satisfies/.exec(read('src/kinds.ts'))?.[1] ?? '';
 const openable = new Set(['ramp', ...[...doorKinds.matchAll(/^\s*'?([\w-]+)'?: door\(/gm)].map((m) => m[1])]);
 const cues = new Set(Object.keys(json('src/cues.json')));
-const tracks = new Set(fs.readdirSync(path.join(root, 'public/test/cutscenes')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)));
+const filesIn = (folder) => fs.readdirSync(path.join(root, folder)).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
+const tracks = new Set(filesIn('public/test/cutscenes'));
+const gameTracks = new Set([...filesIn('public/cutscenes'), ...tracks]);
+const sceneIds = new Set([...filesIn('public/scenes'), ...filesIn('public/test/scenes')]);
 const STORIES = ['public/story/story.ink', 'public/test/story.ink'];
 // A story is its file and the files it INCLUDEs from its folder (the game's: one per scene file; one level).
 const storyFiles = (file) => [file, ...[...read(file).matchAll(/^\s*INCLUDE\s+(\S+)/gm)].map((m) => path.posix.join(path.posix.dirname(file), m[1]))];
@@ -83,6 +86,10 @@ function command(where, c) {
       checked++;
       if (c.id !== 'green') problems.push(`${where}: only "green" can be seated so far, not "${c.id}"`);
       return;
+    case 'scene':
+      checked++;
+      if (!sceneIds.has(c.id)) problems.push(`${where}: no scene "${c.id}" (public/scenes/, public/test/scenes/)`);
+      return;
     case 'swap-exterior':
       return;
     default:
@@ -96,6 +103,9 @@ for (const folder of ['public/scenes', 'public/test/scenes']) {
     const scene = json(`${folder}/${file}`);
     scene.setup.forEach((c, i) => command(`scene ${folder}/${file}, setup ${i + 1}`, c));
     (scene.begin ?? []).forEach((c, i) => command(`scene ${folder}/${file}, begin ${i + 1}`, c));
+    (scene.getUp ?? []).forEach((c, i) => command(`scene ${folder}/${file}, getUp ${i + 1}`, c));
+    (scene.sitDown ?? []).forEach((c, i) => command(`scene ${folder}/${file}, sitDown ${i + 1}`, c));
+    if (scene.intro !== undefined && (checked++, !gameTracks.has(scene.intro))) problems.push(`scene ${folder}/${file}: no intro cutscene "${scene.intro}"`);
   }
 }
 [knots, vars] = [named(KNOT), named(VAR)];

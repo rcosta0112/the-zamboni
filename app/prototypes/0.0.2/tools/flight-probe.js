@@ -26,6 +26,8 @@ await until(() => !cutscene.playing, 2000);
 report(!cutscene.playing, 'a skip ends it');
 // Cutscene 2 (watched) plays after it: its own probe (opening-probe.js) looks at it; here it's let run out.
 await until(() => !w.__watched()?.playing, 40000);
+// Then its exterior shot (2026-10-28): chapter 1's `begin` (Adam's line) waits for it to end.
+await until(() => !cutscene.playing, 12000);
 
 story.reset();
 await director.start('chapter-1');

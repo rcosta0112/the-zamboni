@@ -23,7 +23,7 @@ for (const id of ['later', 'landed', 'later']) {
   await director.start(id);
   await wait(2000);
   await shot(`scene-${id}`);
-  const data = await (await fetch(`/${id === 'landed' ? '' : 'test/'}scenes/${id}.json`)).json();
+  const data = await (await fetch(`/test/scenes/${id}.json`)).json();
   const feet = w.__character.position;
   const want = atBlender(data.player.at);
   const near = Math.hypot(feet.x - want.x, feet.z - want.z) < 0.3;

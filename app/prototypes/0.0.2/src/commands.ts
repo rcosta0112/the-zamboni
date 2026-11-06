@@ -34,6 +34,8 @@ export type Command = (
   | { do: 'cutscene'; id: string }
   /** Dress her: the jumpsuit or the parka. */
   | { do: 'outfit'; set: Outfit }
+  /** Start a scene (scenes.ts), by its id: its `intro` cutscene plays from its first frame. */
+  | { do: 'scene'; id: string }
   /** Seat a character in their seat, playing their seated loop (only hers so far: `green`, piloting, until she gets up). */
   | { do: 'seat'; id: string }
 ) & {
@@ -57,6 +59,8 @@ export interface CommandTarget {
   story: GameStory | null;
   /** Plays a cutscene by id. */
   cutscene: (id: string) => void;
+  /** Starts a scene by id (main.ts: with its intro). */
+  scene: (id: string) => void;
 }
 
 /** The ship's glTF space from the ship file's Blender coordinates. */
@@ -67,7 +71,7 @@ export function run(command: Command, target: CommandTarget): void {
   const truth = (name: string) => Boolean(target.story?.get(name));
   if (command.if !== undefined && !truth(command.if)) return;
   if (command.unless !== undefined && truth(command.unless)) return;
-  const entity = 'id' in command && command.do !== 'cutscene' && command.do !== 'seat' ? target.entities.get(command.id) : null;
+  const entity = 'id' in command && command.do !== 'cutscene' && command.do !== 'seat' && command.do !== 'scene' ? target.entities.get(command.id) : null;
   const missing = () => console.warn(`[0.0.2] ${command.do}: no "${'id' in command ? command.id : ''}" that can do it`);
   switch (command.do) {
     case 'set': {
@@ -109,6 +113,9 @@ export function run(command: Command, target: CommandTarget): void {
     }
     case 'cutscene':
       target.cutscene(command.id);
+      return;
+    case 'scene':
+      target.scene(command.id);
       return;
     case 'outfit':
       settings.outfit = command.set;

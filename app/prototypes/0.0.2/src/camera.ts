@@ -30,6 +30,8 @@ export class FollowCamera {
    * (main.ts; ship.ts hullWallAt, furnitureAt).
    */
   collide: ((from: THREE.Vector3, to: THREE.Vector3) => number | null) | null = null;
+  /** The ground's height (world y) under a point: flat at 0 unless the landed scene's terrain says otherwise. */
+  groundAt: (x: number, z: number) => number = () => 0;
 
   constructor(aspect: number) {
     this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 500);
@@ -84,8 +86,8 @@ export class FollowCamera {
       this.collidedDistance = this.distance;
     }
     this.camera.position.copy(this.focus).addScaledVector(dir, distance);
-    // Never go below the floor.
-    this.camera.position.y = Math.max(0.2, this.camera.position.y);
+    // Never go below the ground (the landed scene's hills: `groundAt`).
+    this.camera.position.y = Math.max(this.groundAt(this.camera.position.x, this.camera.position.z) + 0.2, this.camera.position.y);
     this.camera.lookAt(this.focus);
   }
 

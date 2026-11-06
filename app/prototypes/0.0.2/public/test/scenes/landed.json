@@ -1,0 +1,8 @@
+{
+  "location": "ship",
+  "player": { "at": [4, 17, 0], "yaw": 0 },
+  "setup": [
+    { "do": "set", "id": "cargo-ramp", "state": "open" },
+    { "do": "set", "id": "floor-hatch", "state": "open" }
+  ]
+}

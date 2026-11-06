@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-06 | The ship lands on the travel terrain, stopped | scope | The landed scene shows the icy plain stopped at a chosen spot (14,697 m along: flat under the ship, no rocks within 60 m), her ground its hills; replaces the flat snow and the exterior swap for now; the checks keep their own `landed` (flat ground, read first under `?test`) |
 | 2026-10-28 | Controller buttons named as on a Nintendo controller | input | A B X Y by position (A right, B bottom, Y left, X top), shoulders L / R, triggers ZL / ZR, in every prompt and doc (Xbox / PlayStation names before); the buttons themselves unchanged (B jumps, A interacts and moves the dialogue on, ZR flies), but skipping a cutscene is held on **X** (was A, which also moves the dialogue on) |
 | 2026-10-28 | The owner's tasks in `doc/tasks.md`, not Linear | process | Linear dropped (not worth the upkeep); one Markdown list grouped by kind (look at, decision, Blender, script, Figma, review), *Next up* first, the agent's queue at the bottom; the `SC-n` and item numbers kept, new tasks continue from SC-146 |
 | 2026-10-27 | Plans estimate the agent's build and the review rounds apart | process | Each pass gives two figures, the agent's build time and the expected review rounds with the owner; the *As built* note records the actual time next to them; build estimates are a fifth of the old ones |
@@ -61,6 +62,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-11-06] — The ship lands on the travel terrain, stopped (scope)
+
+**Context:** The owner (2026-11-06) asked for the landed scene: *"a new scene with the ship landed. Select a spot of the treadmill with enough room for the ship"*, with a placeholder exterior shot of the ship there, the treadmill stopped. The flying-scene plan had the landed scene keep the flat snow, with the landing cutscene swapping the exterior from the travel terrain to it. The checks also start in a scene called `landed` (her outside, flat ground).
+
+**Decision:** A scene can stand the ship on a terrain (`ground: { terrain, at }`): the treadmill shown stopped `at` metres along, the ground's height at the ship's centre at its feet, and her collider the terrain's own triangles (`Physics.setGround`). The game's `landed` uses the icy plain at **14,697 m**, found by running the treadmill's maths along the flight line (the ground under the ship within 0.52 m, no rock within 60 m). The checks keep the old `landed` as `public/test/scenes/landed.json`, read first under `?test`.
+
+**Alternatives considered:** the flat snow (the plan; the owner asked for the treadmill); levelling a pad under the ship (not needed at 0.5 m; kept as an option); moving the spot sideways too (the hills' grid along the flight line alone gave a good enough spot).
+
+**Rationale:** The owner's ask; the travel terrain costs nothing more to load, and the landing cutscene then needs no swap.
+
+**Status:** Built 2026-11-06 ([plan](plans/features/landed-scene.md)). A landing site of its own later would bring the swap back.
 
 ---
 
