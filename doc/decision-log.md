@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-07 | Scene files named `NNNN - Type - Description.md` | docs | Four digits counted up by 100 (scenes inserted between without renaming), the type in words (*Exterior cutscene*, *Dialogue cutscene*, *Playable scene*), a short description; no `?` or apostrophes; the Ink files the same name in lowercase with hyphens |
 | 2026-11-07 | The temple's glow painted in, and a real point light | look | The landed scene's temple stands 200 m ahead; its light shaft gets its bloom without post-processing (a core never under 2 px, a glow ribbon and a base flare sized in pixels, additive), the haze kept on it, the file's 15 cm width kept; a bright point light inside in the Blackbody's colour (owner) |
 | 2026-11-07 | Characters face Dr. Green as their pose allows | feature | Only in her conversations: standing, the whole body turns to face her; seated with her in reach (70°), the head and a little of the body; out of reach, the head 15° toward her side, as if listening; everyone turns back after, her too; replaces the dialogue plan's head-only turn |
 | 2026-11-06 | The ship lands on the travel terrain, stopped | scope | The landed scene shows the icy plain stopped at a chosen spot (14,697 m along: flat under the ship, no rocks within 60 m), her ground its hills; replaces the flat snow and the exterior swap for now; the checks keep their own `landed` (flat ground, read first under `?test`) |
@@ -66,6 +67,23 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-07] — Scene files named `NNNN - Type - Description.md` (docs)
+
+**Context:** the scene files in `doc/story/scenes/` were numbered `01`, `02`…: adding the exterior cutscene before *What's that?* meant renaming the two after it (2026-11-07). The names didn't say what kind of scene a file is, and `05-what's that.md` couldn't carry its title's `?` (not allowed in Windows file names).
+
+**Decision (owner, 2026-11-07):** `NNNN - Type - Description.md`, for example `0500 - Dialogue cutscene - Whats that.md`.
+- **Number:** four digits, counted up by 100 (`0100`, `0200`…). A scene inserted between two takes a number in the gap (`0450`), so the others keep theirs.
+- **Type, in words** (owner: the names are for people to read; short codes aren't easier to scan): two categories, cutscenes and playable scenes; cutscenes come in two kinds. So one of **`Exterior cutscene`**, **`Dialogue cutscene`**, **`Playable scene`**. Always three parts, so the description is always the last one.
+- **Description:** a few words; the scene's real title goes inside the file. **No `?` and no apostrophes** in the name.
+- **The Ink file** of a scene: the same name in lowercase with hyphens (`0500-dialogue-cutscene-whats-that.ink`).
+- The loose notes without numbers (`penguins.md`, `camp.md`…) moved to `doc/story/scenes/notes/` by the owner: they'll be folded into the script.
+
+**Alternatives considered:** three-letter codes (`CUT`, `DLG`, `PLAY`); four parts (`Cutscene - Exterior - …`), which leaves playable scenes a part short; location as a part of its own (a scene can move between places).
+
+**Rationale:** the order stays visible and survives insertions; the type and the description can be read at a glance; the names work in scripts and on Windows.
+
+**Status:** agreed 2026-11-07 ("for now", owner). *Update 2026-11-07:* the six scene files renamed (owner: "rename the files"), with the descriptions suggested in SC-163: `0100 - Exterior cutscene - Flight`, `0200 - Dialogue cutscene - Opening` (cutscene 2, watched), `0300 - Playable scene - Chapter 1`, `0400 - Exterior cutscene - Flyby`, `0500 - Dialogue cutscene - Whats that`, `0600 - Exterior cutscene - Landing`; the three Ink files and `story.ink`'s `INCLUDE`s with them, and the links in the docs (this log's older entries keep the old names). No code named the scene files.
 
 ## [2026-11-07] — The temple's glow painted in, and a real point light (look)
 

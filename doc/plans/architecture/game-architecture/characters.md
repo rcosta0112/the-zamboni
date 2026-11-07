@@ -21,7 +21,7 @@ Part of the [game architecture plan](README.md).
 - **Walk, run, jump and fly are mostly for the player** (Dr. Green).
 - Each cast member performs **one or two custom actions per scene**.
 - **Talking shows each character's personality.** Talking is a hand-animated head nod per character (see [Talking](#talking)).
-- **Adam so far:** piloting, operating the navigation station, lying in bed reading, and walking in one scene where they run away and stop when the player reaches them ([scene outline](../../../story/scenes/going-after-adam.md)).
+- **Adam so far:** piloting, operating the navigation station, lying in bed reading, and walking in one scene where they run away and stop when the player reaches them ([scene outline](../../../story/scenes/notes/going-after-adam.md)).
 
 ## What exists today
 

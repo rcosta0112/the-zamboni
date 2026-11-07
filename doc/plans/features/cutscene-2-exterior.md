@@ -8,7 +8,7 @@ The draft, as reviewed: Replaces the guesses of the flying scene's pass 4c ([pla
 
 ## Goal and scope
 
-The script (`02-opening.md`, after Green's *"Hang on."*): *"External view of the ship changing course."* The owner (2026-10-28): the animation reference is `resources/models/The Zamboni - Opening Cutscene - Part 2 1.01.blend`, a copy of `The Zamboni 1.11 - fly by animation ACES.blend` with its camera animation replaced; **the ship's wobble and the treadmill stay the same; all the animation is on the camera.**
+The script (`0200 - Dialogue cutscene - Opening.md`, after Green's *"Hang on."*): *"External view of the ship changing course."* The owner (2026-10-28): the animation reference is `resources/models/The Zamboni - Opening Cutscene - Part 2 1.01.blend`, a copy of `The Zamboni 1.11 - fly by animation ACES.blend` with its camera animation replaced; **the ship's wobble and the treadmill stay the same; all the animation is on the camera.**
 
 - **In:** one exterior shot at the end of cutscene 2, after the watched conversation's last line, before chapter 1 starts in the cockpit. The camera copied from the file as cutscene 1's was (`flyby-cutscene.py` → a track for `CutscenePlayer`). Skip, sound, the exterior look and the flames as in cutscene 1.
 - **Out:** a bank, or a real change of heading (the treadmill turning). Neither is in the reference (see question 1).

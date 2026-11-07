@@ -1,7 +1,7 @@
-// Included by story.ink: the lines of doc/story/scenes/02-opening.md. Knots only (anything above the
+// Included by story.ink: the lines of doc/story/scenes/0200 - Dialogue cutscene - Opening.md. Knots only (anything above the
 // first knot would join the story's start).
 
-// Cutscene 2, the opening (doc/story/scenes/02-opening.md, word for word): watched, not played
+// Cutscene 2, the opening (doc/story/scenes/0200 - Dialogue cutscene - Opening.md, word for word): watched, not played
 // (owner, 2026-10-22): the camera on whoever speaks, each line moving on by itself
 // (public/conversations/opening.json). Before chapter 1, after cutscene 1's card.
 // Each line of the script is a screen of its own; ellipses are lines, verbatim (owner, 2026-10-28).

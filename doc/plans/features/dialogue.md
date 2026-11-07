@@ -202,7 +202,7 @@ Ogawa: (the one-liner)
 }
 ```
 
-*(The lines in brackets and the opener are placeholders; the signal lines are the owner's, from `03-chapter-1.md`.)*
+*(The lines in brackets and the opener are placeholders; the signal lines are the owner's, from `0300 - Playable scene - Chapter 1.md`.)*
 
 **What the save keeps:** which topics were heard, by itself (Ink's state). The save is written when the conversation ends, as today: if the game is closed in the middle of one, that conversation's topics are offered again.
 

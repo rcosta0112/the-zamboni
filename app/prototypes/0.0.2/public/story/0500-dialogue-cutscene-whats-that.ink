@@ -1,6 +1,6 @@
 // Included by story.ink. Knots only (anything above the first knot would join the story's start).
 
-// Cutscene 3, What's that? (doc/story/scenes/05-what's that.md, word for word; owner, 2026-11-07):
+// Cutscene 3, What's that? (doc/story/scenes/0500 - Dialogue cutscene - Whats that.md, word for word; owner, 2026-11-07):
 // the conversation before the landing, watched like cutscene 2 (public/conversations/whats-that.json:
 // its own opening shot from behind her seat, held until Adam Red speaks, then
 // cutscene 2's camera per speaker), when she sits back down at the end of
