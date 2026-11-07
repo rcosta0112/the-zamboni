@@ -218,6 +218,10 @@ async function start(): Promise<void> {
         if (o.frustumCulled) culled.push(o);
         o.frustumCulled = false;
       });
+      // Single-sided as the settings have it (the loop sets it only once loaded): set after the build,
+      // it changed every ship material, rebuilt only as each came into view (cutscene 3's first cuts
+      // stalled, its lines typing in jumps; 2026-11-07).
+      setSingleSided(settings.singleSided);
       // Both her outfits too, or the first swap stalls (item 72).
       character.model?.showEveryOutfit();
       const start = performance.now();
