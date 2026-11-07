@@ -61,3 +61,9 @@ The click on every interaction and every press in the dialogue box (`ui_interact
 | `amb_wind_loop.m4a` | `Wind-Mark_DiAngelo-1940285615.mp3` in the owner's Islands project (`Islands-29a650/Assets/Audio/`; 29.6 s, 44.1 kHz stereo, 256 kbit/s; no author in its tags), 1 to 26.5 s of it (its fade-in and fade-out cut off), by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 64 kbit/s stereo. Not a clean loop: crossfaded in the game. (Before it, the same day: UE's starter content's `Starter_Wind05.wav`, under the Unreal Engine EULA; then klankbeeld's `412031__klankbeeld__coast-…wav`, Freesound) | Mark DiAngelo, by the file's name | Not known: where the Islands project got it isn't recorded (the name looks like a SoundBible download) |
 
 The boombox's tracks are numbered in the order of the inventory's table. **Not confirmed against the Blueprint:** the order of its track list isn't readable from the `.uasset`.
+
+## The temple's hum (2026-11-07)
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `sfx_temple_hum_loop.m4a` (cue `sfx_temple_hum`) | Made by [`make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs) from tones and noise (a 120 Hz hum, its harmonics, a buzz): no master, the recipe is in the script. A 4 s loop | The project | Nothing to license |

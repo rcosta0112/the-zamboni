@@ -180,6 +180,7 @@ async function start(): Promise<void> {
   let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
   let rockColliders: { remove: () => void } | null = null; // the landed scene's nearest rocks
   let landmarks: Landmarks | null = null; // the landed scene's buildings (the temple)
+  let humAt: THREE.Object3D | null = null; // where the temple's hum is playing (the shaft's `hum`)
   let flames: ThrusterFlames | null = null; // behind the turbines in exterior cutscenes
   let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
@@ -909,7 +910,19 @@ async function start(): Promise<void> {
     // see-through and shadow shaders are built in the warm-up with the rest (item 72).
     if (!ready) character.model?.showEveryOutfit();
 
-    landmarks?.update(drawing, size.y, scene.fog as THREE.Fog | null);
+    landmarks?.update(drawing, size.y, scene.fog as THREE.Fog | null, dt);
+    // The temple's electric hum (owner, 2026-11-07): a loop placed at the light shaft's foot, loud
+    // and louder as she nears (its falloff from the panel), following the light's pulse and flicker.
+    const shaft = landmarks?.shownShaft ?? null;
+    if (humAt && humAt !== shaft?.hum) {
+      audio.stop('sfx_temple_hum', humAt, 1);
+      humAt = null;
+    }
+    if (shaft) {
+      if (!audio.isPlaying('sfx_temple_hum', shaft.hum) && audio.play('sfx_temple_hum', shaft.hum)) humAt = shaft.hum;
+      audio.falloff('sfx_temple_hum', shaft.hum, settings.templeHumFull, settings.templeHumGone);
+      audio.shape('sfx_temple_hum', settings.templeHumVolume * (0.55 + 0.45 * shaft.intensity), 1, shaft.hum);
+    }
     renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
     renderer.getDrawingBufferSize(size);
     stats.frame(dt, size.x, size.y);

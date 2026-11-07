@@ -145,6 +145,13 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   temple.add(settings, 'shaftGlowStrength', 0, 5, 0.05).name('glow opacity');
   temple.add(settings, 'shaftFlarePx', 0, 600, 10).name('flare size (px)');
   temple.add(settings, 'shaftFlareStrength', 0, 5, 0.05).name('flare opacity');
+  temple.add(settings, 'shaftPulsePeriod', 0.2, 10, 0.1).name('pulse period (s)');
+  temple.add(settings, 'shaftPulseDepth', 0, 1, 0.05).name('pulse depth');
+  temple.add(settings, 'shaftFlickerRate', 0, 5, 0.05).name('flickers a second');
+  temple.add(settings, 'shaftFlickerDepth', 0, 1, 0.05).name('flicker depth');
+  temple.add(settings, 'templeHumVolume', 0, 3, 0.05).name('hum volume');
+  temple.add(settings, 'templeHumFull', 1, 100, 1).name('hum: full within (m)');
+  temple.add(settings, 'templeHumGone', 50, 1000, 10).name('hum: gone at (m)');
   temple.add(settings, 'templeLight', 0, 50000, 100).name('light (cd)');
   temple.add(settings, 'templeLightRange', 0, 500, 5).name('light range (m)');
   temple.close();

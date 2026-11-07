@@ -1,15 +1,15 @@
 // The temple's light shaft and its bloom, painted in (no post-processing; owner, 2026-11-07,
 // doc/plans/features/temple.md pass 2; decision log *The temple's glow painted in*). Three parts, not
-// writing depth, drawn in the shaft's colour (the file's Blackbody, 1,500 K, turned
-// into a colour by the export: `glowColor`):
+// writing depth, drawn in the shaft's colour (a bluish white set in landmarks.ts, SHAFT_COLOUR, over
+// the file's Blackbody, 1,500 K, which came out orange; owner, 2026-11-07):
 // - **the core:** a ribbon on the shaft's axis turned about the vertical to face the camera, the
 //   file's width (owner: kept), never drawn under `shaftCorePx` pixels across, so it doesn't break up
-//   at 200 m (the file's 15 cm is under a pixel from the ship); opaque, a little yellower than the glow,
+//   at 200 m (the file's 15 cm is under a pixel from the ship); opaque, whiter than the glow,
 //   drawn over it;
 // - **the glow:** the same, `shaftGlowPx` pixels across (bloom's width is the screen's, near or far)
 //   and at least `shaftGlowMin` metres, bright along the axis with a long faint tail;
 // - **the flare:** a camera-facing card low in the temple, round, sized in pixels too.
-// All three are orange laid over what's behind (normal blending, see-through by their shape), not
+// All three are laid over what's behind (normal blending, see-through by their shape), not
 // added: added to the bright blue sky, orange came out pink-white and the core pure white (tried,
 // 2026-11-07), and the Blackbody's tint was lost.
 // From the floor up to `shaftHeight` metres (2,500: the top seen at 85° from the ship), faded out over
@@ -17,6 +17,10 @@
 // fog would, toward nothing instead of toward the haze's colour (it adds light). And **a point light**
 // inside the temple in the same colour, really bright (owner), added to the outside's light list
 // (Treadmill.addOutsideLight): it lights the stone, the steps and the ice round it; no shadow.
+// **It pulses and flickers** (owner, 2026-11-07): its brightness rises and falls on a sine wave every
+// `shaftPulsePeriod` seconds, with now and then a short electrical flicker (quick random dips) and a
+// faint jitter always; the core, glow, flare and light all follow it (`intensity`, which the temple's
+// hum follows too: main.ts).
 
 import * as THREE from 'three/webgpu';
 import { attribute, cameraPosition, cross, exp, float, length, max, min, normalize, positionView, positionWorld, smoothstep, uniform, uv, vec3, vec4 } from 'three/tsl';
@@ -69,6 +73,18 @@ export class LightShaft {
   private readonly glowMin = uniform(3);
   private readonly glowLevel = uniform(1.5);
   private readonly flareLevel = uniform(1);
+  /** The pulse and the flicker together (0..1), on every part's opacity. */
+  private readonly level = uniform(1);
+  /** The brightness this frame, 0..1 (1: the pulse's top, no flicker). */
+  intensity = 1;
+  /** Where the temple's hum comes from (main.ts plays it here): the flare's place. */
+  readonly hum = new THREE.Object3D();
+  private time = 0;
+  /** A flicker under way: seconds left of it, and its value held till `nextJump`. */
+  private flickerLeft = 0;
+  private flickerValue = 1;
+  private nextJump = 0;
+  private jitter = 1;
   private readonly flare: THREE.Sprite;
   private readonly flareFoot = new THREE.Vector3();
   private readonly flareMin: number;
@@ -98,11 +114,13 @@ export class LightShaft {
     const flareMaterial = new THREE.SpriteNodeMaterial({ transparent: true, depthWrite: false, fog: false });
     flareMaterial.toneMapped = false;
     const shape = float(1).sub(smoothstep(0, 1, r)).pow(3);
-    flareMaterial.colorNode = vec4(this.colour.mul(shape.add(1)), min(shape.mul(this.flareLevel).mul(this.hazeFade()), 1));
+    flareMaterial.colorNode = vec4(this.colour.mul(shape.add(1)), min(shape.mul(this.flareLevel).mul(this.level).mul(this.hazeFade()), 1));
     this.flare = new THREE.Sprite(flareMaterial);
     this.flare.position.copy(this.flareFoot);
     this.flare.renderOrder = 12;
     this.group.add(this.flare);
+    this.hum.position.copy(this.flareFoot);
+    this.group.add(this.hum);
     // The light, a third of the way up the temple, inside it.
     this.light = new THREE.PointLight(colour, settings.templeLight, settings.templeLightRange, 2);
     this.light.position.copy(foot).setY(foot.y + size * 0.3);
@@ -135,21 +153,50 @@ export class LightShaft {
     const height = p.y.sub(this.foot.y).div(this.height);
     const top = float(1).sub(smoothstep(0.66, 1, height)); // faded over its top third
     if (isCore) {
-      // The colour, a little hotter (yellower) in the middle, soft at its edges.
+      // Pure white (owner, 2026-11-07), soft at its edges.
       const shape = float(1).sub(smoothstep(0.5, 1, u));
-      material.colorNode = vec4(this.colour.add(vec3(0, 0.3, 0.08)), min(shape.mul(this.coreLevel).mul(top).mul(this.hazeFade()), 1));
+      material.colorNode = vec4(vec3(1, 1, 1),min(shape.mul(this.coreLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
     } else {
       // Bloom's fall-off: a bright narrow part and a long faint tail, nothing at the edge.
       const edge = float(1).sub(u).pow(2);
       const shape = exp(u.mul(u).mul(-40)).mul(0.7).add(float(1).div(u.mul(u).mul(60).add(1)).mul(0.3)).mul(edge);
-      // Brighter toward the axis (up to twice the colour: yellower), as opaque as `glowLevel` says.
-      material.colorNode = vec4(this.colour.mul(shape.add(1)), min(shape.mul(this.glowLevel).mul(top).mul(this.hazeFade()), 1));
+      // Brighter toward the axis (up to twice the colour: whiter), as opaque as `glowLevel` says.
+      material.colorNode = vec4(this.colour.mul(shape.add(1)), min(shape.mul(this.glowLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
     }
     return material;
   }
 
-  /** Each frame: the camera's pixel size, the haze, the panel's settings; the flare's size in pixels. */
-  update(camera: THREE.PerspectiveCamera, drawingHeight: number, fog: THREE.Fog | null): void {
+  /** The pulse (a sine, `shaftPulseDepth` deep) times the flicker, advanced by `dt` seconds. */
+  private advance(dt: number): number {
+    dt = Math.max(0, Math.min(dt, 0.1));
+    this.time += dt;
+    const period = Math.max(0.1, settings.shaftPulsePeriod);
+    const pulse = 1 - settings.shaftPulseDepth * (0.5 - 0.5 * Math.cos((2 * Math.PI * this.time) / period));
+    // A flicker starts now and then (`shaftFlickerRate` a second, on average), 0.1 to 0.45 s long:
+    // its value jumps at random every 20 to 70 ms, down to `shaftFlickerDepth` below full.
+    if (this.flickerLeft <= 0 && Math.random() < settings.shaftFlickerRate * dt) {
+      this.flickerLeft = 0.1 + Math.random() * 0.35;
+      this.nextJump = 0;
+    }
+    if (this.flickerLeft > 0) {
+      this.flickerLeft -= dt;
+      this.nextJump -= dt;
+      if (this.nextJump <= 0) {
+        this.flickerValue = 1 - settings.shaftFlickerDepth * Math.random();
+        this.nextJump = 0.02 + Math.random() * 0.05;
+      }
+    } else {
+      this.flickerValue = 1;
+    }
+    // The faint jitter: a few percent, eased so it shimmers rather than strobes.
+    this.jitter += (1 - 0.06 * Math.random() - this.jitter) * Math.min(1, dt * 30);
+    return Math.max(0, pulse * this.flickerValue * this.jitter);
+  }
+
+  /** Each frame: the pulse and flicker, the camera's pixel size, the haze, the panel's settings; the flare's size in pixels. */
+  update(camera: THREE.PerspectiveCamera, drawingHeight: number, fog: THREE.Fog | null, dt: number): void {
+    this.intensity = this.advance(dt);
+    this.level.value = this.intensity;
     const pixel = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / Math.max(1, drawingHeight);
     this.pixel.value = pixel;
     this.hazeNear.value = fog ? fog.near : 1e6;
@@ -163,7 +210,7 @@ export class LightShaft {
     this.flareLevel.value = settings.shaftFlareStrength;
     const d = camera.getWorldPosition(new THREE.Vector3()).distanceTo(this.flareFoot);
     this.flare.scale.setScalar(Math.max(this.flareMin, d * pixel * settings.shaftFlarePx));
-    this.light.intensity = settings.templeLight;
+    this.light.intensity = settings.templeLight * this.intensity;
     this.light.distance = settings.templeLightRange;
   }
 }

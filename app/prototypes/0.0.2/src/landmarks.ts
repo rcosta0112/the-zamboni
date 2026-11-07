@@ -31,6 +31,8 @@ export interface LandmarkPlace {
 const GROUND_STEP = 1;
 /** A rock this close to the steps' edge (m) is warned about. */
 const ROCK_MARGIN = 10;
+/** The light shaft's colour, linear (a bluish white, about a 9,000 K blackbody; owner, 2026-11-07). */
+const SHAFT_COLOUR = [0.68, 0.78, 1];
 
 interface Landmark {
   object: THREE.Object3D;
@@ -58,9 +60,15 @@ export class Landmarks {
     private readonly outsideLight: (light: THREE.Light, on: boolean) => void,
   ) {}
 
-  /** Each frame: the shafts' widths in pixels, the haze, the panel's settings. */
-  update(camera: THREE.PerspectiveCamera, drawingHeight: number, fog: THREE.Fog | null): void {
-    for (const landmark of this.shown.values()) landmark.lightShaft?.update(camera, drawingHeight, fog);
+  /** Each frame: the shafts' pulse and flicker, their widths in pixels, the haze, the panel's settings. */
+  update(camera: THREE.PerspectiveCamera, drawingHeight: number, fog: THREE.Fog | null, dt: number): void {
+    for (const landmark of this.shown.values()) landmark.lightShaft?.update(camera, drawingHeight, fog, dt);
+  }
+
+  /** The light shaft shown (the temple's), if any: main.ts plays its hum. */
+  get shownShaft(): LightShaft | null {
+    for (const landmark of this.shown.values()) if (landmark.lightShaft?.group.visible) return landmark.lightShaft;
+    return null;
   }
 
   /**
@@ -198,8 +206,9 @@ export class Landmarks {
     }
     const box = landmark.shaft;
     if (!box) return;
-    const extras = box.userData as { glowColor?: number[] };
-    const colour = new THREE.Color().fromArray(extras.glowColor ?? [1, 1, 1]);
+    // A bluish white (owner, 2026-11-07: the file's Blackbody, 1,500 K, came out orange), set here
+    // over the file's `glowColor` (linear, brightest channel 1).
+    const colour = new THREE.Color().fromArray(SHAFT_COLOUR);
     const bounds = new THREE.Box3().setFromObject(box, true);
     const foot = bounds.getCenter(new THREE.Vector3()).setY(bounds.min.y);
     const temple = landmark.object.getObjectByName('Temple') ?? landmark.object;

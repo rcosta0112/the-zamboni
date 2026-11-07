@@ -68,6 +68,11 @@ const MADE = [
   // tick, noise only (tones made it ring like a xylophone, owner), a faint second tick as it
   // bottoms out; three of them, filtered a little differently.
   ...[[1800, 5200], [2100, 5800], [1600, 4800]].map(([low, high], i) => [`ui_type_0${i + 1}`, 0.04, `${noise(i)}*${hit(0, 1100)}*0.6+${noise(i + 3)}*${hit(0.006, 1600)}*0.25`, `highpass=f=${low},lowpass=f=${high}`]),
+  // The temple's electric hum (owner, 2026-11-07: "something like an electric hum", fairly loud): a
+  // mains hum (120 Hz and its harmonics, a 121 Hz beside it beating once a second), a buzz of noise
+  // pulsing with it 120 times a second, and a little hiss. A loop: every tone is a whole number of
+  // hertz, so the 4 s end where they began (and \`_loop\` names get no fade at the ends).
+  ['sfx_temple_hum_loop', 4, `sin(2*PI*120*t)*0.32+sin(2*PI*121*t)*0.12+sin(2*PI*240*t)*0.22+sin(2*PI*360*t)*0.16+sin(2*PI*480*t)*0.09+sin(2*PI*600*t)*0.05+sin(2*PI*960*t)*0.025+${noise(0)}*pow(0.5+0.5*sin(2*PI*120*t),8)*0.22+${noise(1)}*0.03`, 'highpass=f=60,lowpass=f=5000'],
 ];
 const onlyAt = process.argv.indexOf('--only');
 const ONLY = onlyAt >= 0 ? process.argv[onlyAt + 1] : null;
@@ -137,8 +142,8 @@ let failed = 0;
 for (const [name, seconds, expression, filters] of MADE) {
   if (ONLY && name !== ONLY) continue;
   // A short fade at both ends: no click where the sound starts or is cut off.
-  const fade = `afade=t=in:d=0.003,afade=t=out:st=${(seconds - 0.03).toFixed(3)}:d=0.03`;
-  const run = ffmpeg(['-f', 'lavfi', '-i', `aevalsrc=exprs='${expression}':d=${seconds}:s=${RATE}`, '-af', `${filters},${fade}`, ...encode, join(OUT, `${name}.m4a`)]);
+  const fade = name.endsWith('_loop') ? '' : `,afade=t=in:d=0.003,afade=t=out:st=${(seconds - 0.03).toFixed(3)}:d=0.03`;
+  const run = ffmpeg(['-f', 'lavfi', '-i', `aevalsrc=exprs='${expression}':d=${seconds}:s=${RATE}`, '-af', `${filters}${fade}`, ...encode, join(OUT, `${name}.m4a`)]);
   if (run.status !== 0) {
     console.error(`FAILED   ${name}`);
     failed++;

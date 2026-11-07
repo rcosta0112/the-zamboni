@@ -77,7 +77,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Rationale:** a few draws and no new pass; it reads as bloom at any distance; the light makes the glow touch the stone, which painted glow can't.
 
-**Status:** built 2026-11-07 (both passes). *Update 2026-11-07:* the glow, flare and core are laid over the sky as see-through orange, not added (added, the orange turned pink-white on the bright sky); the light 20,000 cd, 150 m. The temple 3 times the file's size (owner).
+**Status:** built 2026-11-07 (both passes). *Update 2026-11-07:* the glow, flare and core are laid over the sky as see-through orange, not added (added, the orange turned pink-white on the bright sky); the light 20,000 cd, 150 m. The temple 3 times the file's size (owner). *Update 2026-11-07 (owner):* the shaft and its light a bluish white, not the Blackbody's orange: set in `landmarks.ts` (`SHAFT_COLOUR`), the file's colour no longer read; the core whiter than the glow, not yellower.
 
 ## [2026-11-07] — Characters face Dr. Green as their pose allows (feature)
 

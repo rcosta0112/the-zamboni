@@ -209,6 +209,13 @@ export const settings = {
   shaftGlowStrength: 1.2, // how opaque the glow's orange is over the sky near the axis
   shaftFlarePx: 140, // the flare at its foot, on screen
   shaftFlareStrength: 1,
+  shaftPulsePeriod: 2.5, // s: the brightness up and down once on a sine wave (owner: every couple of seconds)
+  shaftPulseDepth: 0.4, // how far it dips at the bottom of the wave (0: steady, 1: to nothing)
+  shaftFlickerRate: 1, // flickers a second, on average (0: none; owner, 2026-11-07: stronger)
+  shaftFlickerDepth: 0.95, // how far a flicker's dips go (owner: stronger)
+  templeHumVolume: 0.23, // the temple's electric hum (cue sfx_temple_hum), at its loudest (owner: next to it, half what it was in the ship)
+  templeHumFull: 10, // m from the temple: as loud as it gets
+  templeHumGone: 120, // m: not heard past it (owner: only near the temple; the ship is 200 m off)
   templeLight: 20000, // the point light inside the temple (candela; owner: really bright)
   templeLightRange: 150, // m: nothing past it is lit (0: no limit)
   shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
