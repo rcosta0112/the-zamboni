@@ -9,7 +9,7 @@ import type { Input } from './input';
 const DEG = Math.PI / 180;
 /** Time constant of the ease between the indoor and outdoor distances: about 0.5 s to get there. */
 const DISTANCE_EASE = 0.17;
-/** Time constant of the pitch's return to its limit after a flight. */
+/** Time constant of the pitch's return to its limit after a flight, or on going inside. */
 const PITCH_EASE = 0.25;
 
 export class FollowCamera {
@@ -20,8 +20,6 @@ export class FollowCamera {
   distance = settings.cameraDistanceOutdoors;
   private focus = new THREE.Vector3();
   private initialised = false;
-  /** Flying, or easing back to the usual pitch limit since. */
-  private afterFlight = false;
   /** Distance actually used after collision (eases back out when the way clears). */
   private collidedDistance = Infinity;
   /**
@@ -41,16 +39,16 @@ export class FollowCamera {
    * @param indoors she's inside the ship (the same test as the see-through hull)
    * @param flight how far she's in flight with the jetpack, 0..1: the camera can go below her that
    *   much (she flies where it looks)
+   * Outside it can go below her on foot too (`cameraMinPitchOutdoorsDeg`), pulled in toward her
+   * near the ground, so it looks up; inside, never (the see-through).
    */
   update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean, flight = 0): void {
     const look = input.consumeLook(dt);
     this.yaw += look.yaw;
-    const usual = settings.cameraMinPitchDeg;
+    const usual = indoors ? settings.cameraMinPitchDeg : Math.min(settings.cameraMinPitchOutdoorsDeg, settings.cameraMinPitchDeg);
     const min = THREE.MathUtils.lerp(usual, Math.min(settings.cameraMinPitchFlyingDeg, usual), flight) * DEG;
-    if (flight > 0) this.afterFlight = true;
-    else if (this.pitch >= min) this.afterFlight = false;
-    // Below the usual limit after a flight: it eases back up instead of jumping.
-    const floor = this.afterFlight && this.pitch < min ? this.pitch + (min - this.pitch) * (1 - Math.exp(-dt / PITCH_EASE)) : min;
+    // Below the limit (after a flight, or on going inside): it eases back up instead of jumping.
+    const floor = this.pitch < min ? this.pitch + (min - this.pitch) * (1 - Math.exp(-dt / PITCH_EASE)) : min;
     this.pitch = THREE.MathUtils.clamp(this.pitch + look.pitch, Math.min(min, floor), settings.cameraMaxPitchDeg * DEG);
     const wanted = indoors ? settings.cameraDistanceIndoors : settings.cameraDistanceOutdoors;
     this.distance += (wanted - this.distance) * (1 - Math.exp(-dt / DISTANCE_EASE));
@@ -84,6 +82,13 @@ export class FollowCamera {
       distance = Math.min(this.distance, this.collidedDistance);
     } else {
       this.collidedDistance = this.distance;
+    }
+    if (dir.y < 0) {
+      // Below her: in toward her along the line of sight before it meets the ground, so it keeps
+      // looking up (raised alone, it would flatten the view back out).
+      const lowest = this.groundAt(this.focus.x + dir.x * distance, this.focus.z + dir.z * distance) + 0.2;
+      const reach = (lowest - this.focus.y) / dir.y;
+      if (reach < distance) distance = Math.max(settings.cameraMinDistance, reach);
     }
     this.camera.position.copy(this.focus).addScaledVector(dir, distance);
     // Never go below the ground (the landed scene's hills: `groundAt`).

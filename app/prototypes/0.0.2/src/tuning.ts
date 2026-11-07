@@ -93,6 +93,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   cam.add(settings, 'cameraHeight', 0.5, 2.5, 0.05).name('aim height (m)');
   cam.add(settings, 'cameraFollowSharpness', 1, 40, 0.5).name('follow sharpness');
   cam.add(settings, 'cameraMinPitchDeg', -45, 0, 1).name('min pitch (°)');
+  cam.add(settings, 'cameraMinPitchOutdoorsDeg', -80, 0, 1).name('min pitch, outside (°)');
   cam.add(settings, 'cameraMaxPitchDeg', 10, 89, 1).name('max pitch (°)');
   cam.add(settings, 'cameraWallGap', 0, 0.6, 0.01).name('gap to walls (m)');
   cam.add(settings, 'cameraMinDistance', 0.1, 1.5, 0.01).name('closest to her (m)');

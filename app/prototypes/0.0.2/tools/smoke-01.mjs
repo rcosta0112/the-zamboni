@@ -112,7 +112,8 @@ async function checks() {
   report(view.distance === outdoors, 'the mouse wheel does not zoom', `${view.distance.toFixed(2)} m after a wheel turn`);
   view.pitch = -0.5;
   await wait(100);
-  report(settings.cameraMinPitchDeg === 0 && view.pitch >= 0, 'minimum pitch is 0', `pitch ${T.MathUtils.radToDeg(view.pitch).toFixed(1)}Â° after asking for -28.6Â°`);
+  // Outside it may go below her (cameraMinPitchOutdoorsDeg, -40°), inside never (cameraMinPitchDeg, 0).
+  report(view.pitch < -0.45 && view.camera.position.y > 0.15, 'outside, the camera can look up from below her', `pitch ${T.MathUtils.radToDeg(view.pitch).toFixed(1)}° after asking for -28.6°, camera ${view.camera.position.y.toFixed(2)} m up`);
   // Up the open ramp into the cargo bay, on foot.
   const rampMouth = new T.Vector3(inside.x, 0.05, ship.interior.max.z + 6);
   put(rampMouth);
@@ -128,6 +129,10 @@ async function checks() {
   await wait(1200);
   report(wasOutside && cameIn, 'she walks up the open ramp into the ship', `now at ${fmt(character.position)}`);
   report(cameIn && Math.abs(view.distance - settings.cameraDistanceIndoors) < 0.01 && midway !== outdoors && Math.abs(midway - settings.cameraDistanceIndoors) > 0.01, 'camera distance changes at the ramp, eased', `${outdoors.toFixed(2)} â†’ ${midway.toFixed(2)} (0.25 s in) â†’ ${view.distance.toFixed(2)} m (setting ${settings.cameraDistanceIndoors})`);
+  view.pitch = -0.5;
+  await wait(1200);
+  report(settings.cameraMinPitchDeg === 0 && view.pitch >= -0.01, 'inside, the camera never goes below her', `pitch ${T.MathUtils.radToDeg(view.pitch).toFixed(1)}° 1.2 s after -28.6°`);
+  view.pitch = 0.15;
 
   // --- The cargo ramp, from its keypad (9) -----------------------------------------------------
   const rampPad = items.find((i) => i.objects[0].userData.controls === 'cargo-ramp');

@@ -129,6 +129,8 @@ export const settings = {
   cameraHeight: 1.0,
   cameraFollowSharpness: 12,
   cameraMinPitchDeg: 0, // owner, 2026-10-12: fixes several see-through problems
+  // Outside, on foot, it can go below her and look up (owner, 2026-11-07), pulled in near the ground.
+  cameraMinPitchOutdoorsDeg: -40,
   cameraMaxPitchDeg: 70,
   // Close to her (owner, 2026-10-21): the camera stops this far in front of what's behind her, as
   // close to her as it needs (no 1 m floor any more), and she fades out between the two distances.
