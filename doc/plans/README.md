@@ -58,6 +58,7 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [The flying scene (chapter 1) and the landing cutscene (item 77)](features/flying-scene.md) | 0.0.2 | Approved 2026-10-22 (seven passes; pass 0, topics, first). The owner's work: [Blender tasks](features/flying-scene-blender.md), [script tasks](features/flying-scene-script.md) |
 | [The outside's own light (the scenery's materials lit as Blender's world)](features/outside-light.md) | 0.0.2 | Built 2026-10-23; the glass next |
 | [The scenery round the camera, not the ship (cells made from their place)](features/scenery-around-camera.md) | 0.0.2 | Built 2026-10-23 (owner: "write the plan and run it") |
+| [The temple and its light shaft in the landed scene](features/temple.md) | 0.0.2 | Draft 2026-11-07, for review (two passes) |
 | [The landed scene, reached by sitting back down (the ship on the stopped plain, a placeholder landing shot)](features/landed-scene.md) | The flying scene | Built 2026-11-06 (two passes, on the owner's "go"); the owner's to look at |
 | [Dr. Green piloting: cutscene 2 and the start of chapter 1](features/piloting-loop.md) | The flying scene | Approved 2026-10-24; in progress |
 | [Black after NEW GAME, until cutscene 1 runs smoothly (SC-132)](features/black-before-cutscene-1.md) | The flying scene | Built 2026-10-24 (owner: "go for 132") |

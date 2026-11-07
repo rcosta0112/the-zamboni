@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-07 | The temple's glow painted in, and a real point light | look | The landed scene's temple stands 200 m ahead; its light shaft gets its bloom without post-processing (a core never under 2 px, a glow ribbon and a base flare sized in pixels, additive), the haze kept on it, the file's 15 cm width kept; a bright point light inside in the Blackbody's colour (owner) |
 | 2026-11-07 | Characters face Dr. Green as their pose allows | feature | Only in her conversations: standing, the whole body turns to face her; seated with her in reach (70°), the head and a little of the body; out of reach, the head 15° toward her side, as if listening; everyone turns back after, her too; replaces the dialogue plan's head-only turn |
 | 2026-11-06 | The ship lands on the travel terrain, stopped | scope | The landed scene shows the icy plain stopped at a chosen spot (14,697 m along: flat under the ship, no rocks within 60 m), her ground its hills; replaces the flat snow and the exterior swap for now; the checks keep their own `landed` (flat ground, read first under `?test`) |
 | 2026-10-28 | Controller buttons named as on a Nintendo controller | input | A B X Y by position (A right, B bottom, Y left, X top), shoulders L / R, triggers ZL / ZR, in every prompt and doc (Xbox / PlayStation names before); the buttons themselves unchanged (B jumps, A interacts and moves the dialogue on, ZR flies), but skipping a cutscene is held on **X** (was A, which also moves the dialogue on) |
@@ -65,6 +66,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-07] — The temple's glow painted in, and a real point light (look)
+
+**Context:** the owner asked for the temple in the landed scene, its light shaft reaching into the sky with *"a strong bloom effect … without using post-processing"* ([plan](plans/features/temple.md)). The game has no bloom (post-processing is a later pass, SC-136). The shaft in the file is 15 cm across: under a pixel from the ship.
+
+**Decision (owner, 2026-11-07, on the plan):** the bloom is painted in, as the jetpack's exhaust glow (2026-10-14): the shaft's core never drawn under 2 px, a camera-facing glow ribbon round it and a flare at its base, both sized in pixels as bloom is, additive. The shaft keeps the file's width and the haze. **A point light inside the temple, the shaft's colour, really bright**; the colour from the shaft's Blackbody node (1,500 K), worked out by the export.
+
+**Alternatives considered:** three's TSL bloom (a full-screen pass every frame, and it blooms the sky and ice too unless selective: the post-processing pass's question); widening the shaft in Blender; no light (glow only), or a glowing `Portal` material instead of the light.
+
+**Rationale:** a few draws and no new pass; it reads as bloom at any distance; the light makes the glow touch the stone, which painted glow can't.
+
+**Status:** built 2026-11-07 (both passes). *Update 2026-11-07:* the glow, flare and core are laid over the sky as see-through orange, not added (added, the orange turned pink-white on the bright sky); the light 20,000 cd, 150 m. The temple 3 times the file's size (owner).
 
 ## [2026-11-07] — Characters face Dr. Green as their pose allows (feature)
 

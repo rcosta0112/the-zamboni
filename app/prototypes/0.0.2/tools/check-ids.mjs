@@ -106,6 +106,13 @@ for (const folder of ['public/scenes', 'public/test/scenes']) {
     (scene.getUp ?? []).forEach((c, i) => command(`scene ${folder}/${file}, getUp ${i + 1}`, c));
     (scene.sitDown ?? []).forEach((c, i) => command(`scene ${folder}/${file}, sitDown ${i + 1}`, c));
     if (scene.intro !== undefined && (checked++, !gameTracks.has(scene.intro))) problems.push(`scene ${folder}/${file}: no intro cutscene "${scene.intro}"`);
+    if (scene.before !== undefined) {
+      checked++;
+      const conversation = path.join(root, 'public/conversations', `${scene.before}.json`);
+      if (!fs.existsSync(conversation)) problems.push(`scene ${folder}/${file}: no conversation "${scene.before}"`);
+      // Its knot in the story the scene runs with (the game's scenes: the game's story; a conversation only plays there).
+      else if (!named(KNOT, [inks[folder === 'public/test/scenes' ? 1 : 0]]).has(json(`public/conversations/${scene.before}.json`).knot)) problems.push(`scene ${folder}/${file}: conversation "${scene.before}" has no story knot`);
+    }
   }
 }
 [knots, vars] = [named(KNOT), named(VAR)];

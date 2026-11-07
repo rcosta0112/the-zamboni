@@ -707,6 +707,16 @@ export class Treadmill {
    * A material from elsewhere (the hull's outside, exterior.ts) lit as the scenery is: the sun and the
    * outside's sky, the sun's tint there; metal reflects the sky at the outside's strength.
    */
+  /**
+   * A light added to (or taken off) the outside's light list (the temple's, 2026-11-07): every
+   * material lit by the outside (the ground, the rocks, the temple, the hull's outside) rebuilds its
+   * shaders once.
+   */
+  setOutsideLight(light: THREE.Light, on: boolean): void {
+    const rest = this.outsideLights.getLights().filter((l) => l !== light);
+    this.outsideLights.setLights(on ? [...rest, light] : rest);
+  }
+
   lightOutside(material: THREE.MeshStandardNodeMaterial, reflects = material.envNode !== null): void {
     this.outside(material);
     if (reflects) material.envNode = texture(this.reflections, vec2(0)).mul(this.reflect);

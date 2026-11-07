@@ -46,6 +46,8 @@ import { updateVisibility } from './visibility';
 import { Wind } from './wind';
 import { createWorld, updateWorld } from './world';
 import { Treadmill } from './terrain';
+import { Landmarks } from './landmarks';
+import { LightColumn } from './light-column';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
@@ -177,9 +179,11 @@ async function start(): Promise<void> {
   let cutscene: CutscenePlayer | null = null;
   let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
   let rockColliders: { remove: () => void } | null = null; // the landed scene's nearest rocks
+  let landmarks: Landmarks | null = null; // the landed scene's buildings (the temple)
   let flames: ThrusterFlames | null = null; // behind the turbines in exterior cutscenes
   let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
+  let afterWatched: ((skipped: boolean) => void) | null = null; // what a scene's `before` conversation starts at its end (goTo)
   let saved: SaveData | null = null; // the checkpoint save read at load: *Continue*
   let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
@@ -253,6 +257,9 @@ async function start(): Promise<void> {
       if (story) watched = new WatchedConversation(s.object, s.entities, story, dialogue, herHead);
       if (watched)
         watched.onEnded = (skipped) => {
+          const after = afterWatched;
+          afterWatched = null;
+          if (after) return after(skipped);
           if (skipped || animatic !== 'opening') return;
           animatic = OPENING_EXTERIOR;
           void cutscene?.play(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not played:', err));
@@ -312,7 +319,10 @@ async function start(): Promise<void> {
       joystick = Joystick.find(s.object);
       // The scenery round the ship's centre, under its belly (the hull's bottom).
       const shipBox = new THREE.Box3().setFromObject(s.object);
-      treadmill = new Treadmill(scene, { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
+      const shipCentre = { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2 };
+      treadmill = new Treadmill(scene, { ...shipCentre, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
+      const lit = treadmill;
+      landmarks = new Landmarks(scene, physics, (m) => lit.lightOutside(m, false), (light, on) => lit.setOutsideLight(light, on));
       // Landed on the terrain (the landed scene): her ground is its hills, not the flat snow's.
       director.onTravel = (terrain, parkedAt) =>
         void treadmill
@@ -323,6 +333,9 @@ async function start(): Promise<void> {
             // The rocks nearest the ship collide (their convex hulls).
             rockColliders?.remove();
             rockColliders = parked && treadmill!.nearRocks.length > 0 ? physics.addStaticConvex(treadmill!.nearRocks) : null;
+            // The scene's buildings on that ground (the temple), only while parked.
+            const t = treadmill!;
+            return landmarks?.show(parked ? (director?.data?.landmarks ?? []) : [], { object: s.object, centre: shipCentre }, (x, z) => t.groundY(x, z), t.nearRocks);
           })
           .catch((err: unknown) => console.warn('[0.0.2] terrain not shown:', err));
       view.groundAt = (x, z) => treadmill?.groundY(x, z) ?? 0;
@@ -411,9 +424,10 @@ async function start(): Promise<void> {
   let jetSounding = false; // the jetpack's sound is on
   const wind = new Wind(audio);
   const exhaust = new Exhaust(scene);
+  const lightColumn = new LightColumn(scene); // cutscene 3's column of light on the horizon (a placeholder)
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -461,8 +475,19 @@ async function start(): Promise<void> {
     if (!director) return;
     const data = await director.load(id);
     if (data.intro) await cutscene?.load(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not loaded:`, err));
-    director.apply(id, data);
-    if (data.intro) void cutscene?.play(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not played:`, err));
+    const start = (withIntro: boolean) => {
+      director?.apply(id, data);
+      if (data.intro && withIntro) void cutscene?.play(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not played:`, err));
+    };
+    // Its `before` conversation first, in the scene that's ending; the scene at its end (without the intro if skipped).
+    const before = data.before && watched ? await watched.load(data.before).then(() => data.before, (err: unknown) => console.warn(`[0.0.2] conversation ${data.before} not loaded:`, err)) : undefined;
+    if (!before || !watched) return start(true);
+    afterWatched = (skipped) => start(!skipped);
+    void watched.play(before, view.camera.aspect).catch((err: unknown) => {
+      console.warn(`[0.0.2] conversation ${before} not played:`, err);
+      afterWatched = null;
+      start(true);
+    });
   }
 
   /** Her feet there (world), facing `yaw`, the camera behind her: a scene's start, her seat, getting up. */
@@ -852,6 +877,7 @@ async function start(): Promise<void> {
     exterior?.set(ship !== null && !watched?.playing && !ship.interior.containsPoint(drawing.position));
     heardOutside = ship !== null && (cutscene?.playing ?? false) && !ship.interior.containsPoint(cutscene!.camera.position);
     treadmill?.update(dt, drawing, cutscene?.track?.speed ?? 1);
+    lightColumn.update(dt, watched?.column ?? false, ship?.object ?? null, drawing);
     // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
     const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
     for (const camera of [view.camera, watched?.camera]) {
@@ -879,6 +905,7 @@ async function start(): Promise<void> {
     // see-through and shadow shaders are built in the warm-up with the rest (item 72).
     if (!ready) character.model?.showEveryOutfit();
 
+    landmarks?.update(drawing, size.y, scene.fog as THREE.Fog | null);
     renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
     renderer.getDrawingBufferSize(size);
     stats.frame(dt, size.x, size.y);

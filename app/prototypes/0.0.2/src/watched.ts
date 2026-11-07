@@ -15,7 +15,9 @@
 // **The owner's cameras** (2026-10-26, 1.22): a shot with a `camera` (tools/cutscene-cameras.py, from
 // the ship file) is placed exactly so, its view across kept whatever the screen's shape (the black
 // bars cut top and bottom); the rest above is for a speaker without one. `opening`: a shot held alone
-// for `hold` seconds before the first line (the wide shot of the cockpit; owner).
+// for `hold` seconds before the first line (the wide shot of the cockpit; owner); with `until`, kept
+// through the lines until that character first speaks (owner, 2026-11-07: cutscene 3 on its wide shot
+// until Adam Red's line), each speaker's shot from then on.
 // **Held by hand** (owner, 2026-10-28; doc/plans/features/handheld-cutscene-camera.md): each frame
 // the camera drifts slowly from the shot's rest pose (sums of slow sines, never a shake); the share
 // `handheldOrbit` of the turn is made about the speaker's head (their place on screen kept), the rest
@@ -63,7 +65,9 @@ export interface WatchedData {
   /** The shot per speaker (character id), in the ship file's Blender coordinates. */
   shots: Record<string, Shot>;
   /** A shot held alone before the first line: `shot` names one of `shots`. */
-  opening?: { shot: string; hold: number };
+  opening?: { shot: string; hold: number; until?: string };
+  /** The column of light on the horizon while it plays (light-column.ts; cutscene 3). */
+  column?: boolean;
 }
 
 /** The long lens's widest view (degrees, vertical): about 70 mm on a full-frame camera. */
@@ -113,6 +117,8 @@ export class WatchedConversation {
   private readonly ray = new THREE.Raycaster();
   /** The opening shot's time left (s); the knot starts when it runs out. */
   private holding = 0;
+  /** The opening shot stays on until this character's first line (the data's `opening.until`). */
+  private openingUntil: string | null = null;
   /** The view across of the camera in use (degrees), if it's the file's: the lens follows the screen's shape. */
   private across: number | null = null;
   /** The shot's pose before the hand-held drift (exposed for checks), and what an orbit turns about. */
@@ -140,6 +146,11 @@ export class WatchedConversation {
     return data;
   }
 
+  /** It's playing and its data shows the column of light (main.ts: light-column.ts). */
+  get column(): boolean {
+    return this.playing && (this.data?.column ?? false);
+  }
+
   /** Starts it, the camera on the first speaker; on this frame if it was loaded. */
   async play(id: string, aspect = this.camera.aspect): Promise<void> {
     this.data = this.loaded.get(id) ?? (await this.load(id));
@@ -148,6 +159,7 @@ export class WatchedConversation {
     this.speaker = null;
     this.dialogue.autoNext = this.data.wait;
     const opening = this.data.opening;
+    this.openingUntil = opening?.until ?? null;
     const shot = opening ? this.data.shots[opening.shot] : undefined;
     if (opening && shot) {
       this.holding = opening.hold;
@@ -189,6 +201,8 @@ export class WatchedConversation {
     }
     this.fit(aspect);
     const id = this.dialogue.line?.id ?? null;
+    if (id !== null && this.openingUntil !== null && id !== this.openingUntil) return this.sway(dt);
+    this.openingUntil = null;
     if (id !== null && id !== this.speaker) {
       this.speaker = id;
       this.aim(id, this.data?.shots[id] ?? {}, aspect);

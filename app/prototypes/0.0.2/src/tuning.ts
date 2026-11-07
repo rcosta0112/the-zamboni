@@ -134,6 +134,19 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   look.add(settings, 'shadowRangeIndoors', 8, 40, 1).name('shadow range indoors (m)');
   look.add(settings, 'shadowRangeOutdoors', 8, 100, 1).name('shadow range outdoors (m)');
   look.add(settings, 'shadowRangeLanded', 50, 400, 10).name('shadow range landed (m)');
+  // The temple's light shaft (light-shaft.ts).
+  const temple = gui.addFolder('Temple');
+  temple.add(settings, 'shaftHeight', 200, 3000, 50).name('shaft height (m)');
+  temple.add(settings, 'shaftCorePx', 0.5, 8, 0.5).name('core: least width (px)');
+  temple.add(settings, 'shaftCoreStrength', 0, 3, 0.05).name('core opacity');
+  temple.add(settings, 'shaftGlowPx', 0, 300, 5).name('glow width (px)');
+  temple.add(settings, 'shaftGlowMin', 0, 20, 0.5).name('glow: least width (m)');
+  temple.add(settings, 'shaftGlowStrength', 0, 5, 0.05).name('glow opacity');
+  temple.add(settings, 'shaftFlarePx', 0, 600, 10).name('flare size (px)');
+  temple.add(settings, 'shaftFlareStrength', 0, 5, 0.05).name('flare opacity');
+  temple.add(settings, 'templeLight', 0, 50000, 100).name('light (cd)');
+  temple.add(settings, 'templeLightRange', 0, 500, 5).name('light range (m)');
+  temple.close();
   look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');
   look.add(settings, 'metalReflections', 0, 2, 0.05).name('metal reflections');

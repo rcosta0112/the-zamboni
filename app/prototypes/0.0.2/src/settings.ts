@@ -198,6 +198,17 @@ export const settings = {
   // from 40 m (it's cut from about 43 m at 50); a texel is 2 × range / map size (2.4 cm at 50 m).
   shadowRangeIndoors: 25, // the sun patches inside stay sharp
   shadowRangeOutdoors: 50,
+  // The temple's light shaft and its painted bloom (light-shaft.ts; owner, 2026-11-07)
+  shaftHeight: 2500, // m above the temple's floor: the top seen at 85° from the ship, its top third faded
+  shaftCorePx: 2, // the core never narrower on screen (the file's 15 cm is under a pixel from the ship)
+  shaftCoreStrength: 1, // the core's opacity over the glow (1: opaque)
+  shaftGlowPx: 160, // the glow's width on screen, as bloom's
+  shaftGlowMin: 3, // ... and at least this wide (m), close up
+  shaftGlowStrength: 1.2, // how opaque the glow's orange is over the sky near the axis
+  shaftFlarePx: 140, // the flare at its foot, on screen
+  shaftFlareStrength: 1,
+  templeLight: 20000, // the point light inside the temple (candela; owner: really bright)
+  templeLightRange: 150, // m: nothing past it is lit (0: no limit)
   shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   glassDim: 0.2, // how much the windows dim the view through them (owner, 2026-10-23: a bit darker from inside, just enough to notice the glass)

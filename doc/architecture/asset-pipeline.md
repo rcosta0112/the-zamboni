@@ -172,7 +172,8 @@ Objects are recognised by **name prefix** and configured with **custom propertie
   | `Cargo Bay`, `Cargo`, `Fixtures` | parts and props (the rack's jetpacks in `Fixtures`) | yes |
   | `Cockpit` (`seeThrough: solid`) | parts and props | yes |
   | `Crew.001` (`export: false`) | Dr. Ogawa and both Adams (crew export) | yes |
-  | `Archive`, `Ground` (`Rubble`), `Temple` | nothing | **no** |
+  | `Archive`, `Ground` (`Rubble`) | nothing | **no** |
+  | `Temple` | nothing in the ship; its own export, `npm run export:temple` (switched on in memory: `public/scenery/temple.glb`, 2026-11-07) | **no** |
   | `Game`, `Game Lights`, `Game Collision` | the light markers, the collision pieces | yes |
   | `Player` | her model, and the armature the ladder clip was made on (player export) | yes |
   | `Signal Receiver` | the receiver and its knobs (in the cockpit) | yes |

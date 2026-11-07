@@ -22,6 +22,7 @@ VAR green_jetpack = false
 
 INCLUDE 02-opening.ink
 INCLUDE 03-chapter-1.ink
+INCLUDE 04-whats-that.ink
 
 === function command(name, id, value) ===
 // Without the game (the compiler's test run): nothing.

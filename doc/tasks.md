@@ -1,6 +1,6 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-157**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-163**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
 *Updated 2026-11-07.*
 
@@ -13,6 +13,7 @@
 
 ## Decision
 
+- [x] **SC-162** · Answered by the owner 2026-11-07: the column shows on cutscene 3's horizon; a placeholder is in (`light-column.ts`), to be swapped for the temple's shaft after its pass 2.
 - [ ] **SC-151** · The landed scene unlocks every door the flight locks (outer doors, hatches; the jetpacks and her parka are free). Kaufman's and Ogawa's lockers still refuse with your lines (2026-10-21) in every scene: keep that, or open them landed? [plan](plans/features/landed-scene.md#conflicts-with-the-docs-flagged)
 - [ ] **SC-153** · Adam's seats (2026-11-07): Blue sits in the front seat with the joystick, Red at the back. SC-16 says *Red flying*, SC-17 *Blue navigating*, and the script says *Adam Red (in the pilot seat)*, *Adam Blue (in the nav seat)*. Should the animation follow the seat (Blue flies), or the body (move them in the file)? Change the script's directions? *2026-11-07:* your 1.22 gives Red `Adam - Navigation` and Blue `Adam - Piloting Idle` (now in the game, cutscene 2 to landed): if that's the answer, SC-16 and SC-17 are done with the bodies swapped. [note](plans/features/flying-scene.md)
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
@@ -44,7 +45,7 @@ In `doc/story/scenes/`; until written, the game shows `[Placeholder]`. Spec: [fl
 - [ ] **SC-31** · Chapter 1: the crew's conversations (Adam Red and Blue, Kaufman, the rest of Ogawa's), topics, one-liners.
 - [ ] **SC-32** · Chapter 1: her refusal at the seat without coffee; the coffee remark entering the crew quarters; a line at the seat (optional).
 - [ ] **SC-33** · Chapter 1: the coffee's lines (pouring, after the first sip, pouring again).
-- [ ] **SC-34** · `04-cutscene-landing.md`: the landing cutscene's description, or the animation reference you mentioned (2026-11-06; a placeholder shot stands in: `public/cutscenes/landing.json`). *(low priority)*
+- [ ] **SC-34** · `05-cutscene-landing.md`: the landing cutscene's description, or the animation reference you mentioned (2026-11-06; a placeholder shot stands in: `public/cutscenes/landing.json`). *(low priority)*
 - *Later:* **SC-35** cutscene 1's description; **SC-36** her remarks on things in flight (optional).
 
 ## Figma

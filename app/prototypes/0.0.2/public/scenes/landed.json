@@ -2,6 +2,7 @@
   "location": "ship",
   "player": { "at": [-0.2, -2.6, 3.74], "yaw": 0 },
   "ground": { "terrain": "ice-plain", "at": 14697 },
+  "landmarks": [{ "file": "temple", "ahead": 200, "scale": 3 }],
   "setup": [
     { "do": "seat", "id": "green" },
     { "do": "seat", "id": "kaufman" },
@@ -9,5 +10,6 @@
     { "do": "seat", "id": "adam-red" },
     { "do": "seat", "id": "adam-blue" }
   ],
+  "before": "whats-that",
   "intro": "landing"
 }

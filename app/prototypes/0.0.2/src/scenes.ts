@@ -22,6 +22,7 @@ import * as THREE from 'three/webgpu';
 import { run, fromBlender, type Command, type CommandTarget } from './commands';
 import { Placement } from './crew';
 import { Door } from './doors';
+import type { LandmarkPlace } from './landmarks';
 import { settings } from './settings';
 import { updateShip, type Ship } from './ship';
 
@@ -34,6 +35,8 @@ export interface SceneData {
   travel?: { terrain: string };
   /** The ship landed on a terrain: shown stopped, `at` metres along it (the flat snow without either). */
   ground?: { terrain: string; at: number };
+  /** Buildings on that ground (landmarks.ts; 2026-11-07: the temple), placed from the ship's centre. */
+  landmarks?: LandmarkPlace[];
   setup: Command[];
   /** Run once the player takes over: the game begun, any cutscene before the scene over (chapter 1: Adam's line before *Get up*). */
   begin?: Command[];
@@ -43,6 +46,13 @@ export interface SceneData {
   sitDown?: Command[];
   /** A cutscene played from the scene's first frame when the `scene` command starts it (not under the start screen, from a save or `?scene=`). */
   intro?: string;
+  /**
+   * A watched conversation (`public/conversations/<id>.json`, watched.ts) played when the `scene` command
+   * starts this scene, before it: still in the scene that's ending (its terrain going by), the scene and its
+   * `intro` after it (owner, 2026-11-07: the landed scene's, before the landing shot). Skipped, the scene
+   * starts without its intro (as cutscene 2's skip skips its exterior shot).
+   */
+  before?: string;
 }
 
 /** A new game's first scene. */

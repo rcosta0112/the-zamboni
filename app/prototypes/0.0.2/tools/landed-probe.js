@@ -3,7 +3,7 @@
 //     node tools/probe-01.mjs tools/landed-probe.js --game --query scene=chapter-1 --shots .export/landed
 //
 // About 40 s. Chapter 1 starts her seated: Adam's line, *Get up*, her line; her seat then offers *Sit
-// down*: E seats her and the landing shot plays (the treadmill stopped, no flames, the gear down), the
+// down*: E seats her, the conversation before the landing plays (still chapter 1), then the landing shot (the treadmill stopped, no flames, the gear down), the
 // landed scene under it; at its end she's seated, *Get up* says nothing; nothing is locked; outside she
 // stands on the terrain's hills; the rocks cast into the shadow map, the nearest ones collide.
 // Runs in the page (probe-01.mjs).
@@ -35,6 +35,16 @@ await endLines();
 const offered = await until(() => /Sit down/.test(prompt()), 3000);
 report(offered, 'her seat offers Sit down once she is up', prompt());
 key('KeyE');
+// The conversation before the landing first (the scene's `before`), still in chapter 1, the plain going by.
+const talking = await until(() => w.__watched()?.playing, 5000);
+const moving = w.__treadmill().travelled;
+await wait(500);
+report(talking && w.__director().current === 'chapter-1' && w.__treadmill().travelled > moving, 'Sit down: the conversation before the landing plays first, in chapter 1, the plain going by', `${w.__director().current}, moved ${(w.__treadmill().travelled - moving).toFixed(1)} m`);
+const firstLine = await until(() => dialogue.line, 8000); // after the wide shot's hold
+report(firstLine && w.__watched().speaker === 'opening', 'the conversation: its opening shot kept through the first line (until Adam Red speaks)', `${w.__watched().speaker}; ${dialogue.line?.id}: ${dialogue.line?.text}`);
+report(w.__scene.children.some((o) => o.visible && o.renderOrder === 10 && o.isMesh), 'the column of light shown', '');
+await shot('whats-that');
+await endLines();
 const playing = await until(() => w.__cutscene().playing && w.__cutscene().track?.id === 'landing', 5000);
 report(playing && w.__director().current === 'landed', 'Sit down: the landing shot plays, the landed scene under it', `${w.__cutscene().track?.id}, ${w.__director().current}`);
 const t = w.__treadmill();

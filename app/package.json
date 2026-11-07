@@ -19,6 +19,7 @@
     "export:ship": "npm run export:ship -w prototypes/0.0.2",
     "export:crew": "npm run export:crew -w prototypes/0.0.2",
     "export:player": "npm run export:player -w prototypes/0.0.2",
+    "export:temple": "npm run export:temple -w prototypes/0.0.2",
     "export:accept": "npm run export:accept -w prototypes/0.0.2 --",
     "rest-poses": "npm run rest-poses -w prototypes/0.0.2 --",
     "ink": "npm run ink -w prototypes/0.0.2",

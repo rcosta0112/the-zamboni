@@ -3,6 +3,7 @@
 //     npm run export:ship       ship + collider → assets/test/zamboni-ship.glb, zamboni-ship-col.glb
 //     npm run export:crew       crew → assets/test/zamboni-crew.glb
 //     npm run export:player     the player's Dr. Green → assets/test/green-parka.glb, green-jumpsuit.glb (not compressed)
+//     npm run export:temple     the temple and its light shaft (the `Temple` collection) → public/scenery/temple.glb
 //     npm run export:accept -- ship   take the files of a stopped export (refused if the .blend was saved since)
 //     npm run rest-poses        the moving parts' rest poses, checked or taken (rest_poses.py); no export
 //
@@ -77,7 +78,16 @@ const JOBS = {
     // thin:<animation>:<step>: that clip keeps a key every <step> frames (thin-clip.mjs).
     files: { 'green-parka.glb': ['thin:green_piloting:4', 'copy'], 'green-jumpsuit.glb': ['copy'] },
   },
+  // The temple and its light shaft for the landed scene (2026-11-07): `public/scenery/`, not `public/test/`.
+  temple: {
+    script: 'export-temple.py',
+    args: (raw) => ['--out', join(raw, 'temple.glb')],
+    files: { 'temple.glb': ['meshopt'] },
+    dir: 'scenery',
+  },
 };
+/** Where a job's game files go: its own folder of public/, or public/test/. */
+const assetsOf = (w) => (JOBS[w]?.dir ? join(PROTO, 'public', JOBS[w].dir) : ASSETS);
 const job = JOBS[what];
 // No __pycache__ next to the export scripts.
 const run = (command, args) => spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
@@ -103,7 +113,8 @@ const paths = (w) => ({
 /** The waiting files into the game, and their lines as the new baseline. */
 function take(w, files, lines) {
   const p = paths(w);
-  for (const name of files) copyFileSync(join(p.waiting, name), join(ASSETS, name));
+  mkdirSync(assetsOf(w), { recursive: true });
+  for (const name of files) copyFileSync(join(p.waiting, name), join(assetsOf(w), name));
   writeFileSync(p.lines, lines);
   if (w === 'ship') writeIds(lines);
   rmSync(p.pending, { force: true });
@@ -144,7 +155,7 @@ if (what === 'accept') {
   const w = process.argv[3];
   const p = paths(w ?? '');
   if (!w || !existsSync(p.pending)) {
-    console.error(`export:accept: no stopped export waiting${w ? ` for the ${w}` : ''} (npm run export:accept -- ship | crew | player)`);
+    console.error(`export:accept: no stopped export waiting${w ? ` for the ${w}` : ''} (npm run export:accept -- ship | crew | player | temple)`);
     process.exit(2);
   }
   const pending = JSON.parse(readFileSync(p.pending, 'utf8'));
@@ -153,12 +164,12 @@ if (what === 'accept') {
     process.exit(1);
   }
   take(w, pending.files, pending.lines);
-  console.log(`Taken: ${pending.files.join(', ')} into the game (${ASSETS.slice(PROTO.length + 1)}).`);
+  console.log(`Taken: ${pending.files.join(', ')} into the game (${assetsOf(w).slice(PROTO.length + 1)}).`);
   await afterCheck();
   process.exit(0);
 }
 if (!job) {
-  console.error('export: npm run export:ship | npm run export:crew | npm run export:player | npm run export:accept -- <what> | npm run rest-poses');
+  console.error('export: npm run export:ship | npm run export:crew | npm run export:player | npm run export:temple | npm run export:accept -- <what> | npm run rest-poses');
   process.exit(2);
 }
 
@@ -181,7 +192,7 @@ if (blender.error || (log.match(/^EXPORTED /gm) ?? []).length < argLists.length)
   console.error(log.split(/\r?\n/).filter((l) => /^(SCALE|STOP):|Error|Traceback|^\s+File "/.test(l) && !/addons|_ARRAY_API|unregister/.test(l)).slice(-8).join('\n'));
   process.exit(1);
 }
-const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE|ID|LOOP)\b/.test(l));
+const lines = log.split(/\r?\n/).filter((l) => /^(PERF|NODES|NOTE|POSE|STOP|CREW|BAKED|SHAPE KEY|SCALE|ID|LOOP|TEMPLE)\b/.test(l));
 const counts = log.split(/\r?\n/).find((l) => l.startsWith('objects:'));
 
 // 2. Resize, dedup, drop the unused UVs, compress, into the waiting folder.
@@ -264,7 +275,7 @@ const changedFiles = [];
 const report = [];
 for (const name of Object.keys(job.files)) {
   const now = join(waiting, name);
-  const game = join(ASSETS, name);
+  const game = join(assetsOf(what), name);
   if (!existsSync(game)) {
     reasons.push(`${name}: new (${size(now)})`);
     changedFiles.push(name);
