@@ -674,7 +674,15 @@ async function start(): Promise<void> {
       // Indoors: the same "inside" test as the see-through hull, on the simulated position.
       stepChest.copy(character.position).y += settings.cutTargetHeight;
       const indoors = ship !== null && ship.interior.containsPoint(stepChest);
-      if (!watching && !seated.has('green') && !ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
+      // Moving the ramp from its keypad holds her there until it gets there (owner, 2026-11-07):
+      // walking onto it mid-move stopped it and left her stuck. Cleared on arrival (ship.ts).
+      const atKeypad = settings.cargoRampByKeypad !== null;
+      if (atKeypad && !watching) {
+        character.speed = 0;
+        character.velocity.set(0, 0, 0);
+        character.settle();
+        input.consumeJump();
+      } else if (!watching && !seated.has('green') && !ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
       // Doors and the ramp after her own move: a moving door pushes her out of its way.
       if (ship) updateShip(ship, STEP, false, pusher);
       accumulator -= STEP;
