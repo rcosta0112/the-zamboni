@@ -43,6 +43,7 @@ from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from export_collections import show, switch_collections
 from scale_check import check_scale
+from loop_bake import fcurves_of, make_loop
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--armature', required=True)
@@ -161,32 +162,6 @@ def place_tag(ob, frame):
     m = ob.matrix_world
     at, facing = m.translation, (m.to_3x3() @ Vector((0.0, -1.0, 0.0))).normalized()
     return [at.x, at.z, -at.y], [facing.x, facing.z, -facing.y]
-
-
-def fcurves_of(action):
-    return [f for layer in action.layers for strip in layer.strips for bag in strip.channelbags for f in bag.fcurves]
-
-
-def make_loop(action, first, last, step, ease=30):
-    """Each curve's last `ease` frames bent onto its first frame's value (the seam closed, whatever
-    the noise does), then a key every `step` frames kept, smooth between. Returns the seam's
-    largest jump before."""
-    worst = 0.0
-    for f in fcurves_of(action):
-        jump = f.evaluate(last) - f.evaluate(first)
-        worst = max(worst, abs(jump))
-        for k in f.keyframe_points:
-            t = (k.co.x - (last - ease)) / ease
-            if t > 0:
-                s = t * t * (3 - 2 * t)
-                k.co.y -= jump * s
-        for k in [k for k in f.keyframe_points if round(k.co.x - first) % step][::-1]:
-            f.keyframe_points.remove(k, fast=True)
-        for k in f.keyframe_points:
-            k.interpolation = 'BEZIER'
-            k.handle_left_type = k.handle_right_type = 'AUTO_CLAMPED'
-        f.update()
-    return worst
 
 
 baked = None

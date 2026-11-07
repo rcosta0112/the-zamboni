@@ -1,5 +1,5 @@
-"""Export the crew placed in the Zamboni: Dr. Kaufman sitting with her animation, and the other
-characters in the scene as static poses.
+"""Export the crew placed in the Zamboni, each skinned with their animation: Dr. Kaufman sitting, the
+Adams and Dr. Ogawa in their cockpit seats (2026-11-07).
 
 Normally run by ``npm run export:crew`` (app/prototypes/0.0.2/tools/export.mjs), which does all of the below and
 prints what changed. By hand: with Blender from the command line. The .blend is opened read-only:
@@ -15,12 +15,16 @@ then cap the textures at 512 px and compress (Meshopt) into public/test/, from a
 
 - Placed as in the file, in the ship's space (same axes and units as export-ship.py), so the game
   puts this file under the ship.
-- Dr. Kaufman (`Dr. Kaufman.002`, in the excluded `Crew` collection) is exported skinned, with
-  her mug, and her action as one clip. Bones flagged as deforming but carrying no weights are left
-  out (see "Before the next export" in doc/architecture/asset-pipeline.md), as in
-  export-crew-character.py.
-- The other characters in the scene (both Adam bodies and Dr. Ogawa; not Dr. Green's copy, she's
-  the player) have no animation: their posed meshes are baked to static meshes.
+- Every character in ``ANIMATED`` (not Dr. Green's copy: she's the player) is exported skinned,
+  with every mesh under their armature (Dr. Kaufman's mug, Ogawa's headphones), and their action as
+  one clip. Bones flagged as deforming but carrying no weights are left out (see "Before the next
+  export" in doc/architecture/asset-pipeline.md), as in export-crew-character.py.
+- **Loops** (owner, 2026-11-07: the Adams' and Ogawa's animations): one-frame poses with Noise
+  modifiers on their curves, which the glTF exporter can't follow. Baked over ``LOOP`` (the noise's
+  range, faded in and out) with the constraints on (Adam's IK legs and arms solved into the bones),
+  each curve's seam closed and a key every ``LOOP_STEP`` frames kept (loop_bake.py, as her piloting
+  in export-crew-character.py); a ``LOOP:`` line each. Dr. Kaufman's action is keyed (frames
+  1-321): exported as it is. Until 2026-11-07 the Adams and Ogawa were baked to static meshes.
 - **Where they're read from** (2026-10-26, 1.22 with the owner's cutscene 2): the collection
   ``SCENE`` (``Scenes`` › ``01-cutscene-flight-2``), switched on for this export only (it's off in
   export-collections.json, so the ship export leaves it out). One placement for cutscene 2 and the
@@ -54,17 +58,22 @@ from mathutils import Vector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from bake_materials import bake_node_materials
 from export_collections import show, switch_collections
+from loop_bake import fcurves_of, make_loop
 from scale_check import check_scale
 
 SCENE = '01-cutscene-flight-2'
-ANIMATED = {'Dr. Kaufman': ('Dr. Kaufman.002', ['Dr. KaufmanMesh.003', 'Mug.003'])}
+# Each character -> (their armature in SCENE, loop): the loop's frames (first, last) for an action
+# made of Noise modifiers, None for a keyed one, exported as it is. Adam Blue's armature is
+# `Adam Blue.001` since 2026-11-07 (`Adam Blue` is their mesh now).
+ANIMATED = {
+    'Dr. Kaufman': ('Dr. Kaufman.002', None),
+    'Adam (Red)': ('Adam Red', (0, 200)),
+    'Adam (Blue)': ('Adam Blue.001', (0, 200)),
+    'Dr. Ogawa': ('Dr. Ogawa Jumpsuit', (0, 200)),
+}
+LOOP_STEP = 4
 # Each character's stable id (the game's structure, *Ids*: doc/plans/architecture/game-architecture/ship-names.md).
 CREW_IDS = {'Dr. Kaufman': 'kaufman', 'Dr. Ogawa': 'ogawa', 'Adam (Red)': 'adam-red', 'Adam (Blue)': 'adam-blue'}
-STATIC = {
-    'Adam (Red)': 'Adam Red',
-    'Adam (Blue)': 'Adam Blue',
-    'Dr. Ogawa': 'Dr. Ogawa Jumpsuit',
-}
 
 # Standing height relative to Dr. Green (owner, 2026-10-09: Dr. Kaufman is shorter, Dr. Ogawa about
 # the same): from the crew file's parkas (Kaufman 0.650, Ogawa 0.827, Green 0.828). Checked, not
@@ -97,8 +106,11 @@ if not any(switch_on(layer) for layer in bpy.context.view_layer.layer_collection
     print(f'STOP: no collection {SCENE!r}: the crew can\'t be placed')
 bpy.context.view_layer.update()
 # Hidden in the viewport, a character wouldn't be evaluated (posed, mirrored): shown in memory.
-_crew = [bpy.data.objects[n] for n in [*STATIC.values(), *(a for a, _ in ANIMATED.values())] if n in bpy.data.objects]
-show([o for a in _crew for o in (a, *a.children_recursive)] + [bpy.data.objects[n] for _, parts in ANIMATED.values() for n in parts if n in bpy.data.objects])
+for _character, (_name, _) in ANIMATED.items():
+    if bpy.data.objects.get(_name) is None or bpy.data.objects[_name].type != 'ARMATURE':
+        sys.exit(f'STOP: {_character}: no armature {_name!r} in the file (renamed?): nothing exported')
+_crew = [bpy.data.objects[a] for a, _ in ANIMATED.values()]
+show([o for a in _crew for o in (a, *a.children_recursive)])
 depsgraph = bpy.context.evaluated_depsgraph_get()
 
 from mathutils import Matrix
@@ -140,28 +152,35 @@ def resize(character, armature):
 
 selection = []
 
-# Static characters: posed meshes baked in place.
-for character, armature_name in STATIC.items():
-    armature = bpy.data.objects[armature_name]
-    scale = resize(character, armature)
-    for part in armature.children_recursive:
-        if part.type != 'MESH' or part.hide_render:
-            continue
-        mesh = bpy.data.meshes.new_from_object(part.evaluated_get(depsgraph), preserve_all_data_layers=True, depsgraph=depsgraph)
-        mesh.transform(scale @ part.matrix_world)
-        if part.matrix_world.is_negative:
-            mesh.flip_normals()
-        baked = bpy.data.objects.new(f'{character} - {part.name}', mesh)
-        baked['character'] = character
-        baked['id'] = CREW_IDS[character]
-        baked['kind'] = 'character'
-        bpy.context.scene.collection.objects.link(baked)
-        selection.append(baked)
-
 # Animated characters: skinned, with their action.
-for character, (armature_name, part_names) in ANIMATED.items():
+def bake_loop(armature, first, last):
+    """The armature's action played over first-last and baked with its constraints on (a new
+    action, named as the source), the seam closed; the constraints muted after, the bake has them."""
+    ad = armature.animation_data
+    source = ad.action
+    bpy.ops.object.select_all(action='DESELECT')
+    armature.hide_set(False)
+    armature.hide_viewport = False
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+    bpy.ops.nla.bake(frame_start=first, frame_end=last, only_selected=False, visual_keying=True, clear_constraints=False, use_current_action=False, bake_types={'POSE'})
+    bpy.ops.object.mode_set(mode='OBJECT')
+    baked = ad.action
+    name = source.name
+    source.name = name + ' (source)'
+    baked.name = name
+    seam = make_loop(baked, first, last, LOOP_STEP)
+    after = max(abs(f.evaluate(last) - f.evaluate(first)) for f in fcurves_of(baked))
+    for pb in armature.pose.bones:
+        for c in pb.constraints:
+            c.mute = True
+    print(f'LOOP: {armature.name!r}: {name!r} frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked, a key every {LOOP_STEP}; the seam\'s largest jump {seam:.4f} -> {after:.6f}')
+
+
+for character, (armature_name, loop) in ANIMATED.items():
     armature = bpy.data.objects[armature_name]
-    parts = [bpy.data.objects[n] for n in part_names]
+    parts = [ob for ob in armature.children_recursive if ob.type == 'MESH' and not ob.hide_render]
     weighted = set()
     for ob in parts:
         evaluated = ob.evaluated_get(depsgraph)
@@ -182,6 +201,9 @@ for character, (armature_name, part_names) in ANIMATED.items():
     print(f'{character}: action {action.name if action else None}, frames {tuple(action.frame_range) if action else None}')
     if not action:
         print(f'STOP: {character} is animated in the game but has no action in the file: exported unposed')
+    elif loop:
+        bake_loop(armature, *loop)
+        bpy.context.scene.frame_set(loop[0])
     for ob in [armature, *parts]:
         ob['character'] = character
         ob['id'] = CREW_IDS[character]
@@ -219,8 +241,8 @@ def lowest_point(meshes):
 hull = bpy.data.objects.get('Hull_Merged')
 floor_tops = sorted(world_bounds(bpy.data.objects[n])[1].z for n in FLOORS if n in bpy.data.objects)
 places = {}
-for character in [*STATIC, *ANIMATED]:
-    armature = bpy.data.objects[STATIC.get(character) or ANIMATED[character][0]]
+for character in ANIMATED:
+    armature = bpy.data.objects[ANIMATED[character][0]]
     body = armature.pose.bones.get('Body')
     matrix = armature.matrix_world @ (body.matrix if body else Matrix.Identity(4))
     hips = matrix.translation.copy()

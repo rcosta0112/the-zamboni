@@ -64,6 +64,7 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [A hand-held feel for cutscene 2's cameras](features/handheld-cutscene-camera.md) | The flying scene | Built 2026-10-28 (free drift first); the owner's to look at |
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 | [Cutscene 2's exterior shot: the ship changing course (from the owner's *Opening Cutscene - Part 2 1.01*)](features/cutscene-2-exterior.md) | The flying scene (pass 4c) | Built 2026-10-28; the owner's to watch |
+| [Characters look at each other when they talk to Dr. Green](features/look-at-each-other.md) | 0.0.2 | Draft 2026-11-07, for review |
 
 ## Plan format
 

@@ -64,6 +64,7 @@ Bring in everything still missing from `The Zamboni 1.18.blend`: the small props
 - **Materials:** 54 after dedup (budget 30). **Shader build at load: ~8 s** (was ~2.5 s) on the owner's PC: more materials, and the four room lights in every shader.
 - **Lights:** 7 markers: two each in the cargo bay, engineering and crew quarters, one new in the cockpit. **Flagged, not imported:** `Area.004`, `Area.005`, `Area.006`, `Area.008`, `Area.009` (crew quarters ceiling panels, 1–2 W), `Area.010` (dim blue fill), `Area.011` (the laptop's glow), `Area.012` (3 W, crew quarters), `Area.014` (20 W side light, crew quarters). The 4 nearest her are on; *all* turns on the 7 (rebuilds every shader once, a stall of a few seconds).
 - **Crew:** Dr. Kaufman on the couch with her 13.4 s loop (her unweighted bones `Elbow_r`, `Foot_l`, `Foot_r` left out, and the animation tracks for them dropped at load); both Adam bodies and Dr. Ogawa as static poses in the cockpit. 152 KB. Box colliders; never cut.
+  > **[Agent note]** 2026-11-07: the Adams and Dr. Ogawa now have the owner's idle loops too (8.3 s each, Kaufman's 13.4 s; 0.27 MB): all four skinned; see [asset pipeline](../../architecture/asset-pipeline.md).
 
 > **[Agent note]** The merged cargo bay props touch the cargo bulkhead, so the whole cluster behaves like the bulkhead (always visible on its deck). Small props rarely hide her; if it matters, split that cluster.
 

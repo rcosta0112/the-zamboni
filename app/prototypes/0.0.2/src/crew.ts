@@ -1,6 +1,6 @@
-// The crew placed in the ship (exported by tools/export-ship-crew.py, in the ship's space):
-// Dr. Kaufman sitting on the crew quarters couch with her idle animation, and the other characters
-// in the scene as static poses. Never cut by the see-through hull (owner, 2026-10-09: all
+// The crew placed in the ship (exported by tools/export-ship-crew.py, in the ship's space), each
+// with their idle loop: Dr. Kaufman sitting on the crew quarters couch, the Adams and Dr. Ogawa in
+// their cockpit seats (until 2026-11-07 those three were static poses). Never cut by the see-through hull (owner, 2026-10-09: all
 // characters visible all the time, for now). Each gets a box collider so Dr. Green can't walk
 // through them. Each character is an entity (its `id` from the crew export: `kaufman`, `ogawa`,
 // `adam-red`, `adam-blue`) whose pieces are grouped under one root at their feet, so a scene can put
@@ -68,13 +68,26 @@ export async function loadCrew(shipObject: THREE.Object3D, physics: Physics, ent
     }
   });
 
-  // Her idle loops; the first frame is applied now, so the colliders fit the pose.
+  // Their idle loops; the first frame is applied now, so the colliders fit the pose. The exporter
+  // merges every character's action into one animation, as long as the longest (Dr. Kaufman's
+  // 13.4 s; the others' loops 8.3 s, 2026-11-07): split per character (the `id` on the armature
+  // above the bones), each clip as long as its own tracks, so each loops on its own.
   const mixer = new THREE.AnimationMixer(object);
+  const clips: THREE.AnimationClip[] = [];
   for (const clip of gltf.animations) {
-    // Tracks for bones left out of the export (IK helpers with no weights) have nothing to drive.
-    clip.tracks = clip.tracks.filter((t) => object.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
-    mixer.clipAction(clip).play();
+    const byCharacter = new Map<string, THREE.KeyframeTrack[]>();
+    for (const track of clip.tracks) {
+      const node = object.getObjectByName(THREE.PropertyBinding.parseTrackName(track.name).nodeName);
+      // Tracks for bones left out of the export (IK helpers with no weights) have nothing to drive.
+      if (!node) continue;
+      let id: string | undefined;
+      for (let n: THREE.Object3D | null = node; n && !id; n = n.parent) id = n.userData.id as string | undefined;
+      const key = id ?? '';
+      byCharacter.set(key, [...(byCharacter.get(key) ?? []), track]);
+    }
+    for (const [id, tracks] of byCharacter) clips.push(new THREE.AnimationClip(id ? `${clip.name} (${id})` : clip.name, -1, tracks));
   }
+  for (const clip of clips) mixer.clipAction(clip).play();
   mixer.update(0);
   object.updateMatrixWorld(true);
 
@@ -111,6 +124,6 @@ export async function loadCrew(shipObject: THREE.Object3D, physics: Physics, ent
     boxes.delete(name);
   }
   for (const box of boxes.values()) physics.addStaticBox(box); // a character with no id (an older export)
-  console.info(`[0.0.2] crew: ${[...boxes.keys()].join(', ')}; animations: ${gltf.animations.map((a) => `${a.name} (${a.duration.toFixed(1)} s)`).join(', ') || 'none'}`);
+  console.info(`[0.0.2] crew: ${[...boxes.keys()].join(', ')}; animations: ${clips.map((a) => `${a.name} (${a.duration.toFixed(1)} s)`).join(', ') || 'none'}`);
   return { object, mixer, names: [...boxes.keys()] };
 }
