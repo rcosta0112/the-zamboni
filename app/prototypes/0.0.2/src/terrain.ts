@@ -31,7 +31,7 @@
 // themselves, 2026-11-06), and their flattened shadows are hidden (owner, 2026-11-06: real-time
 // shadows only; the flattened ones' big triangles floated over the dips between the hills): a rock
 // beyond the shadow map's square round her has no shadow. The clouds keep theirs. **The rocks nearest the ship collide** (`nearRocks`, within
-// NEAR_ROCKS: main.ts gives each a convex collider).
+// NEAR_ROCKS: main.ts gives each a convex collider). **The one nearest the ship is taken out** (`removed`, owner, 2026-11-07).
 
 import * as THREE from 'three/webgpu';
 import { Fn, cameraViewMatrix, length, clamp, float, floor, lights, mix, mod, normalize, positionLocal, select, smoothstep, texture, textureLevel, transformNormalToView, uniform, varyingProperty, vec2, vec3, vec4 } from 'three/tsl';
@@ -156,6 +156,8 @@ export class Treadmill {
   parkedAt: number | null = null;
   /** Parked: the rocks nearest the ship, each its shape and its place in the world (not drawn: for their colliders). */
   readonly nearRocks: THREE.Mesh[] = [];
+  /** Parked: the rock nearest the ship, taken out (owner, 2026-11-07): its pool, cell and place in the cell. */
+  private removed: { pool: Pool; ix: number; iz: number; j: number } | null = null;
   /** The terrain file's height above the ground, for flying again after a stop. */
   private height = 0;
   /** The cameras' far plane while it's shown: past the full haze. */
@@ -310,6 +312,7 @@ export class Treadmill {
   private park(at: number | undefined): void {
     this.parkedAt = at ?? null;
     this.clearNearRocks();
+    this.removed = null;
     // Parked, the rocks' shadows are the shadow map's alone.
     for (const pool of this.pools) if (pool.rocks) {
       for (const mesh of pool.meshes) mesh.castShadow = at !== undefined;
@@ -323,6 +326,15 @@ export class Treadmill {
     settings.flightHeading = 0;
     settings.flightHeight = this.centre.belly + this.heightAt(0, -at);
     this.place();
+    // The rock nearest the ship's centre is taken out (owner, 2026-11-07): not drawn, no collider.
+    let nearest = Infinity;
+    for (const pool of this.pools) {
+      if (!pool.rocks) continue;
+      this.eachCopy(pool, 0, 0, NEAR_ROCKS, () => true, (_v, m, ix, iz, j) => {
+        const d = m.elements[12]! ** 2 + m.elements[14]! ** 2;
+        if (d < nearest) [nearest, this.removed] = [d, { pool, ix, iz, j }];
+      });
+    }
     for (const pool of this.pools) {
       if (!pool.rocks) continue;
       this.eachCopy(pool, 0, 0, NEAR_ROCKS, () => true, (v, m) => {
@@ -424,7 +436,7 @@ export class Treadmill {
    * each one's shape and matrix in the group, if `room` has room for its shape. Every number is drawn
    * whether it's shown or not: a copy's place never depends on another's.
    */
-  private eachCopy(pool: Pool, ex: number, ez: number, reach: number, room: (v: number) => boolean, visit: (v: number, m: THREE.Matrix4) => void): void {
+  private eachCopy(pool: Pool, ex: number, ez: number, reach: number, room: (v: number) => boolean, visit: (v: number, m: THREE.Matrix4, ix: number, iz: number, j: number) => void): void {
     const d = pool.data;
     const variants = pool.meshes.length;
     const unit = d.unit ?? 1;
@@ -438,6 +450,7 @@ export class Treadmill {
     // the group's centre.
     const moved = this.travelled * (d.parallax ?? 1);
     const per = pool.density * d.cell * d.cell;
+    const removed = this.removed?.pool === pool ? this.removed : null;
     const reach2 = reach * reach;
     const x0 = Math.floor((ex - reach) / d.cell);
     const x1 = Math.floor((ex + reach) / d.cell);
@@ -457,11 +470,12 @@ export class Treadmill {
           const tipZ = this.next() * tilt;
           const lift = low + (high - low) * this.next();
           if ((x - ex) ** 2 + (z - ez) ** 2 > reach2 || Math.abs(x) < clear || !room(v)) continue;
+          if (removed && removed.j === j && removed.ix === ix && removed.iz === iz) continue;
           const ground = pool.rocks ? this.heightAt(x, z - this.travelled) : 0; // on the hills
           this.p.set(x, ground + lift - (d.sink ?? 0) * pool.heights[v]! * size, z);
           this.q.setFromEuler(this.e.set(tipX, turn, tipZ, 'YXZ'));
           this.s.setScalar(size);
-          visit(v, this.m.compose(this.p, this.q, this.s));
+          visit(v, this.m.compose(this.p, this.q, this.s), ix, iz, j);
         }
       }
     }
