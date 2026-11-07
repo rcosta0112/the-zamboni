@@ -520,6 +520,14 @@ export class Character {
     return this.indoors ? settings.indoorRunSpeed : settings.runSpeed;
   }
 
+  /** Turned in place by `yaw` (radians, about the vertical), shown at once (look.ts: facing whoever she talks to). */
+  turnBy(yaw: number): void {
+    this.facing += yaw;
+    this.prevFacing += yaw;
+    this.root.rotation.y += yaw;
+    this.root.updateMatrixWorld(true);
+  }
+
   /** Place the visible model between the last two fixed steps. */
   render(alpha: number): void {
     this.root.position.lerpVectors(this.prevPosition, this.position, alpha);

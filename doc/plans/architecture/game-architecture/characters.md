@@ -108,6 +108,7 @@ Characters talk by **nodding: rotating the `Head` bone on its X axis** while the
 - The talk loop plays while a line is on screen and blends back to the character's idle or ambient loop when the line finishes. Lines are different lengths, so the loop just repeats as long as needed.
 - The nod is **layered on top** of what the character is doing (ambient loop, idle, sitting): the talk loop only animates the head, so a character can keep working at their station while they talk.
 - The head turns toward the player when a conversation starts.
+  > **[Agent note]** **Update 2026-11-07:** toward Dr. Green, as their pose allows (standing, the whole body; seated, the head, or a small listening turn when she's out of reach): [look-at-each-other](../../features/look-at-each-other.md).
 
 ## Animation files
 

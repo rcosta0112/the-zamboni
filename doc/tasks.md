@@ -10,8 +10,6 @@
 1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
 3. **SC-15** · Dr. Kaufman's book: the Blender task that blocks the flying scene's pass 1, second half.
-4. **SC-143** · Ogawa *"(over the comms)"* in `02-opening.md` (below, *Script*).
-5. **SC-154** · Review: [characters look at each other](plans/features/look-at-each-other.md) (below, *Review and setup*).
 
 ## Decision
 
@@ -43,7 +41,6 @@ The flying scene's tasks: [flying-scene-blender.md](plans/features/flying-scene-
 
 In `doc/story/scenes/`; until written, the game shows `[Placeholder]`. Spec: [flying-scene-script.md](plans/features/flying-scene-script.md).
 
-- [ ] **SC-143** · `02-opening.md` has Ogawa *"(over the comms)"* while he's now in the cockpit: keep it?
 - [ ] **SC-31** · Chapter 1: the crew's conversations (Adam Red and Blue, Kaufman, the rest of Ogawa's), topics, one-liners.
 - [ ] **SC-32** · Chapter 1: her refusal at the seat without coffee; the coffee remark entering the crew quarters; a line at the seat (optional).
 - [ ] **SC-33** · Chapter 1: the coffee's lines (pouring, after the first sip, pouring again).
@@ -56,7 +53,6 @@ Nothing open.
 
 ## Review and setup
 
-- [ ] **SC-154** · The plan [characters look at each other](plans/features/look-at-each-other.md) (2026-11-07): go-ahead for pass 1 (Dr. Green and Kaufman); does Dr. Green keep her new facing after a conversation (assumed yes); cutscene 2 left without turns until SC-143 (assumed yes).
 - [ ] **SC-42** · Review the game structure's decision-log updates (passes 3, 4, 5b, 6); confirm the signal receiver belongs in the export list. *(low priority)*
 - [ ] **SC-66** · Vercel for 0.0.1 (*Root Directory* `app/prototypes/0.0.1`), and both versions side by side. *(low priority)*
 - *Watch:* **SC-61** · 62 · A lit face in the cargo hold's wall by the side door (seen once): note where she and the camera were if it comes back.

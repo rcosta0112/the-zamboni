@@ -9,12 +9,14 @@ import { GameAudio } from './audio';
 import { Boombox } from './boombox';
 import { FollowCamera } from './camera';
 import { Character } from './character';
+import type { Entities } from './entities';
 import { run, type CommandTarget } from './commands';
 import { Input } from './input';
 import { loadModels, type ClimbTag, type Outfit, type PilotTag } from './model';
 import { Physics } from './physics';
 import { setReflections, setSingleSided, updateCutaway } from './cutaway';
 import { loadCrew, type Crew } from './crew';
+import { LookAt } from './look';
 import { CutscenePlayer } from './cutscene';
 import { Dialogue } from './dialogue';
 import type { Interactable } from './interaction';
@@ -150,6 +152,7 @@ async function start(): Promise<void> {
 
   let ship: Ship | null = null;
   let crew: Crew | null = null;
+  let look: LookAt | null = null; // whoever she talks to and she look at each other (look.ts)
   let roomLights: RoomLights | null = null;
   let interaction: Interaction | null = null;
   let ladders: LadderClimb | null = null;
@@ -195,6 +198,7 @@ async function start(): Promise<void> {
       loading.set('ship', 1);
       crew = await loadCrew(s.object, physics, s.entities, (share) => loading.set('crew', share));
       loading.set('crew', 1);
+      look = makeLook(character, s.entities, seated);
       const markers = findLightMarkers(s.object);
       roomLights = new RoomLights(scene, markers);
       roomLights.update(character.position, 0);
@@ -371,7 +375,10 @@ async function start(): Promise<void> {
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       clothes = new LockerClothes(s.entities, (id, at) => audio.play(id, at));
       const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables];
-      const crewTargets = crewInteractables(s.entities, () => target.story, (knot) => run({ do: 'story', knot }, target));
+      const crewTargets = crewInteractables(s.entities, () => target.story, (knot, id) => {
+        look?.set(['green', id]);
+        run({ do: 'story', knot }, target);
+      });
       const storyTargets = storyInteractables(s.entities, () => target.story, (command) => run(command, target));
       // Her seat's own knot gives way to *Sit down* while that's offered.
       const offered = sitDown;
@@ -406,7 +413,7 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -854,6 +861,11 @@ async function start(): Promise<void> {
       }
     }
     crew?.mixer.update(dt);
+    // She and whoever she talks to look at each other, on top of both animations (ended with the box).
+    if (look) {
+      if (look.talking && !dialogue.active) look.set(null);
+      look.update(dt);
+    }
     // The crew are back (owner, 2026-10-15), except while she's inside on the lower deck: they're all
     // upstairs, can't be cut, and would stand in the hole's way.
     if (crew) {
@@ -905,3 +917,30 @@ start().catch((err: unknown) => {
   console.error(err);
   document.body.textContent = `Failed to start: ${String(err)}`;
 });
+
+/**
+ * The lookers (look.ts): her, turning her whole body while she stands, and each crew member, their
+ * root turned about their feet while standing; both turned back after (owner, 2026-11-07). Which way the
+ * skeleton faces, in its `Body` bone's axes, is read from her model on its first frame.
+ */
+function makeLook(character: Character, entities: Entities, seated: Set<string>): LookAt {
+  const look = new LookAt(() => {
+    const body = character.model?.object.getObjectByName('Body');
+    if (!body) return null;
+    const yaw = character.root.rotation.y;
+    return new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)).applyQuaternion(body.getWorldQuaternion(new THREE.Quaternion()).invert());
+  });
+  look.add('green', { object: () => character.model?.object ?? null, seated: () => seated.has('green'), turnBody: (y) => character.turnBy(y) });
+  for (const { id, object, kind } of entities.all()) {
+    if (kind !== 'character') continue;
+    look.add(id, {
+      object: () => object,
+      seated: () => seated.has(id),
+      turnBody: (y) => {
+        object.rotation.y += y;
+        object.updateMatrixWorld(true);
+      },
+    });
+  }
+  return look;
+}

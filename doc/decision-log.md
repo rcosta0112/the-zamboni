@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-07 | Characters face Dr. Green as their pose allows | feature | Only in her conversations: standing, the whole body turns to face her; seated with her in reach (70°), the head and a little of the body; out of reach, the head 15° toward her side, as if listening; everyone turns back after, her too; replaces the dialogue plan's head-only turn |
 | 2026-11-06 | The ship lands on the travel terrain, stopped | scope | The landed scene shows the icy plain stopped at a chosen spot (14,697 m along: flat under the ship, no rocks within 60 m), her ground its hills; replaces the flat snow and the exterior swap for now; the checks keep their own `landed` (flat ground, read first under `?test`) |
 | 2026-10-28 | Controller buttons named as on a Nintendo controller | input | A B X Y by position (A right, B bottom, Y left, X top), shoulders L / R, triggers ZL / ZR, in every prompt and doc (Xbox / PlayStation names before); the buttons themselves unchanged (B jumps, A interacts and moves the dialogue on, ZR flies), but skipping a cutscene is held on **X** (was A, which also moves the dialogue on) |
 | 2026-10-28 | The owner's tasks in `doc/tasks.md`, not Linear | process | Linear dropped (not worth the upkeep); one Markdown list grouped by kind (look at, decision, Blender, script, Figma, review), *Next up* first, the agent's queue at the bottom; the `SC-n` and item numbers kept, new tasks continue from SC-146 |
@@ -64,6 +65,23 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-07] — Characters face Dr. Green as their pose allows (feature)
+
+**Context:** The dialogue plan (2026-10-21, *Facing each other*) had both people in a conversation turn their head (up to 60°, `Body` a third) with no whole-body turn, and a small 15° turn as an exception for the cockpit seats, set per pose (`full` / `small` / `none`). The owner (2026-11-07) asked for the feature with new rules: only in conversations with Dr. Green; seated characters, or those who can't naturally turn, don't turn fully; standing ones turn to face each other.
+
+**Decision:** Only Dr. Green and whoever she talks to (`talk_<id>`) turn; the crew never turn to each other, and a watched conversation turns nobody (until a line is tagged as addressed to her). **Standing:** the whole body turns to face the other, the head leading (the feet slide a little: there's no turn-in-place animation). **Seated, the other within reach (about 70° of where they face):** the head turns (up to 60°, tilted up to 20°) and the body a little (a quarter, up to 15°), the legs turned back so they stay on the seat. **Seated, out of reach:** the head turns about 15° toward the other's side, as if listening, never through the seat's back: the general rule, not an exception (owner). Everyone turns back when it ends (Dr. Green too: update below). Exceptions are named explicitly per scene when one comes.
+
+**Alternatives considered:**
+- **Head and upper body only, standing too** (the 2026-10-21 plan): no foot slide, but someone far off to the side never faces her. Not chosen (owner).
+- **No turn at all when seated** (the owner's first wording): replaced by the listening turn, which reads as attention without an impossible turn.
+- **A turn level set per pose** (`full` / `small` / `none`): replaced by the geometry (standing or seated, and where she is), so nothing has to be authored per scene.
+
+**Rationale:** The characters read as paying attention to the player's character in every pose without per-scene authoring; the seat decides only how much they can move.
+
+**Status:** Decided; built 2026-11-07 for Dr. Green and all four crew ([plan](plans/features/look-at-each-other.md)).
+
+**Update (2026-11-07, owner):** Dr. Green **turns back** to where she stood when the conversation ends (built as keeping her new facing first). SC-143 closed: Ogawa is in the cockpit at the Signal Station; nobody turns their head during cutscene 2 (owner): a watched conversation turns nobody, as built.
 
 ## [2026-11-06] — The ship lands on the travel terrain, stopped (scope)
 

@@ -207,6 +207,16 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   interact.add(settings, 'interactReach', 0.3, 3, 0.05).name('reach (m)');
   interact.add(settings, 'interactDotReach', 0.5, 5, 0.1).name('dots shown within (m)');
   interact.add(settings, 'talkReach', 0.3, 3, 0.05).name('talk reach (m)');
+  const looking = interact.addFolder('Looking at each other');
+  looking.add(settings, 'lookReachDeg', 0, 180, 1).name('seated: full turn within (°)');
+  looking.add(settings, 'lookHeadYawDeg', 0, 90, 1).name('head turn at most (°)');
+  looking.add(settings, 'lookHeadPitchDeg', 0, 45, 1).name('head tilt at most (°)');
+  looking.add(settings, 'lookBodyShare', 0, 1, 0.05).name('seated: body share');
+  looking.add(settings, 'lookBodyYawDeg', 0, 45, 1).name('seated: body turn at most (°)');
+  looking.add(settings, 'lookListenDeg', 0, 45, 1).name('listening turn (°)');
+  looking.add(settings, 'lookEase', 0.05, 2, 0.05).name('turn time (s)');
+  looking.add(settings, 'lookEaseBack', 0.05, 4, 0.05).name('turn back time (s)');
+  looking.close();
   interact.add(settings, 'interactMaxAngleDeg', 5, 90, 1).name('max from centre, across (°)');
   interact.add(settings, 'interactMaxVerticalDeg', 5, 90, 1).name('max from centre, up/down (°)');
   interact.add(settings, 'interactFacingAngleDeg', 5, 90, 1).name('max from her facing, across (°)');

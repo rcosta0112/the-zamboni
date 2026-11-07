@@ -84,7 +84,7 @@ function command(where, c) {
       return;
     case 'seat':
       checked++;
-      if (c.id !== 'green') problems.push(`${where}: only "green" can be seated so far, not "${c.id}"`);
+      if (c.id !== 'green' && things.get(c.id) !== 'character') problems.push(`${where}: no character "${c.id}" to seat (green, or a crew id)`);
       return;
     case 'scene':
       checked++;

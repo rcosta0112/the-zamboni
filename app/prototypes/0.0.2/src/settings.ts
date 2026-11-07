@@ -226,6 +226,15 @@ export const settings = {
   aimByFacingDeg: 0.3,
   aimByStep: 0.003,
   talkReach: 1.6, // m, from her chest to a character's bounds: further than a thing's (across the crew quarters' table)
+  // Looking at each other while she talks to someone (look.ts; owner, 2026-11-07): standing, the whole body turns; seated, as below.
+  lookReachDeg: 70, // seated: the other within this of where they face gets a full head turn; further, the listening turn
+  lookHeadYawDeg: 60, // the head's turn at most, either way
+  lookHeadPitchDeg: 20, // the head tilted up or down at most
+  lookBodyShare: 0.25, // seated: the share of the turn the body takes...
+  lookBodyYawDeg: 15, // ...up to this
+  lookListenDeg: 15, // out of reach: the head this far toward the other's side, as if listening
+  lookEase: 0.4, // s to turn in
+  lookEaseBack: 0.8, // s to turn back when the conversation ends (owner, 2026-11-07: twice the turn in)
   // The dialogue box (dialogue.ts): the typewriter's speed; with *reduced motion* the line is there at once.
   dialogueCharMs: 35, // ms a character; 0: the whole line at once
   dialogueTypeEvery: 2, // a typewriter key's sound every this many characters typed (not on spaces); 0: silent

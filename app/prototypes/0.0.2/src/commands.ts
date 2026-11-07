@@ -36,7 +36,10 @@ export type Command = (
   | { do: 'outfit'; set: Outfit }
   /** Start a scene (scenes.ts), by its id: its `intro` cutscene plays from its first frame. */
   | { do: 'scene'; id: string }
-  /** Seat a character in their seat, playing their seated loop (only hers so far: `green`, piloting, until she gets up). */
+  /**
+   * Seat a character: hers (`green`) in her seat, piloting, until she gets up; a crew member's marks
+   * them seated (their loop is the crew file's), so they only turn their head to talk (look.ts).
+   */
   | { do: 'seat'; id: string }
 ) & {
   /** Only if this story variable is true (set, not zero, not empty). */
@@ -52,7 +55,7 @@ export interface CommandTarget {
   disabled: Set<string>;
   /** The ids locked that don't open (a jetpack, her parka): `respectLocks` reads it. */
   locked: Set<string>;
-  /** The characters seated (`seat`): main.ts places her at her seat while she's in it. */
+  /** The characters seated (`seat`): main.ts places her at her seat while she's in it; look.ts turns only a seated one's head. */
   seated: Set<string>;
   play: (cue: CueId, at?: THREE.Object3D) => void;
   /** Null until it's loaded (or if it couldn't be): `if` / `unless` then count as false. */
@@ -121,7 +124,7 @@ export function run(command: Command, target: CommandTarget): void {
       settings.outfit = command.set;
       return;
     case 'seat':
-      if (command.id !== 'green') return console.warn(`[0.0.2] seat: only "green" can be seated so far, not "${command.id}"`);
+      if (command.id !== 'green' && target.entities.get(command.id)?.kind !== 'character') return console.warn(`[0.0.2] seat: no character "${command.id}"`);
       target.seated.add(command.id);
       return;
     case 'swap-exterior':

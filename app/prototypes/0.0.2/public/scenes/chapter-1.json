@@ -3,6 +3,10 @@
   "player": { "at": [-0.2, -2.6, 3.74], "yaw": 0 },
   "travel": { "terrain": "ice-plain" },
   "setup": [
+    { "do": "seat", "id": "kaufman" },
+    { "do": "seat", "id": "ogawa" },
+    { "do": "seat", "id": "adam-red" },
+    { "do": "seat", "id": "adam-blue" },
     { "do": "outfit", "set": "jumpsuit" },
     { "do": "seat", "id": "green" },
     { "do": "set", "id": "engineering-window-left", "state": "open" },

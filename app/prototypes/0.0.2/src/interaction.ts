@@ -237,7 +237,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
  * while the story has one and they're shown, from further than a thing (`settings.talkReach`) and
  * if she can see their head (past the seat they're in). The prompt goes above their heads.
  */
-export function crewInteractables(entities: Entities, story: () => GameStory | null, talk: (knot: string) => void): Interactable[] {
+export function crewInteractables(entities: Entities, story: () => GameStory | null, talk: (knot: string, id: string) => void): Interactable[] {
   const list: Interactable[] = [];
   const box = new THREE.Box3();
   for (const { id, object, kind } of entities.all()) {
@@ -249,7 +249,7 @@ export function crewInteractables(entities: Entities, story: () => GameStory | n
       verb: () => `Talk to ${displayName(id)}`,
       act: () => {
         const k = knot();
-        if (k) talk(k);
+        if (k) talk(k, id);
       },
       available: () => knot() !== null && shown(object),
       anchor: (out) => {
