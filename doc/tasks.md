@@ -45,7 +45,7 @@ In `doc/story/scenes/`; until written, the game shows `[Placeholder]`. Spec: [fl
 - [ ] **SC-31** · Chapter 1: the crew's conversations (Adam Red and Blue, Kaufman, the rest of Ogawa's), topics, one-liners.
 - [ ] **SC-32** · Chapter 1: her refusal at the seat without coffee; the coffee remark entering the crew quarters; a line at the seat (optional).
 - [ ] **SC-33** · Chapter 1: the coffee's lines (pouring, after the first sip, pouring again).
-- [ ] **SC-34** · `05-cutscene-landing.md`: the landing cutscene's description, or the animation reference you mentioned (2026-11-06; a placeholder shot stands in: `public/cutscenes/landing.json`). *(low priority)*
+- [ ] **SC-34** · `06-cutscene-landing.md`: the landing cutscene's description, or the animation reference you mentioned (2026-11-06; a placeholder shot stands in: `public/cutscenes/landing.json`). *(low priority)*
 - *Later:* **SC-35** cutscene 1's description; **SC-36** her remarks on things in flight (optional).
 
 ## Figma

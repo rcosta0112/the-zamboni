@@ -15,7 +15,7 @@
 | [SC-32](https://linear.app/eigodojo/issue/SC-32) | | **Her seat when she can sit:** any line before the cutscene | 2 | none |
 | [SC-33](https://linear.app/eigodojo/issue/SC-33) | | **The coffee:** a line when she pours, if any; **her comment after the first sip**; a line if she tries to pour again | 3 | `[Placeholder]` |
 | [SC-36](https://linear.app/eigodojo/issue/SC-36) | | Her remarks on things in flight (the windows, the viewport, the sensor array, the signal receiver): optional | any | none |
-| [SC-34](https://linear.app/eigodojo/issue/SC-34) | [`05-cutscene-landing.md`](../../story/scenes/05-cutscene-landing.md) | The landing cutscene's description (for its placeholder) | 6 | the test cutscene |
+| [SC-34](https://linear.app/eigodojo/issue/SC-34) | [`06-cutscene-landing.md`](../../story/scenes/06-cutscene-landing.md) | The landing cutscene's description (for its placeholder) | 6 | the test cutscene |
 
 The same list, as it stood on 2026-10-22, is a comment at the end of `03-chapter-1.md`, beside the script.
 
