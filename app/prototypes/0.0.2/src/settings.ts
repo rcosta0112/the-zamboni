@@ -198,6 +198,7 @@ export const settings = {
   // from 40 m (it's cut from about 43 m at 50); a texel is 2 × range / map size (2.4 cm at 50 m).
   shadowRangeIndoors: 25, // the sun patches inside stay sharp
   shadowRangeOutdoors: 50,
+  shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   glassDim: 0.2, // how much the windows dim the view through them (owner, 2026-10-23: a bit darker from inside, just enough to notice the glass)
   glassHighlights: 0.5, // the windows' highlights (the cabin lights' reflections): 1 as lit; 0.3 was their strength until 2026-10-23

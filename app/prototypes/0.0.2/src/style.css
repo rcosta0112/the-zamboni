@@ -125,11 +125,18 @@ body {
   overflow: hidden; /* the fill keeps to the rounded corners */
 }
 
-/* The mouse icon is its own outline. */
-#skip .glyph.mouse {
+/* An icon (the pad's buttons, the mouse) is its own outline: no key box round it. */
+#prompt .glyph:has(svg),
+#skip .glyph:has(svg) {
   border: none;
   min-width: 0;
   padding: 0;
+}
+
+#prompt .glyph > svg[viewBox^='8 8'],
+#skip .glyph > svg[viewBox^='8 8'] {
+  width: 22px;
+  height: 22px;
 }
 
 /* Fills left to right while the button is held (skip-prompt.ts sets the scale; owner, 2026-10-28). */

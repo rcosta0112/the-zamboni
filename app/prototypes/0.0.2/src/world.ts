@@ -95,13 +95,18 @@ export function sunDegrees(): { elevation: number; azimuth: number } {
  * @param sunBack how far back along the sun the shadow camera sits (m): what can cast onto her
  *   surroundings. The ship needs 30; the landed scene's big rocks 260 (a 190 m rock's top is about
  *   210 m back at the sun's 20°). The depth bias is scaled with it, so it stays the same in metres.
+ * @param outdoors the shadow square's half-width outside (m): `shadowRangeOutdoors`, or the landed
+ *   scene's `shadowRangeLanded`.
  */
-export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3, insideAmount: number, sunBack = 30): void {
+export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vector3, insideAmount: number, sunBack = 30, outdoors = settings.shadowRangeOutdoors): void {
   const sunAt = sunDegrees();
   const el = THREE.MathUtils.degToRad(sunAt.elevation);
   const az = THREE.MathUtils.degToRad(sunAt.azimuth);
   const dist = sunBack;
-  const far = sunBack + 50;
+  // Past her, deep enough for the ground the square reaches away from the sun (at a low sun that's
+  // far: the square's edge over 1 / tan(elevation) of its half-width along the ground); 50 m at least.
+  const r = THREE.MathUtils.lerp(outdoors, settings.shadowRangeIndoors, insideAmount);
+  const far = Math.ceil(sunBack + Math.max(50, r / Math.tan(Math.max(el, 0.1))));
   if (world.sun.shadow.camera.far !== far) {
     world.sun.shadow.camera.far = far;
     world.sun.shadow.bias = (SHADOW_BIAS * 80) / far;
@@ -123,7 +128,6 @@ export function updateWorld(world: World, scene: THREE.Scene, target: THREE.Vect
     shadow.map?.dispose();
     shadow.map = null;
   }
-  const r = THREE.MathUtils.lerp(settings.shadowRangeOutdoors, settings.shadowRangeIndoors, insideAmount);
   if (shadow.camera.right !== r) {
     shadow.camera.left = -r;
     shadow.camera.right = r;

@@ -133,6 +133,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   look.add(settings, 'shadowMapSize', [1024, 2048, 4096]).name('shadow map (px)');
   look.add(settings, 'shadowRangeIndoors', 8, 40, 1).name('shadow range indoors (m)');
   look.add(settings, 'shadowRangeOutdoors', 8, 100, 1).name('shadow range outdoors (m)');
+  look.add(settings, 'shadowRangeLanded', 50, 400, 10).name('shadow range landed (m)');
   look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');
   look.add(settings, 'metalReflections', 0, 2, 0.05).name('metal reflections');

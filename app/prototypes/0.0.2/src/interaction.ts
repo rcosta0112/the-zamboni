@@ -32,6 +32,7 @@ import type { Command } from './commands';
 import type { Door } from './doors';
 import type { Entities, Openable } from './entities';
 import type { Device } from './input';
+import { padGlyph } from './pad-glyph';
 import { isDeviceKind, isStoryKind } from './kinds';
 import { labelOf } from './labels';
 import type { Physics } from './physics';
@@ -335,7 +336,8 @@ export function respectLocks(items: Interactable[], story: () => GameStory | nul
   });
 }
 
-const GLYPH: Record<Device, string> = { gamepad: 'A', keyboard: 'E' };
+/** The pad's A (right; owner, 2026-11-07: an icon, the letter before), the keyboard's E. */
+const GLYPH: Record<Device, string> = { gamepad: padGlyph('right'), keyboard: 'E' };
 
 /** The prompt stays this far inside the screen's edges (px). */
 const EDGE = 8;
@@ -489,7 +491,7 @@ export class Interaction {
       else act();
     }
     if (this.target) {
-      this.glyph.textContent = GLYPH[device];
+      this.glyph.innerHTML = GLYPH[device];
       this.verb.textContent = this.target.verb();
       this.prompt.hidden = false;
       this.placePrompt(this.target, camera);

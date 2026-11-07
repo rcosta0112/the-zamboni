@@ -1,7 +1,9 @@
 <!--
   The dialogue box (placeholder, owner 2026-10-21): a solid white rectangle low in the middle of the
-  screen, the speaker's name at its top left, the line typed out, and a small button prompt at its
-  bottom right saying what the button does now (Skip, Next, End). Every character is laid out from
+  screen, the speaker's name at its top left (top right, the line right-aligned, for the side a
+  conversation puts on the right: owner, 2026-11-07), the line typed out, and a small button prompt at its
+  bottom right saying what the button does now (Next, End; Next while a line types too, though the
+  press finishes the line first: owner, 2026-11-07). Every character is laid out from
   the start and the untyped ones are transparent, so line breaks never move (as the Design
   Challenge's Typewriter.svelte). Topics (owner, 2026-10-22): her lines to choose from, in the box in
   place of the line, under her name, the selected one marked; shown at once, never typed. The game drives it: `show(view)` each time something changes,
@@ -13,12 +15,14 @@
   export interface DialogueView {
     /** Who's talking (null: narration, no name). */
     speaker: string | null;
+    /** The speaker's side (owner, 2026-11-07): right aligns the name and the line to the right; the prompt stays. */
+    side: 'left' | 'right';
     text: string;
     /** How many characters of `text` are shown. */
     typed: number;
     /** What the button does now. */
-    action: 'Skip' | 'Next' | 'End' | 'Choose';
-    /** The button, as the last device used names it (E, A). */
+    action: 'Next' | 'End' | 'Choose';
+    /** The button, as the last device used names it: a letter (E) or an SVG icon's markup (the pad's). */
     glyph: string;
     /** Her lines to choose from, shown in place of `text` (none: the line). */
     topics: string[];
@@ -38,7 +42,7 @@
 
 {#if view}
   <div class="box" role="dialog" aria-live="polite">
-    {#if view.speaker}<div class="speaker">{view.speaker}</div>{/if}
+    {#if view.speaker}<div class="speaker" class:right={view.side === 'right'}>{view.speaker}</div>{/if}
     {#if view.topics.length > 0}
       <ul class="topics" class:four={view.topics.length > 3} role="listbox" aria-label="Topics">
         {#each view.topics as topic, i (i)}
@@ -46,13 +50,14 @@
         {/each}
       </ul>
     {:else}
-      <p class="text">
+      <p class="text" class:right={view.side === 'right'}>
         <span class="sr-only">{view.text}</span>
         <!-- New spans for each line: reused ones would fade out from the last line's full opacity, a flash. -->
         {#key view.text}<span aria-hidden="true">{#each chars as char, i (i)}<span class:untyped={i >= view.typed}>{char}</span>{/each}</span>{/key}
       </p>
     {/if}
-    <div class="prompt"><span class="glyph">{view.glyph}</span>{view.action}</div>
+    <div class="prompt"><!-- The glyph is the game's own markup (a letter, or an SVG icon). -->
+    <span class="glyph" class:icon={view.glyph.startsWith('<')}>{@html view.glyph}</span>{view.action}</div>
   </div>
 {/if}
 
@@ -88,6 +93,11 @@
     line-height: 1.25;
   }
 
+  .speaker.right,
+  .text.right {
+    text-align: right;
+  }
+
   .untyped {
     opacity: 0;
   }
@@ -119,6 +129,18 @@
     border-radius: calc(6 * var(--ui-unit));
     font-weight: 700;
     font-size: calc(15 * var(--ui-unit));
+  }
+
+  /* An icon is its own outline: no key box round it. */
+  .glyph.icon {
+    border: none;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .glyph.icon :global(svg) {
+    width: calc(24 * var(--ui-unit));
+    height: calc(24 * var(--ui-unit));
   }
 
   /* Her lines, as the text's size; three fit the box's height, a fourth a little tighter. */

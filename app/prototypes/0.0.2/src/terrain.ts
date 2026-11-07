@@ -28,9 +28,9 @@
 // **Parked** (`park`, 2026-11-06: the landed scene): stopped at a spot along the terrain, the ground's
 // height at the ship's centre at its feet; `groundMesh` gives her collider the same triangles. **The
 // rocks cast real shadows** while parked (into the sun's shadow map: onto her, the ship, the hills and
-// themselves, 2026-11-06): round her, as far as the shadow map reaches (`cutShadows`), the flattened
-// shadows are left out, since their big triangles float over the dips between the hills (one hid her
-// legs); further off they stay. **The rocks nearest the ship collide** (`nearRocks`, within
+// themselves, 2026-11-06), and their flattened shadows are hidden (owner, 2026-11-06: real-time
+// shadows only; the flattened ones' big triangles floated over the dips between the hills): a rock
+// beyond the shadow map's square round her has no shadow. The clouds keep theirs. **The rocks nearest the ship collide** (`nearRocks`, within
 // NEAR_ROCKS: main.ts gives each a convex collider).
 
 import * as THREE from 'three/webgpu';
@@ -156,9 +156,6 @@ export class Treadmill {
   parkedAt: number | null = null;
   /** Parked: the rocks nearest the ship, each its shape and its place in the world (not drawn: for their colliders). */
   readonly nearRocks: THREE.Mesh[] = [];
-  /** Parked: where she is (x, z in the group) and the radius round her where the flattened shadows are left out (0: none). */
-  private readonly cutAt = uniform(new THREE.Vector2());
-  private readonly cutRadius = uniform(0);
   /** The terrain file's height above the ground, for flying again after a stop. */
   private height = 0;
   /** The cameras' far plane while it's shown: past the full haze. */
@@ -313,7 +310,11 @@ export class Treadmill {
   private park(at: number | undefined): void {
     this.parkedAt = at ?? null;
     this.clearNearRocks();
-    for (const pool of this.pools) if (pool.rocks) for (const mesh of pool.meshes) mesh.castShadow = at !== undefined;
+    // Parked, the rocks' shadows are the shadow map's alone.
+    for (const pool of this.pools) if (pool.rocks) {
+      for (const mesh of pool.meshes) mesh.castShadow = at !== undefined;
+      for (const shadow of pool.shadows) shadow.visible = at === undefined;
+    }
     if (at === undefined) {
       settings.flightHeight = this.height;
       return;
@@ -336,15 +337,6 @@ export class Treadmill {
 
   private clearNearRocks(): void {
     this.nearRocks.length = 0;
-  }
-
-  /**
-   * Parked: the flattened shadows left out within `radius` of a world point (her: as far round her as
-   * the sun's shadow map reaches, where the rocks' real shadows are drawn); 0, or not parked: none.
-   */
-  cutShadows(x: number, z: number, radius: number): void {
-    this.cutAt.value.set(x - this.group.position.x, z - this.group.position.z); // heading 0 while parked
-    this.cutRadius.value = this.parkedAt === null ? 0 : radius;
   }
 
   /** The group at the ship's centre, at the ground's height, turned by the heading. */
@@ -624,7 +616,6 @@ export class Treadmill {
       // With hills: onto the plane at the ground's height under the point, then set on the ground where
       // that lands (the hills are gentle: a shadow's triangles stay close to the slope).
       const up = varyingProperty('vec3', 'vShadowUp');
-      const flat = varyingProperty('vec2', 'vShadowAt');
       material.positionNode = Fn(() => {
         const p = positionLocal;
         fading?.(p);
@@ -634,11 +625,9 @@ export class Treadmill {
         const x = p.x.sub(sun.x.mul(h));
         const z = p.z.sub(sun.z.mul(h));
         up.assign(this.hillNormal(x, z));
-        flat.assign(vec2(x, z));
         return vec3(x, this.hillAt(x, z).add(SHADOW_LIFT), z);
       })();
-      // Not round her while parked: the rocks' real shadows are there (`cutShadows`).
-      material.maskNode = height.greaterThanEqual(0).and(length(flat.sub(this.cutAt)).greaterThanEqual(this.cutRadius));
+      material.maskNode = height.greaterThanEqual(0);
       // Lit as the ground is: facing as the hills face there.
       material.normalNode = cameraViewMatrix.mul(vec4(up, 0)).xyz;
       material.polygonOffset = true;

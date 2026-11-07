@@ -7,9 +7,10 @@
 // a hold counts again (cutscene 2 follows cutscene 1 at once).
 
 import type { Device } from './input';
+import { padGlyph } from './pad-glyph';
 
 const GLYPH: Record<Device, string> = {
-  gamepad: 'X',
+  gamepad: padGlyph('top'), // the pad's X (owner, 2026-11-07: an icon, the letter before)
   // A mouse, its left button filled.
   keyboard:
     '<svg viewBox="0 0 14 20" width="14" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="left mouse button">' +
@@ -60,7 +61,6 @@ export class SkipPrompt {
     if (device !== this.device) {
       this.device = device;
       this.glyph.innerHTML = GLYPH[device];
-      this.glyph.classList.toggle('mouse', device === 'keyboard');
     }
     this.fill.style.transform = `scaleX(${Math.min(1, this.held / HOLD)})`;
     this.el.hidden = this.shownFor <= 0 && this.held === 0;
