@@ -13,9 +13,8 @@
 // waits that long, then the next comes (the last ends it); a press still completes or skips. Half
 // as long before the same speaker's next line, unless the line is an ellipsis (owner, 2026-10-28).
 // Time is the game's: it stops with the pause.
-// **Sides** (owner, 2026-11-07): Dr. Green on the left, whoever she talks to on the right; one
-// speaker alone (and narration) on the left; without her, the first to speak left, the second
-// right, the others alternating. Set when a conversation starts, kept through its topics' answers.
+// **The name's colour** (owner, 2026-11-07): each character's (`NAME_COLOR`), all at least 4.5:1
+// on the box's white (WCAG AA for normal text).
 // Plan: doc/plans/features/dialogue.md (passes 1, 2, topics)
 
 import type { DialogueView } from '@zamboni/ui';
@@ -26,6 +25,19 @@ import { displayName, type Line } from './story';
 
 /** The pad's A (right; owner, 2026-11-07: an icon, the letter before), the keyboard's E. */
 const GLYPH: Record<Device, string> = { gamepad: padGlyph('right'), keyboard: 'E' };
+
+/** The speaker's name colour by character id (owner, 2026-11-07); contrast on white in brackets. */
+const NAME_COLOR: Record<string, string> = {
+  green: '#1e7b34', // green (5.3:1)
+  kaufman: '#b45000', // orange (5.1:1)
+  'adam-red': '#c62828', // Red: red (5.6:1)
+  'adam-blue': '#1f63c6', // Blue: blue (5.7:1)
+  ogawa: '#1b2a6b', // dark blue (13.2:1)
+};
+
+function nameColor(id: string | null): string | null {
+  return (id && NAME_COLOR[id]) || null;
+}
 
 /** No topics (one array, so the box isn't redrawn for a new empty one each frame). */
 const NO_TOPICS: string[] = [];
@@ -39,8 +51,6 @@ export class Dialogue {
   /** Her lines to choose from after the last line (none: it ends there). */
   private topics: string[] = [];
   private selected = 0;
-  /** Each speaker's side in this conversation, by character id (`sideOf`). */
-  private sides = new Map<string, 'left' | 'right'>();
   /** Characters typed of the current line (fractional between frames). */
   private typed = 0;
   private sincePress = Infinity;
@@ -106,26 +116,7 @@ export class Dialogue {
     this.waited = 0;
     this.topics = topics;
     this.selected = 0;
-    if (!going) {
-      this.sincePress = 0;
-      this.sides.clear();
-    }
-    this.placeSpeakers(lines, topics.length > 0);
-  }
-
-  /** Gives the new speakers in `lines` a side (her topics count her in). */
-  private placeSpeakers(lines: Line[], hers: boolean): void {
-    const ids = lines.map((l) => l.id).filter((id): id is string => id !== null);
-    if (hers) ids.push('green');
-    const fresh = [...new Set(ids)].filter((id) => !this.sides.has(id));
-    const withHer = this.sides.has('green') || fresh.includes('green');
-    for (const id of fresh) {
-      this.sides.set(id, withHer ? (id === 'green' ? 'left' : 'right') : this.sides.size % 2 === 0 ? 'left' : 'right');
-    }
-  }
-
-  private sideOf(id: string | null): 'left' | 'right' {
-    return (id && this.sides.get(id)) || 'left';
+    if (!going) this.sincePress = 0;
   }
 
   /** The share of `autoNext` this line waits: half before the same speaker's next line (owner, 2026-10-28), all of it on an ellipsis line (a silent beat). */
@@ -198,14 +189,14 @@ export class Dialogue {
       }
     }
     if (this.choosing) {
-      this.render({ speaker: displayName('green'), side: this.sideOf('green'), text: '', typed: 0, action: 'Choose', glyph: GLYPH[device], topics: this.topics, selected: this.selected });
+      this.render({ speaker: displayName('green'), color: nameColor('green'), text: '', typed: 0, action: 'Choose', glyph: GLYPH[device], topics: this.topics, selected: this.selected });
       return;
     }
     const line = this.lines[this.index]!;
     const last = this.index === this.lines.length - 1 && this.topics.length === 0;
     this.render({
       speaker: line.speaker,
-      side: this.sideOf(line.id),
+      color: nameColor(line.id),
       text: line.text,
       typed: Math.floor(this.typed),
       // Next (End) while typing too: the press still finishes the line first (owner, 2026-11-07: Skip flickering was distracting).
@@ -219,7 +210,7 @@ export class Dialogue {
   /** The box, only when what it shows changes. */
   private render(view: DialogueView | null): void {
     const s = this.shown;
-    if (view && s && s.text === view.text && s.typed === view.typed && s.action === view.action && s.glyph === view.glyph && s.speaker === view.speaker && s.side === view.side && s.topics === view.topics && s.selected === view.selected) return;
+    if (view && s && s.text === view.text && s.typed === view.typed && s.action === view.action && s.glyph === view.glyph && s.speaker === view.speaker && s.color === view.color && s.topics === view.topics && s.selected === view.selected) return;
     this.shown = view;
     this.show(view);
   }

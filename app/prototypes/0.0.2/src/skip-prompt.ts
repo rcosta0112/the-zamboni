@@ -4,7 +4,8 @@
 // that long skips it. A bar along the prompt's bottom fills while it's held (owner, 2026-10-28; none
 // before). Both cutscenes: cutscene 1 (the
 // player) and cutscene 2 (the watched conversation). After a skip the button must be let go before
-// a hold counts again (cutscene 2 follows cutscene 1 at once).
+// a hold counts again (cutscene 2 follows cutscene 1 at once). In a cutscene with dialogue (cutscene 2's
+// cockpit conversation; owner, 2026-11-07) only the skip button shows the prompt, not any press.
 
 import type { Device } from './input';
 import { padGlyph } from './pad-glyph';
@@ -27,6 +28,7 @@ export class SkipPrompt {
   held = 0;
   private shownFor = 0;
   private needsRelease = false;
+  private wasHolding = false;
   private device: Device | null = null;
   private glyph = document.createElement('span');
   private fill = document.createElement('span');
@@ -46,7 +48,11 @@ export class SkipPrompt {
    * Per frame while not paused. `watching`: a cutscene plays; `pressed`: any button went down;
    * `holding`: the skip button is down. True when it's time to skip.
    */
-  update(dt: number, watching: boolean, pressed: boolean, holding: boolean, device: Device): boolean {
+  update(dt: number, watching: boolean, pressed: boolean, holding: boolean, device: Device, dialogue = false): boolean {
+    // A cutscene with dialogue (owner, 2026-11-07): only the skip button itself shows the prompt, tapped
+    // or held (it competed with the dialogue box's prompt); any other press doesn't.
+    if (dialogue) pressed = holding && !this.wasHolding;
+    this.wasHolding = holding;
     if (!holding) this.needsRelease = false;
     if (!watching) {
       this.held = 0;

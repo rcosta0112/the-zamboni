@@ -636,8 +636,8 @@ async function start(): Promise<void> {
     watched?.update(view.camera.aspect, dt);
     const watching = (cutscene?.playing ?? false) || (watched?.playing ?? false);
     barsEl.classList.toggle('on', watching);
-    // Any press shows "Hold X to skip"; held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
-    const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice);
+    // Any press shows "Hold X to skip" (with dialogue, only X itself); held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
+    const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice, !(cutscene?.playing ?? false) && (watched?.playing ?? false));
     if (cutscene?.playing) {
       if (skipping) cutscene.skip();
       else cutscene.update(dt, view.camera.aspect);

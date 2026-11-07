@@ -13,6 +13,7 @@
 ## Decision
 
 - [ ] **SC-151** · The landed scene unlocks every door the flight locks (outer doors, hatches; the jetpacks and her parka are free). Kaufman's and Ogawa's lockers still refuse with your lines (2026-10-21) in every scene: keep that, or open them landed? [plan](plans/features/landed-scene.md#conflicts-with-the-docs-flagged)
+- [ ] **SC-153** · Adam's seats (2026-11-07): Blue sits in the front seat with the joystick, Red at the back. SC-16 says *Red flying*, SC-17 *Blue navigating*, and the script says *Adam Red (in the pilot seat)*, *Adam Blue (in the nav seat)*. Should the animation follow the seat (Blue flies), or the body (move them in the file)? Change the script's directions? [note](plans/features/flying-scene.md)
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
 
 ## Blender

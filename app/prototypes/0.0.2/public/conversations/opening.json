@@ -2,7 +2,7 @@
   "knot": "cutscene_opening",
   "wait": 1.5,
   "shots": {
-    "adam-blue": {
+    "adam-red": {
       "camera": {
         "at": [
           0.0197,
@@ -22,7 +22,7 @@
         "fov": 75.58
       }
     },
-    "adam-red": {
+    "adam-blue": {
       "camera": {
         "at": [
           1.9329,

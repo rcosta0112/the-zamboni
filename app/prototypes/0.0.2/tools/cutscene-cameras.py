@@ -20,7 +20,10 @@ import bpy
 OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', 'public', 'conversations', 'opening.json')
 PREFIX = 'cutscene-2-'
 # The cameras' names after the prefix -> the speaker's id in the story (`opening` is the wide shot).
-WHO = {'cockpit': 'opening', 'adam-red': 'adam-red', 'adam-blue': 'adam-blue', 'dr-green': 'green', 'dr-ogawa': 'ogawa'}
+# Adam's two are crossed (owner, 2026-11-07): the cameras were named for the script's seats, but in the
+# file Red (red highlights) sits at the back and Blue in the front seat with the second joystick, so
+# `cutscene-2-adam-red` frames Blue and `-adam-blue` frames Red. If the cameras are renamed, uncross these.
+WHO = {'cockpit': 'opening', 'adam-red': 'adam-blue', 'adam-blue': 'adam-red', 'dr-green': 'green', 'dr-ogawa': 'ogawa'}
 HOLD = 4.0
 
 

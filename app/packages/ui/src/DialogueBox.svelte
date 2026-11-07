@@ -1,7 +1,6 @@
 <!--
   The dialogue box (placeholder, owner 2026-10-21): a solid white rectangle low in the middle of the
-  screen, the speaker's name at its top left (top right, the line right-aligned, for the side a
-  conversation puts on the right: owner, 2026-11-07), the line typed out, and a small button prompt at its
+  screen, the speaker's name at its top left (in the character's colour: owner, 2026-11-07), the line typed out, and a small button prompt at its
   bottom right saying what the button does now (Next, End; Next while a line types too, though the
   press finishes the line first: owner, 2026-11-07). Every character is laid out from
   the start and the untyped ones are transparent, so line breaks never move (as the Design
@@ -15,8 +14,8 @@
   export interface DialogueView {
     /** Who's talking (null: narration, no name). */
     speaker: string | null;
-    /** The speaker's side (owner, 2026-11-07): right aligns the name and the line to the right; the prompt stays. */
-    side: 'left' | 'right';
+    /** The name's colour (a CSS colour, at least 4.5:1 on the box's white; null: the text's). */
+    color: string | null;
     text: string;
     /** How many characters of `text` are shown. */
     typed: number;
@@ -42,7 +41,7 @@
 
 {#if view}
   <div class="box" role="dialog" aria-live="polite">
-    {#if view.speaker}<div class="speaker" class:right={view.side === 'right'}>{view.speaker}</div>{/if}
+    {#if view.speaker}<div class="speaker" style:color={view.color}>{view.speaker}</div>{/if}
     {#if view.topics.length > 0}
       <ul class="topics" class:four={view.topics.length > 3} role="listbox" aria-label="Topics">
         {#each view.topics as topic, i (i)}
@@ -50,7 +49,7 @@
         {/each}
       </ul>
     {:else}
-      <p class="text" class:right={view.side === 'right'}>
+      <p class="text">
         <span class="sr-only">{view.text}</span>
         <!-- New spans for each line: reused ones would fade out from the last line's full opacity, a flash. -->
         {#key view.text}<span aria-hidden="true">{#each chars as char, i (i)}<span class:untyped={i >= view.typed}>{char}</span>{/each}</span>{/key}
@@ -91,11 +90,6 @@
     font-weight: 400;
     font-size: calc(26 * var(--ui-unit));
     line-height: 1.25;
-  }
-
-  .speaker.right,
-  .text.right {
-    text-align: right;
   }
 
   .untyped {
