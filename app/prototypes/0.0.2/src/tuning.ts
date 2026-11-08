@@ -159,7 +159,15 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   temple.add(settings, 'hologramStrength', 0, 30, 0.5).name('hologram: rim emission');
   temple.add(settings, 'hologramStripes', 10, 600, 1).name('hologram: stripes / screen');
   temple.add(settings, 'hologramRimIor', 1, 1.5, 0.005).name('hologram: rim IOR');
-  temple.add(settings, 'hologramGlass', 0, 2, 0.05).name('hologram: glass blue');
+  temple.add(settings, 'hologramGlass', 0, 2, 0.05).name('hologram: glass tint');
+  temple.addColor(settings, 'hologramColour').name('hologram: colour');
+  temple.add(settings, 'hologramBandSeconds', 0.5, 20, 0.1).name('hologram: band sweep (s)');
+  temple.add(settings, 'hologramBandHeight', 0.1, 10, 0.1).name('hologram: band height (m)');
+  temple.add(settings, 'hologramBandStrength', 0, 10, 0.1).name('hologram: band emission');
+  temple.add(settings, 'hologramGlowPx', 0, 100, 1).name('hologram: glow (px)');
+  temple.add(settings, 'hologramGlowMin', 0, 3, 0.05).name('hologram: glow least (m)');
+  temple.add(settings, 'hologramGlowStrength', 0, 3, 0.05).name('hologram: glow strength');
+  temple.add(settings, 'hologramGlowSoftness', 0.01, 1, 0.01).name('hologram: glow softness');
   temple.close();
   look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');

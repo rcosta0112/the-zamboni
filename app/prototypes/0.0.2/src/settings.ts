@@ -222,9 +222,17 @@ export const settings = {
   // The temple's hologram (hologram.ts; owner, 2026-11-08), shown and hidden at the plinth
   hologramFadeSeconds: 1.5, // its fade in (and out)
   hologramStrength: 10, // its rim's emission (the file's Emission strength; owner: 10, 2026-11-08)
-  hologramStripes: 318, // scan lines per screen height (the file's Wave on Window coordinates)
-  hologramRimIor: 1.04, // the Fresnel's IOR: nearer 1, a thinner rim (the file's)
-  hologramGlass: 0.3, // the glass's blue added where a stripe faces you (the file's glass, which tints what's behind: not possible per channel here)
+  hologramStripes: 180, // scan lines per screen height (the file's Wave on Window coordinates; its 318 blurred into a flat tint: owner, 180, 2026-11-08)
+  hologramRimIor: 1.1, // the Fresnel's IOR: nearer 1, a thinner rim (the file's 1.04; owner: 1.1, 2026-11-08)
+  hologramGlass: 0.3, // the glass's tint added where a stripe faces you (the file's glass, which tints what's behind: not possible per channel here)
+  hologramColour: '#00e5ff', // the emission's colour; the glass is it a third toward white (owner: cyan, 2026-11-08; the file's blue before)
+  hologramBandSeconds: 4, // the scan band's sweep, bottom to top (owner, 2026-11-08)
+  hologramBandHeight: 1.5, // its height (m)
+  hologramBandStrength: 2, // its emission
+  hologramGlowPx: 24, // the painted glow's width (pixels; owner, 2026-11-08: no bloom in the game)
+  hologramGlowMin: 0.3, // its least width (m), up close
+  hologramGlowStrength: 0.6, // its strength (0: none)
+  hologramGlowSoftness: 0.35, // how far in it reaches full strength (0..1: higher, softer)
   shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   glassDim: 0.2, // how much the windows dim the view through them (owner, 2026-10-23: a bit darker from inside, just enough to notice the glass)

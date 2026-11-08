@@ -42,6 +42,7 @@ The *Displace* modifier (no texture, strength −0.05, midlevel 0.5) pulls the m
 - **The polygon offset is in from the start:** at 200 m with a 0.1 m near plane the depth buffer resolves about 2 cm, so the 2.5 mm inset (3.5 mm at ×1.4) couldn't separate them.
 - **Blend:** ONE, ONE_MINUS_SRC_ALPHA (custom blending), the colour the emission, alpha 1 − the see-through grey. The glass's share is a faint blue added (`hologramGlass`, 0.3: a guess, to tune by eye).
 - temple-probe 13/13 (four hologram checks, one screenshot at the plinth). *Actual time:* about 45 min.
+- **Update 2026-11-08 (owner: "almost invisible against the blue sky"):** stripes 180, rim IOR 1.1, **cyan** (`hologramColour` `#00e5ff`; the glass the same, a third toward white), a **scan band** sweeping up in world height (`hologramBand*`: 4 s, 1.5 m, emission 2) and a **painted glow** (previously *Out*, now asked for): a shell of the mesh welded (Meshopt's packed positions copied out first), pushed out along smoothed normals by 24 px (at least 0.3 m), back faces only, **laid over** what's behind as a ring round the outline (`hologramGlow*`). Tried and dropped: the glow **added** and full strength inside (a flat pale block over the hologram that hid the stripes; added cyan on the bright sky came out white). The hologram is now made **after** landmarks.ts's walk of the file: made during it, the walk reached the new shell and made it stone. temple-probe 14/14 (no new check). The halo also picks up the mesh's inner faces (thin streaks inside the arches).
 
 ## Done when
 

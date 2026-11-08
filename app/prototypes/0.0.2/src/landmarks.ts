@@ -106,7 +106,7 @@ export class Landmarks {
   update(camera: THREE.PerspectiveCamera, drawingHeight: number, fog: THREE.Fog | null, dt: number): void {
     for (const landmark of this.shown.values()) {
       landmark.lightShaft?.update(camera, drawingHeight, fog, dt);
-      landmark.hologram?.update(dt);
+      landmark.hologram?.update(camera, drawingHeight, dt);
     }
   }
 
@@ -158,13 +158,15 @@ export class Landmarks {
         let plinth: THREE.Object3D | null = null;
         const solid: THREE.Mesh[] = [];
         const made = new Map<THREE.Material, THREE.Material>();
+        const hologramMeshes: THREE.Mesh[] = [];
         object.traverse((o) => {
           if (o.name === 'Plynth') plinth = o;
           if (!(o instanceof THREE.Mesh)) return;
           const extras = (o.userData ?? {}) as { shaft?: boolean; hologram?: boolean; glowColor?: number[]; glowStrength?: number };
           if (extras.hologram) {
-            // Not stone: no light, no shadows, no collider; hidden until its prompt (hologram.ts).
-            hologram = new Hologram(o);
+            // Not stone: no light, no shadows, no collider; hidden until its prompt (hologram.ts). Made
+            // after the walk: it adds its glow's shell as a child, which the walk would take for stone.
+            hologramMeshes.push(o);
             return;
           }
           if (extras.shaft) {
@@ -191,6 +193,7 @@ export class Landmarks {
           };
           o.material = Array.isArray(o.material) ? o.material.map(swap) : swap(o.material);
         });
+        if (hologramMeshes[0]) hologram = new Hologram(hologramMeshes[0]);
         object.visible = false;
         this.scene.add(object);
         if (!steps) console.warn(`[0.0.2] landmark ${file}: no Temple Steps: its floor is put at the ground under its origin`);

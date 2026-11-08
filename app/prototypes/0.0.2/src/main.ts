@@ -96,8 +96,15 @@ const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has(
  * usual: `cutscene-1` (cutscene 1, the fly-by, then cutscene 2, then chapter 1: as a new game), `opening`
  * (cutscene 2, then chapter 1), or a scene's id (`chapter-1`, `landed`, the checks'…). A save isn't
  * continued meanwhile. Not in production builds (`import.meta.env.DEV` is false there).
+ * The script's scene numbers work too (owner, 2026-11-08: `?scene=0700`), `SCENE_NUMBERS`.
  */
-const ASKED = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
+const ASKED_RAW = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
+/**
+ * The script's scene numbers (doc/story/scenes, `NNNN - Type - Description.md`) → the point they start.
+ * 0400–0600 have no start of their own yet: they play on the way from chapter 1 to the landed scene.
+ */
+const SCENE_NUMBERS: Record<string, string> = { '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0700': 'landed' };
+const ASKED = ASKED_RAW ? (SCENE_NUMBERS[ASKED_RAW] ?? ASKED_RAW) : null;
 /** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
 const SAVING = TESTING;
 /** The animatic's parts, before the first scene. */

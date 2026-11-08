@@ -19,14 +19,19 @@
 // where they meet; at 200 m the depth buffer can't tell 2.5 mm apart, so it's also pushed back a
 // little in depth (a polygon offset). No light, no fog, no shadows, no collider.
 
-import * as THREE from 'three/webgpu';
-import { abs, dot, float, frontFacing, max, mix, normalView, positionViewDirection, screenUV, select, sin, sqrt, uniform, vec3, vec4 } from 'three/tsl';
-import { settings } from './settings';
+//
+// Changed from the file (owner, 2026-11-08, "almost invisible against the blue sky"): **cyan**
+// (`hologramColour`, the emission's; the glass is it mixed a third toward white), 180 stripes, rim IOR
+// 1.1; a **scan band** sweeping up through it (`hologramBand*`: a brighter band in world height, its
+// path from just under the mesh to just over it); a **painted glow** (no bloom in the game): a shell of
+// the mesh pushed out along smoothed normals, so many pixels wide (at least `hologramGlowMin` m), its
+// back faces laid over what's behind as a ring round the outline. The stone hides it where it's in
+// front, so over the ruins it shows only round the hologram's edge.
 
-/** The emission's colour (linear), the file's (both Emission nodes). */
-const EMISSION = new THREE.Vector3(0, 0.1784, 0.4793);
-/** The glass's colour (linear), the file's. */
-const GLASS = new THREE.Vector3(0.1541, 0.2748, 0.4793);
+import * as THREE from 'three/webgpu';
+import { abs, cameraPosition, dot, float, frontFacing, length, max, mix, modelWorldMatrix, normalLocal, normalView, positionGeometry, positionLocal, positionViewDirection, positionWorld, screenUV, select, sin, smoothstep, sqrt, uniform, vec3, vec4 } from 'three/tsl';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { settings } from './settings';
 /** The see-through greys: the rim layer's and the crease layer's. */
 const SEE_THROUGH_A = 0.5705;
 const SEE_THROUGH_B = 0.3249;
@@ -42,6 +47,25 @@ export class Hologram {
   private readonly stripes = uniform(318);
   private readonly ior = uniform(1.04);
   private readonly glass = uniform(0.3);
+  private readonly colour = uniform(new THREE.Vector3(0, 0.78, 1));
+  private readonly colourTemp = new THREE.Color();
+  /** The scan band: its centre's height (world, m), half its height (m), its strength. */
+  private readonly bandAt = uniform(0);
+  private readonly bandHalf = uniform(0.75);
+  private readonly bandLevel = uniform(2);
+  private bandPhase = 0;
+  private readonly bounds = new THREE.Box3();
+  /** The painted glow: one pixel's size at 1 m (2 tan(fov / 2) / the drawing's height), its width. */
+  private readonly pixel = uniform(0.001);
+  private readonly glowPx = uniform(24);
+  private readonly glowMin = uniform(0.3);
+  private readonly glowLevel = uniform(0.6);
+  private readonly glowSoft = uniform(0.35);
+  /** The mesh's world scale: the shell is pushed out in the mesh's own units. */
+  private readonly worldScale = uniform(1);
+  private readonly scaleTemp = new THREE.Vector3();
+  /** The painted glow's shell (a child of the mesh: shown and hidden with it). */
+  readonly glow: THREE.Mesh;
 
   constructor(readonly mesh: THREE.Mesh) {
     mesh.material = this.material();
@@ -49,14 +73,21 @@ export class Hologram {
     mesh.receiveShadow = false;
     mesh.visible = false;
     mesh.renderOrder = 1; // after the stone and the ground, among the see-through
+    this.glow = new THREE.Mesh(this.shellGeometry(mesh.geometry), this.glowMaterial());
+    this.glow.name = 'Hologram glow';
+    this.glow.castShadow = false;
+    this.glow.receiveShadow = false;
+    this.glow.renderOrder = 0; // before the hologram's own drawing
+    this.glow.frustumCulled = false; // pushed out past the mesh's bounds
+    mesh.add(this.glow);
   }
 
   toggle(): void {
     this.on = !this.on;
   }
 
-  /** Each frame: the fade, the panel's settings. */
-  update(dt: number): void {
+  /** Each frame: the fade, the scan band, the glow's pixel size, the panel's settings. */
+  update(camera: THREE.PerspectiveCamera, drawingHeight: number, dt: number): void {
     const seconds = Math.max(settings.hologramFadeSeconds, 1e-3);
     this.linear = THREE.MathUtils.clamp(this.linear + (this.on ? dt : -dt) / seconds, 0, 1);
     this.amount = this.linear * this.linear * (3 - 2 * this.linear);
@@ -66,6 +97,55 @@ export class Hologram {
     this.stripes.value = settings.hologramStripes;
     this.ior.value = settings.hologramRimIor;
     this.glass.value = settings.hologramGlass;
+    const linear = this.colourTemp.set(settings.hologramColour); // a hex string is sRGB: set() makes it linear
+    this.colour.value.set(linear.r, linear.g, linear.b);
+    // The scan band: from just under the mesh to just over it, then again.
+    this.bandPhase = (this.bandPhase + Math.max(0, dt) / Math.max(settings.hologramBandSeconds, 0.1)) % 1;
+    this.bandHalf.value = settings.hologramBandHeight / 2;
+    this.bandLevel.value = settings.hologramBandStrength;
+    if (this.mesh.visible) {
+      this.bounds.setFromObject(this.mesh);
+      const low = this.bounds.min.y - this.bandHalf.value;
+      const high = this.bounds.max.y + this.bandHalf.value;
+      this.bandAt.value = low + (high - low) * this.bandPhase;
+    }
+    this.pixel.value = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / Math.max(1, drawingHeight);
+    this.glowPx.value = settings.hologramGlowPx;
+    this.glowMin.value = settings.hologramGlowMin;
+    this.glowLevel.value = settings.hologramGlowStrength;
+    this.glowSoft.value = settings.hologramGlowSoftness;
+    this.worldScale.value = Math.max(1e-6, this.mesh.getWorldScale(this.scaleTemp).x);
+    this.glow.visible = settings.hologramGlowStrength > 0;
+  }
+
+  /** The glow's shell: the mesh's positions welded, with smoothed normals to push them out along (a flat-shaded mesh pushed out along its own normals would crack at every edge). */
+  private shellGeometry(source: THREE.BufferGeometry): THREE.BufferGeometry {
+    const bare = new THREE.BufferGeometry();
+    // Copied out to plain floats: the file's positions are packed (Meshopt: interleaved, quantised).
+    const packed = source.getAttribute('position');
+    const plain = new Float32Array(packed.count * 3);
+    for (let i = 0; i < packed.count; i++) plain.set([packed.getX(i), packed.getY(i), packed.getZ(i)], i * 3);
+    bare.setAttribute('position', new THREE.BufferAttribute(plain, 3));
+    if (source.index) bare.setIndex(source.index);
+    const welded = mergeVertices(bare, 1e-4);
+    welded.computeVertexNormals();
+    return welded;
+  }
+
+  /** The painted glow: the shell's back faces laid over what's behind, a ring round the outline. */
+  private glowMaterial(): THREE.MeshBasicNodeMaterial {
+    const material = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, fog: false, side: THREE.BackSide });
+    material.name = 'Hologram glow';
+    const world = modelWorldMatrix.mul(vec4(positionGeometry, 1)).xyz;
+    const widthWorld = max(this.glowMin, length(cameraPosition.sub(world)).mul(this.pixel).mul(this.glowPx));
+    material.positionNode = positionLocal.add(normalLocal.mul(widthWorld.div(this.worldScale)));
+    // A ring round the outline: 0 where the shell's edge is seen side-on, full a little in (`glowSoft`),
+    // gone again further in, so it doesn't wash over the hologram itself (tried: a flat pale block that
+    // hid the stripes). Laid over what's behind, not added: added to the bright sky, cyan came out white.
+    const c = abs(dot(normalView, positionViewDirection)).clamp(0, 1);
+    const shape = smoothstep(0, this.glowSoft, c).mul(float(1).sub(smoothstep(this.glowSoft, this.glowSoft.mul(2.5), c)));
+    material.colorNode = vec4(this.colour, shape.mul(this.glowLevel).mul(this.appear).clamp(0, 1));
+    return material;
   }
 
   private material(): THREE.MeshBasicNodeMaterial {
@@ -91,8 +171,12 @@ export class Hologram {
     const rim = onStripe.mul(fresnel);
     const facing = onStripe.mul(float(1).sub(fresnel));
     // What's behind lets through: the rim layer's grey where it isn't rim, plus the crease layer's.
-    const through = float(SEE_THROUGH_A).mul(float(1).sub(rim)).add(SEE_THROUGH_B);
-    const emission = vec3(EMISSION.x, EMISSION.y, EMISSION.z).mul(this.strength).mul(rim).add(vec3(GLASS.x, GLASS.y, GLASS.z).mul(this.glass).mul(facing));
+    // The scan band: 1 at its centre, 0 half its height off it; it lets a little less through.
+    const band = float(1).sub(smoothstep(0, 1, abs(positionWorld.y.sub(this.bandAt)).div(this.bandHalf)));
+    const through = float(SEE_THROUGH_A).mul(float(1).sub(rim)).add(SEE_THROUGH_B).mul(float(1).sub(band.mul(0.3)));
+    const colour = this.colour;
+    const glassColour = mix(colour, vec3(1, 1, 1), 1 / 3);
+    const emission = colour.mul(this.strength).mul(rim).add(glassColour.mul(this.glass).mul(facing)).add(colour.mul(this.bandLevel).mul(band));
     const shownThrough = mix(float(1), through.clamp(0, 1), this.appear);
     material.colorNode = vec4(emission.mul(this.appear), float(1).sub(shownThrough));
     return material;
