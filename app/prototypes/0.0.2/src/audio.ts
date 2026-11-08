@@ -279,6 +279,37 @@ export class GameAudio {
     positional.setMaxDistance(Math.max(gone, full + 0.01));
   }
 
+  /**
+   * A place in the world for a sound made in code (the synth: src/synth/): what's played into the
+   * returned `input` is heard from `at` through `bus`, falling off as a cue does (full within
+   * `full` m, gone at `gone`). `remove` takes it out of the world.
+   */
+  placed(at: THREE.Object3D, bus: Bus, full: number, gone: number) {
+    const input = this.context.createGain();
+    const positional = new THREE.PositionalAudio(this.listener);
+    positional.panner.panningModel = 'equalpower';
+    positional.setDistanceModel('linear');
+    positional.setRolloffFactor(1);
+    positional.setNodeSource(input as unknown as AudioScheduledSourceNode);
+    positional.gain.disconnect();
+    positional.gain.connect(this.buses[bus]);
+    at.add(positional);
+    const falloff = (near: number, far: number) => {
+      positional.setRefDistance(near);
+      positional.setMaxDistance(Math.max(far, near + 0.01));
+    };
+    falloff(full, gone);
+    return {
+      input,
+      falloff,
+      remove: () => {
+        positional.removeFromParent();
+        positional.gain.disconnect();
+        input.disconnect();
+      },
+    };
+  }
+
   /** The cues that are sounding now: for checks. */
   playing(): string[] {
     const list = [...this.voices].filter(([, v]) => v.playing).map(([k]) => k.split('@')[0]!);

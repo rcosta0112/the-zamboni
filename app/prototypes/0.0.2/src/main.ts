@@ -48,6 +48,8 @@ import { createWorld, updateWorld } from './world';
 import { Treadmill } from './terrain';
 import { Landmarks } from './landmarks';
 import { LightColumn } from './light-column';
+import { Synth } from './synth/synth';
+import { PATCHES } from './synth/presets';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
@@ -180,7 +182,8 @@ async function start(): Promise<void> {
   let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
   let rockColliders: { remove: () => void } | null = null; // the landed scene's nearest rocks
   let landmarks: Landmarks | null = null; // the landed scene's buildings (the temple)
-  let humAt: THREE.Object3D | null = null; // where the temple's hum is playing (the shaft's `hum`)
+  // The temple's chord (owner, 2026-11-08), played by the synth where the shaft's `hum` is.
+  let chord: { at: THREE.Object3D; synth: Synth; place: ReturnType<GameAudio['placed']> } | null = null;
   let flames: ThrusterFlames | null = null; // behind the turbines in exterior cutscenes
   let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
@@ -911,20 +914,26 @@ async function start(): Promise<void> {
     if (!ready) character.model?.showEveryOutfit();
 
     landmarks?.update(drawing, size.y, scene.fog as THREE.Fog | null, dt);
-    // The temple's electric hum (owner, 2026-11-07): a loop placed at the light shaft's foot, loud
-    // and louder as she nears (its falloff from the panel), following the light's pulse and flicker.
+    // The temple's sound (owner, 2026-11-08: the synth's *Temple chord*, tuned on synth.html; a
+    // recorded hum before): placed at the light shaft's foot, louder as she nears (its falloff from
+    // the panel), dipping with the light's pulse and flicker (the patch's `lightDepth`).
     const shaft = landmarks?.shownShaft ?? null;
-    if (humAt && humAt !== shaft?.hum) {
-      audio.stop('sfx_temple_hum', humAt, 1);
-      humAt = null;
+    if (chord && chord.at !== shaft?.hum) {
+      chord.synth.dispose();
+      const place = chord.place;
+      window.setTimeout(() => place.remove(), 1000);
+      chord = null;
     }
     if (shaft) {
-      if (!audio.isPlaying('sfx_temple_hum', shaft.hum) && audio.play('sfx_temple_hum', shaft.hum)) humAt = shaft.hum;
-      audio.falloff('sfx_temple_hum', shaft.hum, settings.templeHumFull, settings.templeHumGone);
-      // In sync with the light (owner, 2026-11-08): the volume dips as deep as `templeHumDepth` with each
-      // flicker and the pulse, the pitch a little (`templeHumWarble`).
-      const dark = 1 - Math.min(1, shaft.intensity);
-      audio.shape('sfx_temple_hum', settings.templeHumVolume * (1 - settings.templeHumDepth * dark), 1 - settings.templeHumWarble * dark, shaft.hum);
+      if (!chord) {
+        const place = audio.placed(shaft.hum, 'ambience', settings.templeHumFull, settings.templeHumGone);
+        const synth = new Synth(audio.context, { ...PATCHES['Temple chord']! }, place.input);
+        synth.play();
+        chord = { at: shaft.hum, synth, place };
+      }
+      chord.place.falloff(settings.templeHumFull, settings.templeHumGone);
+      chord.place.input.gain.value = settings.templeHumVolume;
+      chord.synth.setLight(shaft.intensity);
     }
     renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
     renderer.getDrawingBufferSize(size);

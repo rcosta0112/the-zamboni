@@ -214,10 +214,8 @@ export const settings = {
   shaftPulseDepth: 0.4, // how far it dips at the bottom of the wave (0: steady, 1: to nothing)
   shaftFlickerRate: 1, // flickers a second, on average (0: none; owner, 2026-11-07: stronger)
   shaftFlickerDepth: 0.95, // how far a flicker's dips go (owner: stronger)
-  templeHumVolume: 0.23, // the temple's electric hum (cue sfx_temple_hum), at its loudest (owner: next to it, half what it was in the ship)
+  templeHumVolume: 1, // the temple's chord (the synth's *Temple chord*), times the patch's own volume (2026-11-08; the recorded hum's 0.23 before)
   templeHumFull: 10, // m from the temple: as loud as it gets
-  templeHumDepth: 0.9, // how far the hum's volume follows the light's pulse and flicker down (owner, 2026-11-08: in sync with the flicker; 0.45 before)
-  templeHumWarble: 0.04, // ... and its pitch, dipping this share at the light's darkest
   templeHumGone: 120, // m: not heard past it (owner: only near the temple; the ship is 200 m off)
   templeLight: 6000, // the point light inside the temple (candela; owner: really bright; scaled with the temple's size squared: 20,000 at 3 times the file's size, 1,500 at 0.7, 6,000 at 1.4, 2026-11-08)
   templeLightRange: 150, // m: nothing past it is lit (0: no limit)

@@ -72,7 +72,6 @@ const MADE = [
   // mains hum (120 Hz and its harmonics, a 121 Hz beside it beating once a second), a buzz of noise
   // pulsing with it 120 times a second, and a little hiss. A loop: every tone is a whole number of
   // hertz, so the 4 s end where they began (and \`_loop\` names get no fade at the ends).
-  ['sfx_temple_hum_loop', 4, `sin(2*PI*120*t)*0.32+sin(2*PI*121*t)*0.12+sin(2*PI*240*t)*0.22+sin(2*PI*360*t)*0.16+sin(2*PI*480*t)*0.09+sin(2*PI*600*t)*0.05+sin(2*PI*960*t)*0.025+${noise(0)}*pow(0.5+0.5*sin(2*PI*120*t),8)*0.22+${noise(1)}*0.03`, 'highpass=f=60,lowpass=f=5000'],
 ];
 const onlyAt = process.argv.indexOf('--only');
 const ONLY = onlyAt >= 0 ? process.argv[onlyAt + 1] : null;

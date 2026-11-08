@@ -1,0 +1,35 @@
+{
+  "default": "Temple chord",
+  "patches": {
+    "Temple chord": {
+      "osc1": true,
+      "wave": "square",
+      "level1": 0.41,
+      "osc1Octave": -1,
+      "osc1Semis": 0,
+      "osc1Detune": 0,
+      "osc2": true,
+      "osc2Wave": "sine",
+      "level2": 0.26,
+      "osc2Octave": 3,
+      "osc2Semis": 0,
+      "osc2Detune": 7,
+      "volume": 0.25,
+      "cutoff": 6400,
+      "resonance": 0.43,
+      "attack": 0.1,
+      "decay": 0.28,
+      "sustain": 0.68,
+      "release": 0.36,
+      "reverbTime": 2.5,
+      "reverbMix": 0.3,
+      "held": "C4",
+      "line": "G4 A4 B4 A4",
+      "step": 10.4,
+      "legato": false,
+      "glide": 0.98,
+      "lightDepth": 0.9,
+      "lightCutoff": 0
+    }
+  }
+}

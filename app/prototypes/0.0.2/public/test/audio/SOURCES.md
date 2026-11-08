@@ -66,4 +66,3 @@ The boombox's tracks are numbered in the order of the inventory's table. **Not c
 
 | Game file | Source | Author | License |
 |---|---|---|---|
-| `sfx_temple_hum_loop.m4a` (cue `sfx_temple_hum`) | Made by [`make-placeholder-sounds.mjs`](../../../tools/make-placeholder-sounds.mjs) from tones and noise (a 120 Hz hum, its harmonics, a buzz): no master, the recipe is in the script. A 4 s loop | The project | Nothing to license |

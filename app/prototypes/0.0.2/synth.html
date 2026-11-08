@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Synth · 0.0.2</title>
+    <link rel="icon" href="data:," />
+    <style>
+      body { margin: 0; background: #14161a; color: #d8dbe0; font: 14px/1.5 system-ui, sans-serif; }
+      main { max-width: 34rem; padding: 2rem 1.5rem; }
+      h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+      p { margin: 0 0 1rem; color: #9aa0a8; }
+      button { font: inherit; padding: 0.5rem 1.2rem; border: 0; border-radius: 4px; background: #e0a040; color: #14161a; cursor: pointer; }
+      .light { margin-top: 1.5rem; }
+      .bar { height: 10px; background: #2a2e35; border-radius: 5px; overflow: hidden; margin-top: 0.3rem; }
+      .bar i { display: block; height: 100%; width: 100%; background: #ff7319; }
+      #now { margin-top: 1rem; font-variant-numeric: tabular-nums; color: #9aa0a8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Synth</h1>
+      <p>Sounds made in code. Tune the patch with the panel; <em>Copy patch</em> puts it on the clipboard for the game. The page remembers the last patch.</p>
+      <button id="play">Play</button>
+      <div class="light">Light (simulated shaft: pulse and flicker)<div class="bar"><i id="bar"></i></div></div>
+      <div id="now"></div>
+    </main>
+    <script type="module" src="/src/synth/page.ts"></script>
+  </body>
+</html>
