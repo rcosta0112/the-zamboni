@@ -1,8 +1,8 @@
-// Included by story.ink: the lines of doc/story/scenes/0300 - Playable scene - Chapter 1.md, and the flight rules' and
+// Included by story.ink: the lines of doc/story/scenes/0300 - Playable interior - Chapter 1.md, and the flight rules' and
 // the ship's lines played in it. Knots only (anything above the first knot would join the story's
 // start).
 
-// Chapter 1 (doc/story/scenes/0300 - Playable scene - Chapter 1.md, word for word). She starts in the copilot's seat:
+// Chapter 1 (doc/story/scenes/0300 - Playable interior - Chapter 1.md, word for word). She starts in the copilot's seat:
 // Adam's line once the player has her (the scene's `begin`, after cutscene 2), then *Get up*; her
 // line once she's up (main.ts runs `got_up` when she gets up).
 === chapter_1_start ===
@@ -92,7 +92,7 @@ Green: That's Dr. Ogawa's locker. I shouldn't open it.
 -> DONE
 
 // The crew: placeholders until the owner's conversations (<pass 2; the list of what to write is a
-// comment at the end of doc/story/scenes/0300 - Playable scene - Chapter 1.md>).
+// comment at the end of doc/story/scenes/0300 - Playable interior - Chapter 1.md>).
 === talk_adam_red ===
 Adam Red: [Placeholder] Adam Red's conversation.
 -> DONE

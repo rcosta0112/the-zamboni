@@ -6,8 +6,8 @@
 
 | | Where | What | For pass | Until then, in the game |
 |---|---|---|---|---|
-| [SC-35](https://linear.app/eigodojo/issue/SC-35) | [`0100 - Exterior cutscene - Flight.md`](<../../story/scenes/0100 - Exterior cutscene - Flight.md>) | Cutscene 1's description (the ship flying over the plain) | the animatic | a stand-in card |
-| [SC-31](https://linear.app/eigodojo/issue/SC-31) | [`0300 - Playable scene - Chapter 1.md`](<../../story/scenes/0300 - Playable scene - Chapter 1.md>) | **Adam Red and Adam Blue:** a conversation each, or one shared *Adam* one; topics; their one-liners | 2 | `[Placeholder]` lines |
+| [SC-35](https://linear.app/eigodojo/issue/SC-35) | [`0100 - Cutscene exterior - Flight.md`](<../../story/scenes/0100 - Cutscene exterior - Flight.md>) | Cutscene 1's description (the ship flying over the plain) | the animatic | a stand-in card |
+| [SC-31](https://linear.app/eigodojo/issue/SC-31) | [`0300 - Playable interior - Chapter 1.md`](<../../story/scenes/0300 - Playable interior - Chapter 1.md>) | **Adam Red and Adam Blue:** a conversation each, or one shared *Adam* one; topics; their one-liners | 2 | `[Placeholder]` lines |
 | [SC-31](https://linear.app/eigodojo/issue/SC-31) | | **Dr. Kaufman:** her conversation, topics, one-liner | 2 | `[Placeholder]` |
 | [SC-31](https://linear.app/eigodojo/issue/SC-31) | | **Dr. Ogawa:** the rest of his conversation (the signal is written), other topics, his one-liner | 2 | the written lines, `[Placeholder]` for the rest |
 | [SC-32](https://linear.app/eigodojo/issue/SC-32) | | **Her refusal at the seat without coffee** (Ogawa's is written: *"I want to ask Dr. Ogawa about the signal."*; it comes first) | 2 | `[Placeholder]` |
@@ -15,9 +15,9 @@
 | [SC-32](https://linear.app/eigodojo/issue/SC-32) | | **Her seat when she can sit:** any line before the cutscene | 2 | none |
 | [SC-33](https://linear.app/eigodojo/issue/SC-33) | | **The coffee:** a line when she pours, if any; **her comment after the first sip**; a line if she tries to pour again | 3 | `[Placeholder]` |
 | [SC-36](https://linear.app/eigodojo/issue/SC-36) | | Her remarks on things in flight (the windows, the viewport, the sensor array, the signal receiver): optional | any | none |
-| [SC-34](https://linear.app/eigodojo/issue/SC-34) | [`0600 - Exterior cutscene - Landing.md`](<../../story/scenes/0600 - Exterior cutscene - Landing.md>) | The landing cutscene's description (for its placeholder) | 6 | the test cutscene |
+| [SC-34](https://linear.app/eigodojo/issue/SC-34) | [`0600 - Cutscene exterior - Landing.md`](<../../story/scenes/0600 - Cutscene exterior - Landing.md>) | The landing cutscene's description (for its placeholder) | 6 | the test cutscene |
 
-The same list, as it stood on 2026-10-22, is a comment at the end of `0300 - Playable scene - Chapter 1.md`, beside the script.
+The same list, as it stood on 2026-10-22, is a comment at the end of `0300 - Playable interior - Chapter 1.md`, beside the script.
 
 ## How the game reads it
 
@@ -32,7 +32,7 @@ The full reference is in [`features/dialogue.md`](../../features/dialogue.md); w
 
 | Knot | When it runs | Note |
 |---|---|---|
-| `talk_<id>` | she talks to a character (`talk_ogawa`, `talk_adam_red`) | **Topics** (pass 0): Ink's choices, `*` heard once, `+` always offered, `[…]` the list's text; the example is a comment in `0300 - Playable scene - Chapter 1.md` and in the [dialogue plan](dialogue.md#topics-owner-2026-10-22) |
+| `talk_<id>` | she talks to a character (`talk_ogawa`, `talk_adam_red`) | **Topics** (pass 0): Ink's choices, `*` heard once, `+` always offered, `[…]` the list's text; the example is a comment in `0300 - Playable interior - Chapter 1.md` and in the [dialogue plan](dialogue.md#topics-owner-2026-10-22) |
 | `use_<id>` | she uses a thing that has no action, or one that's locked | `# verb:` the prompt (*Sit down*, *Pour coffee*); the flight rules lock the outer doors, the jetpacks and her parka while the ship flies |
 | `enter_<room>` | she walks into a room (`enter_crew_quarters`, `enter_cockpit`, `enter_engineering`, `enter_cargo_hold`) | `came_from`: the room she left (`cockpit`, `crew_quarters`, `engineering`, `cargo_hold`, `outside`); `came_via`: the door, hatch or ladder she came through, by id |
 

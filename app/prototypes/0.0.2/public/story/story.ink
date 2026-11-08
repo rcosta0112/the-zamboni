@@ -20,9 +20,9 @@ VAR green_jetpack = false
 
 -> DONE
 
-INCLUDE 0200-dialogue-cutscene-opening.ink
-INCLUDE 0300-playable-scene-chapter-1.ink
-INCLUDE 0500-dialogue-cutscene-whats-that.ink
+INCLUDE 0200-cutscene-dialogue-opening.ink
+INCLUDE 0300-playable-interior-chapter-1.ink
+INCLUDE 0500-cutscene-dialogue-whats-that.ink
 
 === function command(name, id, value) ===
 // Without the game (the compiler's test run): nothing.

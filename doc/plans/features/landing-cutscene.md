@@ -4,7 +4,7 @@
 
 ## What it is
 
-The owner's [`0600 - Exterior cutscene - Landing.md`](<../../story/scenes/0600 - Exterior cutscene - Landing.md>), two shots:
+The owner's [`0600 - Cutscene exterior - Landing.md`](<../../story/scenes/0600 - Cutscene exterior - Landing.md>), two shots:
 
 1. **Above and behind the ship**, flying over the icy plain; the temple coming into view on the horizon.
 2. **From below**: the ship lands vertically, its engines pointing down. White clouds of dust and steam (owner, 2026-11-07: **skipped unless very simple**; the owner has the images the reference's clouds were made from). Reference: the owner's render of the ship hovering, turbines down and glowing, gear lowered, a soft white cloud bank under it.
