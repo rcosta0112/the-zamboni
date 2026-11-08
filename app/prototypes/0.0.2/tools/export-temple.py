@@ -10,7 +10,8 @@ the comparison with the last taken export, a summary. By hand, with Blender from
 
 - The ``Temple`` collection is off in export-collections.json (the ship export leaves it out,
   decision 2026-10-08): switched on here, in memory.
-- Placed relative to the object ``Temple``'s origin (every object moved by the same amount, in
+- Placed relative to the object ``Temple Ruins``'s origin (``Temple`` until 2026-11-08; its
+  ``Temple Fragment`` children come along) (every object moved by the same amount, in
   memory): the game puts the file where the scene says (``landmarks`` in the scene's file), turned
   as the ship is, so its turn relative to the ship is the file's.
 - Each object carries ``landmark: 'temple'``; ``Light Shaft`` (found by its exact name) carries
@@ -33,10 +34,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from export_collections import show, switch_collections
 
 COLLECTION = 'Temple'
-ORIGIN = 'Temple'
+ORIGIN = 'Temple Ruins'
 SHAFT = 'Light Shaft'
 # What the game looks for by name (landmarks.ts).
-NEEDED = ('Temple', 'Temple Steps', SHAFT)
+NEEDED = (ORIGIN, 'Temple Steps', SHAFT)
+# Left out (owner, 2026-11-08: the hologram ignored for now).
+LEFT_OUT = {'Temple Hologram'}
 
 argv = sys.argv[sys.argv.index('--') + 1 :] if '--' in sys.argv else []
 parser = argparse.ArgumentParser()
@@ -60,7 +63,9 @@ if not any(switch_on(layer) for layer in bpy.context.view_layer.layer_collection
     sys.exit(f'STOP: no collection {COLLECTION!r} in the file: nothing exported')
 bpy.context.view_layer.update()
 
-selection = [ob for ob in bpy.data.collections[COLLECTION].all_objects if ob.type == 'MESH']
+selection = [ob for ob in bpy.data.collections[COLLECTION].all_objects if ob.type == 'MESH' and ob.name not in LEFT_OUT]
+for name in sorted(LEFT_OUT & {ob.name for ob in bpy.data.collections[COLLECTION].all_objects}):
+    print(f'TEMPLE: {name} left out')
 names = {ob.name for ob in selection}
 for name in NEEDED:
     if name not in names:

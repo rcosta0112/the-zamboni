@@ -5,7 +5,9 @@
 // .blend's), its floor (the top of `Temple Steps`) put at the highest ground under the steps, which
 // reach down into the hills everywhere (a console warning if they don't, or if a rock is in the way).
 // The stone is lit by the outside's light (the rocks' `lightOutside`), casts and receives shadows, and
-// is a static triangle collider. The shaft (tagged `shaft` by the export) has none: the file's box is
+// is a static triangle collider. The fragments scattered round it (`Temple Fragment…`, children of
+// `Temple Ruins`, 2026-11-08) rest on a flat ground in the file: each is set on the ground under it,
+// its lowest point `FRAGMENT_SINK` into it (the hills fall away round the steps). The shaft (tagged `shaft` by the export) has none: the file's box is
 // hidden and light-shaft.ts draws it (its core, glow, flare and point light) from the box's foot, width
 // and Blackbody colour, once placed. Shown only in a scene that names it, while the ship is parked on
 // a terrain.
@@ -31,12 +33,16 @@ export interface LandmarkPlace {
 const GROUND_STEP = 1;
 /** A rock this close to the steps' edge (m) is warned about. */
 const ROCK_MARGIN = 10;
+/** How far a fragment's lowest point goes into the ground under its middle (m). */
+const FRAGMENT_SINK = 0.15;
 /** The light shaft's glow, linear: a saturated orange (owner, 2026-11-08: the reference's peach, faint over the blue sky, mixed to a muddy mauve-grey); the white is the core's. */
 const SHAFT_COLOUR = [1, 0.45, 0.1];
 /** The shaft's width (m), whatever the temple's scale: as it was at 3 times the file's (owner, 2026-11-07: kept when the temple shrank). */
 const SHAFT_WIDTH = 0.45;
 /** The `Rock` stone as the owner's reference render: matte, a warm near-white (linear; the file's grey 0.67, metalness 0.23, before). */
 const STONE = { color: new THREE.Color(0.9, 0.86, 0.85), roughness: 1, metalness: 0 };
+/** The file's materials drawn as STONE: the steps' and plinth's `Rock`, the ruins' and fragments' `Rock.002` (owner, 2026-11-08). */
+const STONE_MATERIALS = new Set(['Rock', 'Rock.002']);
 
 interface Landmark {
   object: THREE.Object3D;
@@ -133,7 +139,7 @@ export class Landmarks {
             let copy = made.get(m);
             if (!copy) {
               const from = m as THREE.MeshStandardMaterial;
-              const look = m.name === 'Rock' ? STONE : { color: from.color, roughness: from.roughness, metalness: from.metalness };
+              const look = STONE_MATERIALS.has(m.name) ? STONE : { color: from.color, roughness: from.roughness, metalness: from.metalness };
               const lit = new THREE.MeshStandardNodeMaterial({ ...look, side: THREE.FrontSide });
               this.lightOutside(lit);
               made.set(m, (copy = lit));
@@ -177,6 +183,7 @@ export class Landmarks {
     if (!landmark.steps) high = groundY(at.x, at.z) - box.min.y; // its origin on the ground
     object.position.y += high - box.max.y;
     object.updateMatrixWorld(true);
+    this.settleFragments(landmark, groundY);
     const bottom = box.min.y + (high - box.max.y);
     if (landmark.steps && bottom > low) console.warn(`[0.0.2] landmark ${place.file}: the ground under its steps falls ${(high - low).toFixed(2)} m, its steps reach ${(box.max.y - box.min.y).toFixed(2)}: a gap up to ${(low - bottom).toFixed(2)} m shows`);
     // A rock in the way (the scatter is fixed: this only fires if the spot or the rocks change).
@@ -202,6 +209,25 @@ export class Landmarks {
     }
   }
 
+  /** Each fragment's lowest point on the ground under its middle, less FRAGMENT_SINK, from where the
+   * file put it (kept in `userData.filePosition`, so placing again starts from the file). */
+  private settleFragments(landmark: Landmark, groundY: (x: number, z: number) => number): void {
+    const v = new THREE.Vector3();
+    for (const mesh of landmark.solid) {
+      if (!mesh.name.startsWith('Temple_Fragment') || !mesh.parent) continue;
+      const from = (mesh.userData.filePosition ??= mesh.position.clone()) as THREE.Vector3;
+      mesh.position.copy(from);
+      mesh.updateWorldMatrix(true, false);
+      const box = new THREE.Box3().setFromObject(mesh, true);
+      const middle = box.getCenter(new THREE.Vector3());
+      // The world-space lift, in the parent's space (scaled and turned with the landmark).
+      const a = mesh.parent.worldToLocal(v.set(middle.x, box.min.y, middle.z));
+      const b = mesh.parent.worldToLocal(new THREE.Vector3(middle.x, groundY(middle.x, middle.z) - FRAGMENT_SINK, middle.z));
+      mesh.position.add(b.sub(a));
+      mesh.updateWorldMatrix(false, false);
+    }
+  }
+
   /** The shaft drawn from the file's box where it now stands (the old one dropped). */
   private makeShaft(landmark: Landmark): void {
     if (landmark.lightShaft) {
@@ -216,8 +242,14 @@ export class Landmarks {
     const colour = new THREE.Color().fromArray(SHAFT_COLOUR);
     const bounds = new THREE.Box3().setFromObject(box, true);
     const foot = bounds.getCenter(new THREE.Vector3()).setY(bounds.min.y);
-    const temple = landmark.object.getObjectByName('Temple') ?? landmark.object;
-    const width = new THREE.Box3().setFromObject(temple).getSize(new THREE.Vector3()).x;
+    // The ruins' own mesh, not its scattered fragments (`Temple` until 2026-11-08). With children, the
+    // exporter puts the mesh on an unnamed child node.
+    const ruins = landmark.object.getObjectByName('Temple_Ruins');
+    const temple = ruins instanceof THREE.Mesh ? ruins : ruins?.children.find((o) => o instanceof THREE.Mesh && !o.name.startsWith('Temple_Fragment'));
+    const width = (temple instanceof THREE.Mesh
+      ? new THREE.Box3().setFromBufferAttribute(temple.geometry.getAttribute('position')).applyMatrix4(temple.matrixWorld)
+      : new THREE.Box3().setFromObject(landmark.object)
+    ).getSize(new THREE.Vector3()).x;
     landmark.lightShaft = new LightShaft(foot, SHAFT_WIDTH, colour, width, this.light);
     landmark.lightShaft.group.visible = false;
     this.scene.add(landmark.lightShaft.group);

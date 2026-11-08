@@ -51,16 +51,20 @@ report(nearest > reach + 10, 'no rock within its steps and 10 m', `nearest rock 
 
 // The collider (its arches are open): a ray down onto the steps, outside the walls, where the ground
 // under them is lowest, stops at the floor, not the ground.
-const temple = new THREE.Box3().setFromObject(shown.object.children.find((o) => o.name === 'Temple') ?? shown.object);
+const ruinsNode = shown.object.getObjectByName('Temple_Ruins');
+const ruins = ruinsNode?.isMesh ? ruinsNode : ruinsNode?.children.find((o) => o.isMesh && !o.name.startsWith('Temple_Fragment'));
+const temple = ruins ? new THREE.Box3().setFromBufferAttribute(ruins.geometry.getAttribute('position')).applyMatrix4(ruins.matrixWorld) : new THREE.Box3().setFromObject(shown.object);
 const mid = temple.getCenter(new THREE.Vector3());
 const right = new THREE.Vector3(-ahead.z, 0, ahead.x);
 const inner = (temple.max.x - temple.min.x) / 2;
 const outer = (steps.max.x - steps.min.x) / 2;
-const spots = [ahead, right, ahead.clone().negate(), right.clone().negate()].map((d) => mid.clone().addScaledVector(d, (inner + outer) / 2));
+// Since the ruins (2026-11-08) the walls reach nearly to the steps' edge: a spot at 85% of the floor's
+// half-width, not between the walls and the edge (it met the steps' lower edge).
+const spots = [ahead, right, ahead.clone().negate(), right.clone().negate()].map((d) => steps.getCenter(new THREE.Vector3()).addScaledVector(d, Math.min(outer * 0.85, (inner + outer) / 2)));
 const spot = spots.sort((a, b) => t.groundY(a.x, a.z) - t.groundY(b.x, b.z))[0];
 const hit = w.__physics.ray(spot.clone().setY(steps.max.y + 10), new THREE.Vector3(0, -1, 0), 30);
 const under = t.groundY(spot.x, spot.z);
-report(hit && Math.abs(steps.max.y + 10 - hit.distance - steps.max.y) < 0.1, 'its stone collides (a ray down onto its steps stops at the floor)', hit ? `stopped at ${(steps.max.y + 10 - hit.distance).toFixed(2)}, the floor ${steps.max.y.toFixed(2)}, the ground under it ${under.toFixed(2)}` : 'nothing hit');
+report(hit && Math.abs(steps.max.y + 10 - hit.distance - steps.max.y) < 0.1, 'its stone collides (a ray down onto its steps stops at the floor)', hit ? `at ${(spot.x - steps.getCenter(v).x).toFixed(1)}, ${(spot.z - steps.getCenter(v).z).toFixed(1)} from the steps' middle (the ruins' ${(mid.x - steps.getCenter(v).x).toFixed(1)}, ${(mid.z - steps.getCenter(v).z).toFixed(1)}): stopped at ${(steps.max.y + 10 - hit.distance).toFixed(2)}, the floor ${steps.max.y.toFixed(2)}, the ground under it ${under.toFixed(2)}` : 'nothing hit');
 
 // The shaft (pass 2): the file's box hidden, drawn by light-shaft.ts from its foot on the floor; the
 // point light in the Blackbody's colour, in the outside's light list (it lights the stone and the ice).
@@ -103,4 +107,16 @@ const edge = mid.clone().addScaledVector(ahead, -(outer - 2)).setY(steps.max.y +
 look(edge, mid.clone().setY(steps.max.y + 400));
 await wait(2500);
 await shot('looking-up');
+// The fragments (2026-11-08) on the ground: each one's lowest point within 0.5 m of the ground under
+// its middle.
+const fragments = [];
+shown.object.traverse((o) => {
+  if (!o.isMesh || !o.name.startsWith('Temple_Fragment')) return;
+  const b = new THREE.Box3().setFromObject(o, true);
+  const c = b.getCenter(new THREE.Vector3());
+  const gap = b.min.y - t.groundY(c.x, c.z);
+  fragments.push([o.name, gap]);
+});
+report(fragments.length > 0 && fragments.every(([, g]) => Math.abs(g) < 0.5), 'the fragments rest on the ground', fragments.map(([n, g]) => `${n.replace('Temple_Fragment', 'F')} ${g.toFixed(2)}`).join(', ') || 'none');
+
 return results;
