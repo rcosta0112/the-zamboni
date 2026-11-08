@@ -155,6 +155,11 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   temple.add(settings, 'templeHumGone', 50, 1000, 10).name('chord: gone at (m)');
   temple.add(settings, 'templeLight', 0, 50000, 100).name('light (cd)');
   temple.add(settings, 'templeLightRange', 0, 500, 5).name('light range (m)');
+  temple.add(settings, 'hologramFadeSeconds', 0, 5, 0.1).name('hologram: fade (s)');
+  temple.add(settings, 'hologramStrength', 0, 30, 0.5).name('hologram: rim emission');
+  temple.add(settings, 'hologramStripes', 10, 600, 1).name('hologram: stripes / screen');
+  temple.add(settings, 'hologramRimIor', 1, 1.5, 0.005).name('hologram: rim IOR');
+  temple.add(settings, 'hologramGlass', 0, 2, 0.05).name('hologram: glass blue');
   temple.close();
   look.add(settings, 'worldIndoors', 0, 1, 0.05).name('world light indoors');
   look.add(settings, 'sunlitRoomWarmth', 0, 1, 0.05).name('warm light: crew q., cockpit');

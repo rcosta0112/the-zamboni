@@ -11,10 +11,15 @@
 // hidden and light-shaft.ts draws it (its core, glow, flare and point light) from the box's foot, width
 // and Blackbody colour, once placed. Shown only in a scene that names it, while the ship is parked on
 // a terrain.
+// The hologram (`Temple Hologram`, tagged `hologram` by the export; owner, 2026-11-08) is none of the
+// stone's: hologram.ts draws it, hidden until the plinth's prompt (`hologramToggle`, `Plynth`) turns
+// it on; the prompt turns it off again.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { Hologram } from './hologram';
+import type { Interactable } from './interaction';
 import { LightShaft } from './light-shaft';
 import type { Physics } from './physics';
 
@@ -49,6 +54,9 @@ interface Landmark {
   steps: THREE.Mesh | null;
   solid: THREE.Mesh[];
   shaft: THREE.Mesh | null;
+  hologram: Hologram | null;
+  /** Where the hologram's prompt is (`Plynth`: a group of meshes, one per material, or a mesh). */
+  plinth: THREE.Object3D | null;
   /** The shaft as drawn (light-shaft.ts), made where it's placed. */
   lightShaft: LightShaft | null;
   collider: { setEnabled: (on: boolean) => void } | null;
@@ -60,6 +68,10 @@ export class Landmarks {
   private readonly loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   /** Each landmark shown, by file (the probe reads it). */
   readonly shown = new Map<string, Landmark>();
+  /** The plinth's prompt (owner, 2026-11-08: temporary): shows the hologram, then hides it. In main.ts's list from the start; offered while a shown landmark has both. */
+  readonly hologramToggle: Interactable;
+  /** The plinth, or a stand-in while there's none (every interaction has a first part: the checks read it). */
+  private readonly plinthParts: THREE.Object3D[] = [new THREE.Object3D()];
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -68,11 +80,34 @@ export class Landmarks {
     private readonly lightOutside: (material: THREE.MeshStandardNodeMaterial) => void,
     /** The outside's light for a shaft (Treadmill.landmarkLight): one, so one shaft at a time. */
     private readonly light: THREE.PointLight,
-  ) {}
+  ) {
+    const current = () => [...this.shown.values()].find((l) => l.hologram && l.plinth) ?? null;
+    this.hologramToggle = {
+      name: 'hologram',
+      objects: this.plinthParts,
+      verb: () => (current()?.hologram?.on ? 'Hide hologram' : 'Show hologram'),
+      act: () => current()?.hologram?.toggle(),
+      available: () => {
+        const landmark = current();
+        if (!landmark?.object.visible || !landmark.plinth) return false;
+        this.plinthParts[0] = landmark.plinth;
+        return true;
+      },
+    };
+  }
+
+  /** The hologram shown (any landmark's), if any: for checks. */
+  get hologram(): Hologram | null {
+    for (const landmark of this.shown.values()) if (landmark.hologram) return landmark.hologram;
+    return null;
+  }
 
   /** Each frame: the shafts' pulse and flicker, their widths in pixels, the haze, the panel's settings. */
   update(camera: THREE.PerspectiveCamera, drawingHeight: number, fog: THREE.Fog | null, dt: number): void {
-    for (const landmark of this.shown.values()) landmark.lightShaft?.update(camera, drawingHeight, fog, dt);
+    for (const landmark of this.shown.values()) {
+      landmark.lightShaft?.update(camera, drawingHeight, fog, dt);
+      landmark.hologram?.update(dt);
+    }
   }
 
   /** The light shaft shown (the temple's), if any: main.ts plays its hum. */
@@ -119,11 +154,19 @@ export class Landmarks {
         const object = gltf.scene;
         let steps: THREE.Mesh | null = null;
         let shaft: THREE.Mesh | null = null;
+        let hologram: Hologram | null = null;
+        let plinth: THREE.Object3D | null = null;
         const solid: THREE.Mesh[] = [];
         const made = new Map<THREE.Material, THREE.Material>();
         object.traverse((o) => {
+          if (o.name === 'Plynth') plinth = o;
           if (!(o instanceof THREE.Mesh)) return;
-          const extras = (o.userData ?? {}) as { shaft?: boolean; glowColor?: number[]; glowStrength?: number };
+          const extras = (o.userData ?? {}) as { shaft?: boolean; hologram?: boolean; glowColor?: number[]; glowStrength?: number };
+          if (extras.hologram) {
+            // Not stone: no light, no shadows, no collider; hidden until its prompt (hologram.ts).
+            hologram = new Hologram(o);
+            return;
+          }
           if (extras.shaft) {
             // Hidden: light-shaft.ts draws it from where it stands (its foot, its width, its colour).
             o.visible = false;
@@ -151,7 +194,9 @@ export class Landmarks {
         object.visible = false;
         this.scene.add(object);
         if (!steps) console.warn(`[0.0.2] landmark ${file}: no Temple Steps: its floor is put at the ground under its origin`);
-        return { object, steps, solid, shaft, lightShaft: null, collider: null, placed: '' };
+        if (!hologram) console.warn(`[0.0.2] landmark ${file}: no hologram (Temple Hologram, tagged \`hologram\` by the export)`);
+        else if (!plinth) console.warn(`[0.0.2] landmark ${file}: no Plynth: the hologram has no prompt`);
+        return { object, steps, solid, shaft, hologram, plinth, lightShaft: null, collider: null, placed: '' };
       });
       this.files.set(file, loading);
     }

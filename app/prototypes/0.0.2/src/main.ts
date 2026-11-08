@@ -395,7 +395,7 @@ async function start(): Promise<void> {
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       clothes = new LockerClothes(s.entities, (id, at) => audio.play(id, at));
-      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables];
+      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables, ...(landmarks ? [landmarks.hologramToggle] : [])];
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot, id) => {
         look?.set(['green', id]);
         run({ do: 'story', knot }, target);

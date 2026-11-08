@@ -6,7 +6,9 @@
 // ship; its floor at the highest ground under its steps, the steps' bottom under the lowest; no rock
 // within its steps and 10 m; its stone collides; the shaft drawn (light-shaft.ts), its point light in
 // the shaft's orange (landmarks.ts SHAFT_COLOUR), inside, in the outside's light list. Screenshots: her
-// seat, from 60 m ahead of the ship, from 35 m off the temple.
+// seat, from 60 m ahead of the ship, from 35 m off the temple. The hologram (2026-11-08): hidden, not
+// stone; the plinth's prompt shows it (fading in; a screenshot at the plinth, the others with it on),
+// then hides it.
 // Runs in the page (probe-01.mjs).
 
 const results = [];
@@ -77,6 +79,54 @@ report(!!drawn && drawn.group.visible && !shown.shaft.visible, 'the shaft drawn 
 report(!!light && light.color.r === 1 && light.color.g < 1 && light.color.b < light.color.g && light.color.g < 0.6 && light.intensity > 0 && listed, 'the point light: the shaft’s orange, lighting the outside', light ? `colour ${light.color.r.toFixed(2)}, ${light.color.g.toFixed(2)}, ${light.color.b.toFixed(2)}; ${light.intensity} cd; in the outside’s list: ${listed}` : 'none');
 report(light && temple.containsPoint(light.position), 'the light inside the temple', light ? `at y ${light.position.y.toFixed(1)}, the temple ${temple.min.y.toFixed(1)}..${temple.max.y.toFixed(1)}` : '');
 
+// The hologram (2026-11-08, doc/plans/features/temple-hologram.md): loaded hidden, none of the stone's
+// (no collider, no shadows); the plinth offers *Show hologram*; used, it fades in over the fade's
+// seconds and the prompt reads *Hide hologram* (turned off at the end, after the screenshots).
+const holo = w.__landmarks().hologram;
+const toggle = w.__landmarks().hologramToggle;
+const key = (code) => {
+  window.dispatchEvent(new KeyboardEvent('keydown', { code }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { code }));
+};
+const prompt = () => (document.querySelector('#prompt').hidden ? '' : document.querySelector('#prompt').textContent.trim());
+report(!!holo && !holo.mesh.visible && holo.amount === 0 && !shown.solid.includes(holo.mesh) && !holo.mesh.castShadow, 'the hologram loaded, hidden, not stone (no collider, no shadow)', holo ? `${holo.mesh.geometry.getAttribute('position').count} vertices` : 'none');
+let holoSpot = null;
+const seen = [];
+if (holo && shown.plinth) {
+  if (await until(() => /Get up/.test(prompt()), 5000)) key('KeyE');
+  await until(() => w.__character.model?.seated === false, 3000);
+  await wait(500);
+  const character = w.__character, physics = w.__physics, view0 = w.__view;
+  const plinth = new THREE.Box3().setFromObject(shown.plinth);
+  const pc = plinth.getCenter(new THREE.Vector3());
+  const half = Math.max(plinth.max.x - plinth.min.x, plinth.max.z - plinth.min.z) / 2;
+  for (let r = half + 0.5; r < half + 2 && !holoSpot; r += 0.3) {
+    for (let i = 0; i < 16 && !holoSpot; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const at = pc.clone().add(new THREE.Vector3(Math.sin(a) * r, 0, Math.cos(a) * r)).setY(plinth.max.y + 1);
+      const hit = physics.ray(at, new THREE.Vector3(0, -1, 0), 10, true);
+      if (!hit) continue;
+      const spot = at.clone().setY(at.y - hit.distance + 0.02);
+      if (!physics.fits(spot)) continue;
+      physics.teleport(spot); character.position.copy(spot); character.verticalVelocity = 0; character.speed = 0; character.velocity.set(0, 0, 0);
+      character.facing = Math.atan2(-(pc.x - spot.x), -(pc.z - spot.z));
+      view0.yaw = character.facing; view0.pitch = 0.2;
+      await wait(400);
+      seen.push(w.__interaction().target?.name ?? '-');
+      if (w.__interaction().target === toggle) holoSpot = spot;
+    }
+  }
+}
+report(!!holoSpot && /Show hologram/.test(prompt()), 'the plinth offers Show hologram', holoSpot ? `from ${holoSpot.toArray().map((n) => n.toFixed(1))}: “${prompt()}”` : `targets seen: ${[...new Set(seen)].join(', ')}`);
+if (holoSpot) {
+  key('KeyE');
+  const halfway = await until(() => holo.amount > 0.2 && holo.amount < 0.8, 3000);
+  const full = await until(() => holo.amount === 1, w.__settings.hologramFadeSeconds * 1000 + 2000);
+  await wait(300);
+  report(halfway && full && holo.mesh.visible && /Hide hologram/.test(prompt()), 'used: it fades in, the prompt then reads Hide hologram', `halfway seen: ${!!halfway}, full: ${!!full}, prompt “${prompt()}”`);
+  await shot('hologram-at-the-plinth');
+}
+
 // Screenshots: her seat; then the camera placed by hand, its own update off, the see-through off.
 w.__view.pitch = 0.05;
 await wait(3000);
@@ -118,5 +168,12 @@ shown.object.traverse((o) => {
   fragments.push([o.name, gap]);
 });
 report(fragments.length > 0 && fragments.every(([, g]) => Math.abs(g) < 0.5), 'the fragments rest on the ground', fragments.map(([n, g]) => `${n.replace('Temple_Fragment', 'F')} ${g.toFixed(2)}`).join(', ') || 'none');
+
+// The hologram turned off again: it fades out and hides.
+if (holo?.on) {
+  toggle.act();
+  const gone = await until(() => holo.amount === 0 && !holo.mesh.visible, w.__settings.hologramFadeSeconds * 1000 + 2000);
+  report(!!gone, 'turned off: it fades out and hides', `amount ${holo.amount.toFixed(2)}`);
+}
 
 return results;

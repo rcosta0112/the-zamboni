@@ -2,7 +2,7 @@
 
 > **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-167**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
-*Updated 2026-11-08.*
+*Updated 2026-11-08 (end of session: the hologram built).*
 
 ## Next up
 
@@ -80,6 +80,6 @@ Nothing open.
 
 **Also in progress:** SC-37 (71 · the dialogue system), SC-63 (41 · the see-through hull), SC-49 (66 · door edges stop her, partly done).
 
-**Small, open:** SC-45 (73 · a door closing on her), SC-46 (60 · the thrusters' gap), SC-47 (67 · the front thrusters' collision), SC-48 (65 · trapdoor onto the ladder), SC-50 (64 · ramp smoke flake), SC-51 (74 · boombox check), SC-52 (43 · camera vs the closed ramp), SC-53 (68 · metal without reflections), SC-54 (47 · more export checks).
+**Small, open:** SC-45 (73 · a door closing on her), SC-46 (60 · the thrusters' gap), SC-47 (67 · the front thrusters' collision), SC-48 (65 · trapdoor onto the ladder), SC-50 (64 · ramp smoke flake), SC-51 (74 · boombox check), SC-52 (43 · camera vs the closed ramp), SC-53 (68 · metal without reflections), SC-54 (47 · more export checks). SC-168 (smoke's 5 old failures, seen 2026-11-08 on the commit before the hologram too: walking under the hull, under `Turbine.001` (SC-47?), the single-sided switch's 4 double-sided materials, the boombox's cassette sound twice).
 
 **Later:** SC-123 (40 MB/s garbage), SC-127 (flaky probe checks), SC-131 (cutscene 1's first-second stall), SC-133 (saving back on), SC-136 (is post-processing worth it), SC-55 (53 · player export not deterministic), SC-56 (10 · crew quarters too blue, on hold), SC-57 (45 · IK), SC-58 (52 · low-res rendering), SC-59 (58 · her fade without grain), SC-60 (59 · the fade on the crew), SC-62 (76 · Kaufman's locker), SC-116 (the circle-mask idea).

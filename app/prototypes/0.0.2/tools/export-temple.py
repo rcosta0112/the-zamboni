@@ -18,6 +18,9 @@ the comparison with the last taken export, a summary. By hand, with Blender from
   ``shaft: true`` and its material's colour: the Blackbody node's temperature turned into a linear
   Rec. 709 colour (``glowColor``, brightest channel 1) and the Emission node's strength
   (``glowStrength``), so that the game tints the shaft and its light as the file does.
+- ``Temple Hologram`` carries ``hologram: true`` (2026-11-08, doc/plans/features/temple-hologram.md):
+  the game hides it and draws it with its own material; its Displace modifier (2.5 mm in, against
+  z-fighting with the ruins) applied by the export.
 - A ``TEMPLE:`` line per object (size, vertices); ``STOP:`` if an object the game needs is missing.
 - Reports every double-sided material (``PERF:``), as the pipeline requires.
 """
@@ -36,10 +39,11 @@ from export_collections import show, switch_collections
 COLLECTION = 'Temple'
 ORIGIN = 'Temple Ruins'
 SHAFT = 'Light Shaft'
-# What the game looks for by name (landmarks.ts).
-NEEDED = (ORIGIN, 'Temple Steps', SHAFT)
-# Left out (owner, 2026-11-08: the hologram ignored for now).
-LEFT_OUT = {'Temple Hologram'}
+HOLOGRAM = 'Temple Hologram'
+# What the game looks for by name (landmarks.ts): the plinth carries the hologram's prompt.
+NEEDED = (ORIGIN, 'Temple Steps', SHAFT, HOLOGRAM, 'Plynth')
+# Left out (none since 2026-11-08: the hologram taken, hidden until its prompt).
+LEFT_OUT = set()
 
 argv = sys.argv[sys.argv.index('--') + 1 :] if '--' in sys.argv else []
 parser = argparse.ArgumentParser()
@@ -107,6 +111,9 @@ def blackbody(kelvin):
 
 for ob in selection:
     ob['landmark'] = 'temple'
+    if ob.name == HOLOGRAM:
+        # The game draws it with its own material (hologram.ts: the file's *Hologram* copied), hidden.
+        ob['hologram'] = True
     if ob.name == SHAFT:
         ob['shaft'] = True
         color, strength = [1.0, 1.0, 1.0], 1.0

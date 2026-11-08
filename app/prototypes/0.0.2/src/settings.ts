@@ -219,6 +219,12 @@ export const settings = {
   templeHumGone: 120, // m: not heard past it (owner: only near the temple; the ship is 200 m off)
   templeLight: 6000, // the point light inside the temple (candela; owner: really bright; scaled with the temple's size squared: 20,000 at 3 times the file's size, 1,500 at 0.7, 6,000 at 1.4, 2026-11-08)
   templeLightRange: 150, // m: nothing past it is lit (0: no limit)
+  // The temple's hologram (hologram.ts; owner, 2026-11-08), shown and hidden at the plinth
+  hologramFadeSeconds: 1.5, // its fade in (and out)
+  hologramStrength: 10, // its rim's emission (the file's Emission strength; owner: 10, 2026-11-08)
+  hologramStripes: 318, // scan lines per screen height (the file's Wave on Window coordinates)
+  hologramRimIor: 1.04, // the Fresnel's IOR: nearer 1, a thinner rim (the file's)
+  hologramGlass: 0.3, // the glass's blue added where a stripe faces you (the file's glass, which tints what's behind: not possible per channel here)
   shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
   glassDim: 0.2, // how much the windows dim the view through them (owner, 2026-10-23: a bit darker from inside, just enough to notice the glass)
