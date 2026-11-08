@@ -29,10 +29,10 @@ for (const id of ['later', 'landed', 'later']) {
   const near = Math.hypot(feet.x - want.x, feet.z - want.z) < 0.3;
   const states = data.setup.filter((c) => c.do === 'set').map((c) => `${c.id} ${c.state} → ${open(c.id) ? 'open' : 'closed'} (${amount(c.id)})`);
   const statesOk = data.setup.filter((c) => c.do === 'set').every((c) => open(c.id) === (c.state === 'open') && amount(c.id) === (c.state === 'open' ? 1 : 0));
-  // Everything not named by the setup is at its kind's default: closed (the automatic doors aside: she may be near one).
+  // Everything not named by the setup is at its default: closed but the trapdoor (scenes.ts START_OPEN; the automatic doors aside: she may be near one).
   const named = new Set(data.setup.map((c) => c.id));
-  const others = ship.doors.filter((d) => !named.has(d.id) && !d.auto && d.open).map((d) => d.id);
-  report(statesOk && others.length === 0, `${id}: the doors and the ramp as its setup says`, `${states.join('; ')}; others open: ${others.join(', ') || 'none'}`);
+  const others = ship.doors.filter((d) => !named.has(d.id) && !d.auto && d.open !== (d.id === 'floor-hatch')).map((d) => `${d.id} ${d.open ? 'open' : 'closed'}`);
+  report(statesOk && others.length === 0, `${id}: the doors and the ramp as its setup says`, `${states.join('; ')}; others off their default: ${others.join(', ') || 'none'}`);
   report(near, `${id}: she starts where it says`, `feet ${fmt(feet)}, asked ${fmt(want)}`);
   const place = data.setup.find((c) => c.do === 'place' && c.id === 'kaufman');
   const k = kaufman().getWorldPosition(new T.Vector3());

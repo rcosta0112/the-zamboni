@@ -1,7 +1,7 @@
 // Scenes: story beats in a location. A scene is a small data file (`public/scenes/<id>.json`, the
 // game's; `public/test/scenes/<id>.json`, the checks'): its location, where she starts, whether the
 // ship is flying (`travel`) and the setup, a list of commands (commands.ts). Starting one puts the
-// location back to its kinds' defaults (every door and the ramp closed, nothing locked, every
+// location back to its kinds' defaults (every door and the ramp closed but the trapdoor, nothing locked, every
 // interaction on, the crew where they were exported), then the flight rules if the ship is flying,
 // then the setup; it snaps the doors there and puts her at her start. Each scene start is a checkpoint
 // (`onStarted`: main.ts saves once the game has begun).
@@ -68,6 +68,9 @@ const FLIGHT_LOCKED = { kinds: ['jetpack', 'outfit'], ids: [] as string[] };
 /** The outer doors, also locked in flight unless the tuning panel says otherwise (`settings.outerDoorsLocked`). */
 const OUTER_DOORS = { kinds: ['ramp', 'drop-door'], ids: ['top-hatch-lower', 'top-hatch-upper'] };
 
+/** Open in every scene unless its setup closes it (owner, 2026-11-08: the crew quarters' trapdoor). */
+const START_OPEN = ['floor-hatch'];
+
 /** A scene's file: the game's, else the checks' (the checks' first with `testFirst`). (Vite answers a missing file with the page: not JSON.) */
 async function sceneFile(id: string, testFirst: boolean): Promise<SceneData> {
   const urls = [`/scenes/${id}.json`, `/test/scenes/${id}.json`];
@@ -113,7 +116,7 @@ export class SceneDirector {
     for (const entity of this.ship.entities.all()) {
       for (const c of entity.components) {
         if (c instanceof Door) c.shut = false;
-        if ('open' in c) c.open = false;
+        if ('open' in c) c.open = START_OPEN.includes(entity.id);
         if ('locked' in c) c.locked = false;
         if (c instanceof Placement) c.reset();
       }

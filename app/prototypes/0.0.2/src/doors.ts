@@ -318,7 +318,7 @@ export function createDoors(ship: THREE.Object3D, physics: Physics, hingeAt: (sh
       door.lid = physics.addStaticBox(shut);
       door.lid.setEnabled(false);
     }
-    // Closed: a scene opens it (the floor hatch: `opening`); the `startOpen` tag is no longer read.
+    // Closed here: the scene director opens the floor hatch by default (scenes.ts START_OPEN); the `startOpen` tag is no longer read.
     door.device = device;
     return door;
   });

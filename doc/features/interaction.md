@@ -51,6 +51,7 @@ The prompt shows the button of the last device used (A or E). The pad's buttons 
 > **[Agent note]** **Built 2026-10-21:** changing clothes at her locker (`crew-locker-door-1`): [Her locker's clothes](#her-lockers-clothes).
 
 - **All start closed except the trapdoor**, which starts open for now (owner, 2026-10-09: from below, the camera angle makes it hard to aim at; to be worked out later). The trapdoor and two galley doors are modelled open in the file; the export closes the galley doors (`MODELLED_OPEN`) and tags the trapdoor `startOpen`.
+  > **[Agent note]** **Since 2026-11-08 (owner): the trapdoor (`floor-hatch`) is open by default in every scene** (`START_OPEN` in `scenes.ts`, the director's defaults); a scene's setup can still close it (`set … closed`). The `startOpen` tag isn't read. Between 2026-10-20 and this it started closed unless a scene opened it (only `landed` did).
 - **The side door, fully open, is a ramp** (owner): as for the cargo ramp, a smooth walkable slope stands in for its steps, and its own collider is off. The doorway has a sill 0.13 m above the cargo floor (and above the door's hinge), so the slope climbs to the sill's top at no more than 42° (her controller takes up to 45°), then runs flat across it into the hold; its foot lies about 0.1 m past the door's far end. The door can't be closed while she's on it.
 - Each press toggles; the door eases (smoothstep) over 0.6 s (tunable).
 - **Collision:** every door has a convex collider that follows it (the fridge and cupboard doors too, since 2026-10-09).
