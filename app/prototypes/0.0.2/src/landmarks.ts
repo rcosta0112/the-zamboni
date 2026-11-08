@@ -60,8 +60,8 @@ export class Landmarks {
     private readonly physics: Physics,
     /** The outside's light on a material (Treadmill.lightOutside). */
     private readonly lightOutside: (material: THREE.MeshStandardNodeMaterial) => void,
-    /** A light added to the outside's list, or taken off (Treadmill.setOutsideLight). */
-    private readonly outsideLight: (light: THREE.Light, on: boolean) => void,
+    /** The outside's light for a shaft (Treadmill.landmarkLight): one, so one shaft at a time. */
+    private readonly light: THREE.PointLight,
   ) {}
 
   /** Each frame: the shafts' pulse and flicker, their widths in pixels, the haze, the panel's settings. */
@@ -103,7 +103,7 @@ export class Landmarks {
   private showShaft(landmark: Landmark, on: boolean): void {
     if (!landmark.lightShaft) return;
     landmark.lightShaft.group.visible = on;
-    this.outsideLight(landmark.lightShaft.light, on);
+    if (!on) this.light.intensity = 0; // shown, the shaft's update sets it each frame
   }
 
   private load(file: string): Promise<Landmark> {
@@ -218,7 +218,7 @@ export class Landmarks {
     const foot = bounds.getCenter(new THREE.Vector3()).setY(bounds.min.y);
     const temple = landmark.object.getObjectByName('Temple') ?? landmark.object;
     const width = new THREE.Box3().setFromObject(temple).getSize(new THREE.Vector3()).x;
-    landmark.lightShaft = new LightShaft(foot, SHAFT_WIDTH, colour, width);
+    landmark.lightShaft = new LightShaft(foot, SHAFT_WIDTH, colour, width, this.light);
     landmark.lightShaft.group.visible = false;
     this.scene.add(landmark.lightShaft.group);
   }

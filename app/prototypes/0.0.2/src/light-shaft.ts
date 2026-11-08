@@ -18,7 +18,7 @@
 // its top third so there's never an end to see. **The haze fades it** (owner: fine) as the scene's
 // fog would, toward nothing instead of toward the haze's colour (it adds light). And **a point light**
 // inside the temple in the same colour, really bright (owner), added to the outside's light list
-// (Treadmill.addOutsideLight): it lights the stone, the steps and the ice round it; no shadow.
+// (Treadmill.landmarkLight: always in the list, so nothing rebuilds when the temple shows): it lights the stone, the steps and the ice round it; no shadow.
 // **It pulses and flickers** (owner, 2026-11-07): its brightness rises and falls on a sine wave every
 // `shaftPulsePeriod` seconds, with now and then a short electrical flicker (quick random dips) and a
 // faint jitter always; the core, glow, flare and light all follow it (`intensity`, which the temple's
@@ -97,8 +97,9 @@ export class LightShaft {
    * @param width the shaft's width in the file, times the temple's scale (m)
    * @param colour the Blackbody's colour (linear, brightest channel 1)
    * @param size the temple's width (m): where the flare and the light go, and the flare's least size
+   * @param light the outside's landmark light (Treadmill.landmarkLight), placed and coloured here
    */
-  constructor(foot: THREE.Vector3, width: number, colour: THREE.Color, size: number) {
+  constructor(foot: THREE.Vector3, width: number, colour: THREE.Color, size: number, light: THREE.PointLight) {
     this.foot.value.copy(foot);
     this.coreHalf.value = width / 2;
     this.colour.value.set(colour.r, colour.g, colour.b);
@@ -126,10 +127,11 @@ export class LightShaft {
     this.hum.position.copy(this.flareFoot);
     this.group.add(this.hum);
     // The light, a third of the way up the temple, inside it.
-    this.light = new THREE.PointLight(colour, settings.templeLight, settings.templeLightRange, 2);
+    this.light = light;
+    this.light.color.copy(colour);
+    this.light.decay = 2;
     this.light.position.copy(foot).setY(foot.y + size * 0.3);
-    this.light.castShadow = false;
-    this.group.add(this.light);
+    this.light.updateMatrixWorld(); // not in the scene (Treadmill.landmarkLight)
   }
 
   /** The fog's share faded out (as three's range fog, by depth), toward nothing: the shaft adds light. */

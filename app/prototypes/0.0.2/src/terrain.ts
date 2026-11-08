@@ -209,6 +209,12 @@ export class Treadmill {
   private readonly outsideSky = new THREE.HemisphereLight();
   /** The lights the materials here use instead of the scene's: the game's sun and the outside's sky. */
   private readonly outsideLights;
+  /**
+   * A landmark's light (the temple's: light-shaft.ts), in the outside's list from the start and dark
+   * until a shaft takes it (owner, 2026-11-08). Added to the list only when the temple showed, every
+   * material lit by the outside rebuilt its shaders at once: the landed scene froze for seconds.
+   */
+  readonly landmarkLight = new THREE.PointLight(0xffffff, 0, 1, 2);
   /** The sun's colour on the outside only (white: as the game's), times its strength there. */
   private readonly sunTint = uniform(new THREE.Color(1, 1, 1));
   /** The sky's reflection on the ice: the panel's strength over the metals' (`scene.environmentIntensity` scales both). */
@@ -228,7 +234,10 @@ export class Treadmill {
   ) {
     this.outsideSky.position.set(0, 1, 0); // light from above: its own colour; from below: the other
     this.outsideSky.updateMatrixWorld();
-    this.outsideLights = lights([sun, this.outsideSky]);
+    // Kept out of the scene as the sky is: in it, every material lit by the scene's lights (the whole
+    // interior, built at load without it) got it too and rebuilt. Its place: LightShaft.
+    this.landmarkLight.castShadow = false;
+    this.outsideLights = lights([sun, this.outsideSky, this.landmarkLight]);
     // Its size and material: the terrain's (set).
     this.ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2));
     this.ground.receiveShadow = true;
@@ -707,16 +716,6 @@ export class Treadmill {
    * A material from elsewhere (the hull's outside, exterior.ts) lit as the scenery is: the sun and the
    * outside's sky, the sun's tint there; metal reflects the sky at the outside's strength.
    */
-  /**
-   * A light added to (or taken off) the outside's light list (the temple's, 2026-11-07): every
-   * material lit by the outside (the ground, the rocks, the temple, the hull's outside) rebuilds its
-   * shaders once.
-   */
-  setOutsideLight(light: THREE.Light, on: boolean): void {
-    const rest = this.outsideLights.getLights().filter((l) => l !== light);
-    this.outsideLights.setLights(on ? [...rest, light] : rest);
-  }
-
   lightOutside(material: THREE.MeshStandardNodeMaterial, reflects = material.envNode !== null): void {
     this.outside(material);
     if (reflects) material.envNode = texture(this.reflections, vec2(0)).mul(this.reflect);

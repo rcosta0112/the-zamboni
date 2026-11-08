@@ -327,7 +327,7 @@ async function start(): Promise<void> {
       const shipCentre = { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2 };
       treadmill = new Treadmill(scene, { ...shipCentre, belly: s.interior.min.y }, world.floor, world.reflections, world.sun);
       const lit = treadmill;
-      landmarks = new Landmarks(scene, physics, (m) => lit.lightOutside(m, false), (light, on) => lit.setOutsideLight(light, on));
+      landmarks = new Landmarks(scene, physics, (m) => lit.lightOutside(m, false), lit.landmarkLight);
       // Landed on the terrain (the landed scene): her ground is its hills, not the flat snow's.
       director.onTravel = (terrain, parkedAt) =>
         void treadmill
