@@ -17,6 +17,8 @@
 - [x] **SC-162** · Answered by the owner 2026-11-07: the column shows on cutscene 3's horizon; a placeholder is in (`light-column.ts`), to be swapped for the temple's shaft after its pass 2.
 - [ ] **SC-151** · The landed scene unlocks every door the flight locks (outer doors, hatches; the jetpacks and her parka are free). Kaufman's and Ogawa's lockers still refuse with your lines (2026-10-21) in every scene: keep that, or open them landed? [plan](plans/features/landed-scene.md#conflicts-with-the-docs-flagged)
 - [ ] **SC-153** · Adam's seats (2026-11-07): Blue sits in the front seat with the joystick, Red at the back. SC-16 says *Red flying*, SC-17 *Blue navigating*, and the script says *Adam Red (in the pilot seat)*, *Adam Blue (in the nav seat)*. Should the animation follow the seat (Blue flies), or the body (move them in the file)? Change the script's directions? *2026-11-07:* your 1.22 gives Red `Adam - Navigation` and Blue `Adam - Piloting Idle` (now in the game, cutscene 2 to landed): if that's the answer, SC-16 and SC-17 are done with the bodies swapped. [note](plans/features/flying-scene.md)
+- [ ] **SC-169** · 0300's script now says *[Y Get up]* (was *O*). *Get up* is on the interact button today (the pad's right face button, E). Is Y a change of button, and which position: top (Xbox Y) or left (SNES Y)? Not built until answered.
+- [ ] **SC-170** · Script to write (0300): Dr. Kaufman's one-liner after her exchange, and Adam's after their second interaction (a third talk). Placeholders in the game until then. Also Dr. Ogawa's, as before.
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
 
 ## Blender

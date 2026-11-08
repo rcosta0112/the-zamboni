@@ -17,6 +17,8 @@ VAR ship_flying = false
 VAR green_outfit = "jumpsuit"
 // She wears a jetpack (the cargo hold's rack): kept with her the same way.
 VAR green_jetpack = false
+// The Adam body she's talking to (chapter 1: one conversation for both), as the line's speaker.
+VAR adam = "Adam Red"
 
 -> DONE
 

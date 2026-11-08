@@ -10,7 +10,8 @@ Adam: I can keep an eye on things if you need a break.
 -> DONE
 
 === got_up ===
-Green: Thank you. I think I'll stretch my legs for a bit. Did anyone make coffee?
+Green: Thank you. I think I'll stretch my legs for a bit.
+Green: Did anyone make coffee?
 -> DONE
 
 // The flight rules (owner, 2026-10-22, the flying scene's plan): while the ship is flying, the game
@@ -91,18 +92,57 @@ Green: That's Dr. Ogawa's locker. I shouldn't open it.
 }
 -> DONE
 
-// The crew: placeholders until the owner's conversations (<pass 2; the list of what to write is a
-// comment at the end of doc/story/scenes/0300 - Playable interior - Chapter 1.md>).
+// Adam (owner, 2026-11-08): either body gives the same lines, and talking to one counts as talking
+// to the other: both run one knot, so its visits are shared. The speaker is the body talked to (its
+// name's colour). The script's first interaction, then its second; after that a placeholder (not
+// written yet).
 === talk_adam_red ===
-Adam Red: [Placeholder] Adam Red's conversation.
--> DONE
+~ adam = "Adam Red"
+-> adam_conversation
 
 === talk_adam_blue ===
-Adam Blue: [Placeholder] Adam Blue's conversation.
+~ adam = "Adam Blue"
+-> adam_conversation
+
+=== adam_conversation ===
+{ adam_conversation > 2: -> again }
+{ adam_conversation > 1: -> second }
+{adam}: You know I don't really need to rest right?
+{adam}: I can fly this thing and read a book at the same time.
+Green: I know. But why should I let you have all the fun?
+{adam}: Right.
+-> DONE
+= second
+Green: Do you think we'll find another portal?
+{adam}: Ask Dr. Ogawa.
+{adam}: He's the one that has memorized all the frequencies and patterns.
+Green: I thought you knew all that stuff too.
+{adam}: Not enough room on these shells for all that data.
+{adam}: I keep having to purge stuff.
+{adam}: I wish we had a processing core in this stupid ship.
+Green: You know we can't bring those through a portal.
+Green: They come out scrambled like eggs.
+{adam}: I know. I just feel very stupid.
+Green: Welcome to the human condition.
+-> DONE
+= again
+{adam}: [Placeholder] Adam's one-liner.
 -> DONE
 
+// Dr. Kaufman (owner, 2026-11-08): the owner's exchange the first time; her one-liner after (not
+// written yet).
 === talk_kaufman ===
-Kaufman: [Placeholder] Dr. Kaufman's conversation.
+{ talk_kaufman > 1: -> again }
+Kaufman: Hey Green Bean. What's up?
+Green: Just stretching my legs a bit.
+Green: How are things?
+Kaufman: I'm bored out of my mind.
+Kaufman: When are we landing?
+Green: Another six hours, if we don't run into anything interesting.
+Kaufman: Oh boy.
+-> DONE
+= again
+Kaufman: [Placeholder] Dr. Kaufman's one-liner.
 -> DONE
 
 // Dr. Ogawa: the owner's exchange the first time; his one-liner after (not written yet).
