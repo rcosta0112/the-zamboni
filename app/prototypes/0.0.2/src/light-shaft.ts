@@ -1,7 +1,7 @@
 // The temple's light shaft and its bloom, painted in (no post-processing; owner, 2026-11-07,
 // doc/plans/features/temple.md pass 2; decision log *The temple's glow painted in*). Three parts, not
-// writing depth, drawn in the shaft's colour (a bluish white set in landmarks.ts, SHAFT_COLOUR, over
-// the file's Blackbody, 1,500 K, which came out orange; owner, 2026-11-07):
+// writing depth, white with the shaft's colour as a faint tinge at the glow's and flare's edges
+// (landmarks.ts SHAFT_COLOUR, the reference's peach, over the file's Blackbody; owner, 2026-11-08):
 // - **the core:** a ribbon on the shaft's axis turned about the vertical to face the camera, the
 //   file's width (owner: kept), never drawn under `shaftCorePx` pixels across, so it doesn't break up
 //   at 200 m (the file's 15 cm is under a pixel from the ship); opaque, whiter than the glow,
@@ -23,7 +23,7 @@
 // hum follows too: main.ts).
 
 import * as THREE from 'three/webgpu';
-import { attribute, cameraPosition, cross, exp, float, length, max, min, normalize, positionView, positionWorld, smoothstep, uniform, uv, vec3, vec4 } from 'three/tsl';
+import { attribute, cameraPosition, cross, exp, float, length, max, min, mix, normalize, positionView, positionWorld, smoothstep, uniform, uv, vec3, vec4 } from 'three/tsl';
 import { settings } from './settings';
 
 /** Rows of the ribbons along the height (the fade and the haze are worked out per pixel). */
@@ -114,7 +114,8 @@ export class LightShaft {
     const flareMaterial = new THREE.SpriteNodeMaterial({ transparent: true, depthWrite: false, fog: false });
     flareMaterial.toneMapped = false;
     const shape = float(1).sub(smoothstep(0, 1, r)).pow(3);
-    flareMaterial.colorNode = vec4(this.colour.mul(shape.add(1)), min(shape.mul(this.flareLevel).mul(this.level).mul(this.hazeFade()), 1));
+    const flareTint = mix(vec3(1, 1, 1), this.colour, smoothstep(0.1, 0.7, r)); // white in the middle (owner, 2026-11-08)
+    flareMaterial.colorNode = vec4(flareTint, min(shape.mul(this.flareLevel).mul(this.level).mul(this.hazeFade()), 1));
     this.flare = new THREE.Sprite(flareMaterial);
     this.flare.position.copy(this.flareFoot);
     this.flare.renderOrder = 12;
@@ -160,8 +161,11 @@ export class LightShaft {
       // Bloom's fall-off: a bright narrow part and a long faint tail, nothing at the edge.
       const edge = float(1).sub(u).pow(2);
       const shape = exp(u.mul(u).mul(-40)).mul(0.7).add(float(1).div(u.mul(u).mul(60).add(1)).mul(0.3)).mul(edge);
-      // Brighter toward the axis (up to twice the colour: whiter), as opaque as `glowLevel` says.
-      material.colorNode = vec4(this.colour.mul(shape.add(1)), min(shape.mul(this.glowLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
+      // White in its bright middle, the colour only in the faint tail (owner, 2026-11-08: the
+      // reference's white shaft with a faint orange tinge; the whole glow the colour before), as
+      // opaque as `glowLevel` says.
+      const tint = mix(vec3(1, 1, 1), this.colour, smoothstep(0.04, 0.3, u));
+      material.colorNode = vec4(tint, min(shape.mul(this.glowLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
     }
     return material;
   }

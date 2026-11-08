@@ -921,7 +921,10 @@ async function start(): Promise<void> {
     if (shaft) {
       if (!audio.isPlaying('sfx_temple_hum', shaft.hum) && audio.play('sfx_temple_hum', shaft.hum)) humAt = shaft.hum;
       audio.falloff('sfx_temple_hum', shaft.hum, settings.templeHumFull, settings.templeHumGone);
-      audio.shape('sfx_temple_hum', settings.templeHumVolume * (0.55 + 0.45 * shaft.intensity), 1, shaft.hum);
+      // In sync with the light (owner, 2026-11-08): the volume dips as deep as `templeHumDepth` with each
+      // flicker and the pulse, the pitch a little (`templeHumWarble`).
+      const dark = 1 - Math.min(1, shaft.intensity);
+      audio.shape('sfx_temple_hum', settings.templeHumVolume * (1 - settings.templeHumDepth * dark), 1 - settings.templeHumWarble * dark, shaft.hum);
     }
     renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
     renderer.getDrawingBufferSize(size);

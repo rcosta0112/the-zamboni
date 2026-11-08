@@ -215,8 +215,10 @@ export const settings = {
   shaftFlickerDepth: 0.95, // how far a flicker's dips go (owner: stronger)
   templeHumVolume: 0.23, // the temple's electric hum (cue sfx_temple_hum), at its loudest (owner: next to it, half what it was in the ship)
   templeHumFull: 10, // m from the temple: as loud as it gets
+  templeHumDepth: 0.9, // how far the hum's volume follows the light's pulse and flicker down (owner, 2026-11-08: in sync with the flicker; 0.45 before)
+  templeHumWarble: 0.04, // ... and its pitch, dipping this share at the light's darkest
   templeHumGone: 120, // m: not heard past it (owner: only near the temple; the ship is 200 m off)
-  templeLight: 1500, // the point light inside the temple (candela; owner: really bright; 20,000 at 3 times the file's size, 2026-11-07: scaled with the temple's size squared)
+  templeLight: 6000, // the point light inside the temple (candela; owner: really bright; scaled with the temple's size squared: 20,000 at 3 times the file's size, 1,500 at 0.7, 6,000 at 1.4, 2026-11-08)
   templeLightRange: 150, // m: nothing past it is lit (0: no limit)
   shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)

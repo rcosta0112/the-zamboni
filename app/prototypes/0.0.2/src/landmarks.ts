@@ -23,7 +23,7 @@ export interface LandmarkPlace {
   ahead: number;
   /** To the ship's right (m). */
   side?: number;
-  /** Times the file's size (owner, 2026-11-07: the temple 3 times). */
+  /** Times the file's size (owner: the temple 3 times, 2026-11-07; 0.7 later; 1.4, 2026-11-08). */
   scale?: number;
 }
 
@@ -31,7 +31,7 @@ export interface LandmarkPlace {
 const GROUND_STEP = 1;
 /** A rock this close to the steps' edge (m) is warned about. */
 const ROCK_MARGIN = 10;
-/** The light shaft's colour, linear: the owner's reference render's peach-pink glow (owner, 2026-11-07, later; a bluish white before). */
+/** The light shaft's tinge, linear: the owner's reference render's peach-pink, at the glow's faint edges only; its middle white (owner, 2026-11-08). */
 const SHAFT_COLOUR = [1, 0.42, 0.32];
 /** The shaft's width (m), whatever the temple's scale: as it was at 3 times the file's (owner, 2026-11-07: kept when the temple shrank). */
 const SHAFT_WIDTH = 0.45;
