@@ -204,9 +204,10 @@ export const settings = {
   shaftHeight: 2500, // m above the temple's floor: the top seen at 85° from the ship, its top third faded
   shaftCorePx: 2, // the core never narrower on screen (the file's 15 cm is under a pixel from the ship)
   shaftCoreStrength: 1, // the core's opacity over the glow (1: opaque)
+  shaftCoreBrightness: 12, // the core's white, above 1: the frame's tone mapping (ACES) turned 1 grey
   shaftGlowPx: 160, // the glow's width on screen, as bloom's
   shaftGlowMin: 3, // ... and at least this wide (m), close up
-  shaftGlowStrength: 1.2, // how opaque the glow's orange is over the sky near the axis
+  shaftGlowStrength: 0.8, // how opaque the glow's orange is over the sky near the axis (1.2 before the solid core, 2026-11-08)
   shaftFlarePx: 140, // the flare at its foot, on screen
   shaftFlareStrength: 1,
   shaftPulsePeriod: 2.5, // s: the brightness up and down once on a sine wave (owner: every couple of seconds)

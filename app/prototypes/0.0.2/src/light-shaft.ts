@@ -1,16 +1,18 @@
 // The temple's light shaft and its bloom, painted in (no post-processing; owner, 2026-11-07,
 // doc/plans/features/temple.md pass 2; decision log *The temple's glow painted in*). Three parts, not
-// writing depth, white with the shaft's colour as a faint tinge at the glow's and flare's edges
-// (landmarks.ts SHAFT_COLOUR, the reference's peach, over the file's Blackbody; owner, 2026-11-08):
-// - **the core:** a ribbon on the shaft's axis turned about the vertical to face the camera, the
-//   file's width (owner: kept), never drawn under `shaftCorePx` pixels across, so it doesn't break up
-//   at 200 m (the file's 15 cm is under a pixel from the ship); opaque, whiter than the glow,
-//   drawn over it;
+// writing depth: a solid white core in a faint orange glow (owner, 2026-11-08: one layer, white in
+// the middle and orange at the edges, read grey over the sky):
+// - **the core:** a ribbon on the shaft's axis turned about the vertical to face the camera, 0.45 m
+//   (landmarks.ts SHAFT_WIDTH; owner: kept), never drawn under `shaftCorePx` pixels across, so it
+//   doesn't break up at 200 m; pure white, opaque, hard-edged (a solid bar), drawn over the glow;
+//   brighter than white, since the frame is tone-mapped at the end (`shaftCoreBrightness`);
 // - **the glow:** the same, `shaftGlowPx` pixels across (bloom's width is the screen's, near or far)
-//   and at least `shaftGlowMin` metres, bright along the axis with a long faint tail;
+//   and at least `shaftGlowMin` metres, bright along the axis with a long faint tail; all the
+//   shaft's colour (landmarks.ts SHAFT_COLOUR, a saturated orange: a pale one over the blue sky
+//   mixes to grey), as opaque as `shaftGlowStrength`;
 // - **the flare:** a camera-facing card low in the temple, round, sized in pixels too.
-// All three are laid over what's behind (normal blending, see-through by their shape), not
-// added: added to the bright blue sky, orange came out pink-white and the core pure white (tried,
+// The core and the flare are laid over what's behind (normal blending, see-through by their shape);
+// the glow is added (owner, 2026-11-08). Before that all three were laid over, not added: added to the bright blue sky, orange came out pink-white and the core pure white (tried,
 // 2026-11-07), and the Blackbody's tint was lost.
 // From the floor up to `shaftHeight` metres (2,500: the top seen at 85° from the ship), faded out over
 // its top third so there's never an end to see. **The haze fades it** (owner: fine) as the scene's
@@ -69,6 +71,7 @@ export class LightShaft {
   private readonly coreHalf = uniform(0.075);
   private readonly corePx = uniform(2);
   private readonly coreLevel = uniform(3);
+  private readonly coreBright = uniform(12);
   private readonly glowPx = uniform(60);
   private readonly glowMin = uniform(3);
   private readonly glowLevel = uniform(1.5);
@@ -154,19 +157,25 @@ export class LightShaft {
     const height = p.y.sub(this.foot.y).div(this.height);
     const top = float(1).sub(smoothstep(0.66, 1, height)); // faded over its top third
     if (isCore) {
-      // Pure white (owner, 2026-11-07), soft at its edges.
-      const shape = float(1).sub(smoothstep(0.5, 1, u));
-      material.colorNode = vec4(vec3(1, 1, 1),min(shape.mul(this.coreLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
+      // Pure white (owner, 2026-11-07), solid: opaque to its edge, softened only over its last
+      // tenth so it doesn't stair-step at 2 pixels (owner, 2026-11-08; soft from halfway before).
+      // Brighter than white (`shaftCoreBrightness`): the renderer tone-maps the whole frame at the
+      // end (ACES; `toneMapped = false` does nothing there), and 1 came out grey, 220 of 255. The
+      // pulse and flicker dim its brightness; it turns see-through only in a deep flicker (under a
+      // third), so it stays a solid bar through the pulse (owner, 2026-11-08: it read see-through).
+      const shape = float(1).sub(smoothstep(0.9, 1, u));
+      const solid = min(this.level.mul(3), 1);
+      material.colorNode = vec4(vec3(1, 1, 1).mul(this.coreBright.mul(this.level)), min(shape.mul(this.coreLevel).mul(solid).mul(top).mul(this.hazeFade()), 1));
     } else {
       // Bloom's fall-off: a bright narrow part and a long faint tail, nothing at the edge.
       const edge = float(1).sub(u).pow(2);
       const shape = exp(u.mul(u).mul(-40)).mul(0.7).add(float(1).div(u.mul(u).mul(60).add(1)).mul(0.3)).mul(edge);
-      // White in its bright middle, the colour only in the faint tail (owner, 2026-11-08: the
-      // reference's white shaft with a faint orange tinge; the whole glow the colour before), as
-      // opaque as `glowLevel` says.
-      const tint = mix(vec3(1, 1, 1), this.colour, smoothstep(0.04, 0.3, u));
-      material.colorNode = vec4(tint, min(shape.mul(this.glowLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
+      // All the colour (owner, 2026-11-08: the white is the core's; white in its middle read grey),
+      // as strong as `glowLevel` says, **added** to what's behind (owner, 2026-11-08; laid over
+      // before: under the frame's tone mapping the orange came out faint).
+      material.colorNode = vec4(this.colour, min(shape.mul(this.glowLevel).mul(this.level).mul(top).mul(this.hazeFade()), 1));
     }
+    if (!isCore) material.blending = THREE.AdditiveBlending;
     return material;
   }
 
@@ -208,6 +217,7 @@ export class LightShaft {
     this.height.value = settings.shaftHeight;
     this.corePx.value = settings.shaftCorePx;
     this.coreLevel.value = settings.shaftCoreStrength;
+    this.coreBright.value = settings.shaftCoreBrightness;
     this.glowPx.value = settings.shaftGlowPx;
     this.glowMin.value = settings.shaftGlowMin;
     this.glowLevel.value = settings.shaftGlowStrength;

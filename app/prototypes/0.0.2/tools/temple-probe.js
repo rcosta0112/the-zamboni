@@ -5,7 +5,7 @@
 // About 30 s. The temple loaded and shown, 200 m straight ahead of the ship's centre, turned as the
 // ship; its floor at the highest ground under its steps, the steps' bottom under the lowest; no rock
 // within its steps and 10 m; its stone collides; the shaft drawn (light-shaft.ts), its point light in
-// the shaft's peach-pink (landmarks.ts SHAFT_COLOUR), inside, in the outside's light list. Screenshots: her
+// the shaft's orange (landmarks.ts SHAFT_COLOUR), inside, in the outside's light list. Screenshots: her
 // seat, from 60 m ahead of the ship, from 35 m off the temple.
 // Runs in the page (probe-01.mjs).
 
@@ -70,7 +70,7 @@ const outside = [];
 w.__scene.traverse((o) => o.material?.lightsNode && outside.push(o.material.lightsNode));
 const listed = outside.length > 0 && outside[0].getLights().includes(light);
 report(!!drawn && drawn.group.visible && !shown.shaft.visible, 'the shaft drawn (core, glow, flare), the file’s box hidden', drawn ? `${drawn.group.children.length} parts` : 'none');
-report(!!light && light.color.r === 1 && light.color.g < 1 && light.color.b < light.color.g && light.color.b > 0.2 && light.intensity > 0 && listed, 'the point light: the shaft’s peach-pink (the reference), lighting the outside', light ? `colour ${light.color.r.toFixed(2)}, ${light.color.g.toFixed(2)}, ${light.color.b.toFixed(2)}; ${light.intensity} cd; in the outside’s list: ${listed}` : 'none');
+report(!!light && light.color.r === 1 && light.color.g < 1 && light.color.b < light.color.g && light.color.g < 0.6 && light.intensity > 0 && listed, 'the point light: the shaft’s orange, lighting the outside', light ? `colour ${light.color.r.toFixed(2)}, ${light.color.g.toFixed(2)}, ${light.color.b.toFixed(2)}; ${light.intensity} cd; in the outside’s list: ${listed}` : 'none');
 report(light && temple.containsPoint(light.position), 'the light inside the temple', light ? `at y ${light.position.y.toFixed(1)}, the temple ${temple.min.y.toFixed(1)}..${temple.max.y.toFixed(1)}` : '');
 
 // Screenshots: her seat; then the camera placed by hand, its own update off, the see-through off.

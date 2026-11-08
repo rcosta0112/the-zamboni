@@ -140,6 +140,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   temple.add(settings, 'shaftHeight', 200, 3000, 50).name('shaft height (m)');
   temple.add(settings, 'shaftCorePx', 0.5, 8, 0.5).name('core: least width (px)');
   temple.add(settings, 'shaftCoreStrength', 0, 3, 0.05).name('core opacity');
+  temple.add(settings, 'shaftCoreBrightness', 1, 40, 0.5).name('core brightness');
   temple.add(settings, 'shaftGlowPx', 0, 300, 5).name('glow width (px)');
   temple.add(settings, 'shaftGlowMin', 0, 20, 0.5).name('glow: least width (m)');
   temple.add(settings, 'shaftGlowStrength', 0, 5, 0.05).name('glow opacity');

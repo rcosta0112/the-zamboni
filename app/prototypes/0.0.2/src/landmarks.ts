@@ -31,8 +31,8 @@ export interface LandmarkPlace {
 const GROUND_STEP = 1;
 /** A rock this close to the steps' edge (m) is warned about. */
 const ROCK_MARGIN = 10;
-/** The light shaft's tinge, linear: the owner's reference render's peach-pink, at the glow's faint edges only; its middle white (owner, 2026-11-08). */
-const SHAFT_COLOUR = [1, 0.42, 0.32];
+/** The light shaft's glow, linear: a saturated orange (owner, 2026-11-08: the reference's peach, faint over the blue sky, mixed to a muddy mauve-grey); the white is the core's. */
+const SHAFT_COLOUR = [1, 0.45, 0.1];
 /** The shaft's width (m), whatever the temple's scale: as it was at 3 times the file's (owner, 2026-11-07: kept when the temple shrank). */
 const SHAFT_WIDTH = 0.45;
 /** The `Rock` stone as the owner's reference render: matte, a warm near-white (linear; the file's grey 0.67, metalness 0.23, before). */
@@ -211,8 +211,8 @@ export class Landmarks {
     }
     const box = landmark.shaft;
     if (!box) return;
-    // The reference's peach-pink (owner, 2026-11-07; the file's Blackbody, 1,500 K, came out orange),
-    // set here over the file's `glowColor` (linear, brightest channel 1).
+    // A saturated orange (owner, 2026-11-08; the reference's peach before), set here over the file's
+    // `glowColor` (linear, brightest channel 1).
     const colour = new THREE.Color().fromArray(SHAFT_COLOUR);
     const bounds = new THREE.Box3().setFromObject(box, true);
     const foot = bounds.getCenter(new THREE.Vector3()).setY(bounds.min.y);
