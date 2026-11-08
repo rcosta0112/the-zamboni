@@ -60,6 +60,7 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [The scenery round the camera, not the ship (cells made from their place)](features/scenery-around-camera.md) | 0.0.2 | Built 2026-10-23 (owner: "write the plan and run it") |
 | [The temple and its light shaft in the landed scene](features/temple.md) | 0.0.2 | Draft 2026-11-07, for review (two passes) |
 | [The landed scene, reached by sitting back down (the ship on the stopped plain, a placeholder landing shot)](features/landed-scene.md) | The flying scene | Built 2026-11-06 (two passes, on the owner's "go"); the owner's to look at |
+| [The landing cutscene (0600): flying in over the plain, the temple on the horizon, the vertical landing](features/landing-cutscene.md) | The flying scene (pass 6) | Draft 2026-11-07, for review (three passes, the third optional) |
 | [Dr. Green piloting: cutscene 2 and the start of chapter 1](features/piloting-loop.md) | The flying scene | Approved 2026-10-24; in progress |
 | [Black after NEW GAME, until cutscene 1 runs smoothly (SC-132)](features/black-before-cutscene-1.md) | The flying scene | Built 2026-10-24 (owner: "go for 132") |
 | [A hand-held feel for cutscene 2's cameras](features/handheld-cutscene-camera.md) | The flying scene | Built 2026-10-28 (free drift first); the owner's to look at |
