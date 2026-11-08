@@ -117,7 +117,7 @@ export interface Ship {
    * across the upper floor: the ladder), the side of that deck's bulkhead by its centre (both,
    * within BULKHEAD_SIDE: the bulkhead's doors and panels). None outside the ship.
    */
-  roomsOf: (box: THREE.Box3) => string[];
+  roomsOf: (box: THREE.Box3, side?: number) => string[];
   /** The ship's objects, for the see-through rules. */
   cutUnits: CutUnit[];
   /** The hull's object: "is the camera inside the ship?" */
@@ -489,7 +489,7 @@ function markBroughtBack(units: CutUnit[], ship: THREE.Object3D): void {
 }
 
 /** `Ship.roomsOf`: the bulkheads' places along the ship, from the ship's file. */
-function roomsIn(ship: THREE.Object3D, interior: THREE.Box3, upperFloorY: number): (box: THREE.Box3) => string[] {
+function roomsIn(ship: THREE.Object3D, interior: THREE.Box3, upperFloorY: number): (box: THREE.Box3, side?: number) => string[] {
   // Along the ship: Blender's y (front negative), from the ship's own space (as markBroughtBack).
   const along = (p: THREE.Vector3) => -ship.worldToLocal(p.clone()).z;
   const bulkheads = ['Bulkhead Cargo', 'Bulkhead Cockpit'].map((name) => {
@@ -498,7 +498,8 @@ function roomsIn(ship: THREE.Object3D, interior: THREE.Box3, upperFloorY: number
     return along(new THREE.Box3().setFromObject(found).getCenter(new THREE.Vector3()));
   });
   const centre = new THREE.Vector3();
-  return (box) => {
+  // `side`: the band either side of a bulkhead that counts as both rooms (0 for a panel on it: its own side only).
+  return (box, side = BULKHEAD_SIDE) => {
     box.getCenter(centre);
     if (!interior.containsPoint(centre)) return [];
     const y = along(centre);
@@ -506,8 +507,8 @@ function roomsIn(ship: THREE.Object3D, interior: THREE.Box3, upperFloorY: number
     for (const deck of [0, 1]) {
       if (deck === 0 ? box.min.y >= upperFloorY - DECK_EDGE : box.max.y <= upperFloorY - DECK_EDGE) continue;
       const [front, back] = ROOMS[deck]!;
-      if (y < bulkheads[deck]! + BULKHEAD_SIDE) rooms.push(front!);
-      if (y > bulkheads[deck]! - BULKHEAD_SIDE) rooms.push(back!);
+      if (y < bulkheads[deck]! + side) rooms.push(front!);
+      if (y > bulkheads[deck]! - side) rooms.push(back!);
     }
     return rooms;
   };

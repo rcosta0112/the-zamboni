@@ -63,6 +63,8 @@ export interface Interactable {
   sight?: (out: THREE.Vector3) => THREE.Vector3;
   /** Something solid this close in front of its bounds doesn't hide it (m; default 0.15): a character's seat. */
   sightMargin?: number;
+  /** Only in the room on its own side of a bulkhead (a panel on it), not both as a door is. */
+  oneSide?: boolean;
 }
 
 /** A hinged door's handle is this far in from the edge away from its hinge (m). */
@@ -143,6 +145,7 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       list.push({
         name: o.name,
         objects: [o],
+        oneSide: true,
         ...(ramp ? { controls: [ramp] } : {}),
         verb: () => `${settings.cargoRampOpen ? 'Close' : 'Open'} ${labelOf('cargo-ramp')}`,
         act: () => {
@@ -173,6 +176,8 @@ export function shipInteractables(entities: Entities, doors: Door[], others: Int
       name: o.name,
       objects: [o, ...handles.map((h) => h.object)],
       controls: group,
+      // A bulkhead door's panel is flush with the wall: from the other room nothing hides it.
+      oneSide: true,
       ...(handles[0] ? { anchor: centreOf(handles[0].object) } : {}),
       verb: () => ((automatic() ? !door.shut : door.open) ? `Close ${what}` : `Open ${what}`),
       act: () => {
@@ -378,7 +383,7 @@ export class Interaction {
   private lastFacing: number | null = null;
   private lastChest = new THREE.Vector3();
   /** The rooms a box is in (`Ship.roomsOf`); none set: no room rule. */
-  roomsOf: ((box: THREE.Box3) => string[]) | null = null;
+  roomsOf: ((box: THREE.Box3, side?: number) => string[]) | null = null;
   /** The one target while set, wherever she and the camera look (main.ts: *Get up* while she's seated). */
   only: Interactable | null = null;
   /** The prompt's two parts: the button, and what it does. */
@@ -450,7 +455,7 @@ export class Interaction {
       if (distance > Math.max(reach, settings.interactDotReach)) continue;
       // In her room (through a doorway, Adam in the cockpit isn't).
       if (mine.length) {
-        const theirs = this.roomsOf!(this.box);
+        const theirs = this.roomsOf!(this.box, item.oneSide ? 0 : undefined);
         if (theirs.length && !theirs.some((room) => mine.includes(room))) continue;
       }
       // Not behind something solid (its own collider is hit at about its own distance).
