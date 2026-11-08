@@ -31,8 +31,12 @@ export interface LandmarkPlace {
 const GROUND_STEP = 1;
 /** A rock this close to the steps' edge (m) is warned about. */
 const ROCK_MARGIN = 10;
-/** The light shaft's colour, linear (a bluish white, about a 9,000 K blackbody; owner, 2026-11-07). */
-const SHAFT_COLOUR = [0.68, 0.78, 1];
+/** The light shaft's colour, linear: the owner's reference render's peach-pink glow (owner, 2026-11-07, later; a bluish white before). */
+const SHAFT_COLOUR = [1, 0.42, 0.32];
+/** The shaft's width (m), whatever the temple's scale: as it was at 3 times the file's (owner, 2026-11-07: kept when the temple shrank). */
+const SHAFT_WIDTH = 0.45;
+/** The `Rock` stone as the owner's reference render: matte, a warm near-white (linear; the file's grey 0.67, metalness 0.23, before). */
+const STONE = { color: new THREE.Color(0.9, 0.86, 0.85), roughness: 1, metalness: 0 };
 
 interface Landmark {
   object: THREE.Object3D;
@@ -129,7 +133,8 @@ export class Landmarks {
             let copy = made.get(m);
             if (!copy) {
               const from = m as THREE.MeshStandardMaterial;
-              const lit = new THREE.MeshStandardNodeMaterial({ color: from.color, roughness: from.roughness, metalness: from.metalness, side: THREE.FrontSide });
+              const look = m.name === 'Rock' ? STONE : { color: from.color, roughness: from.roughness, metalness: from.metalness };
+              const lit = new THREE.MeshStandardNodeMaterial({ ...look, side: THREE.FrontSide });
               this.lightOutside(lit);
               made.set(m, (copy = lit));
             }
@@ -206,14 +211,14 @@ export class Landmarks {
     }
     const box = landmark.shaft;
     if (!box) return;
-    // A bluish white (owner, 2026-11-07: the file's Blackbody, 1,500 K, came out orange), set here
-    // over the file's `glowColor` (linear, brightest channel 1).
+    // The reference's peach-pink (owner, 2026-11-07; the file's Blackbody, 1,500 K, came out orange),
+    // set here over the file's `glowColor` (linear, brightest channel 1).
     const colour = new THREE.Color().fromArray(SHAFT_COLOUR);
     const bounds = new THREE.Box3().setFromObject(box, true);
     const foot = bounds.getCenter(new THREE.Vector3()).setY(bounds.min.y);
     const temple = landmark.object.getObjectByName('Temple') ?? landmark.object;
     const width = new THREE.Box3().setFromObject(temple).getSize(new THREE.Vector3()).x;
-    landmark.lightShaft = new LightShaft(foot, bounds.max.x - bounds.min.x, colour, width);
+    landmark.lightShaft = new LightShaft(foot, SHAFT_WIDTH, colour, width);
     landmark.lightShaft.group.visible = false;
     this.scene.add(landmark.lightShaft.group);
   }

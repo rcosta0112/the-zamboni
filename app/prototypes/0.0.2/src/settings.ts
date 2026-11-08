@@ -216,7 +216,7 @@ export const settings = {
   templeHumVolume: 0.23, // the temple's electric hum (cue sfx_temple_hum), at its loudest (owner: next to it, half what it was in the ship)
   templeHumFull: 10, // m from the temple: as loud as it gets
   templeHumGone: 120, // m: not heard past it (owner: only near the temple; the ship is 200 m off)
-  templeLight: 20000, // the point light inside the temple (candela; owner: really bright)
+  templeLight: 1500, // the point light inside the temple (candela; owner: really bright; 20,000 at 3 times the file's size, 2026-11-07: scaled with the temple's size squared)
   templeLightRange: 150, // m: nothing past it is lit (0: no limit)
   shadowRangeLanded: 150, // outdoors in the landed scene (owner, 2026-11-06: the rocks' shadows seen from further; 7.3 cm texels at 4096)
   sunThroughGlass: true, // the ship's glass doesn't block the sun (off: it casts a shadow, as until 2026-10-12)
