@@ -12,7 +12,7 @@ Dr. Kaufman
 - Yes.
 
 Dr. Ogawa
-- Adam? Can you give me a hand with the motion sensors?
+- Adam? Can you give me a hand with the motion trackers?
 
 Adam
 - Sure thing. 

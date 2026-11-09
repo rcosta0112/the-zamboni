@@ -1,6 +1,6 @@
 # The Zamboni
 
-The Zamboni is a military transport Arbogast MM-41 converted into a research and exploration vessel. It’s set up for medium duration expeditions with capacity for a crew of 3 organics. Inorganic capacity would be dependent on the types of bodies employed. It’s standard practice to have two organic and one inorganic with one or two spare bodies.
+The Zamboni is a military transport Arbogast MM-41 converted into a research and exploration vessel. It’s set up for medium duration expeditions with capacity for a crew of 3 organics. Inorganic capacity would be dependent on the types of shells employed. It’s standard practice to have two organic and one inorganic with one or two spare shells.
 
 ## Summary
 
@@ -23,7 +23,7 @@ Their primary objective is to investigate potential portals. Every planet on the
 
 ## Notes
 
-- The commons? The collective? The University? The Institute?
+- They work for The Institute. It's a vaguely sciency organization. They use old military equipment even though they are all pacifists. There was a big war not long ago.
 
 
 - One possible reason why Blue leaves is because they want to leave the group and go into a portal by themselves. It's dangerous and they don't want to leave the group behind so they split themselves to be able to do it.

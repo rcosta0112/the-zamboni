@@ -38,6 +38,7 @@ Oh boy.
 
 
 
+
 *Dr. Ogawa is sitting on the signal processing station.*
 
 **Green**\
@@ -61,6 +62,17 @@ It could be a giant penguin.
 
 **Ogawa**\
 Dr. Kaufman would love that for sure.
+
+If Dr. Green closes the viewport:
+
+Ogawa
+Dr. Green, can you please open the viewport?
+I'm running the signal array at the moment.
+
+Green
+Sorry
+
+
 
 
 
