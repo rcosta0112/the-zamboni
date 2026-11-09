@@ -1,11 +1,12 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-167**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-172**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
 *Updated 2026-11-08 (end of session: the hologram built).*
 
 ## Next up
 
+0. **SC-171** · Look at the planet (pass 1 of the [planet shot](plans/features/planet-cinematic.md)) at http://localhost:5202/planet.html: tune it, save a preset, say "go" for pass 2 (atmosphere, stars).
 0. **SC-164** · Review the [landing cutscene plan](plans/features/landing-cutscene.md) and answer its four questions (turbines down: in the file or the game? cameras by hand or in Blender? the clouds tried or not, which images? shot lengths 6 s / 8 s?).
 0. **SC-153** · Decision: your 1.22 animations have Red navigating and Blue piloting: are SC-16/17 done that way (the animation follows the seat)? (below, *Decision*)
 1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).

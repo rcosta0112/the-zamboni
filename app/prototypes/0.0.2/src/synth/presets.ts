@@ -1,5 +1,5 @@
 // The synth's saved patches (patches.json), written by synth.html's Save buttons through the dev
-// server (vite.config.ts, `synthPatches`). The temple chord: the owner's, 2026-11-08.
+// server (vite.config.ts, `savedPresets`). The temple chord: the owner's, 2026-11-08.
 import type { Patch } from './synth';
 import data from './patches.json';
 

@@ -6,17 +6,18 @@ import { defineConfig, type Plugin } from 'vite';
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
 /**
- * synth.html's patches (dev only): GET /__synth/patches reads src/synth/patches.json; POST saves one
- * ({ name, patch }) and makes it the default. The page fetches instead of importing the file, so a
- * save doesn't reload it (and stop the sound).
+ * The tuning pages' saved presets (dev only), one JSON file each: GET <route> reads the file; POST saves
+ * one ({ name, <item>: {...} }) under `<key>.<name>` and makes it the default. The pages fetch instead of
+ * importing the file, so a save doesn't reload them. synth.html: /__synth/patches (src/synth/patches.json);
+ * planet.html: /__planet/presets (src/planet/presets.json).
  */
-function synthPatches(): Plugin {
-  const file = new URL('./src/synth/patches.json', import.meta.url);
+function savedPresets(route: string, path: string, key: string, item: string): Plugin {
+  const file = new URL(path, import.meta.url);
   return {
-    name: 'zamboni-synth-patches',
+    name: `zamboni-presets${route.replaceAll('/', '-')}`,
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use('/__synth/patches', (req, res) => {
+      server.middlewares.use(route, (req, res) => {
         const reply = (status: number, body: string) => {
           res.statusCode = status;
           res.setHeader('Content-Type', 'application/json');
@@ -28,10 +29,10 @@ function synthPatches(): Plugin {
         req.on('data', (chunk) => (body += chunk));
         req.on('end', () => {
           try {
-            const { name, patch } = JSON.parse(body);
-            if (typeof name !== 'string' || !name.trim() || name.length > 60 || typeof patch !== 'object' || !patch) throw new Error('bad patch');
+            const { name, [item]: value } = JSON.parse(body);
+            if (typeof name !== 'string' || !name.trim() || name.length > 60 || typeof value !== 'object' || !value) throw new Error(`bad ${item}`);
             const data = JSON.parse(readFileSync(file, 'utf8'));
-            data.patches[name.trim()] = patch;
+            data[key][name.trim()] = value;
             data.default = name.trim();
             writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
             reply(200, JSON.stringify(data));
@@ -46,7 +47,11 @@ function synthPatches(): Plugin {
 
 export default defineConfig({
   // The interface (the start screen, with @zamboni/ui's components) is Svelte.
-  plugins: [svelte(), synthPatches()],
+  plugins: [
+    svelte(),
+    savedPresets('/__synth/patches', './src/synth/patches.json', 'patches', 'patch'),
+    savedPresets('/__planet/presets', './src/planet/presets.json', 'presets', 'preset'),
+  ],
   // Game files, fonts and UI images: this version's own, in public/ (Vite's default), served at the root.
   define: { __VERSION__: JSON.stringify(version) },
   // Three's add-ons (GLTFLoader…) import 'three'; point that at the WebGPU build so the whole

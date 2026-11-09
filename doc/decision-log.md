@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-09 | The planet shot procedural, tuned on its own page | look | The owner's `planet.blend` planet and stars rebuilt as TSL shaders (not baked), with Three's noise instead of Blender's: the look is re-tuned on `planet.html` and saved as presets, so any scene can show the same planet; the octaves follow screen size |
 | 2026-11-07 | Scene files named `NNNN - Type - Description.md` | docs | Four digits counted up by 100 (scenes inserted between without renaming), the type in words (since 2026-11-08: *Cutscene exterior/dialogue*, *Playable interior/exterior*), a short description; no `?` or apostrophes; the Ink files the same name in lowercase with hyphens |
 | 2026-11-07 | The temple's glow painted in, and a real point light | look | The landed scene's temple stands 200 m ahead; its light shaft gets its bloom without post-processing (a core never under 2 px, a glow ribbon and a base flare sized in pixels, additive), the haze kept on it, the file's 15 cm width kept; a bright point light inside in the Blackbody's colour (owner) |
 | 2026-11-07 | Characters face Dr. Green as their pose allows | feature | Only in her conversations: standing, the whole body turns to face her; seated with her in reach (70°), the head and a little of the body; out of reach, the head 15° toward her side, as if listening; everyone turns back after, her too; replaces the dialogue plan's head-only turn |
@@ -67,6 +68,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-09] — The planet shot procedural, tuned on its own page (look)
+
+**Context.** A shot before cutscene 1 zooms into the planet of the owner's `resources/models/props/planet.blend` (20 → 180 mm, two jump cuts). Its planet and stars are Blender procedural textures. The owner wants to adjust the noise to pick a nice result, and to show the planet elsewhere too; the exact continents don't matter (2026-11-09).
+
+**Decision.** Planet and stars are TSL shaders on the low-poly icosphere (owner: it stays low poly), with Three's MaterialX noise. Blender's values are the starting point; the look is tuned on `planet.html` and saved as named presets (`src/planet/presets.json`). Blender's 4D noise becomes 3D noise with a vector warp; a seed moves the noise. The number of octaves follows the pixel's size on the surface.
+
+**Alternatives.** Baking to cubemaps at several sizes (caps the zoom, heavy at 4k+, tuned in Blender only). A hybrid: low octaves baked, fine ones live (keeps Blender's continents, not needed). Rebuilding Blender's own noise in TSL so Blender stays the tuning tool (about one more pass; set aside).
+
+**Rationale.** Free zoom, tunable live, reusable from a preset, about 5 ms a frame at 180 mm (headless, 1080p).
+
+**Status.** Pass 1 (the planet, the page) built 2026-11-09. [Plan](plans/features/planet-cinematic.md).
 
 ## [2026-11-07] — Scene files named `NNNN - Type - Description.md` (docs)
 

@@ -1,0 +1,89 @@
+{
+  "default": "Blender",
+  "presets": {
+    "Blender": {
+      "seed": 1,
+      "scale": 2.98,
+      "detail": 16,
+      "roughness": 0.64,
+      "lacunarity": 1.75,
+      "warp": 0.3,
+      "warpScale": 2,
+      "seaLevel": 0.5,
+      "coastSoftness": 1,
+      "coast": [
+        {
+          "at": 0.4,
+          "colour": "#ffffff"
+        },
+        {
+          "at": 0.43,
+          "colour": "#7debff"
+        },
+        {
+          "at": 0.482,
+          "colour": "#00b6ff"
+        }
+      ],
+      "green": [
+        {
+          "at": 0.282,
+          "colour": "#f0ffba"
+        },
+        {
+          "at": 0.375,
+          "colour": "#9fd77b"
+        },
+        {
+          "at": 0.5,
+          "colour": "#4ea316"
+        },
+        {
+          "at": 0.578,
+          "colour": "#143000"
+        }
+      ],
+      "ocean": [
+        {
+          "at": 0.436,
+          "colour": "#169ce1"
+        },
+        {
+          "at": 0.53,
+          "colour": "#005683"
+        }
+      ],
+      "band": [
+        {
+          "at": 0.136,
+          "value": 0
+        },
+        {
+          "at": 0.282,
+          "value": 1
+        },
+        {
+          "at": 0.507,
+          "value": 1
+        },
+        {
+          "at": 0.659,
+          "value": 0
+        }
+      ],
+      "bandNoise": {
+        "scale": 8.1,
+        "detail": 1.6,
+        "roughness": 1,
+        "lacunarity": 1.5,
+        "from": 0.291,
+        "to": 0.482
+      },
+      "bandMix": 0.2667,
+      "bump": 0,
+      "emission": 0.1,
+      "rimIor": 1.2,
+      "lodBias": 0
+    }
+  }
+}
