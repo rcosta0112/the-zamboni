@@ -69,7 +69,7 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [Archive prototype 01 as 0.0.1, start the next as 0.0.2 (item 51)](prototypes/archive-01-start-02.md) | Prototypes 01 and 02 | Built 2026-10-20 (four passes); Vercel for 0.0.2 with the owner |
 | [Cutscene 2's exterior shot: the ship changing course (from the owner's *Opening Cutscene - Part 2 1.01*)](features/cutscene-2-exterior.md) | The flying scene (pass 4c) | Built 2026-10-28; the owner's to watch |
 | [Characters look at each other when they talk to Dr. Green](features/look-at-each-other.md) | 0.0.2 | Pass 1 built 2026-11-07 (all four crew); the owner's to try |
-| [The planet shot: a procedural planet and stars, zooming in, before cutscene 1](features/planet-cinematic.md) | Before cutscene 1 (own page first) | Approved 2026-11-09; pass 1 (the planet, the page) built |
+| [The planet shot: a procedural planet and stars, zooming in, before cutscene 1](features/planet-cinematic.md) | Before cutscene 1 (own page first) | Approved 2026-11-09; passes 1–2 (the planet, the page, the atmosphere, the stars) built |
 
 ## Plan format
 

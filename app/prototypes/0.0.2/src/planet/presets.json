@@ -83,7 +83,69 @@
       "bump": 0,
       "emission": 0.1,
       "rimIor": 1.2,
-      "lodBias": 0
+      "lodBias": 0,
+      "atmosphere": {
+        "size": 1.024,
+        "colour": "#00b6ff",
+        "roughness": 0.1,
+        "ior": 1.5,
+        "rimIor": 1.07,
+        "cloudScale": 2,
+        "cloudDetail": 2,
+        "cloudRoughness": 0.175,
+        "cloudLacunarity": 2.64,
+        "cloudFrom": 0.364,
+        "cloudTo": 0.491,
+        "cloudAmount": 0.2
+      },
+      "sky": {
+        "seed": 1,
+        "reference": 50,
+        "layers": [
+          {
+            "scale": 80,
+            "size": 3
+          },
+          {
+            "scale": 200,
+            "size": 1.9
+          }
+        ],
+        "tint": {
+          "spread": 0.4,
+          "stops": [
+            {
+              "at": 0.005,
+              "colour": "#d8ce96"
+            },
+            {
+              "at": 0.398,
+              "colour": "#d89696"
+            },
+            {
+              "at": 0.491,
+              "colour": "#96ccd8"
+            },
+            {
+              "at": 0.605,
+              "colour": "#ffffff"
+            }
+          ]
+        },
+        "patches": {
+          "scale": 2.7,
+          "strength": 2
+        },
+        "nebula": {
+          "scale": 0.71,
+          "detail": 0.5,
+          "roughness": 0.3,
+          "lacunarity": 20,
+          "from": 0.364,
+          "to": 0.727,
+          "colour": "#222119"
+        }
+      }
     }
   }
 }

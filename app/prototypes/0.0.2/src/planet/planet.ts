@@ -10,6 +10,10 @@
 // The number of octaves follows the pixel's size on the surface (`lodBias`): few when the planet is
 // small, all of them close up, so it's cheap from far and doesn't shimmer.
 //
+// The atmosphere (Blender's "Atmosphere": the same mesh at 1.024, a child of the planet): blue, see-through
+// by Blender's Fresnel (IOR 1.07) plus a share of a cloud noise; specular (roughness 0.1, IOR 1.5): the
+// sun's glint is on it, not on the planet.
+//
 // The planet's frame is Blender's (Z up): `root` turns it into Three's (Y up). Its tilt is Blender's
 // object rotation; `spin` turns it about its own axis (the shot's last cut).
 
@@ -88,6 +92,24 @@ export interface PlanetPreset {
   rimIor: number;
   /** More octaves (+) or fewer (−) than the pixel size asks for. */
   lodBias: number;
+  atmosphere: AtmospherePreset;
+}
+
+export interface AtmospherePreset {
+  /** The shell's size, the planet's radius = 1. */
+  size: number;
+  colour: string;
+  roughness: number;
+  ior: number;
+  /** Its see-through: Blender's Fresnel (this IOR) plus `cloudAmount` × the cloud noise's ramp (`cloudFrom` → `cloudTo`). */
+  rimIor: number;
+  cloudScale: number;
+  cloudDetail: number;
+  cloudRoughness: number;
+  cloudLacunarity: number;
+  cloudFrom: number;
+  cloudTo: number;
+  cloudAmount: number;
 }
 
 export const INTERPOLATION = { coast: 'ease', green: 'ease', ocean: 'linear', band: 'ease' } as const satisfies Record<string, Interpolation>;
@@ -99,7 +121,7 @@ type Vec3Node = THREE.Node<'vec3'>;
  * Blender's fBm (noise_fbm, normalized): octaves 0..floor(detail), the fraction blended in as one more;
  * 0..1. `detail` may change per pixel (the loop's end is a node).
  */
-const fbm = Fn(([p, detail, roughness, lacunarity]: [Vec3Node, FloatNode, FloatNode, FloatNode]) => {
+export const fbm = Fn(([p, detail, roughness, lacunarity]: [Vec3Node, FloatNode, FloatNode, FloatNode]) => {
   const sum = float(0).toVar();
   const amp = float(1).toVar();
   const maxAmp = float(0).toVar();
@@ -117,7 +139,7 @@ const fbm = Fn(([p, detail, roughness, lacunarity]: [Vec3Node, FloatNode, FloatN
 });
 
 /** Blender's Fresnel node (fresnel_dielectric_cos). */
-function fresnel(ior: FloatNode, n: Vec3Node, v: Vec3Node): FloatNode {
+export function fresnel(ior: FloatNode, n: Vec3Node, v: Vec3Node): FloatNode {
   const c = abs(dot(n, v));
   const g2 = ior.mul(ior).sub(1).add(c.mul(c));
   const g = sqrt(max(g2, 0));
@@ -127,13 +149,13 @@ function fresnel(ior: FloatNode, n: Vec3Node, v: Vec3Node): FloatNode {
   return mix(float(1), f, step(0, g2)) as FloatNode;
 }
 
-interface Stops<T> {
+export interface Stops<T> {
   at: THREE.UniformNode<'float', number>[];
   value: T[];
 }
 
 /** A colour ramp from uniforms (the stops' count is fixed; positions and values are live). */
-function ramp<T extends THREE.Node>(f: FloatNode, stops: Stops<THREE.Node>, interpolation: Interpolation): T {
+export function ramp<T extends THREE.Node>(f: FloatNode, stops: Stops<THREE.Node>, interpolation: Interpolation): T {
   let out = stops.value[0]! as Vec3Node;
   for (let i = 1; i < stops.value.length; i++) {
     const p0 = stops.at[i - 1]!;
@@ -150,7 +172,7 @@ function ramp<T extends THREE.Node>(f: FloatNode, stops: Stops<THREE.Node>, inte
 }
 
 /** A seed → an offset in noise space, small enough that 16 octaves keep float precision. */
-function seedOffset(seed: number, salt: number): THREE.Vector3 {
+export function seedOffset(seed: number, salt: number): THREE.Vector3 {
   const h = (n: number) => {
     const x = Math.sin(seed * 127.1 + salt * 311.7 + n * 74.7) * 43758.5453;
     return (x - Math.floor(x)) * 10;
@@ -166,6 +188,7 @@ export interface Planet {
   /** Turns about the planet's own axis (radians, on `spin.rotation.z`). */
   spin: THREE.Group;
   mesh: THREE.Mesh;
+  atmosphere: THREE.Mesh;
   apply(preset: PlanetPreset): void;
   dispose(): void;
 }
@@ -251,10 +274,42 @@ export function createPlanet(preset: PlanetPreset): Planet {
   material.colorNode = surface.add(vec3(fresnel(u.rimIor, normal, toCamera)));
   material.emissiveNode = surface.mul(u.emission);
 
-  const mesh = new THREE.Mesh(planetGeometry(), material);
+  const geometry = planetGeometry();
+  const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'Planet';
+
+  // The atmosphere: the same mesh, scaled (Blender's Generated coordinates are the mesh's own, so the
+  // cloud noise reads the unscaled position, as there).
+  const a = preset.atmosphere;
+  const au = {
+    seed: uniform(seedOffset(preset.seed, 3)),
+    colour: uniform(new THREE.Color(a.colour)),
+    roughness: uniform(a.roughness),
+    ior: uniform(a.ior),
+    rimIor: uniform(a.rimIor),
+    cloudScale: uniform(a.cloudScale),
+    cloudDetail: uniform(a.cloudDetail),
+    cloudRoughness: uniform(a.cloudRoughness),
+    cloudLacunarity: uniform(a.cloudLacunarity),
+    cloudFrom: uniform(a.cloudFrom),
+    cloudTo: uniform(a.cloudTo),
+    cloudAmount: uniform(a.cloudAmount),
+  };
+  const cloud = fbm(gen.add(au.seed).mul(au.cloudScale), au.cloudDetail, au.cloudRoughness, au.cloudLacunarity) as FloatNode;
+  const cloudShare = clamp(cloud.sub(au.cloudFrom).div(max(au.cloudTo.sub(au.cloudFrom), 1e-5)), 0, 1);
+  const airAlpha = clamp(fresnel(au.rimIor, normalView, toCamera).add(cloudShare.mul(au.cloudAmount)), 0, 1);
+  const air = new THREE.MeshPhysicalNodeMaterial({ transparent: true, depthWrite: false });
+  air.colorNode = au.colour;
+  air.roughnessNode = au.roughness;
+  air.iorNode = au.ior;
+  air.metalness = 0;
+  air.opacityNode = airAlpha;
+  const atmosphere = new THREE.Mesh(geometry, air);
+  atmosphere.name = 'Atmosphere';
+  atmosphere.scale.setScalar(a.size);
+
   const spin = new THREE.Group();
-  spin.add(mesh);
+  spin.add(mesh, atmosphere);
   const body = new THREE.Group();
   body.rotation.set(0.41, -0.404, 0.167, 'ZYX'); // Blender's XYZ Euler = Three's ZYX order
   body.add(spin);
@@ -285,6 +340,20 @@ export function createPlanet(preset: PlanetPreset): Planet {
     u.emission.value = next.emission;
     u.rimIor.value = next.rimIor;
     u.lodBias.value = next.lodBias;
+    const na = next.atmosphere;
+    au.seed.value.copy(seedOffset(next.seed, 3));
+    au.colour.value.set(na.colour);
+    au.roughness.value = na.roughness;
+    au.ior.value = na.ior;
+    au.rimIor.value = na.rimIor;
+    au.cloudScale.value = na.cloudScale;
+    au.cloudDetail.value = na.cloudDetail;
+    au.cloudRoughness.value = na.cloudRoughness;
+    au.cloudLacunarity.value = na.cloudLacunarity;
+    au.cloudFrom.value = na.cloudFrom;
+    au.cloudTo.value = na.cloudTo;
+    au.cloudAmount.value = na.cloudAmount;
+    atmosphere.scale.setScalar(na.size);
     const setColours = (target: typeof coast, stops: ColourStop[]) =>
       stops.forEach((s, i) => {
         if (!target.at[i]) return;
@@ -306,10 +375,12 @@ export function createPlanet(preset: PlanetPreset): Planet {
     body,
     spin,
     mesh,
+    atmosphere,
     apply,
     dispose() {
-      mesh.geometry.dispose();
+      geometry.dispose();
       material.dispose();
+      air.dispose();
     },
   };
 }

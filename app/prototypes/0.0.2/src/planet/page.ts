@@ -6,10 +6,14 @@
 import * as THREE from 'three/webgpu';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { createPlanet, type PlanetPreset } from './planet';
+import { createSky, type SkyPreset } from './sky';
+
+/** The shot's look: the planet (with its atmosphere) and the sky. */
+type ShotPreset = PlanetPreset & { sky: SkyPreset };
 
 interface PresetFile {
   default: string;
-  presets: Record<string, PlanetPreset>;
+  presets: Record<string, ShotPreset>;
 }
 
 const STORE = 'zamboni-planet-preset';
@@ -18,10 +22,10 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 let file = (await (await fetch('/__planet/presets')).json()) as PresetFile;
 const defaultPreset = () => clone(file.presets[file.default]!);
 
-function load(): PlanetPreset {
+function load(): ShotPreset {
   try {
     const saved = localStorage.getItem(STORE);
-    if (saved) return { ...defaultPreset(), ...(JSON.parse(saved) as Partial<PlanetPreset>) };
+    if (saved) return { ...defaultPreset(), ...(JSON.parse(saved) as Partial<ShotPreset>) };
   } catch {
     /* none kept, or storage blocked */
   }
@@ -49,6 +53,8 @@ sun.position.set(0.348, 0.625, 0.699).multiplyScalar(10); // Blender's Sun, (0.8
 scene.add(sun);
 
 const planet = createPlanet(preset);
+const sky = createSky(preset.sky);
+scene.add(sky.mesh);
 // Dragging on the planet's page turns it (owner, 2026-11-09): sideways spins it about its own axis
 // (the spin slider follows), up and down tips it towards or away from the camera (`tip`, a view-only
 // turn about the screen's horizontal axis). Double-click resets the tip.
@@ -68,6 +74,7 @@ resize();
 
 function changed(): void {
   planet.apply(preset);
+  sky.apply(preset.sky);
   try {
     localStorage.setItem(STORE, JSON.stringify(preset));
   } catch {
@@ -165,6 +172,41 @@ bandFolder.add(preset.bandNoise, 'from', 0, 1, 0.001).name('noise from').onChang
 bandFolder.add(preset.bandNoise, 'to', 0, 1, 0.001).name('noise to').onChange(changed);
 bandFolder.close();
 
+const air = gui.addFolder('Atmosphere');
+air.add(preset.atmosphere, 'size', 1, 1.2, 0.001).onChange(changed);
+air.addColor(preset.atmosphere, 'colour').onChange(changed);
+air.add(preset.atmosphere, 'roughness', 0, 1, 0.01).name('roughness (glint)').onChange(changed);
+air.add(preset.atmosphere, 'ior', 1, 2.5, 0.01).name('IOR (glint)').onChange(changed);
+air.add(preset.atmosphere, 'rimIor', 1, 2, 0.001).name('rim (Fresnel IOR)').onChange(changed);
+air.add(preset.atmosphere, 'cloudAmount', 0, 1, 0.01).name('clouds').onChange(changed);
+air.add(preset.atmosphere, 'cloudScale', 0.1, 20, 0.01).name('cloud scale').onChange(changed);
+air.add(preset.atmosphere, 'cloudDetail', 0, 8, 0.1).name('cloud detail').onChange(changed);
+air.add(preset.atmosphere, 'cloudRoughness', 0, 1, 0.01).name('cloud roughness').onChange(changed);
+air.add(preset.atmosphere, 'cloudLacunarity', 1, 4, 0.01).name('cloud lacunarity').onChange(changed);
+air.add(preset.atmosphere, 'cloudFrom', 0, 1, 0.001).name('cloud from').onChange(changed);
+air.add(preset.atmosphere, 'cloudTo', 0, 1, 0.001).name('cloud to').onChange(changed);
+air.close();
+
+const stars = gui.addFolder('Stars');
+stars.add(preset.sky, 'seed', 0, 10000, 1).onChange(changed);
+stars.add(preset.sky, 'reference', 10, 180, 1).name('as many as Blender at (mm)').onChange(changed);
+preset.sky.layers.forEach((layer, i) => {
+  stars.add(layer, 'scale', 5, 500, 1).name(`layer ${i + 1} scale`).onChange(changed);
+  stars.add(layer, 'size', 0.5, 10, 0.1).name(`layer ${i + 1} size (px)`).onChange(changed);
+});
+stars.add(preset.sky.patches, 'strength', 0, 6, 0.01).name('brightness').onChange(changed);
+stars.add(preset.sky.patches, 'scale', 0.1, 20, 0.01).name('patch scale').onChange(changed);
+stars.add(preset.sky.tint, 'spread', 0, 1, 0.01).name('tint spread').onChange(changed);
+preset.sky.tint.stops.forEach((stop, i) => {
+  stars.addColor(stop, 'colour').name(`tint ${i + 1}`).onChange(changed);
+  stars.add(stop, 'at', 0, 1, 0.001).name(`tint ${i + 1} from`).onChange(changed);
+});
+stars.addColor(preset.sky.nebula, 'colour').name('nebula colour').onChange(changed);
+stars.add(preset.sky.nebula, 'scale', 0.05, 10, 0.01).name('nebula scale').onChange(changed);
+stars.add(preset.sky.nebula, 'from', 0, 1, 0.001).name('nebula from').onChange(changed);
+stars.add(preset.sky.nebula, 'to', 0, 1, 0.001).name('nebula to').onChange(changed);
+stars.close();
+
 const shading = gui.addFolder('Shading');
 shading.add(preset, 'bump', 0, 1, 0.01).name('coast bump').onChange(changed);
 shading.add(preset, 'emission', 0, 1, 0.01).onChange(changed);
@@ -195,13 +237,14 @@ canvas.addEventListener('dblclick', () => (tip.rotation.x = 0));
 canvas.style.cursor = 'grab';
 
 // Dev hooks for checks.
-Object.assign(window, { __planet: { preset, view, planet, camera, renderer, viewChanged, changed } });
+Object.assign(window, { __planet: { preset, view, planet, sky, camera, renderer, viewChanged, changed } });
 
 let last = performance.now();
 let smoothed = 16;
 renderer.setAnimationLoop((now: number) => {
   smoothed += (now - last - smoothed) * 0.05;
   last = now;
+  sky.update(camera);
   renderer.render(scene, camera);
   info.textContent = `${view.focalLength} mm · ${smoothed.toFixed(1)} ms a frame${message ? ` · ${message}` : ''}`;
 });

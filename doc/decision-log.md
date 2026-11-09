@@ -79,7 +79,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Rationale.** Free zoom, tunable live, reusable from a preset, about 5 ms a frame at 180 mm (headless, 1080p).
 
-**Status.** Pass 1 (the planet, the page) built 2026-11-09. [Plan](plans/features/planet-cinematic.md).
+**Status.** Pass 1 (the planet, the page) built 2026-11-09; pass 2 (atmosphere, stars) the same day: the stars find each star in 8 cells, not Voronoi's 27, for speed. [Plan](plans/features/planet-cinematic.md).
 
 ## [2026-11-07] — Scene files named `NNNN - Type - Description.md` (docs)
 
