@@ -42,6 +42,7 @@ Estimates are build time only; each pass ends with screenshots and a stop for th
 *Check:* screenshots; the gear's feet on the ground at the end.
 
 **Pass 4: the clouds near the ground (one of the options below; 30–60 min).**
+> **[Agent note]** *As built (2026-11-10):* option A, following the owner's `Cloud.blend` (below). Owner's answers: a bank lying there before the ship arrives **and** puffs kicked up by the thrusters; **the clouds needn't be gone by the shot's end** (the next scene is indoors). The first try, lit by the scene's sun, was one flat teal (the sun is behind the clouds from this camera) and its bank hid the ship (the camera is 0.7 m off the ice): now lit from the camera's side as in the file (a panel choice), and small sunk cards on the camera's side, the bigger ones behind the ship. [What exists](../../features/scenery.md). Then (owner, 2026-11-10): brightness 3 (grey under the tone mapping at 1), every size ×0.65; **then switched off for now** (`landingClouds` false; code and data kept).
 
 **Shot 1 (above and behind, the temple coming into view)** is the 2026-11-07 plan's: the treadmill driven by the track (distance and height keys), the temple riding the treadmill until parked. **After pass 1 or with pass 4** (question 1).
 
@@ -55,6 +56,14 @@ The reference's clouds are soft and bright, a bank lying on the ground with the 
 - **D. Soft meshes.** A few lumpy shapes (as the removed cumulus, 2026-10-23) with a soft rim fading to see-through; they match the ship's shapes but read as solid more than as cloud.
 
 Recommendation: **A, with B if the cards need blending into the ice**; C only if A doesn't read.
+
+> **[Agent note]** **How the reference's clouds were made** (owner, 2026-11-10: `Desktop/The Zamboni.archive/Resources/Models/Cloud.blend`, the tool used for the reference image). It is option A's technique, so A can follow it closely:
+> - **The mesh:** one flat card (`Cube`, a single 2×2 face), arrayed into 2 parallel cards 0.19 apart (slight depth). A metaball cluster (`Mball…`) sits beside it, which looks like the source of the normal map.
+> - **The lighting:** a Diffuse BSDF lit by the sun, through a **normal map** (`Resources/Textures/Cloud Normal.png`, 1080²: a baked clump of puffs) whose UVs are wobbled by noise (Mix 0.57) → *Shader to RGB* → a **colour ramp, i.e. toon light**: 0 `(0.02, 0.11, 0.14)` deep teal · 0.10 `(0.06, 0.24, 0.31)` · 0.24 `(0.44, 0.65, 0.50)` sage · 0.40+ `(0.85, 0.81, 0.53)` pale warm yellow (linear values).
+> - **The edge:** alpha = `Cloud Texture.png`'s alpha (608², a round puff; RGB white) × a spherical gradient (object coords) × noise (scale 2, roughness 1, ramp 0→0.63), then a sharp ramp (0→0.21) → mix with Transparent. That gives the soft, frayed rim.
+> - **In the game:** the same graph in TSL on camera-facing cards, the light from the scene's sun direction, the two textures copied into `public/` (not exported from Blender). A few cards per cluster, clusters round the landing spot; the downwash pushes them.
+
+> **[Agent note]** `Cloud.blend`'s `Ghibli Clouds 2` material points at `Downloads/` (missing); the references are in the archive's `Reference/`.
 
 ## The owner's answers (2026-11-10): pass 1 approved
 

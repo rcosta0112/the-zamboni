@@ -4,6 +4,7 @@
 // a little hand-held. The ship's descent and sway are its `ship` keys (offsets from its landed place,
 // Blender's axes: −Y is the nose, +X its left, +Z up); the gear, flames and engine noise its `flight`
 // keys; the camera aims at the ship every half second, a little late, as an operator would.
+// The clouds on the ground (pass 4): the resting bank, the downwash's push, the kicked-up puffs (`clouds`).
 // Run from the prototype folder: `node tools/landing-cutscene.mjs`. Plan: doc/plans/features/landing-cutscene.md
 
 import { writeFileSync } from 'node:fs';
@@ -174,12 +175,134 @@ const flight = flightTimes.map((t) => ({
   planted: t >= TOUCHDOWN ? 1 : 0,
 }));
 
+// --- The clouds (pass 4; owner, 2026-11-10): a bank lying on the ground that the ship comes down
+// into, and puffs kicked up under the thrusters. Drawn as the owner's Cloud.blend draws them (clouds.ts).
+// Everything here is a function of the track's time, so a replay or a skip lands on the same frame.
+// Places in Blender's axes from the ship's landed origin (its gear's feet; the ground ≈ z 0 there).
+// They needn't be gone by the end (owner: the next scene is indoors). ---
+/** The resting bank: this many cards, between these distances from the ship (m). The camera is 0.7 m off
+ *  the ice, so on its side of the ship the cards are small and sunk (`front`: sizes, m; their middles this
+ *  share of their size under the ice): the gear in the cloud, the hull clear; behind the ship, bigger
+ *  (`back`), their middles a share of their size over it. */
+const BANK = { count: 38, near: 4, far: 26, front: { size: [1.4, 2.6], sink: 0.12 }, back: { size: [2.6, 5.5], lift: 0.08 } };
+// Each puff smaller (owner, 2026-11-10): sizes ×0.65 (were front 2.2–4, back 4–8.5, kicked-up 0.8–1.5 → 2–4).
+/** No bank card nearer the camera than this (m): none smeared over the lens. */
+const BANK_CLEAR = 11;
+/** The wind's drift (m/s, Blender X and Y): the whole bank, slowly. */
+const WIND = [0.18, 0.05];
+/** The downwash's push: the bank pushed out from under the ship as the thrust nears the ground.
+ *  `max`: how far a card right under it has gone by the end (m); `radius`: the push falls off over
+ *  this (m, a card this far out moves 37% as far); `ground`: the thrust's reach over the ice (m);
+ *  `drag`: how fast a pushed card slows (1/s). */
+const PUSH = { max: 7, radius: 11, ground: 5, drag: 0.8 };
+/** The kicked-up puffs: about this many, while the nozzles are within `below` m of the ice and the
+ *  flames are on; each rolls out `travel` m (min, max), slowing at `drag` (1/s), growing from
+ *  `size[0]` to `size[1]` (m, at `grow` 1/s), thinning out over `life` s (min, max). */
+const PUFFS = { count: 80, below: 9, travel: [3, 9], drag: 0.9, size: [[0.5, 1], [1.3, 2.6]], grow: 0.7, life: [7, 14] };
+/** Where the thrusters meet the ice, from the landed origin (m): the back pair straight down, the
+ *  front pair down and forward (tools/thruster-flames' nozzles, the turbines turned). */
+const NOZZLES = [
+  { at: [3.6, 2.0], share: 1 },
+  { at: [-3.6, 2.0], share: 1 },
+  { at: [3.0, -3.6], share: FRONT_FLAMES },
+  { at: [-3.0, -3.6], share: FRONT_FLAMES },
+];
+/** The seed: change it for another layout. */
+const CLOUD_SEED = 7;
+
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const random = rng(CLOUD_SEED);
+const between = (a, b) => a + (b - a) * random();
+
+/** The thrust's hold on the ice at `t`: the flames' strength, fading with the nozzles' height. */
+const groundThrust = (t) => lerpKeys(FLAMES, t) * Math.exp(-(NOZZLE_HEIGHT + ship(Math.min(t, TOUCHDOWN)).offset[2]) / PUSH.ground);
+
+// The push: a card driven by the thrust, slowing by drag; scaled so one right under the ship has gone `max`.
+const pushRaw = [];
+{
+  let v = 0;
+  let x = 0;
+  const dt = 0.01;
+  for (let i = 0; i * dt <= DURATION + 1e-9; i++) {
+    const t = i * dt;
+    if (i % 10 === 0) pushRaw.push([round(t, 2), x]);
+    v += (groundThrust(t) - PUSH.drag * v) * dt;
+    x += v * dt;
+  }
+}
+const pushEnd = pushRaw[pushRaw.length - 1][1];
+const push = pushRaw.map(([t, x]) => [t, round((x / pushEnd) * PUSH.max)]);
+
+const bank = [];
+while (bank.length < BANK.count) {
+  // Even over the ring's area (more cards further out), a little thinner right under the camera's sight.
+  const r = Math.sqrt(between(BANK.near ** 2, BANK.far ** 2));
+  const a = between(0, 2 * Math.PI);
+  const x = r * Math.cos(a);
+  const y = r * Math.sin(a);
+  if (Math.hypot(x - camBase[0], y - camBase[1]) < BANK_CLEAR) continue;
+  // On the camera's side of the ship, or behind it (the soft edge hides the cut into the ice).
+  const front = (x * camBase[0] + y * camBase[1]) / Math.hypot(camBase[0], camBase[1]) > 0;
+  const size = front ? between(...BANK.front.size) : between(...BANK.back.size);
+  const z = front ? -size * BANK.front.sink : size * BANK.back.lift;
+  bank.push({ at: [round(x, 2), round(y, 2), round(z, 2)], size: round(size, 2), spin: round(between(0, 2 * Math.PI), 2), turn: round(between(-0.04, 0.04), 3), seed: round(random() * 100, 2) });
+}
+
+// The puffs' births: spread over the thrust near the ice (more where it's stronger), each nozzle by its share.
+const puffs = [];
+{
+  const dt = 0.01;
+  const shares = NOZZLES.reduce((s, n) => s + n.share, 0);
+  let total = 0;
+  for (let t = 0; t <= DURATION; t += dt) if (NOZZLE_HEIGHT + ship(Math.min(t, TOUCHDOWN)).offset[2] < PUFFS.below) total += groundThrust(t) * dt;
+  let sum = 0;
+  let next = 0;
+  for (let i = 0; i * dt <= DURATION; i++) {
+    const t = i * dt;
+    const s = ship(Math.min(t, TOUCHDOWN));
+    if (NOZZLE_HEIGHT + s.offset[2] >= PUFFS.below) continue;
+    sum += (groundThrust(t) * dt * PUFFS.count) / total;
+    while (sum > next) {
+      next += 1;
+      // A nozzle by share; a direction all round, leaning away from under the ship.
+      let pick = random() * shares;
+      const n = NOZZLES.find((z) => (pick -= z.share) <= 0) ?? NOZZLES[0];
+      const out = Math.atan2(n.at[1], n.at[0]);
+      const a = out + between(-1, 1) * between(0.6, Math.PI);
+      const strength = Math.min(1, groundThrust(t) / groundThrust(TOUCHDOWN - 0.2));
+      puffs.push({
+        born: round(t, 2),
+        at: [round(n.at[0] + s.offset[0], 2), round(n.at[1] + s.offset[1], 2)],
+        dir: [round(Math.cos(a), 3), round(Math.sin(a), 3)],
+        travel: round(between(PUFFS.travel[0], PUFFS.travel[1]) * (0.5 + 0.5 * strength), 2),
+        drag: PUFFS.drag,
+        size: [round(between(...PUFFS.size[0]), 2), round(between(...PUFFS.size[1]), 2)],
+        grow: PUFFS.grow,
+        life: round(between(PUFFS.life[0], PUFFS.life[1]), 2),
+        spin: round(between(0, 2 * Math.PI), 2),
+        turn: round(between(-0.3, 0.3), 3),
+        seed: round(random() * 100, 2),
+      });
+    }
+  }
+}
+
 const track = {
   id: 'landing',
   duration: DURATION,
   shots: [{ start: 0, camera: cameraKeys, smooth: true, far: 4000, near: 0.5, seeThrough: 'off', handheld: HANDHELD }],
   ship: shipKeys,
   flight,
+  clouds: { wind: WIND, radius: PUSH.radius, push, bank, puffs },
   speed: 0,
   hide: ['her'],
   events: [],
@@ -188,4 +311,4 @@ const track = {
 
 const out = new URL('../public/cutscenes/landing.json', import.meta.url);
 writeFileSync(out, JSON.stringify(track, null, 1) + '\n');
-console.log(`landing.json: ${DURATION} s, ${shipKeys.length} ship keys, ${cameraKeys.length} camera keys, ${flight.length} flight keys`);
+console.log(`landing.json: ${DURATION} s, ${shipKeys.length} ship keys, ${cameraKeys.length} camera keys, ${flight.length} flight keys, ${bank.length} bank clouds, ${puffs.length} puffs (${puffs[0]?.born}–${puffs[puffs.length - 1]?.born} s)`);

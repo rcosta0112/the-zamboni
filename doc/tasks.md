@@ -1,12 +1,12 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-174**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-175**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
-*Updated 2026-11-10, end of session (the landing cutscene's pass 2 committed); earlier 2026-11-10 (pass 1).*
+*Updated 2026-11-10, end of session (the landing cutscene's pass 4, the clouds, switched off for now; committed); earlier 2026-11-10 (passes 1–3).*
 
 ## Next up
 
-0. **SC-164** · The landing (0600): passes 2 and 3 done (pass 3: the rocking on the gear, made heavier, the gear held still; committed). **Look at the heavier rocking** (?scene=0600, ~9.5–11 s; also: keep the slower rate and stronger damping I added?); then pass 4 (clouds); the other session's 0400 waits on this cutscene. Later: shot 1 now or later, the clouds' option (A–D) and your cloud images. [plan](plans/features/landing-cutscene.md)
+0. **SC-164** · The landing (0600): pass 4, the clouds, built from your `Cloud.blend` and **switched off for now** (your word; the panel's *Landing: clouds › shown* brings them back). Still to look at: the heavier rocking (http://localhost:5202/?scene=0600, ~9.5–11 s). Still open: shot 1 now or later. The other session's 0400 waits on this cutscene. [plan](plans/features/landing-cutscene.md)
 0. **SC-173** · Review the [plan](plans/features/scene-0500-split.md) for 0500 as its own scene after the flyby (0400). Built once 0400 is done.
 1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
@@ -19,6 +19,7 @@
 - [x] **SC-153** · Answered by the owner 2026-11-10: nobody moves; Adam Blue pilots (front seat), Adam Red navigates (back). Script 0200 and its Ink copy say so; the cameras already framed the right bodies.
 - [ ] **SC-169** · 0300's script now says *[Y Get up]* (was *O*). *Get up* is on the interact button today (the pad's right face button, E). Is Y a change of button, and which position: top (Xbox Y) or left (SNES Y)? Not built until answered.
 - [ ] **SC-170** · Script to write (0300): Dr. Kaufman's one-liner after her exchange, and Adam's after their second interaction (a third talk). Placeholders in the game until then. Also Dr. Ogawa's, as before.
+- [ ] **SC-174** · *(when the clouds come back)* The landing's clouds are lit from the camera's upper left, as in your `Cloud.blend`, not by the scene's sun (behind them from this camera: flat teal). Keep the cheat, or move the shot's sun (it would light the ship and belly too)?
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
 
 ## Blender

@@ -390,6 +390,24 @@ export const settings = {
   thrusterGlowTowardCamera: 1.5, // m toward the camera (so the turbine doesn't cut it)
   thrusterGlowFlicker: 0.12, // how much its size jumps (0 = none)
   thrusterGlowFlickerRate: 14, // new sizes per second
+  // The landing's clouds (clouds.ts; owner, 2026-11-10: as the owner's Cloud.blend draws them). Its ramp's
+  // colours (linear there) as the picker shows them.
+  landingClouds: false, // off for now (owner, 2026-11-10); the code and the track's clouds kept
+  cloudShadow: '#275d69', // the ramp at 0: deep teal
+  cloudShadow2: '#458697', // at 0.10
+  cloudMid: '#b1d3bc', // at 0.24: sage
+  cloudLit: '#ede8c0', // at 0.40 and over: pale warm yellow
+  cloudLightFrom: 'camera' as 'camera' | 'sun', // the light on them: as Cloud.blend's (from the camera's upper left), or the scene's sun (behind them in this shot)
+  cloudLight: 1, // the sun's share of the light going into the ramp
+  cloudAmbient: 0.12, // the light from everywhere going into it (the shade's floor)
+  cloudBrightness: 3, // times the ramp's colour: the frame's tone mapping (ACES, exposure 0.85) greyed it at 1 (owner, 2026-11-10: white in the reference, 3 chosen)
+  cloudOpacity: 1,
+  cloudPuffOpacity: 0.9, // the kicked-up puffs', times that
+  cloudSize: 1, // times every card's size
+  cloudSoft: 1.5, // m: they fade out this far before meeting the ice or the ship
+  cloudEdge: 0.35, // the outline's cut in the texture's alpha (lower: fuller)
+  cloudBoil: 0.3, // how much the outline boils
+  cloudBreathe: 0.05, // how fast the noise scrolls (the bands crawl, the outline boils)
   // The ground's material (and its shadows'), from the terrain's file: colours as the picker shows them.
   groundColor: '#59b3ff',
   groundMetalness: 0.384,

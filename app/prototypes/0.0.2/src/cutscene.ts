@@ -10,6 +10,7 @@
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (*Cutscenes*, pass 5)
 
 import * as THREE from 'three/webgpu';
+import type { CloudTrack } from './clouds';
 import { fromBlender, type Command } from './commands';
 import { SWAY_DEG, WAVES } from './watched';
 
@@ -89,6 +90,8 @@ export interface Track {
   ship?: ShipKey[];
   /** The gear, flames and engine noise over time; none: as `settings.shipFlying` has them. */
   flight?: FlightKey[];
+  /** Clouds on the ground round the ship (the landing; clouds.ts draws them); none: no clouds. */
+  clouds?: CloudTrack;
   /** The scenery's speed while it plays, times the terrain's (1 if left out). */
   speed?: number;
   /** Hidden while it plays: `her` (she isn't the ship's child, so she wouldn't sway with it). */
@@ -160,6 +163,11 @@ export class CutscenePlayer {
 
   get playing(): boolean {
     return this.track !== null;
+  }
+
+  /** The ship's own place while one plays (what its keys and the clouds' places are from). */
+  get restFrame(): THREE.Object3D {
+    return this.rest;
   }
 
   /** The flight as the track keys it now (main.ts hands it to the gear, the flames and the noise), or null. */

@@ -23,6 +23,7 @@ import type { Interactable } from './interaction';
 import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { ThrusterFlames } from './flames';
+import { Clouds } from './clouds';
 import { ExteriorLook } from './exterior';
 import { Footsteps } from './footsteps';
 import { crewInteractables, Interaction, respectLocks, shipInteractables, storyInteractables } from './interaction';
@@ -203,6 +204,7 @@ async function start(): Promise<void> {
   // The temple's chord (owner, 2026-11-08), played by the synth where the shaft's `hum` is.
   let chord: { at: THREE.Object3D; synth: Synth; place: ReturnType<GameAudio['placed']> } | null = null;
   let flames: ThrusterFlames | null = null; // behind the turbines in exterior cutscenes
+  const clouds = new Clouds(scene); // on the ground in the landing cutscene
   let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
   let afterWatched: ((skipped: boolean) => void) | null = null; // what a scene's `before` conversation starts at its end (goTo)
@@ -456,7 +458,7 @@ async function start(): Promise<void> {
   const lightColumn = new LightColumn(scene); // cutscene 3's column of light on the horizon (a placeholder)
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -951,6 +953,7 @@ async function start(): Promise<void> {
     const flight = cutscene?.flight ?? null;
     flames?.update(dt, cutscene?.playing ?? false, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, cutscene?.playing ? cutscene.camera : view.camera);
     audio.noiseKeyed = flight?.noise ?? null;
+    clouds.update(cutscene?.track?.clouds ?? null, cutscene?.time ?? 0, cutscene ? cutscene.restFrame : scene, world.sun, cutscene?.playing ? cutscene.camera : view.camera);
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any
     // scene; inside, as the interior is (owner, 2026-10-23: the interior's light unchanged). Not for
     // cutscene 2: its shots are of the cockpit, even when the long lens backs out through a window

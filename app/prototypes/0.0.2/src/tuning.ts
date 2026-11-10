@@ -215,6 +215,23 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   glow.add(settings, 'thrusterGlowTowardCamera', 0, 5, 0.1).name('toward camera (m)');
   glow.add(settings, 'thrusterGlowFlicker', 0, 0.5, 0.01).name('flicker');
   glow.add(settings, 'thrusterGlowFlickerRate', 1, 40, 1).name('flicker: speed');
+  const clouds = flames.addFolder('Landing: clouds');
+  clouds.add(settings, 'landingClouds').name('shown');
+  clouds.addColor(settings, 'cloudShadow').name('ramp 0 (shade)');
+  clouds.addColor(settings, 'cloudShadow2').name('ramp 0.10');
+  clouds.addColor(settings, 'cloudMid').name('ramp 0.24');
+  clouds.addColor(settings, 'cloudLit').name('ramp 0.40 (sun)');
+  clouds.add(settings, 'cloudLightFrom', ['camera', 'sun']).name('light from');
+  clouds.add(settings, 'cloudLight', 0, 3, 0.01).name('light');
+  clouds.add(settings, 'cloudAmbient', 0, 1, 0.01).name('light from everywhere');
+  clouds.add(settings, 'cloudBrightness', 0, 3, 0.01).name('brightness');
+  clouds.add(settings, 'cloudOpacity', 0, 1, 0.01).name('opacity');
+  clouds.add(settings, 'cloudPuffOpacity', 0, 1, 0.01).name('kicked-up puffs: opacity');
+  clouds.add(settings, 'cloudSize', 0.2, 3, 0.05).name('size');
+  clouds.add(settings, 'cloudSoft', 0, 5, 0.05).name('soft against the ground (m)');
+  clouds.add(settings, 'cloudEdge', 0.05, 1, 0.01).name('outline cut');
+  clouds.add(settings, 'cloudBoil', 0, 1, 0.01).name('outline boil');
+  clouds.add(settings, 'cloudBreathe', 0, 0.5, 0.005).name('breathing speed');
   flames.close();
 
   look.add(settings, 'outerDoorsLocked').name('flight: outer doors locked').onChange(onChange.outerDoors);
