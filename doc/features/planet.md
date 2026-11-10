@@ -2,7 +2,7 @@
 
 > **[Agent note]** What exists. The plan and its history: [`plans/features/planet-cinematic.md`](../plans/features/planet-cinematic.md); the decision: *The planet shot procedural, tuned on its own page* in the [decision log](../decision-log.md).
 
-A shot to play **before cutscene 1**: the planet in space, the lens zooming 20 → 180 mm over about 36 s with two jump cuts, the planet turning on the last. **Built so far (2026-11-09): the planet, its atmosphere, the stars and the tuning page.** Not yet: the shot itself, and putting it in the game.
+A shot to play **before cutscene 1**: the planet in space, the lens zooming 20 → 180 mm over about 36 s with two jump cuts, the planet turning on the last. **Built: the planet, its atmosphere, the stars and the tuning page (2026-11-09); the shot in the game as scene 0050 (2026-11-10, below).**
 
 ## The planet (`src/planet/planet.ts`)
 
@@ -44,3 +44,15 @@ http://localhost:5202/planet.html: Blender's camera (8.54 m away, 36 mm sensor) 
 - *Continents*: seed and *New seed*, the height noise, warp, sea level, coast softness, detail bias.
 - One folder per colour ramp (each stop's colour and position), the band, *Atmosphere*, *Stars*, shading.
 - *Save as default*, *Save as new preset…* (written to `presets.json` through the dev server), *Copy preset*, *Load preset*. The last values edited are kept in the browser between reloads; values added to the page since are filled in from the default preset (found 2026-11-10: a kept preset without the patch stops crashed the panel, a black page).
+
+## Scene 0050: the shot in the game (`src/planet/shot.ts`)
+
+The owner's scene 0050, *Spaaaace* (2026-11-10). **A new game plays it first**, then cutscene 1; in dev, http://localhost:5202/?scene=0050.
+- **One shot, 20 → 180 mm**, the camera at Blender's 8.54 m. **The zoom eased in** (owner: faster at the end): its progress is (t / length)² on an even-to-the-eye scale, so it starts still and is fastest at its last frame (`SHOT.ease`; 1 would be even).
+- **The camera orbits** the planet about the screen's vertical, **sped up with the zoom** (owner, 2026-11-10: at a steady 12° over the shot it looked stopped once zoomed in, the zoom swamping it): 0.33°/s at 20 mm, times the focal length's ratio to 20 mm, so 3°/s at 180 mm, about 31° in all, centred on the planet page's view (`SHOT.orbitSpeed`, `orbitFollowsZoom`). The sun stays, so the light moves across.
+- **Length: the zoom's, 36 s** for now (owner: to cut or adjust later). The lens at 12 s is still 26 mm, at 24 s 56 mm, at 30 s 98 mm.
+- **The title *BMTM-640 B*** (`#title-card`): Afacad (the text font), white, 3.6% of the screen's height, centred across; up and down, **halfway between the planet's lowest point and the top of the bottom bar** (owner, 2026-11-10; the planet as it is when the title starts). Typed in from 1.5 s (0.09 s a letter, no sound); **3 s after the last letter, deleted from the end as with a quick backspace** (0.035 s a letter, gone by about 5.7 s; owner, 2026-11-10: no fade).
+- **The black bars** as in every cutscene (owner, 2026-11-10: the mock-up left them out by mistake); the skip prompt as in every cutscene; a skip goes on to cutscene 1. The ship's noise and the wind silent meanwhile.
+- **The look:** the planet page's default preset (`presets.json`, imported: saving a preset there reloads the game page); its own scene and camera, drawn instead of the ship (ACES, exposure 1, as the page); compiled at load, so it starts smoothly. 60 fps headless.
+- The timings are `SHOT` at the top of `shot.ts`. Checked by `tools/planet-shot-probe.js`.
+

@@ -6,7 +6,7 @@
 
 ## Next up
 
-0. **SC-171** · Look at the planet, atmosphere and stars (passes 1–2 of the [planet shot](plans/features/planet-cinematic.md)) at http://localhost:5202/planet.html: tune, save a preset, say "go" for pass 3 (the shot).
+0. **SC-171** · Watch scene 0050 (the planet, [what exists](features/planet.md#scene-0050-the-shot-in-the-game)) at http://localhost:5202/?scene=0050: its length (36 s), the ease, the orbit (12°), the title's timing; the look is the default preset of http://localhost:5202/planet.html.
 0. **SC-164** · Review the [landing cutscene plan](plans/features/landing-cutscene.md) and answer its four questions (turbines down: in the file or the game? cameras by hand or in Blender? the clouds tried or not, which images? shot lengths 6 s / 8 s?).
 0. **SC-153** · Decision: your 1.22 animations have Red navigating and Blue piloting: are SC-16/17 done that way (the animation follows the seat)? (below, *Decision*)
 1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).

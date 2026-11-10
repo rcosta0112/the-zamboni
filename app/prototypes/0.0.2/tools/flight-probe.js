@@ -1,7 +1,7 @@
 // The ship in flight (the flying scene, pass 1: doc/plans/features/flying-scene.md). The game's own
 // mode (its story, from chapter 1). In app/prototypes/0.0.2/:
 //
-//     node tools/probe-01.mjs tools/flight-probe.js --game --shots .export/flight
+//     node tools/probe-01.mjs tools/flight-probe.js --game --query scene=0100 --shots .export/flight
 //
 // About 70 s. A new game: cutscene 1 plays (tools/cutscene-1-probe.js looks at it), a skip ends it; cutscene 2 runs out. Then `chapter-1` from the
 // start: the story's `ship_flying`, the ship's noise, her outfit, the viewport open; each thing the

@@ -1,6 +1,6 @@
 // Cutscene 2, watched (the opening in the cockpit; owner, 2026-10-22). The game's own mode:
 //
-//     node tools/probe-01.mjs tools/opening-probe.js --game --shots .export/opening
+//     node tools/probe-01.mjs tools/opening-probe.js --game --query scene=0100 --shots .export/opening
 //
 // About 60 s. A new game: cutscene 1, skipped; then cutscene 2 plays by itself, nothing
 // pressed: the wide shot of the cockpit first, alone for about 4 s (owner, 2026-10-26; 2 s longer, 2026-10-27), then each

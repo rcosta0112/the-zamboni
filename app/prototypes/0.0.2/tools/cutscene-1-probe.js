@@ -1,7 +1,7 @@
 // Cutscene 1, the ship outside (from the owner's fly-by: doc/plans/features/flying-scene.md). The
 // game's own mode:
 //
-//     node tools/probe-01.mjs tools/cutscene-1-probe.js --game --shots .export/cutscene-1
+//     node tools/probe-01.mjs tools/cutscene-1-probe.js --game --query scene=0100 --shots .export/cutscene-1
 //
 // About 40 s. A new game plays cutscene 1 (black until its first frames are quick: it lifts with the
 // cutscene from its start, and no long frame after): the camera where the fly-by has it (in the ship's own

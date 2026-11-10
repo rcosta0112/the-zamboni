@@ -46,6 +46,25 @@ body {
   pointer-events: none;
 }
 
+/* Scene 0050's title, the planet's name typed in (planet/shot.ts): centred across; up and down, halfway
+   between the planet and the bottom bar (shot.ts sets `top`; owner, 2026-11-10). */
+#title-card {
+  position: fixed;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  color: #fff;
+  font-family: var(--font-text);
+  font-size: 3.6vh;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+#title-card[hidden] {
+  display: none;
+}
+
 /* Every cutscene's black bars (owner, 2026-10-22): the picture cut to 2.39:1, the cinema's widescreen.
    They slide in as a cutscene starts and out as it hands back (main.ts sets .on). Under the dialogue box. */
 #bars i {

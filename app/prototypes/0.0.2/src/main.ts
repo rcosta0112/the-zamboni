@@ -50,6 +50,7 @@ import { Landmarks } from './landmarks';
 import { LightColumn } from './light-column';
 import { Synth } from './synth/synth';
 import { PATCHES } from './synth/presets';
+import { PlanetShot } from './planet/shot';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
@@ -93,7 +94,7 @@ const WIND_FADE_IN = 3;
 const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has('test');
 /**
  * Dev builds, `?scene=<id>`: a new game from that point of the game's order, which then goes on as
- * usual: `cutscene-1` (cutscene 1, the fly-by, then cutscene 2, then chapter 1: as a new game), `opening`
+ * usual: `planet` (scene 0050, the planet from space, then all that follows), `cutscene-1` (cutscene 1, the fly-by, then cutscene 2, then chapter 1: as a new game), `opening`
  * (cutscene 2, then chapter 1), or a scene's id (`chapter-1`, `landed`, the checks'…). A save isn't
  * continued meanwhile. Not in production builds (`import.meta.env.DEV` is false there).
  * The script's scene numbers work too (owner, 2026-11-08: `?scene=0700`), `SCENE_NUMBERS`.
@@ -103,17 +104,18 @@ const ASKED_RAW = import.meta.env.DEV ? new URLSearchParams(location.search).get
  * The script's scene numbers (doc/story/scenes, `NNNN - Type - Description.md`) → the point they start.
  * 0400–0600 have no start of their own yet: they play on the way from chapter 1 to the landed scene.
  */
-const SCENE_NUMBERS: Record<string, string> = { '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0700': 'landed' };
+const SCENE_NUMBERS: Record<string, string> = { '0050': 'planet', '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0700': 'landed' };
 const ASKED = ASKED_RAW ? (SCENE_NUMBERS[ASKED_RAW] ?? ASKED_RAW) : null;
 /** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
 const SAVING = TESTING;
 /** The animatic's parts, before the first scene. */
-const ANIMATIC_STEPS = ['cutscene-1', 'opening'];
+const ANIMATIC_STEPS = ['planet', 'cutscene-1', 'opening'];
 /** Cutscene 2's last shot, outside: the ship changing course (a track, as cutscene 1; owner, 2026-10-28). */
 const OPENING_EXTERIOR = 'cutscene-2-exterior';
 const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
-/** What a new game plays before its first scene: the whole animatic, cutscene 2 only, or nothing. */
-const animaticFrom: 'cutscene-1' | 'opening' | null = ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : TESTING || ASKED ? null : 'cutscene-1';
+/** What a new game plays before its first scene: the whole animatic (from the planet), from cutscene 1, cutscene 2 only, or nothing. */
+const animaticFrom: 'planet' | 'cutscene-1' | 'opening' | null =
+  ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : ASKED === 'planet' ? 'planet' : TESTING || ASKED ? null : 'planet';
 const KEPT: { ink: string; get: () => boolean | string; set: (value: unknown) => void }[] = [
   { ink: 'green_outfit', get: () => settings.outfit, set: (v) => (v === 'jumpsuit' || v === 'parka') && (settings.outfit = v) },
   { ink: 'green_jetpack', get: () => settings.wearingJetpack, set: (v) => typeof v === 'boolean' && (settings.wearingJetpack = v) },
@@ -129,12 +131,13 @@ async function start(): Promise<void> {
   const dialogue = new Dialogue((view) => dialogueBox.show(view), () => audio.play('ui_interact'), () => audio.play('ui_type'));
   const helpEl = document.querySelector<HTMLElement>('#help')!;
   // The animatic after NEW GAME (never shown again: *Continue* goes past it; not in the checks' game):
-  // cutscene 1, the ship outside (`cutscene`, from the owner's fly-by), then cutscene 2 watched in the
+  // scene 0050 (the planet from space: planet/shot.ts, its own scene and camera), cutscene 1, the ship outside (`cutscene`, from the owner's fly-by), then cutscene 2 watched in the
   // ship (`watched`), ending on its exterior shot (`cutscene` again). Each can be skipped: a skip in the
   // conversation skips the exterior shot too.
   const barsEl = document.querySelector<HTMLElement>('#bars')!; // every cutscene's black bars
   const skipPrompt = new SkipPrompt(document.querySelector<HTMLElement>('#skip')!);
-  let animatic: 'cutscene-1' | 'opening' | typeof OPENING_EXTERIOR | null = null; // the part last started
+  let animatic: 'planet' | 'cutscene-1' | 'opening' | typeof OPENING_EXTERIOR | null = null; // the part last started
+  const planetShot = animaticFrom === 'planet' ? new PlanetShot(document.querySelector<HTMLElement>('#title-card')!) : null;
   const playOpening = () => {
     animatic = 'opening';
     void watched?.play('opening', view.camera.aspect).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
@@ -280,7 +283,8 @@ async function start(): Promise<void> {
           void cutscene?.play(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not played:', err));
         };
       // The animatic's data now, so each part starts on the frame it's asked for (no frame of the ship's inside before it).
-      if (animaticFrom === 'cutscene-1') await cutscene.load('cutscene-1').catch((err: unknown) => console.warn('[0.0.2] cutscene 1 not loaded:', err));
+      if (planetShot) await renderer.compileAsync(planetShot.scene, planetShot.camera).catch((err: unknown) => console.warn('[0.0.2] the planet shot not compiled:', err));
+      if (animaticFrom === 'planet' || animaticFrom === 'cutscene-1') await cutscene.load('cutscene-1').catch((err: unknown) => console.warn('[0.0.2] cutscene 1 not loaded:', err));
       if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
       if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
@@ -442,7 +446,7 @@ async function start(): Promise<void> {
   const lightColumn = new LightColumn(scene); // cutscene 3's column of light on the horizon (a placeholder)
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -599,15 +603,14 @@ async function start(): Promise<void> {
       story?.reset();
       void director?.start(firstScene).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
     } else if (director?.current) checkpoint(director.current);
-    if (choice === 'new' && animaticFrom === 'cutscene-1') {
+    if (choice === 'new' && animaticFrom === 'planet' && planetShot) {
       input.consumeSkip(); // the press that started it
-      animatic = 'cutscene-1';
-      blackEl.classList.add('on');
-      black = { time: 0, smooth: 0 };
-      void cutscene?.play('cutscene-1').catch((err: unknown) => {
-        console.warn('[0.0.2] cutscene 1 not played:', err);
-        playOpening();
-      });
+      animatic = 'planet';
+      planetShot.onEnded = () => playCutscene1(); // played out or skipped: cutscene 1 next
+      planetShot.play();
+    } else if (choice === 'new' && animaticFrom === 'cutscene-1') {
+      input.consumeSkip(); // the press that started it
+      playCutscene1();
     } else if (choice === 'new' && animaticFrom === 'opening') {
       input.consumeSkip();
       playOpening();
@@ -622,6 +625,18 @@ async function start(): Promise<void> {
     setTimeout(() => void unmount(startScreen), SCREEN_LEAVES);
   }
 
+  /** Cutscene 1, from black (held while its first frames stall: `black`). */
+  const renderPlanet = () => drawPlanet(renderer, planetShot!);
+  function playCutscene1(): void {
+    animatic = 'cutscene-1';
+    blackEl.classList.add('on');
+    black = { time: 0, smooth: 0 };
+    void cutscene?.play('cutscene-1').catch((err: unknown) => {
+      console.warn('[0.0.2] cutscene 1 not played:', err);
+      playOpening();
+    });
+  }
+
   renderer.setAnimationLoop((now: number) => {
     const dt = Math.min(0.25, (now - last) / 1000);
     last = now;
@@ -633,7 +648,7 @@ async function start(): Promise<void> {
     if (input.padPressed) void audio.unlock();
     // An exterior cutscene: the ship's noise mixed in as the camera zooms in (or comes near, with a fixed
     // lens: `heardNear`), up to nearly its level inside.
-    audio.noiseShare = heardOutside ? (cutscene?.heardNear ?? 1) * settings.cutsceneShipNoiseEnd : 1;
+    audio.noiseShare = planetShot?.playing ? 0 : heardOutside ? (cutscene?.heardNear ?? 1) * settings.cutsceneShipNoiseEnd : 1; // space: silent
     audio.noiseOpen = heardOutside;
     audio.update(dt, heardOutside ? 1 : indoorLight);
     if (!begun) {
@@ -675,17 +690,24 @@ async function start(): Promise<void> {
       input.consumeJump();
       input.consumeInteract();
       input.consumeLook(dt);
-      renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
+      if (planetShot?.playing) renderPlanet();
+      else renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
       return;
     }
 
     // A cutscene: its own camera; she stands still, nothing can be used, the see-through is off.
     watched?.update(view.camera.aspect, dt);
-    const watching = (cutscene?.playing ?? false) || (watched?.playing ?? false);
+    const inSpace = planetShot?.playing ?? false; // scene 0050
+    const watching = inSpace || (cutscene?.playing ?? false) || (watched?.playing ?? false);
     barsEl.classList.toggle('on', watching);
     // Any press shows "Hold X to skip" (with dialogue, only X itself); held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
     const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice, !(cutscene?.playing ?? false) && (watched?.playing ?? false));
-    if (cutscene?.playing) {
+    if (inSpace) {
+      if (skipping) planetShot!.skip();
+      else planetShot!.update(dt, view.camera.aspect);
+      input.consumeJump();
+      input.consumeLook(dt);
+    } else if (cutscene?.playing) {
       if (skipping) cutscene.skip();
       else cutscene.update(dt, view.camera.aspect);
       input.consumeJump();
@@ -798,7 +820,7 @@ async function start(): Promise<void> {
     // Not under the start screen: its music is heard there.
     // An exterior cutscene starts with the wind alone, faded in from its start, and lowered under the
     // ship's noise as the camera zooms in or comes near (owner, 2026-10-24; 2026-11-06).
-    if (begun) wind.update(dt, chest, ship, heardOutside ? Math.min(1, cutscene!.time / WIND_FADE_IN) * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.heardNear) : null);
+    if (begun) wind.update(dt, chest, ship, planetShot?.playing ? 0 : heardOutside ? Math.min(1, cutscene!.time / WIND_FADE_IN) * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.heardNear) : null);
     // Indoors: inside the hull, in front of the bulkheads and the crew quarters' furniture.
     const s = ship;
     view.collide = !inside
@@ -942,10 +964,18 @@ async function start(): Promise<void> {
       chord.place.input.gain.value = settings.templeHumVolume;
       chord.synth.setLight(shaft.intensity);
     }
-    renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
+    if (planetShot?.playing) renderPlanet();
+    else renderer.render(scene, cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : view.camera);
     renderer.getDrawingBufferSize(size);
     stats.frame(dt, size.x, size.y);
   });
+}
+
+/** Scene 0050 drawn instead of the ship: the planet page's look (ACES, exposure 1). */
+function drawPlanet(renderer: THREE.WebGPURenderer, shot: PlanetShot): void {
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1;
+  renderer.render(shot.scene, shot.camera);
 }
 
 function easeTo(value: number, target: number, step: number): number {

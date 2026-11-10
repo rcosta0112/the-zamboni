@@ -81,6 +81,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Status.** Pass 1 (the planet, the page) built 2026-11-09; pass 2 (atmosphere, stars) the same day: the stars find each star in 8 cells, not Voronoi's 27, for speed. [Plan](plans/features/planet-cinematic.md).
 
+*Update 2026-11-10:* the shot is now **scene 0050** as the owner wrote it (`0050 - Cutscene exterior - Spaaaace.md`): **one shot**, not three with jump cuts; the zoom **eased in, fastest at the end** (not even to the eye); **the camera orbits** the planet (not the planet turning); the planet's name typed in below it. It lasts as long as the zoom (36 s for now; owner: to cut or adjust later). In the game before cutscene 1 (`src/planet/shot.ts`).
+
 ## [2026-11-07] — Scene files named `NNNN - Type - Description.md` (docs)
 
 **Context:** the scene files in `doc/story/scenes/` were numbered `01`, `02`…: adding the exterior cutscene before *What's that?* meant renaming the two after it (2026-11-07). The names didn't say what kind of scene a file is, and `05-what's that.md` couldn't carry its title's `?` (not allowed in Windows file names).
