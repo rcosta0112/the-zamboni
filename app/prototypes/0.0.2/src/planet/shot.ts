@@ -18,7 +18,13 @@ import presets from './presets.json';
 
 /** The shot's timing (owner, 2026-11-10: to cut or adjust later). */
 export const SHOT = {
-  /** s: the whole shot, the length of the zoom. */
+  /**
+   * s: before the zoom (owner, 2026-11-10: "1 second at the start before the first line of text"):
+   * the lens at `from`, the orbit already turning at its starting speed; the zoom, the orbit's end and
+   * the title's times all come this much later. The shot's own times below (`t`) start after it.
+   */
+  lead: 1,
+  /** s: the zoom, from the end of the lead. */
   duration: 30, // owner, 2026-11-10: 20% faster than the first 36 s (the title's times unchanged)
   /** mm: the lens at the start and the end. */
   from: 20,
@@ -53,11 +59,16 @@ export const SHOT = {
   titleAt: 1.5,
   titlePerLetter: 0.09,
   titleHold: 3,
-  titlePerDelete: 0.035,
+  titlePerDelete: 0.0175, // owner, 2026-11-10: twice as fast (was 0.035), a key sound per letter deleted
   titleGap: 2,
   /** s: the typing waits this long after a colon (owner, 2026-11-10: *status:* … *unexplored*). */
   titleColonPause: 0.5,
+  /** s: the picture fades to white over the shot's last this long (owner, 2026-11-10; under the bars); cutscene 1 fades in from it (main.ts). */
+  whiteOut: 1.5,
 };
+
+/** s: the whole shot, the lead and the zoom. */
+export const SHOT_LENGTH = SHOT.lead + SHOT.duration;
 
 /** The typed lines, as in the scene file (doc/story/scenes/0050; owner's lines 2 and 3, 2026-11-10). */
 const TITLE = ['BMTM-640 B', 'Status: unexplored', 'A signal of unknown origin was detected.'];
@@ -81,9 +92,9 @@ export class PlanetShot {
   private readonly title: HTMLElement;
   /** Each line: its element, its letters, when it starts typing, when its deleting starts, when it's gone (s). */
   private readonly lines: { el: HTMLDivElement; letters: HTMLSpanElement[]; typedAt: number[]; start: number; deleteAt: number; gone: number }[] = [];
-  /** Letters typed so far (for the key sound). */
-  private typedCount = 0;
-  /** Called for each letter typed while it plays (main.ts: the dialogue's key sound). */
+  /** Letters typed and deleted so far (for the key sound). */
+  private keyCount = 0;
+  /** Called for each letter typed or deleted while it plays (main.ts: the dialogue's key sound). */
   onType: (() => void) | null = null;
   /** The orbit's angle (degrees) at even steps of the shot: its speed follows the zoom (`orbitAt`). */
   private readonly orbitTable: number[] = [];
@@ -147,6 +158,7 @@ export class PlanetShot {
 
   /** The orbit's angle (degrees) at `t` s. */
   private orbitAt(t: number): number {
+    if (t < 0) return this.orbitTable[0]! + SHOT.orbitSpeed * t; // the lead: turning at the start's speed
     const x = (THREE.MathUtils.clamp(t / SHOT.duration, 0, 1) * (this.orbitTable.length - 1));
     const i = Math.min(Math.floor(x), this.orbitTable.length - 2);
     return THREE.MathUtils.lerp(this.orbitTable[i]!, this.orbitTable[i + 1]!, x - i);
@@ -154,7 +166,7 @@ export class PlanetShot {
 
   play(): void {
     this.time = 0;
-    this.typedCount = 0;
+    this.keyCount = 0;
     this.playing = true;
     this.title.hidden = false;
   }
@@ -166,7 +178,7 @@ export class PlanetShot {
   /** Each frame while it plays (also used to set it up before the first frame: `update(0)`). */
   update(dt: number, aspect: number): void {
     if (this.playing) this.time += dt;
-    const t = Math.min(this.time, SHOT.duration);
+    const t = Math.min(this.time, SHOT_LENGTH) - SHOT.lead; // the shot's own time: negative in the lead
     const focal = focalAt(t);
     this.camera.aspect = aspect;
     this.camera.setFocalLength(focal); // also updates the projection
@@ -178,7 +190,7 @@ export class PlanetShot {
     this.sky.update(this.camera);
 
     // The line on now: typed in, held, then deleted from the end (a quick backspace).
-    let typedAll = 0;
+    let keys = 0;
     for (const line of this.lines) {
       const n = line.letters.length;
       const typed = line.typedAt.filter((at) => at <= t).length;
@@ -187,13 +199,16 @@ export class PlanetShot {
       const on = t >= line.start && t <= line.gone;
       line.el.hidden = !on;
       if (on) this.placeTitle(aspect, line.start);
-      typedAll += line.letters.slice(0, typed).filter((span) => span.textContent !== ' ').length;
+      // Keys pressed: the letters typed, and those deleted (spaces silent both ways).
+      const silent = (span: HTMLSpanElement) => span.textContent === ' ';
+      keys += line.letters.slice(0, typed).filter((span) => !silent(span)).length;
+      keys += line.letters.slice(Math.max(0, typed - deleted), typed).filter((span) => !silent(span)).length;
     }
-    // A key sound per letter typed, in play only (not when `time` is set by hand: `update(0)`).
-    if (this.playing && dt > 0 && typedAll > this.typedCount) this.onType?.();
-    this.typedCount = typedAll;
+    // A key sound per letter typed or deleted (at most one a frame), in play only (not when `time` is set by hand: `update(0)`).
+    if (this.playing && dt > 0 && keys > this.keyCount) this.onType?.();
+    this.keyCount = keys;
 
-    if (this.playing && this.time >= SHOT.duration) this.end(false);
+    if (this.playing && this.time >= SHOT_LENGTH) this.end(false);
   }
 
   /**
@@ -202,6 +217,11 @@ export class PlanetShot {
    * placed for each line); the line stays put while it's up. The planet keeps growing: by the third
    * line's end (30 s shot) it reaches the line.
    */
+  /** How far faded to white (0..1): over the last `whiteOut` s. */
+  get white(): number {
+    return THREE.MathUtils.clamp((this.time - (SHOT_LENGTH - SHOT.whiteOut)) / SHOT.whiteOut, 0, 1);
+  }
+
   private placeTitle(aspect: number, at: number): void {
     const h = window.innerHeight;
     const w = window.innerWidth;

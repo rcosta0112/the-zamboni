@@ -50,7 +50,7 @@ import { Landmarks } from './landmarks';
 import { LightColumn } from './light-column';
 import { Synth } from './synth/synth';
 import { PATCHES } from './synth/presets';
-import { PlanetShot, SHOT } from './planet/shot';
+import { PlanetShot, SHOT_LENGTH } from './planet/shot';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
@@ -576,8 +576,9 @@ async function start(): Promise<void> {
   // button. The sound stops with the game. Not before the game has begun: the start screen is up.
   const pausedEl = document.querySelector<HTMLElement>('#paused')!;
   const blackEl = document.querySelector<HTMLElement>('#black')!;
-  /** The black after NEW GAME, while it's up (BLACK_HELD): how long, and the quick frames in a row. */
-  let black: { time: number; smooth: number } | null = null;
+  const whiteEl = document.querySelector<HTMLElement>('#white')!; // scene 0050's end, under the bars
+  /** The black after NEW GAME (or the white after scene 0050), while it's up (BLACK_HELD): how long, the quick frames in a row, which. */
+  let black: { time: number; smooth: number; el: HTMLElement } | null = null;
   let paused = false;
   const setPaused = (on: boolean) => {
     if (!begun) return;
@@ -609,7 +610,7 @@ async function start(): Promise<void> {
     if (choice === 'new' && animaticFrom === 'planet' && planetShot) {
       input.consumeSkip(); // the press that started it
       animatic = 'planet';
-      planetShot.onEnded = () => playCutscene1(); // played out or skipped: cutscene 1 next
+      planetShot.onEnded = () => playCutscene1(whiteEl); // played out or skipped: cutscene 1 next, from white (owner, 2026-11-10)
       planetShot.onType = () => audio.play('ui_type'); // the dialogue's key sound
       planetShot.play();
     } else if (choice === 'new' && animaticFrom === 'cutscene-1') {
@@ -629,12 +630,14 @@ async function start(): Promise<void> {
     setTimeout(() => void unmount(startScreen), SCREEN_LEAVES);
   }
 
-  /** Cutscene 1, from black (held while its first frames stall: `black`). */
+  /** Cutscene 1, from black, or white after scene 0050 (held while its first frames stall: `black`). */
   const renderPlanet = () => drawPlanet(renderer, planetShot!);
-  function playCutscene1(): void {
+  function playCutscene1(from: HTMLElement = blackEl): void {
     animatic = 'cutscene-1';
-    blackEl.classList.add('on');
-    black = { time: 0, smooth: 0 };
+    from.style.opacity = ''; // scene 0050's fade, set each frame, gives way to the class
+    from.style.transition = '';
+    from.classList.add('on');
+    black = { time: 0, smooth: 0, el: from };
     void cutscene?.play('cutscene-1').catch((err: unknown) => {
       console.warn('[0.0.2] cutscene 1 not played:', err);
       playOpening();
@@ -703,12 +706,16 @@ async function start(): Promise<void> {
     watched?.update(view.camera.aspect, dt);
     const inSpace = planetShot?.playing ?? false; // scene 0050
     const watching = inSpace || (cutscene?.playing ?? false) || (watched?.playing ?? false);
-    barsEl.classList.toggle('on', watching);
+    barsEl.classList.toggle('on', watching || black !== null); // kept through the cut from scene 0050's white
     // Any press shows "Hold X to skip" (with dialogue, only X itself); held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
     const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice, !(cutscene?.playing ?? false) && (watched?.playing ?? false));
     if (inSpace) {
       if (skipping) planetShot!.skip();
       else planetShot!.update(dt, view.camera.aspect);
+      if (planetShot!.playing) {
+        whiteEl.style.transition = 'none'; // set each frame: its own fade, not the CSS one (that's for fading out)
+        whiteEl.style.opacity = String(planetShot!.white); // its last seconds: to white
+      }
       input.consumeJump();
       input.consumeLook(dt);
     } else if (cutscene?.playing) {
@@ -727,7 +734,7 @@ async function start(): Promise<void> {
           cutscene!.time = 0;
           cutscene!.update(0, view.camera.aspect);
         }
-        blackEl.classList.remove('on');
+        black.el.classList.remove('on');
         black = null;
       }
     }
@@ -826,7 +833,7 @@ async function start(): Promise<void> {
     // ship's noise as the camera zooms in or comes near (owner, 2026-10-24; 2026-11-06).
     // Scene 0050 (space) is silent until its last WIND_BEFORE_CUT s; the fade then carries on through the
     // cut into cutscene 1 (and the black at its start), not started again.
-    const windTail = planetShot?.playing ? planetShot.time >= SHOT.duration - WIND_BEFORE_CUT : false;
+    const windTail = planetShot?.playing ? planetShot.time >= SHOT_LENGTH - WIND_BEFORE_CUT : false;
     if (windTail || heardOutside) windIn = Math.min(1, windIn + Math.max(0, dt) / WIND_FADE_IN);
     else if (!black) windIn = 0;
     if (begun) wind.update(dt, chest, ship, planetShot?.playing ? windIn : heardOutside ? windIn * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.heardNear) : null);

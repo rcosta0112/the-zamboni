@@ -108,6 +108,23 @@ body {
   transition: none;
 }
 
+/* Scene 0050's end (owner, 2026-11-10): the picture fades to white (planet/shot.ts sets the opacity in
+   its last seconds), held while cutscene 1 gets going (main.ts sets .on, as #black), then fades out.
+   Under the bars, which stay. */
+#white {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease-in-out;
+}
+
+#white.on {
+  opacity: 1;
+  transition: none;
+}
+
 #paused[hidden] {
   display: none;
 }
