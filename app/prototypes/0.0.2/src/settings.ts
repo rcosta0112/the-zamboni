@@ -377,6 +377,19 @@ export const settings = {
   thrusterFlameFlicker: 0.3, // how much each flame dims as it flickers, each on its own (0 = none; owner, 2026-10-24)
   thrusterFlameFlickerLength: 0.15, // share of its length it loses at the flicker's dimmest
   thrusterFlameFlickerRate: 12, // how fast it flickers (noise cells per second)
+  // The landing's painted bloom per nozzle (owner, 2026-11-10: the reference's white-hot core in a warm orange-pink halo).
+  thrusterGlow: true,
+  thrusterGlowCoreColor: '#fff6ec',
+  thrusterGlowHaloColor: '#ff8a6a',
+  thrusterGlowSize: 0.3, // share of the screen's height (a back nozzle, at the flames' full strength)
+  thrusterGlowFront: 0.7, // the front pair's size, times the back's
+  thrusterGlowCore: 0.16, // the core's share of the sprite
+  thrusterGlowHalo: 1.1, // the halo's brightness
+  thrusterGlowOut: 1.2, // m out of the nozzle, along the flame (a back nozzle)
+  thrusterGlowOutFront: 0.1, // the same for the front pair: at the nozzle (owner, 2026-11-10: further down, its core floated on the flame)
+  thrusterGlowTowardCamera: 1.5, // m toward the camera (so the turbine doesn't cut it)
+  thrusterGlowFlicker: 0.12, // how much its size jumps (0 = none)
+  thrusterGlowFlickerRate: 14, // new sizes per second
   // The ground's material (and its shadows'), from the terrain's file: colours as the picker shows them.
   groundColor: '#59b3ff',
   groundMetalness: 0.384,

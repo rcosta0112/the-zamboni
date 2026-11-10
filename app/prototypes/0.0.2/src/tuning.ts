@@ -202,6 +202,19 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   flames.add(settings, 'thrusterFlameFlicker', 0, 1, 0.01).name('flicker');
   flames.add(settings, 'thrusterFlameFlickerLength', 0, 0.9, 0.01).name('flicker: length lost');
   flames.add(settings, 'thrusterFlameFlickerRate', 0, 60, 0.5).name('flicker: speed');
+  const glow = flames.addFolder('Landing: bloom per nozzle');
+  glow.add(settings, 'thrusterGlow').name('shown');
+  glow.addColor(settings, 'thrusterGlowCoreColor').name('core');
+  glow.addColor(settings, 'thrusterGlowHaloColor').name('halo');
+  glow.add(settings, 'thrusterGlowSize', 0, 0.5, 0.005).name('size (share of screen)');
+  glow.add(settings, 'thrusterGlowFront', 0, 2, 0.05).name('front pair: size');
+  glow.add(settings, 'thrusterGlowCore', 0.05, 1, 0.01).name('core size');
+  glow.add(settings, 'thrusterGlowHalo', 0, 3, 0.05).name('halo brightness');
+  glow.add(settings, 'thrusterGlowOut', 0, 3, 0.05).name('out of the nozzle (m)');
+  glow.add(settings, 'thrusterGlowOutFront', 0, 3, 0.05).name('front pair: out of the nozzle (m)');
+  glow.add(settings, 'thrusterGlowTowardCamera', 0, 5, 0.1).name('toward camera (m)');
+  glow.add(settings, 'thrusterGlowFlicker', 0, 0.5, 0.01).name('flicker');
+  glow.add(settings, 'thrusterGlowFlickerRate', 1, 40, 1).name('flicker: speed');
   flames.close();
 
   look.add(settings, 'outerDoorsLocked').name('flight: outer doors locked').onChange(onChange.outerDoors);

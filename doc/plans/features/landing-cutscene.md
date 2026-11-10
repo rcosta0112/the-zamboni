@@ -1,6 +1,6 @@
 # Plan: the landing cutscene (0600)
 
-*Written 2026-11-07; **rewritten 2026-11-10 from the owner's reference and notes** (the 2026-11-07 version is in git). **Pass 1 built and approved 2026-11-10** (the framing moved by the owner: the ship ends just left of the middle) ([what exists](../../features/scenery.md)); passes 2–4 for later. Replaces the placeholder landing shot (`public/cutscenes/landing.json`, [landed scene plan](landed-scene.md) pass 2) and is pass 6 of [the flying scene](flying-scene.md).*
+*Written 2026-11-07; **rewritten 2026-11-10 from the owner's reference and notes** (the 2026-11-07 version is in git). **Pass 1 built and approved 2026-11-10** (the framing moved by the owner: the ship ends just left of the middle) ([what exists](../../features/scenery.md)); **pass 2 built 2026-11-10**, the owner's to look at; passes 3–4 for later. Replaces the placeholder landing shot (`public/cutscenes/landing.json`, [landed scene plan](landed-scene.md) pass 2) and is pass 6 of [the flying scene](flying-scene.md).*
 
 ## What it is
 
@@ -36,6 +36,7 @@ Estimates are build time only; each pass ends with screenshots and a stop for th
 
 **Pass 2: the engines down, the flames' bloom (about 30 min).** The four turbines turned down (keyed on the track: `turbines` 0 → 1 before the shot starts, or turning in shot; question 3), the flames split and turned with them, the painted bloom per nozzle. What happens after touchdown: question 4.
 *Check:* screenshots; the turbines' collision boxes where the landed scene expects them.
+> **[Agent note]** *As built (2026-11-10):* the track's `turbines` (back 90°; front 115°, flames down and forward, 5° toward straight down per degree of nose-down pitch: the owner's correction of the first build, 62° with the flames down and back), `front` (0.6), `reach` (the flames shortened to end 0.3 m over the ice) and `glow` keys; the shot lengthened to 16 s (owner: the turbines turn back in it, 11–15 s). Each flame cone its own mesh on its turbine; the bloom as sprites (`flames.ts`). The collision boxes aren't the turbines' children in the game and the turbines are back at rest when the landed scene takes over: nothing to move. Probes: landed 17/17; the turbines at rest after the shot. First glow: the front pair's, dimmed by their 0.6, vanished against the sky; both pairs now at the same brightness, the front smaller. The owner's look: too small, a circle above the flame: now 0.3 of the screen's height, centred 1.2 m down the flame. [What exists](../../features/scenery.md).
 
 **Pass 3: the gear unfolding, the rocking (about 30 min after the file's ready).** The gear played from the file (question 2) over the last 4–5 s before touchdown; the settle: on touchdown the ship dips about 5 cm and tips a degree or two, springing back in two or three fading rocks over about 1.5 s (a damped spring on the ship's height and tilt, in code; tunable on the panel).
 *Check:* screenshots; the gear's feet on the ground at the end.
@@ -60,7 +61,8 @@ Recommendation: **A, with B if the cards need blending into the ice**; C only if
 - **The turbines balance the ship:** its back half is heavier, so **the back pair does most of the lifting** (pointing straight down, the strongest flames) **and the front pair keeps it upright** (less tilted down, smaller flames, correcting as it rocks). The animation shows it (pass 2).
 - **The bloom:** the reference's colour (a white-hot core in a warm orange-pink halo). **The flames flare up as the ship slows down** (keyed from pass 1: the flames' strength rises through the braking, then dies at touchdown).
 - **The gear:** designed to move only up and down: **the existing slide is all it needs**, keyed on the track (no Blender work; question 2 answered). Pass 3 is the rocking alone.
-- Questions 1, 3–6 still open.
+- **The turbines are already down when the shot starts** (question 3), and **after touchdown they turn back slowly once the engines are off** (question 4; owner, 2026-11-10): the landed scene has them as now, pointing back. The shot ends 1.5 s after touchdown: the slow turn needs the shot lengthened (a few seconds), or it finishes in the landed scene after the hand-back; settle it in pass 2.
+- Questions 1, 5, 6 still open.
 
 ## Questions for the owner
 

@@ -58,6 +58,14 @@ export interface FlightKey {
   flames: number;
   /** The engine noise, 0..1. */
   noise: number;
+  /** Degrees the back and front turbines are turned down (none: at rest). */
+  turbines?: [number, number];
+  /** The front pair's share of the flames' strength (none: 1). */
+  front?: number;
+  /** The flames' length, times the file's (none: 1; shortened near the ground). */
+  reach?: number;
+  /** The painted bloom per nozzle, times its level (none: 0). */
+  glow?: number;
 }
 
 /** The ship's pose off its own, in its file's Blender coordinates. */
@@ -153,7 +161,8 @@ export class CutscenePlayer {
     const keys = this.track?.flight;
     if (!keys?.length) return null;
     const at = (get: (k: FlightKey) => number) => sample(keys, this.time, get, false);
-    return { gear: at((k) => k.gear), flames: at((k) => k.flames), noise: at((k) => k.noise) };
+    const turbines: [number, number] | undefined = keys[0]!.turbines ? [at((k) => k.turbines?.[0] ?? 0), at((k) => k.turbines?.[1] ?? 0)] : undefined;
+    return { gear: at((k) => k.gear), flames: at((k) => k.flames), noise: at((k) => k.noise), turbines, front: at((k) => k.front ?? 1), reach: at((k) => k.reach ?? 1), glow: at((k) => k.glow ?? 0) };
   }
 
   /** 0..1: how far the shot playing has zoomed in, from its first key's lens to its narrowest (the sound's mix: main.ts). */

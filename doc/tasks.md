@@ -2,12 +2,11 @@
 
 > **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-174**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
-*Updated 2026-11-08 (end of session: the hologram built).*
+*Updated 2026-11-10 (the landing cutscene's pass 2 built); earlier 2026-11-10 (pass 1).*
 
 ## Next up
 
-0. **SC-171** · Watch scene 0050 (the planet, [what exists](features/planet.md#scene-0050-the-shot-in-the-game)) at http://localhost:5202/?scene=0050: its length (36 s), the ease, the orbit (12°), the title's timing; the look is the default preset of http://localhost:5202/planet.html.
-0. **SC-164** · Look at the landing's pass 1 (http://localhost:5202/?scene=0600: the angle, the descent, the hand-held, the flames flaring) and answer the [plan](plans/features/landing-cutscene.md)'s open questions (shot 1 now or later? turbines down from the start or turning? after touchdown down or back? which clouds option, which images? ~10 s descent: it's 11 s with the landing). Pass 2 (turbines down, bloom) next.
+0. **SC-164** · The landing (0600): **pass 2 built, yours to look at** at http://localhost:5202/?scene=0600 (turbines down and balancing, flames turned and shortened near the ground, a bloom per nozzle, the turbines turning back 11–15 s; 16 s now). The other session's 0400 waits on this. Then pass 3 (rocking on the gear). Later: shot 1 now or later, the clouds' option (A–D) and your cloud images. [plan](plans/features/landing-cutscene.md)
 0. **SC-173** · Review the [plan](plans/features/scene-0500-split.md) for 0500 as its own scene after the flyby (0400). Built once 0400 is done.
 1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)

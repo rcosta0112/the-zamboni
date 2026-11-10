@@ -229,7 +229,8 @@ async function start(): Promise<void> {
       roomLights = new RoomLights(scene, markers);
       roomLights.update(character.position, 0);
       console.info(`[0.0.2] room lights: ${markers.map((m) => m.name).join(', ')}`);
-      flames = await ThrusterFlames.load(s.object).catch((err: unknown) => {
+      const turbineNodes = s.turbines.map((t) => t.node);
+      flames = await ThrusterFlames.load(s.object, scene, turbineNodes, s.turbines.filter((t) => t.front).map((t) => t.node)).catch((err: unknown) => {
         console.warn('[0.0.2] thruster flames not shown:', err);
         return null;
       });
@@ -781,6 +782,7 @@ async function start(): Promise<void> {
       if (ship) {
         // A cutscene that keys the flight (the landing) moves the gear itself.
         ship.gearRaised = cutscene?.flight?.gear ?? null;
+        ship.turbinesDown = cutscene?.flight?.turbines ?? null;
         updateShip(ship, STEP, false, pusher);
       }
       accumulator -= STEP;
@@ -940,7 +942,7 @@ async function start(): Promise<void> {
     updateWorld(world, scene, character.root.position, indoorLight, landed ? LANDED_SUN_BACK : 30, landed ? settings.shadowRangeLanded : settings.shadowRangeOutdoors);
     // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
     const flight = cutscene?.flight ?? null;
-    flames?.update(cutscene?.playing ?? false, flight?.flames ?? null);
+    flames?.update(dt, cutscene?.playing ?? false, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, cutscene?.playing ? cutscene.camera : view.camera);
     audio.noiseKeyed = flight?.noise ?? null;
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any
     // scene; inside, as the interior is (owner, 2026-10-23: the interior's light unchanged). Not for

@@ -27,10 +27,14 @@ import { settings } from './settings';
 const SHIP_URL = '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 /** The ship's collider in its file; every other mesh there is a collision box. */
+const DEG = Math.PI / 180;
+const SHIP_X = new THREE.Vector3(1, 0, 0);
 const COLLIDER = 'zamboni_col';
 const CARGO_FLOOR = ['Floor Bottom', 'Floor_Bottom'];
 /** Raised while the ship flies (`settings.landingGearUp`). */
 export const LANDING_GEAR = ['Landing Gear Back Left', 'Landing Gear Back Right', 'Landing Gear Front'];
+/** The turbines (pivoted near their middles): the back pair, the front pair. A cutscene turns them down (the landing). */
+export const TURBINES = { back: ['Turbine Left', 'Turbine Right'], front: ['Turbine.001', 'Turbine.002'] };
 
 const RAMP_SECONDS = 1.5; // time to open or close
 
@@ -156,6 +160,10 @@ export interface Ship {
   gearRaised: number | null;
   /** The cargo floor's top, in the ship's space. */
   cargoFloorY: number;
+  /** The turbines and their rest turn (pointing back). Each casts its own shadow. */
+  turbines: { node: THREE.Object3D; rest: THREE.Quaternion; front: boolean }[];
+  /** Degrees the back and front pairs are turned down as a cutscene keys them, or null: at rest (main.ts). */
+  turbinesDown: [number, number] | null;
 }
 
 /** Layer of the merged shadow caster: the sun's shadow camera renders it, the view camera doesn't. */
@@ -278,6 +286,11 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   const doors = createDoors(object, physics, hingeAt, entities);
   for (const door of doors) door.units.push(...cutUnits.filter((u) => isInside(u.object, door.hinge)));
   for (const unit of cutUnits) if (unit.bulkhead && !unit.attachedTo) unit.cameraWall = true;
+  const turbines: Ship['turbines'] = [];
+  object.traverse((node) => {
+    const front = TURBINES.front.some((name) => named(node, name));
+    if (front || TURBINES.back.some((name) => named(node, name))) turbines.push({ node, rest: node.quaternion.clone(), front });
+  });
   const landingGear: Ship['landingGear'] = [];
   object.traverse((node) => {
     if (!LANDING_GEAR.some((name) => named(node, name))) return;
@@ -333,10 +346,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
         return ship.rampAmount;
       },
     },
-    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
+    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node), ...turbines.map((t) => t.node)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
     interiorMovingCasters: [],
     landingGear,
     gearRaised: null,
+    turbines,
+    turbinesDown: null,
     cargoFloorY: object.worldToLocal(new THREE.Vector3(0, floorBox.max.y, 0)).y,
   };
   entities.of(rampDoor)?.components.push(ship.rampState);
@@ -641,6 +656,11 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
     const up = ship.gearRaised !== null ? ship.gearRaised * settings.landingGearUp : settings.shipFlying ? settings.landingGearUp : 0;
     gear.node.position.y = gear.restY + up;
     gear.above.value = up > 0 ? ship.cargoFloorY - gear.node.position.y : Infinity;
+  }
+  // Turned about the ship's cross axis (its x) through each one's pivot; down: the flames from back to down.
+  for (const t of ship.turbines) {
+    const down = ship.turbinesDown ? ship.turbinesDown[t.front ? 1 : 0] : 0;
+    t.node.quaternion.setFromAxisAngle(SHIP_X, -down * DEG).multiply(t.rest);
   }
   if (pusher) updateAutoDoors(ship.doors, pusher.feet(), settings.zamboniHeight);
   for (const door of ship.doors) door.update(dt, force, pusher);

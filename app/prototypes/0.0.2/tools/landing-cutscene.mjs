@@ -9,7 +9,8 @@
 import { writeFileSync } from 'node:fs';
 
 // --- Timing (s) ---
-const DURATION = 11;
+/** Lengthened for the turbines turning back after touchdown (owner, 2026-11-10). */
+const DURATION = 16;
 /** The gear's feet touch the ground. */
 const TOUCHDOWN = 9.5;
 /** The gear comes down between these. */
@@ -30,6 +31,26 @@ const NOSE_UP = 2.5;
 const FLAMES = [[0, 0.7], [3, 0.8], [6.5, 1.5], [9.2, 1.7], [9.9, 0]];
 /** The engine noise: on, faded out after touchdown. */
 const NOISE = [[0, 1], [TOUCHDOWN, 1], [TOUCHDOWN + 1.5, 0]];
+
+// --- The turbines (pass 2; owner, 2026-11-10): down from the shot's start, balancing the ship ---
+/** The back pair, degrees down: straight down, doing the lifting (the heavier back half). */
+const BACK_DOWN = 90;
+/** The front pair: past straight down, its flames down and forward (owner, 2026-11-10: facing forward
+ *  to balance the ship); correcting as it rocks: toward straight down as the nose dips (degrees per
+ *  degree of the ship's pitch, nose down positive). */
+const FRONT_DOWN = 115;
+const FRONT_CORRECTS = -5;
+/** The front pair's share of the flames' strength (smaller flames). */
+const FRONT_FLAMES = 0.6;
+/** After touchdown, once the engines are off, they turn back slowly (owner): between these (s). */
+const TURN_BACK = [11, 15];
+/** The flames' length near the ground: shortened so the back pair's cones (7.6 m) end about this far
+ *  above the ice (m); the nozzles are about 3.5 m over the gear's feet, pointing down. */
+const NOZZLE_HEIGHT = 3.5;
+const BACK_CONE = 7.58;
+const CLEARANCE = 0.3;
+/** The painted bloom's level (it flares with the flames' strength in the game). */
+const GLOW = 1;
 
 // --- The camera (the reference's angle) ---
 /** Its place from the ship's landed centre: this far, this many degrees round from its side toward its nose, this high
@@ -106,7 +127,28 @@ const lerpKeys = (pairs, t) => {
   for (let i = 1; i < p.length; i++) if (t <= p[i][0]) return p[i - 1][1] + ((p[i][1] - p[i - 1][1]) * (t - p[i - 1][0])) / (p[i][0] - p[i - 1][0]);
   return p[p.length - 1][1];
 };
-const flight = flightTimes.map((t) => ({ t: round(t, 2), gear: round(1 - smooth(GEAR[0], GEAR[1], t)), flames: round(lerpKeys(FLAMES, t)), noise: round(lerpKeys(NOISE, t)) }));
+// The turbines and the flames' reach every quarter second (the front pair follows the sway).
+for (let t = 0; t <= DURATION + 1e-9; t += 0.25) if (!flightTimes.includes(round(t, 2))) flightTimes.push(round(t, 2));
+flightTimes.sort((a, b) => a - b);
+const turbines = (t) => {
+  const back = 1 - smooth(TURN_BACK[0], TURN_BACK[1], t);
+  const pitch = t < TOUCHDOWN ? ship(t).tilt[0] : 0;
+  return [round(BACK_DOWN * back, 2), round((FRONT_DOWN + FRONT_CORRECTS * pitch) * back, 2)];
+};
+const reach = (t) => {
+  const height = ship(Math.min(t, TOUCHDOWN)).offset[2];
+  return round(Math.min(1, (NOZZLE_HEIGHT + height - CLEARANCE) / BACK_CONE));
+};
+const flight = flightTimes.map((t) => ({
+  t: round(t, 2),
+  gear: round(1 - smooth(GEAR[0], GEAR[1], t)),
+  flames: round(lerpKeys(FLAMES, t)),
+  noise: round(lerpKeys(NOISE, t)),
+  turbines: turbines(t),
+  front: FRONT_FLAMES,
+  reach: reach(t),
+  glow: GLOW,
+}));
 
 const track = {
   id: 'landing',
