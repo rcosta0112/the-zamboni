@@ -18,6 +18,7 @@
 // object rotation; `spin` turns it about its own axis (the shot's last cut).
 
 import * as THREE from 'three/webgpu';
+import { grainOutput } from './grain';
 import {
   abs,
   clamp,
@@ -274,6 +275,7 @@ export function createPlanet(preset: PlanetPreset): Planet {
   material.normalNode = normal;
   material.colorNode = surface.add(vec3(fresnel(u.rimIor, normal, toCamera)));
   material.emissiveNode = surface.mul(u.emission);
+  material.outputNode = grainOutput();
 
   const geometry = planetGeometry();
   const mesh = new THREE.Mesh(geometry, material);
@@ -305,6 +307,7 @@ export function createPlanet(preset: PlanetPreset): Planet {
   air.iorNode = au.ior;
   air.metalness = 0;
   air.opacityNode = airAlpha;
+  air.outputNode = grainOutput();
   const atmosphere = new THREE.Mesh(geometry, air);
   atmosphere.name = 'Atmosphere';
   atmosphere.scale.setScalar(a.size);

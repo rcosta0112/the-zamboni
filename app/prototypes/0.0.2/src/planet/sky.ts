@@ -20,6 +20,7 @@
 import * as THREE from 'three/webgpu';
 import { cameraPosition, clamp, dot, exp2, float, floor, Fn, fract, If, length, max, mix, normalize, positionWorld, uniform, vec3 } from 'three/tsl';
 import { fbm, ramp, seedOffset, type ColourStop } from './planet';
+import { grainOutput } from './grain';
 
 export interface SkyPreset {
   seed: number;
@@ -136,6 +137,7 @@ export function createSky(preset: SkyPreset): Sky {
 
   const material = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false });
   material.colorNode = sky;
+  material.outputNode = grainOutput();
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), material);
   mesh.name = 'Sky';
   mesh.frustumCulled = false;

@@ -3,7 +3,7 @@
 //     node tools/probe-01.mjs tools/planet-shot-probe.js --game --shots .export/planet-shot
 //
 // A new game plays the planet shot first (the bars on), the title typed in, a screenshot at several times
-// (set by hand), then skipped: cutscene 1 next. Runs in the page (probe-01.mjs).
+// (set by hand); the wind in its last 2 s carried into cutscene 1, which follows. Runs in the page (probe-01.mjs).
 
 const results = [];
 const THREE_deg = (p) => (Math.atan2(p.x, p.z) * 180) / Math.PI;
@@ -22,20 +22,60 @@ for (const end = performance.now() + 3000; performance.now() < end; ) {
 }
 report(slow <= 2, 'its first 3 s run smoothly', `${frames} frames, ${slow} over 50 ms; time ${shotP.time.toFixed(2)} s`);
 const title = document.querySelector('#title-card');
-const shownLetters = () => [...title.children].filter((c) => c.style.visibility === 'visible').length;
-report(!title.hidden && shownLetters() === 10 && title.style.opacity === '', 'the title typed in (no fade)', `${shownLetters()} letters at ${shotP.time.toFixed(2)} s`);
-await until(() => shotP.time > 5.45, 5000);
-const midway = shownLetters();
-await until(() => shotP.time > 6, 5000);
-report(midway > 0 && midway < 10 && shownLetters() === 0, 'deleted from the end 3 s after typing', `${midway} letters at 5.45 s, ${shownLetters()} at 6 s`);
-for (const t of [0, 4, 12, 20, 24, 30, 34.5, 35.5]) {
+const shownLetters = () => [...title.querySelectorAll('span')].filter((c) => c.style.visibility === 'visible').length;
+const lines = [...title.children].map((d) => d.textContent);
+report(!title.hidden && lines.length === 3 && lines[0] === 'BMTM-640 B', 'three lines', lines.join(' / '));
+// One at a time (the first already typed when this starts, so its hold isn't measured): each typed, held 3 s, deleted from the end, the next 2 s after it's gone; a key sound per letter.
+let sounds = 0;
+const played = w.__audio.play.bind(w.__audio);
+w.__audio.play = (id, ...rest) => { if (id === 'ui_type') sounds++; return played(id, ...rest); };
+const timeline = [];
+for (const [i, el] of [...title.children].entries()) {
+  const spans = [...el.querySelectorAll('span')];
+  const shown = () => spans.filter((s) => s.style.visibility === 'visible').length;
+  await until(() => !el.hidden && shown() > 0, 15000);
+  const start = shotP.time;
+  const othersHidden = [...title.children].every((d, j) => j === i || d.hidden);
+  await until(() => shown() === spans.length, 6000);
+  const typed = shotP.time;
+  await until(() => shown() < spans.length, 6000);
+  const deleting = shotP.time;
+  const lastFirst = spans.at(-1).style.visibility === 'hidden' && spans[0].style.visibility === 'visible';
+  await until(() => el.hidden, 6000);
+  timeline.push({ start, typed, deleting, gone: shotP.time, othersHidden, lastFirst });
+}
+const gaps = timeline.slice(1).map((l, i) => l.start - timeline[i].gone);
+report(timeline.every((l, i) => l.othersHidden && l.lastFirst && (i === 0 || Math.abs(l.deleting - l.typed - 3) < 0.2)) && gaps.every((g) => Math.abs(g - 2) < 0.2),
+  'one line at a time: held 3 s, deleted from the end, the next 2 s later', timeline.map((l) => `${l.start.toFixed(1)}–${l.gone.toFixed(1)} s`).join(', ') + `; gaps ${gaps.map((g) => g.toFixed(2)).join(', ')}`);
+const letters = 'Status:unexploredAsignalofunknownoriginwasdetected.'.length; // lines 2 and 3 (the first began before the count)
+report(sounds >= letters && sounds <= letters + 9, 'a key sound per letter', `${sounds} sounds, ${letters} letters`);
+w.__audio.play = played;
+// Held at each time while it's taken (played on, it would end before the last one).
+const advance = shotP.update.bind(shotP);
+shotP.update = (dt, aspect) => advance(0, aspect);
+for (const t of [2, 9, 12, 15.5, 17, 20, 24, 28.5, 29.99]) {
   shotP.time = t;
-  shotP.update(0, w.__view.camera.aspect);
+  advance(0, w.__view.camera.aspect);
   await wait(400);
   await shot(`t${String(t).padStart(4, '0')}`);
   results.push(`  t ${t} s: ${shotP.camera.getFocalLength().toFixed(1)} mm, orbit ${THREE_deg(shotP.camera.position).toFixed(1)}°`);
 }
-shotP.skip();
+shotP.update = advance;
+// The wind: silent in space until 2 s before the end, then fading in, on through the cut into cutscene 1
+// without dropping back (owner, 2026-11-10).
+const end = 30;
+shotP.time = end - 4;
+await until(() => shotP.time > end - 2.5, 4000);
+const before = w.__wind.level;
+await until(() => shotP.time > end - 0.1, 4000);
+const atCut = w.__wind.level;
 await until(() => w.__cutscene().playing, 5000);
-report(!shotP.playing && w.__cutscene().track?.id === 'cutscene-1' && title.hidden, 'skipped: cutscene 1 plays, the title gone', w.__cutscene().track?.id);
+const after = [];
+for (const stop = performance.now() + 1500; performance.now() < stop; ) {
+  await new Promise(requestAnimationFrame);
+  after.push(w.__wind.level);
+}
+const dropped = Math.min(...after) < atCut - 0.02;
+report(before === 0 && atCut > 0.4 && !dropped && after.at(-1) > atCut, 'the wind: silent until 2 s before the end, carried on into cutscene 1', `${before.toFixed(2)} at ${end - 2.5} s, ${atCut.toFixed(2)} at the cut, ${Math.min(...after).toFixed(2)}–${after.at(-1).toFixed(2)} in cutscene 1's first 1.5 s`);
+report(!shotP.playing && w.__cutscene().track?.id === 'cutscene-1' && title.hidden, 'played out: cutscene 1 plays, the title gone', w.__cutscene().track?.id);
 return results.join('\n');

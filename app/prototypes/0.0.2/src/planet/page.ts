@@ -7,9 +7,10 @@ import * as THREE from 'three/webgpu';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { createPlanet, type PlanetPreset } from './planet';
 import { createSky, type SkyPreset } from './sky';
+import { applyGrain, GRAIN_OFF, type GrainPreset } from './grain';
 
-/** The shot's look: the planet (with its atmosphere) and the sky. */
-type ShotPreset = PlanetPreset & { sky: SkyPreset };
+/** The shot's look: the planet (with its atmosphere), the sky and the grain. */
+type ShotPreset = PlanetPreset & { sky: SkyPreset; grain: GrainPreset };
 
 interface PresetFile {
   default: string;
@@ -20,7 +21,11 @@ const STORE = 'zamboni-planet-preset';
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 
 let file = (await (await fetch('/__planet/presets')).json()) as PresetFile;
-const defaultPreset = () => clone(file.presets[file.default]!);
+const defaultPreset = (): ShotPreset => {
+  const p = clone(file.presets[file.default]!);
+  p.grain = { ...GRAIN_OFF, ...p.grain }; // presets saved before the grain
+  return p;
+};
 
 /**
  * A preset kept or pasted from an older page, its missing values (at any depth) filled from `base`, so
@@ -32,6 +37,17 @@ function fill<T>(base: T, kept: unknown): T {
   const out: Record<string, unknown> = { ...base };
   for (const key of Object.keys(kept)) out[key] = key in base ? fill(base[key], kept[key]) : kept[key];
   return out as T;
+}
+
+/** Copies `from`'s values into `into`'s own objects, so the panel's sliders stay bound to them. */
+function copyInto(into: unknown, from: unknown): void {
+  if (typeof into !== 'object' || into === null || typeof from !== 'object' || from === null) return;
+  const a = into as Record<string, unknown>;
+  const b = from as Record<string, unknown>;
+  for (const key of Object.keys(b)) {
+    if (typeof a[key] === 'object' && a[key] !== null && typeof b[key] === 'object' && b[key] !== null) copyInto(a[key], b[key]);
+    else a[key] = b[key];
+  }
 }
 
 function load(): ShotPreset {
@@ -66,6 +82,7 @@ scene.add(sun);
 
 const planet = createPlanet(preset);
 const sky = createSky(preset.sky);
+applyGrain(preset.grain);
 scene.add(sky.mesh);
 // Dragging on the planet's page turns it (owner, 2026-11-09): sideways spins it about its own axis
 // (the spin slider follows), up and down tips it towards or away from the camera (`tip`, a view-only
@@ -87,6 +104,7 @@ resize();
 function changed(): void {
   planet.apply(preset);
   sky.apply(preset.sky);
+  applyGrain(preset.grain);
   try {
     localStorage.setItem(STORE, JSON.stringify(preset));
   } catch {
@@ -123,7 +141,7 @@ const actions = {
   },
   copy: () => void navigator.clipboard.writeText(JSON.stringify(preset, null, 2)),
   load: () => {
-    Object.assign(preset, fill(defaultPreset(), clone(file.presets[actions.preset]!)));
+    copyInto(preset, fill(defaultPreset(), clone(file.presets[actions.preset]!)));
     gui.controllersRecursive().forEach((c) => c.updateDisplay());
     changed();
   },
@@ -220,6 +238,14 @@ stars.add(preset.sky.nebula, 'scale', 0.05, 10, 0.01).name('nebula scale').onCha
 stars.add(preset.sky.nebula, 'from', 0, 1, 0.001).name('nebula from').onChange(changed);
 stars.add(preset.sky.nebula, 'to', 0, 1, 0.001).name('nebula to').onChange(changed);
 stars.close();
+
+// Grain like the EEVEE render's (owner, 2026-11-10).
+const grain = gui.addFolder('Grain');
+grain.add(preset.grain, 'amount', 0, 1, 0.005).onChange(changed);
+grain.add(preset.grain, 'size', 0.5, 4, 0.05).name('size (px)').onChange(changed);
+grain.add(preset.grain, 'response', 0, 1, 0.01).name('more in the darks').onChange(changed);
+grain.add(preset.grain, 'colour', 0, 1, 0.01).name('colour (0: grey)').onChange(changed);
+grain.add(preset.grain, 'moving').name('new each frame').onChange(changed);
 
 const shading = gui.addFolder('Shading');
 shading.add(preset, 'bump', 0, 1, 0.01).name('coast bump').onChange(changed);

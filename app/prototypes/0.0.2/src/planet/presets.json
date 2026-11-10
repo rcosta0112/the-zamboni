@@ -147,6 +147,13 @@
           "to": 0.727,
           "colour": "#222119"
         }
+      },
+      "grain": {
+        "amount": 0.12,
+        "size": 1,
+        "response": 0.5,
+        "colour": 0.3,
+        "moving": true
       }
     }
   }

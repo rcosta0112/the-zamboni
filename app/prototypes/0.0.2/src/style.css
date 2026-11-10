@@ -58,10 +58,13 @@ body {
   font-family: var(--font-text);
   font-size: 3.6vh;
   letter-spacing: 0.04em;
+  line-height: 1.35;
+  white-space: pre;
   pointer-events: none;
 }
 
-#title-card[hidden] {
+#title-card[hidden],
+#title-card div[hidden] {
   display: none;
 }
 

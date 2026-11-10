@@ -1,6 +1,6 @@
 // Scene 0050, *Spaaaace* (doc/story/scenes/0050 - Cutscene exterior - Spaaaace.md): the planet BMTM-640 B
 // from space, the lens zooming 20 → 180 mm in one shot while the camera orbits slowly, the planet's name
-// typed in below it. Played by main.ts before cutscene 1 in a new game (and `?scene=0050`).
+// then two more lines, one at a time. Played by main.ts before cutscene 1 in a new game (and `?scene=0050`).
 //
 // Owner, 2026-11-10: ease into the zoom, faster at the end; the shot lasts as long as the zoom (to be cut
 // or adjusted later); the black bars as in every cutscene; the title centred across, and up and down
@@ -18,7 +18,7 @@ import presets from './presets.json';
 /** The shot's timing (owner, 2026-11-10: to cut or adjust later). */
 export const SHOT = {
   /** s: the whole shot, the length of the zoom. */
-  duration: 36,
+  duration: 30, // owner, 2026-11-10: 20% faster than the first 36 s (the title's times unchanged)
   /** mm: the lens at the start and the end. */
   from: 20,
   to: 180,
@@ -27,27 +27,39 @@ export const SHOT = {
    * focal length multiplied by the same amount each step). 1: even throughout; 2: starts still, fastest
    * at the end.
    */
-  ease: 2,
+  ease: 3.5, // owner, 2026-11-10: eased more (was 2), so the planet stays clear of the title's third line
   /**
    * The orbit round the planet (about the screen's vertical), in degrees a second at the start's lens,
    * sped up with the zoom: times (focal length / `from`) to the power `orbitFollowsZoom` (owner,
-   * 2026-11-10: at a steady speed it looked stopped once zoomed in, the zoom swamping it). With 0.33 and
-   * 1: 0.33°/s at 20 mm, 3°/s at 180 mm, about 31° in all.
+   * 2026-11-10: at a steady speed it looked stopped once zoomed in, the zoom swamping it). With 0.396 and
+   * 1: 0.4°/s at 20 mm, 3.6°/s at 180 mm, about 31° in all (sped up with the zoom, 2026-11-10: the same path).
    */
-  orbitSpeed: 0.33,
+  orbitSpeed: 0.396,
   orbitFollowsZoom: 1,
   /**
-   * The title: when it starts typing (s), seconds per letter; held this long once typed (s), then
-   * deleted letter by letter from the end, as with a quick backspace (s per letter; owner, 2026-11-10:
-   * no fade).
+   * The planet's pose at the shot's end (owner, 2026-11-10: "end with the planet at this position", a
+   * view set on the planet page by dragging): the page's *spin* (degrees about its own axis) and its tip
+   * (degrees, towards or away from the camera). The orbit ends on the page's camera.
+   */
+  endSpin: -54.6,
+  endTip: -11.5,
+  /**
+   * The title's lines, one at a time (owner, 2026-11-10): the first starts typing at `titleAt` (s),
+   * seconds per letter (each with the dialogue's key sound); held this long once typed (s), then deleted
+   * letter by letter from the end, as with a quick backspace (s per letter; no fade); the next line
+   * starts `titleGap` s after the last one is gone.
    */
   titleAt: 1.5,
   titlePerLetter: 0.09,
   titleHold: 3,
   titlePerDelete: 0.035,
+  titleGap: 2,
+  /** s: the typing waits this long after a colon (owner, 2026-11-10: *status:* … *unexplored*). */
+  titleColonPause: 0.5,
 };
 
-const TITLE = 'BMTM-640 B';
+/** The typed lines, as in the scene file (doc/story/scenes/0050; owner's lines 2 and 3, 2026-11-10). */
+const TITLE = ['BMTM-640 B', 'Status: unexplored', 'A signal of unknown origin was detected.'];
 /** Blender's camera distance (m). */
 const DISTANCE = 8.538;
 
@@ -66,7 +78,12 @@ export class PlanetShot {
   /** The planet's outline radius (the atmosphere's). */
   private readonly radius: number;
   private readonly title: HTMLElement;
-  private readonly letters: HTMLSpanElement[] = [];
+  /** Each line: its element, its letters, when it starts typing, when its deleting starts, when it's gone (s). */
+  private readonly lines: { el: HTMLDivElement; letters: HTMLSpanElement[]; typedAt: number[]; start: number; deleteAt: number; gone: number }[] = [];
+  /** Letters typed so far (for the key sound). */
+  private typedCount = 0;
+  /** Called for each letter typed while it plays (main.ts: the dialogue's key sound). */
+  onType: (() => void) | null = null;
   /** The orbit's angle (degrees) at even steps of the shot: its speed follows the zoom (`orbitAt`). */
   private readonly orbitTable: number[] = [];
 
@@ -78,22 +95,42 @@ export class PlanetShot {
     sun.position.set(0.348, 0.625, 0.699).multiplyScalar(10); // Blender's Sun, as on the planet page
     this.scene.add(sun);
     const planet = createPlanet(preset);
-    this.scene.add(planet.root);
+    // As on the planet page: the tip a turn about the screen's horizontal, round the planet's own spin.
+    const tip = new THREE.Group();
+    tip.rotation.x = THREE.MathUtils.degToRad(SHOT.endTip);
+    planet.spin.rotation.z = THREE.MathUtils.degToRad(SHOT.endSpin);
+    tip.add(planet.root);
+    this.scene.add(tip);
     this.radius = preset.atmosphere.size;
     this.sky = createSky(preset.sky);
     this.scene.add(this.sky.mesh);
 
-    // Every letter laid out from the start, unseen until typed, so the line doesn't shift as it grows.
+    // Each line's letters laid out from the start, unseen until typed, so the line doesn't shift as it
+    // grows. One line at a time: typed, held, deleted, then the next after a gap.
     this.title = titleEl;
-    this.title.replaceChildren(
-      ...[...TITLE].map((ch) => {
+    let at = SHOT.titleAt;
+    for (const text of TITLE) {
+      const el = document.createElement('div');
+      const letters = [...text].map((ch) => {
         const span = document.createElement('span');
         span.textContent = ch;
-        this.letters.push(span);
+        el.append(span);
         return span;
-      }),
-    );
-    // The orbit's angle at 256 steps, added up from its speed, centred on the planet page's view.
+      });
+      // When each letter is typed: one every titlePerLetter, a pause after a colon.
+      const typedAt: number[] = [];
+      let next = at;
+      for (const span of letters) {
+        typedAt.push(next);
+        next += SHOT.titlePerLetter + (span.textContent === ':' ? SHOT.titleColonPause : 0);
+      }
+      const deleteAt = typedAt[typedAt.length - 1]! + SHOT.titleHold;
+      const gone = deleteAt + (letters.length - 1) * SHOT.titlePerDelete;
+      this.lines.push({ el, letters, typedAt, start: at, deleteAt, gone });
+      at = gone + SHOT.titleGap;
+    }
+    this.title.replaceChildren(...this.lines.map((l) => l.el));
+    // The orbit's angle at 256 steps, added up from its speed, ending on the planet page's camera.
     const steps = 256;
     let angle = 0;
     this.orbitTable.push(0);
@@ -102,8 +139,7 @@ export class PlanetShot {
       angle += SHOT.orbitSpeed * Math.pow(focal / SHOT.from, SHOT.orbitFollowsZoom) * (SHOT.duration / steps);
       this.orbitTable.push(angle);
     }
-    const half = angle / 2;
-    for (let i = 0; i <= steps; i++) this.orbitTable[i]! -= half;
+    for (let i = 0; i <= steps; i++) this.orbitTable[i]! -= angle;
     this.update(0, 16 / 9);
   }
 
@@ -116,6 +152,7 @@ export class PlanetShot {
 
   play(): void {
     this.time = 0;
+    this.typedCount = 0;
     this.playing = true;
     this.title.hidden = false;
   }
@@ -132,31 +169,41 @@ export class PlanetShot {
     this.camera.aspect = aspect;
     this.camera.setFocalLength(focal); // also updates the projection
 
-    // The orbit: round the planet (at the origin), a half each side of the page's camera.
+    // The orbit: round the planet (at the origin), ending on the page's camera (angle 0).
     const angle = THREE.MathUtils.degToRad(this.orbitAt(t));
     this.camera.position.set(Math.sin(angle) * DISTANCE, 0, Math.cos(angle) * DISTANCE);
     this.camera.lookAt(0, 0, 0);
     this.sky.update(this.camera);
 
-    this.placeTitle(aspect);
-    // Typed in, held, then deleted from the end (a quick backspace).
-    const n = this.letters.length;
-    const typed = Math.min(n, Math.max(0, Math.floor((t - SHOT.titleAt) / SHOT.titlePerLetter) + 1));
-    const deleteAt = SHOT.titleAt + (n - 1) * SHOT.titlePerLetter + SHOT.titleHold;
-    const deleted = Math.min(n, Math.max(0, Math.floor((t - deleteAt) / SHOT.titlePerDelete) + 1));
-    const shown = typed - deleted;
-    this.letters.forEach((span, i) => (span.style.visibility = i < shown ? 'visible' : 'hidden'));
+    // The line on now: typed in, held, then deleted from the end (a quick backspace).
+    let typedAll = 0;
+    for (const line of this.lines) {
+      const n = line.letters.length;
+      const typed = line.typedAt.filter((at) => at <= t).length;
+      const deleted = Math.min(n, Math.max(0, Math.floor((t - line.deleteAt) / SHOT.titlePerDelete) + 1));
+      line.letters.forEach((span, i) => (span.style.visibility = i < typed - deleted ? 'visible' : 'hidden'));
+      const on = t >= line.start && t <= line.gone;
+      line.el.hidden = !on;
+      if (on) this.placeTitle(aspect, line.start);
+      typedAll += line.letters.slice(0, typed).filter((span) => span.textContent !== ' ').length;
+    }
+    // A key sound per letter typed, in play only (not when `time` is set by hand: `update(0)`).
+    if (this.playing && dt > 0 && typedAll > this.typedCount) this.onType?.();
+    this.typedCount = typedAll;
 
     if (this.playing && this.time >= SHOT.duration) this.end(false);
   }
 
   /**
-   * The title halfway between the planet's lowest point (as it is when the title starts typing) and the top of the bottom bar (style.css `#bars`: the picture at 2.39:1).
+   * A line halfway between the planet's lowest point and the top of the bottom bar (style.css `#bars`:
+   * the picture at 2.39:1). The planet as it is when the line starts (`at`, s; owner, 2026-11-10:
+   * placed for each line); the line stays put while it's up. The planet keeps growing: by the third
+   * line's end (30 s shot) it reaches the line.
    */
-  private placeTitle(aspect: number): void {
+  private placeTitle(aspect: number, at: number): void {
     const h = window.innerHeight;
     const w = window.innerWidth;
-    const focal = focalAt(SHOT.titleAt);
+    const focal = focalAt(at);
     // Vertical half-height of the view at that focal length (36 mm across the wider side, as Three's filmGauge).
     const halfFilm = 18 / Math.max(aspect, 1);
     const halfV = halfFilm / focal;
