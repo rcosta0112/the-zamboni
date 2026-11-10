@@ -255,14 +255,15 @@ export function createPlanet(preset: PlanetPreset): Planet {
   const land = mix(ramp<Vec3Node>(height, coast, INTERPOLATION.coast), ramp<Vec3Node>(height, green, INTERPOLATION.green), inBand);
   const surface = mix(land, ramp<Vec3Node>(height, ocean, INTERPOLATION.ocean), sea);
 
-  // Blender's bump on the step (height = the land/sea mask, distance 1), mixed in by `bump`.
+  // Blender's bump on the step, mixed in by `bump`: the land raised (height = 1 − the sea mask; owner,
+  // 2026-11-10: the sea had come out high).
   const n = normalView;
   const sx = dFdx(positionView);
   const sy = dFdy(positionView);
   const r1 = cross(sy, n);
   const r2 = cross(n, sx);
   const det = dot(sx, r1);
-  const grad = sign(det).mul(dFdx(sea).mul(r1).add(dFdy(sea).mul(r2)));
+  const grad = sign(det).mul(dFdx(sea).mul(r1).add(dFdy(sea).mul(r2))).negate(); // − : land up
   const bumped = normalize(abs(det).mul(n).sub(grad));
   const normal = normalize(mix(n, bumped, u.bump));
 

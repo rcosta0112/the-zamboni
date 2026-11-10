@@ -29,8 +29,8 @@ export interface SkyPreset {
   layers: { scale: number; size: number }[];
   /** The stars' colours: a stepped ramp on each star's random value; `spread` < 1 gathers the values round 0.5, as Blender's noise does. */
   tint: { spread: number; stops: ColourStop[] };
-  /** The patchy brightness: a noise (0..1) times `strength` (Blender: scale 2.7, × 2). */
-  patches: { scale: number; strength: number };
+  /** The patchy brightness: a noise's ramp from black (at `from`) to white (at `to`), times `strength` (Blender: scale 2.7, ramp 0 → 1, × 2). Raise `from` (or lower `to`) for darker patches with fewer stars. */
+  patches: { scale: number; strength: number; from: number; to: number };
   /** The faint nebula, added: a noise's ramp from black to `colour`. */
   nebula: { scale: number; detail: number; roughness: number; lacunarity: number; from: number; to: number; colour: string };
 }
@@ -61,6 +61,8 @@ export function createSky(preset: SkyPreset): Sky {
     tintSpread: uniform(preset.tint.spread),
     patchScale: uniform(preset.patches.scale),
     patchStrength: uniform(preset.patches.strength),
+    patchFrom: uniform(preset.patches.from),
+    patchTo: uniform(preset.patches.to),
     nebulaScale: uniform(preset.nebula.scale),
     nebulaDetail: uniform(preset.nebula.detail),
     nebulaRoughness: uniform(preset.nebula.roughness),
@@ -104,31 +106,36 @@ export function createSky(preset: SkyPreset): Sky {
     return out;
   }
 
-  // If() needs a function's body (TSL's stack), hence the Fn.
-  const stars = Fn(() => {
+  // One function (If() needs a function's body: TSL's stack). Everything shared by the star layers is
+  // made into a variable first: TSL turns a shared value into a variable where it's first used, and
+  // inside a skipped If() it stays unset for the rest (found 2026-11-09: the patches read a wrong
+  // direction, so the patchy brightness hardly showed).
+  const sky = Fn(() => {
+    const view = dir.toVar();
+    const patchNoise = fbm(view.mul(u.patchScale).add(u.patchSeed), float(0), float(0.5), float(2)) as FloatNode;
+    const patches = clamp(patchNoise.sub(u.patchFrom).div(max(u.patchTo.sub(u.patchFrom), 1e-5)), 0, 1).mul(u.patchStrength).toVar();
+    const nebulaNoise = fbm(view.mul(u.nebulaScale).add(u.nebulaSeed), u.nebulaDetail, u.nebulaRoughness, u.nebulaLacunarity) as FloatNode;
+    const nebula = mix(vec3(0), u.nebulaColour, clamp(nebulaNoise.sub(u.nebulaFrom).div(max(u.nebulaTo.sub(u.nebulaFrom), 1e-5)), 0, 1)).toVar();
+    const pixelAngle = u.pixelAngle.toVar();
     const sum = vec3(0).toVar();
     for (let j = 0; j < OCTAVES; j++) {
       const fine = 2 ** j;
       // Layer j fades in as the level goes from j − 1 to j (layer 0 always), keeping 8^(level − j) of its stars.
-      const weight = j === 0 ? float(1) : clamp(u.level.sub(j - 1), 0, 1);
-      const keep = clamp(exp2(u.level.sub(j).mul(3)), 0, 1);
+      const weight = (j === 0 ? float(1) : clamp(u.level.sub(j - 1), 0, 1)).toVar();
+      const keep = clamp(exp2(u.level.sub(j).mul(3)), 0, 1).toVar();
       If(weight.greaterThan(0), () => {
         for (const [i, layer] of layers.entries()) {
           const cells = layer.scale.mul(fine);
-          const radius = layer.size.mul(u.pixelAngle).mul(cells); // in cells
-          sum.addAssign(starLayer(dir.mul(cells).add(u.seed.mul(i + 1 + j * 7)), radius, keep).mul(weight));
+          const radius = layer.size.mul(pixelAngle).mul(cells); // in cells
+          sum.addAssign(starLayer(view.mul(cells).add(u.seed.mul(i + 1 + j * 7)), radius, keep).mul(weight));
         }
       });
     }
-    return sum;
+    return sum.add(nebula).mul(patches);
   })();
 
-  const patches = (fbm(dir.mul(u.patchScale).add(u.patchSeed), float(0), float(0.5), float(2)) as FloatNode).mul(u.patchStrength);
-  const nebulaNoise = fbm(dir.mul(u.nebulaScale).add(u.nebulaSeed), u.nebulaDetail, u.nebulaRoughness, u.nebulaLacunarity) as FloatNode;
-  const nebula = mix(vec3(0), u.nebulaColour, clamp(nebulaNoise.sub(u.nebulaFrom).div(max(u.nebulaTo.sub(u.nebulaFrom), 1e-5)), 0, 1));
-
   const material = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false });
-  material.colorNode = stars.add(nebula).mul(patches);
+  material.colorNode = sky;
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), material);
   mesh.name = 'Sky';
   mesh.frustumCulled = false;
@@ -160,6 +167,8 @@ export function createSky(preset: SkyPreset): Sky {
       });
       u.patchScale.value = next.patches.scale;
       u.patchStrength.value = next.patches.strength;
+      u.patchFrom.value = next.patches.from;
+      u.patchTo.value = next.patches.to;
       u.nebulaScale.value = next.nebula.scale;
       u.nebulaDetail.value = next.nebula.detail;
       u.nebulaRoughness.value = next.nebula.roughness;

@@ -13,7 +13,7 @@ From the owner's `resources/models/props/planet.blend` (material *Planet - Mixed
 - **Colours:** the sea from the blue ramp. On land, a latitude band (broken up by a second noise) picks the green ramp, else the white → cyan → blue one. That colour is the base colour (plus Blender's Fresnel, added as white) and the emission (0.1).
 - **Seed:** moves the noise, so each seed gives a new planet.
 - **Lighting:** Lambert (Blender's IOR 1: no specular on the planet). Blender's sun: strength 7, from the front, up and right.
-- **Coast bump:** at 0. Blender's 0.2 draws stair-steps along the coasts here; it would cost three times as much done Blender's way.
+- **Coast bump:** at 0. The land is raised (fixed 2026-11-10: it had the sea high). Blender's 0.2 draws stair-steps along the coasts here; it would cost three times as much done Blender's way.
 - **Frames:** Blender's Z-up frame inside `root`; `body` has Blender's tilt; `spin.rotation.z` turns the planet about its own axis.
 - **Cost:** about 4–5 ms a frame with the planet filling a 1080p screen at 180 mm (headless Chrome, this machine).
 
@@ -25,7 +25,8 @@ Blender's *Atmosphere*: the same mesh at 1.024, turning with the planet. Blue, s
 
 Blender's world *Stars* on the view direction, drawn after the planet (what the planet covers costs nothing):
 - **Stars:** two layers (Blender: Voronoi scale 80 and 200), one star per cell. Each has a colour from a stepped ramp (yellow, red, blue, white), picked by a random value per star (*tint spread*).
-- **Brightness:** everything times a large noise × 2 (patchy brightness), plus the very faint nebula noise. No Crab Nebula (owner).
+- **Brightness:** everything times a large noise's ramp × 2 (patchy brightness; *patches: black at* / *white at* are Blender's ColorRamp.001 stops, 0 and 1; raise *black at* to about 0.45 and lower *white at* to about 0.7 for clear dark patches), plus the very faint nebula noise. No Crab Nebula (owner).
+- **Found 2026-11-09:** TSL turns a value shared between `If()` blocks into a variable where it's first used; inside a skipped block it stays unset. The patches read a wrong direction, so they hardly showed; the shared values are now made variables before the star layers.
 - **Same size on screen** at every focal length: radius in pixels of a 1080-line screen (layer 1: 3 px, layer 2: 1.9 px; Blender's at 50 mm).
 - **Same density on screen** (owner): as many as Blender at 50 mm (*reference*). Finer layers fade in, one per doubling of the focal length, each keeping a random share of its stars; the coarser ones stay and spread apart.
 - **Speed:** a star is looked for in the 8 cells round the pixel (Blender's Voronoi: 27).
@@ -42,4 +43,4 @@ http://localhost:5202/planet.html: Blender's camera (8.54 m away, 36 mm sensor) 
 - *View*: focal length (20–180 mm), spin, exposure, sun strength.
 - *Continents*: seed and *New seed*, the height noise, warp, sea level, coast softness, detail bias.
 - One folder per colour ramp (each stop's colour and position), the band, *Atmosphere*, *Stars*, shading.
-- *Save as default*, *Save as new preset…* (written to `presets.json` through the dev server), *Copy preset*, *Load preset*. The last values edited are kept in the browser between reloads.
+- *Save as default*, *Save as new preset…* (written to `presets.json` through the dev server), *Copy preset*, *Load preset*. The last values edited are kept in the browser between reloads; values added to the page since are filled in from the default preset (found 2026-11-10: a kept preset without the patch stops crashed the panel, a black page).

@@ -22,10 +22,22 @@ const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 let file = (await (await fetch('/__planet/presets')).json()) as PresetFile;
 const defaultPreset = () => clone(file.presets[file.default]!);
 
+/**
+ * A preset kept or pasted from an older page, its missing values (at any depth) filled from `base`, so
+ * a value added since doesn't break the panel (found 2026-11-10: the patch stops, a black page).
+ */
+function fill<T>(base: T, kept: unknown): T {
+  const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+  if (!isObject(base) || !isObject(kept)) return (kept === undefined || typeof kept !== typeof base ? base : kept) as T;
+  const out: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(kept)) out[key] = key in base ? fill(base[key], kept[key]) : kept[key];
+  return out as T;
+}
+
 function load(): ShotPreset {
   try {
     const saved = localStorage.getItem(STORE);
-    if (saved) return { ...defaultPreset(), ...(JSON.parse(saved) as Partial<ShotPreset>) };
+    if (saved) return fill(defaultPreset(), JSON.parse(saved));
   } catch {
     /* none kept, or storage blocked */
   }
@@ -111,7 +123,7 @@ const actions = {
   },
   copy: () => void navigator.clipboard.writeText(JSON.stringify(preset, null, 2)),
   load: () => {
-    Object.assign(preset, clone(file.presets[actions.preset]!));
+    Object.assign(preset, fill(defaultPreset(), clone(file.presets[actions.preset]!)));
     gui.controllersRecursive().forEach((c) => c.updateDisplay());
     changed();
   },
@@ -196,6 +208,8 @@ preset.sky.layers.forEach((layer, i) => {
 });
 stars.add(preset.sky.patches, 'strength', 0, 6, 0.01).name('brightness').onChange(changed);
 stars.add(preset.sky.patches, 'scale', 0.1, 20, 0.01).name('patch scale').onChange(changed);
+stars.add(preset.sky.patches, 'from', 0, 1, 0.001).name('patches: black at').onChange(changed);
+stars.add(preset.sky.patches, 'to', 0, 1, 0.001).name('patches: white at').onChange(changed);
 stars.add(preset.sky.tint, 'spread', 0, 1, 0.01).name('tint spread').onChange(changed);
 preset.sky.tint.stops.forEach((stop, i) => {
   stars.addColor(stop, 'colour').name(`tint ${i + 1}`).onChange(changed);

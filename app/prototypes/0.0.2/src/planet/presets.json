@@ -7,7 +7,7 @@
       "detail": 16,
       "roughness": 0.64,
       "lacunarity": 1.75,
-      "warp": 0.3,
+      "warp": 0.11,
       "warpScale": 2,
       "seaLevel": 0.5,
       "coastSoftness": 1,
@@ -80,7 +80,7 @@
         "to": 0.482
       },
       "bandMix": 0.2667,
-      "bump": 0,
+      "bump": 0.07,
       "emission": 0.1,
       "rimIor": 1.2,
       "lodBias": 0,
@@ -112,7 +112,7 @@
           }
         ],
         "tint": {
-          "spread": 0.4,
+          "spread": 0.29,
           "stops": [
             {
               "at": 0.005,
@@ -133,8 +133,10 @@
           ]
         },
         "patches": {
-          "scale": 2.7,
-          "strength": 2
+          "scale": 1.65,
+          "strength": 1.28,
+          "from": 0.041,
+          "to": 1
         },
         "nebula": {
           "scale": 0.71,
