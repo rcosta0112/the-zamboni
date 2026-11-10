@@ -81,6 +81,8 @@ export class GameAudio {
   private noiseAmount = 0;
   /** The ship's noise kept off whatever the ship does: under the start screen (main.ts, until the game begins). */
   noiseHeld = true;
+  /** The engine noise as a cutscene keys it (0..1), or null: on while `settings.shipFlying` (main.ts). */
+  noiseKeyed: number | null = null;
   /** The ship's noise times this: mixed in as an exterior cutscene's camera zooms in (main.ts). */
   noiseShare = 1;
   /** The ship's noise heard from outside, open (an exterior cutscene's camera: main.ts); otherwise
@@ -347,7 +349,7 @@ export class GameAudio {
 
     // The ship's noise: one file (the two plane sounds mixed: tools/encode-audio.mjs) looping while
     // the ship is flying, quieter outside the ship.
-    const target = settings.shipFlying && running && !this.noiseHeld ? 1 : 0;
+    const target = running && !this.noiseHeld ? (this.noiseKeyed ?? (settings.shipFlying ? 1 : 0)) : 0;
     const step = dt / NOISE_FADE;
     this.noiseAmount = this.noiseAmount < target ? Math.min(target, this.noiseAmount + step) : Math.max(target, this.noiseAmount - step);
     if (this.noiseAmount === 0 && target === 0) {

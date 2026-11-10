@@ -144,6 +144,11 @@ export class SceneDirector {
     this.onStarted?.(id);
   }
 
+  /** The scene's `begin` dropped, never run (main.ts: `?scene=0500` goes on from chapter 1 at once). */
+  dropBegin(): void {
+    this.begin = [];
+  }
+
   /** The scene's `begin`, once (main.ts: each frame the player has control). */
   takeOver(): void {
     const commands = this.begin;

@@ -64,12 +64,13 @@ export class ThrusterFlames {
     return flames;
   }
 
-  /** Per frame: shown while the ship flies, in exterior cutscenes only (owner, 2026-10-23; `exterior`: one is playing). */
-  update(exterior: boolean): void {
-    this.mesh.visible = exterior && settings.shipFlying && settings.thrusterFlames;
+  /** Per frame: shown while the ship flies, in exterior cutscenes only (owner, 2026-10-23; `exterior`: one is playing).
+   *  `keyed`: the cutscene's flames (its `flight` keys: times the strength, 0 off), standing in for the flying. */
+  update(exterior: boolean, keyed: number | null = null): void {
+    this.mesh.visible = exterior && (keyed !== null ? keyed > 0 : settings.shipFlying) && settings.thrusterFlames;
     if (!this.mesh.visible) return;
     this.color.value.set(settings.thrusterFlameColor);
-    this.strength.value = settings.thrusterFlameStrength;
+    this.strength.value = settings.thrusterFlameStrength * (keyed ?? 1);
     this.fade.value = settings.thrusterFlameFade;
     this.grain.value = settings.thrusterFlameGrain;
     this.grainSize.value = settings.thrusterFlameGrainSize;

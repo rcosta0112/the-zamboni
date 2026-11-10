@@ -11,6 +11,7 @@
 
 import * as THREE from 'three/webgpu';
 import { fromBlender, type Command } from './commands';
+import { SWAY_DEG, WAVES } from './watched';
 
 /** A camera key: where it is and which way it looks, in the ship file's Blender coordinates. */
 export interface CameraKey {
@@ -42,6 +43,21 @@ export interface Shot {
   near?: number;
   /** Only `off` for now; later `her` or another target's id (plan, *Cutscenes*). */
   seeThrough: 'off';
+  /** A hand-held drift on the camera, cutscene 2's (watched.ts), at this strength (none if left out). */
+  handheld?: number;
+}
+
+/** The ship's flight as a cutscene keys it, eased linearly between keys (the landing: it comes down
+ *  flying, though the landed scene has already set it landed). While a track has these, they stand in
+ *  for `settings.shipFlying`'s gear, flames and engine noise. */
+export interface FlightKey {
+  t: number;
+  /** The landing gear raised: 0 down, 1 all the way up (`settings.landingGearUp`). */
+  gear: number;
+  /** The thrusters' flames, times their strength (0: off). */
+  flames: number;
+  /** The engine noise, 0..1. */
+  noise: number;
 }
 
 /** The ship's pose off its own, in its file's Blender coordinates. */
@@ -60,6 +76,8 @@ export interface Track {
   shots: Shot[];
   /** The ship's sway, on a curve through its keys (as a `smooth` shot); none: it stays as it is. */
   ship?: ShipKey[];
+  /** The gear, flames and engine noise over time; none: as `settings.shipFlying` has them. */
+  flight?: FlightKey[];
   /** The scenery's speed while it plays, times the terrain's (1 if left out). */
   speed?: number;
   /** Hidden while it plays: `her` (she isn't the ship's child, so she wouldn't sway with it). */
@@ -128,6 +146,14 @@ export class CutscenePlayer {
 
   get playing(): boolean {
     return this.track !== null;
+  }
+
+  /** The flight as the track keys it now (main.ts hands it to the gear, the flames and the noise), or null. */
+  get flight(): Omit<FlightKey, 't'> | null {
+    const keys = this.track?.flight;
+    if (!keys?.length) return null;
+    const at = (get: (k: FlightKey) => number) => sample(keys, this.time, get, false);
+    return { gear: at((k) => k.gear), flames: at((k) => k.flames), noise: at((k) => k.noise) };
   }
 
   /** 0..1: how far the shot playing has zoomed in, from its first key's lens to its narrowest (the sound's mix: main.ts). */
@@ -258,6 +284,12 @@ export class CutscenePlayer {
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(frame.localToWorld(fromBlender(ahead)));
     this.camera.rotateZ(value((k) => k.roll ?? 0) * DEG);
+    if (shot.handheld) {
+      // Cutscene 2's drift, on the camera's own axes (the time is the track's, so a replay is the same).
+      const angle = (axis: keyof typeof SWAY_DEG) =>
+        SWAY_DEG[axis] * shot.handheld! * DEG * WAVES[axis].reduce((sum, [hz, share, phase]) => sum + share * Math.sin(2 * Math.PI * hz * this.time + phase), 0);
+      this.camera.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(angle('pitch'), angle('yaw'), angle('roll'), 'YXZ')));
+    }
     this.camera.fov = value((k) => k.fov);
     this.camera.far = shot.far ?? 500;
     this.camera.near = shot.near ?? 0.1;

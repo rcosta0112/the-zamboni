@@ -3,7 +3,7 @@
 //     node tools/probe-01.mjs tools/landed-probe.js --game --query scene=chapter-1 --shots .export/landed
 //
 // About 40 s. Chapter 1 starts her seated: Adam's line, *Get up*, her line; her seat then offers *Sit
-// down*: E seats her, the conversation before the landing plays (still chapter 1), then the landing shot (the treadmill stopped, no flames, the gear down), the
+// down*: E seats her, the conversation before the landing plays (still chapter 1), then the landing shot (the treadmill stopped, the ship coming down onto it, its flames on, the gear lowering), the
 // landed scene under it; at its end she's seated, *Get up* says nothing; nothing is locked; outside she
 // stands on the terrain's hills; the rocks cast into the shadow map, the nearest ones collide.
 // Runs in the page (probe-01.mjs).
@@ -52,12 +52,14 @@ await wait(1500);
 const at = t.travelled;
 await wait(1000);
 report(t.parkedAt === 14697 && t.travelled === at && t.group.visible, 'the treadmill is shown, stopped at the spot', `parked at ${t.parkedAt}, moved ${(t.travelled - at).toFixed(2)} m in 1 s`);
-report(!w.__flames().mesh.visible && !w.__settings.shipFlying, 'no flames, not flying');
-report(!w.__audio.playing().includes('amb_ship_noise'), "no ship's noise");
+const flying = w.__cutscene().flight;
+report(w.__flames().mesh.visible && !w.__settings.shipFlying && flying?.gear === 1, 'the landing: the ship comes down flying (the track keys flames, gear up), the landed scene not flying', JSON.stringify(flying));
+report(w.__ship().object.position.y > w.__cutscene()['rest'].position.y + 5, 'the landing: the ship high over its landed place', `${(w.__ship().object.position.y - w.__cutscene()['rest'].position.y).toFixed(1)} m up`);
 await shot('landing-shot');
-await until(() => !w.__cutscene().playing, 8000);
+await until(() => !w.__cutscene().playing, 12000);
 await wait(500);
 report(character.model?.seated === true, 'landed: she is seated when the shot ends');
+report(!w.__flames().mesh.visible && w.__ship().gearRaised === null, 'landed: no flames, the gear as the scene has it (down)');
 await until(() => /Get up/.test(prompt()), 3000);
 key('KeyE');
 await until(() => character.model?.seated === false, 3000);

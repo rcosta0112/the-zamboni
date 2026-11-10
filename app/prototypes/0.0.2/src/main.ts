@@ -104,9 +104,15 @@ const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has(
 const ASKED_RAW = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
 /**
  * The script's scene numbers (doc/story/scenes, `NNNN - Type - Description.md`) → the point they start.
- * 0400–0600 have no start of their own yet: they play on the way from chapter 1 to the landed scene.
+ * 0400 (the flyby) isn't in the game. 0500 (`whats-that`): chapter 1, then at once its way to the landed
+ * scene (cutscene 3, the landing, the landed scene). 0600 (`landing`): the landed scene, its intro (the
+ * landing cutscene) played from the start (owner, 2026-11-10: every number goes to its scene).
  */
-const SCENE_NUMBERS: Record<string, string> = { '0050': 'planet', '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0700': 'landed' };
+const SCENE_NUMBERS: Record<string, string> = { '0050': 'planet', '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0500': 'whats-that', '0600': 'landing', '0700': 'landed' };
+/** `?scene=landing` (0600): the landed scene, its landing cutscene played as a new game begins. */
+const LANDING = 'landing';
+/** `?scene=whats-that` (0500): chapter 1, then the landed scene started as *Sit down* does (cutscene 3 first). */
+const WHATS_THAT = 'whats-that';
 const ASKED = ASKED_RAW ? (SCENE_NUMBERS[ASKED_RAW] ?? ASKED_RAW) : null;
 /** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
 const SAVING = TESTING;
@@ -114,7 +120,7 @@ const SAVING = TESTING;
 const ANIMATIC_STEPS = ['planet', 'cutscene-1', 'opening'];
 /** Cutscene 2's last shot, outside: the ship changing course (a track, as cutscene 1; owner, 2026-10-28). */
 const OPENING_EXTERIOR = 'cutscene-2-exterior';
-const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
+const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED === LANDING ? 'landed' : ASKED === WHATS_THAT ? 'chapter-1' : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
 /** What a new game plays before its first scene: the whole animatic (from the planet), from cutscene 1, cutscene 2 only, or nothing. */
 const animaticFrom: 'planet' | 'cutscene-1' | 'opening' | null =
   ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : ASKED === 'planet' ? 'planet' : TESTING || ASKED ? null : 'planet';
@@ -288,6 +294,7 @@ async function start(): Promise<void> {
       if (planetShot) await renderer.compileAsync(planetShot.scene, planetShot.camera).catch((err: unknown) => console.warn('[0.0.2] the planet shot not compiled:', err));
       if (animaticFrom === 'planet' || animaticFrom === 'cutscene-1') await cutscene.load('cutscene-1').catch((err: unknown) => console.warn('[0.0.2] cutscene 1 not loaded:', err));
       if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
+      if (ASKED === LANDING) await cutscene.load(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not loaded:', err));
       if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
       const seat = s.entities.get('cockpit-seat-pilot')?.object ?? null;
@@ -619,6 +626,13 @@ async function start(): Promise<void> {
     } else if (choice === 'new' && animaticFrom === 'opening') {
       input.consumeSkip();
       playOpening();
+    } else if (choice === 'new' && ASKED === LANDING) {
+      input.consumeSkip();
+      void cutscene?.play(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not played:', err));
+    } else if (choice === 'new' && ASKED === WHATS_THAT) {
+      input.consumeSkip();
+      director?.dropBegin(); // not chapter 1's first line: its end at once
+      void goTo('landed').catch((err: unknown) => console.warn('[0.0.2] landed scene not started:', err));
     }
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));
@@ -764,7 +778,11 @@ async function start(): Promise<void> {
         input.consumeJump();
       } else if (!watching && !seated.has('green') && !ladders?.update(STEP, input, view.yaw, character, physics)) character.update(STEP, input, view.yaw, view.pitch, physics, indoors);
       // Doors and the ramp after her own move: a moving door pushes her out of its way.
-      if (ship) updateShip(ship, STEP, false, pusher);
+      if (ship) {
+        // A cutscene that keys the flight (the landing) moves the gear itself.
+        ship.gearRaised = cutscene?.flight?.gear ?? null;
+        updateShip(ship, STEP, false, pusher);
+      }
       accumulator -= STEP;
       steps++;
     }
@@ -921,7 +939,9 @@ async function start(): Promise<void> {
     const landed = treadmill?.parkedAt != null;
     updateWorld(world, scene, character.root.position, indoorLight, landed ? LANDED_SUN_BACK : 30, landed ? settings.shadowRangeLanded : settings.shadowRangeOutdoors);
     // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
-    flames?.update(cutscene?.playing ?? false);
+    const flight = cutscene?.flight ?? null;
+    flames?.update(cutscene?.playing ?? false, flight?.flames ?? null);
+    audio.noiseKeyed = flight?.noise ?? null;
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any
     // scene; inside, as the interior is (owner, 2026-10-23: the interior's light unchanged). Not for
     // cutscene 2: its shots are of the cockpit, even when the long lens backs out through a window

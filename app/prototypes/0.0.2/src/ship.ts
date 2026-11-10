@@ -152,6 +152,8 @@ export interface Ship {
    * its own space).
    */
   landingGear: { node: THREE.Object3D; restY: number; above: { value: number } }[];
+  /** The gear raised as a cutscene keys it (0 down, 1 up), or null: as `settings.shipFlying` has it (main.ts). */
+  gearRaised: number | null;
   /** The cargo floor's top, in the ship's space. */
   cargoFloorY: number;
 }
@@ -334,6 +336,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
     interiorMovingCasters: [],
     landingGear,
+    gearRaised: null,
     cargoFloorY: object.worldToLocal(new THREE.Vector3(0, floorBox.max.y, 0)).y,
   };
   entities.of(rampDoor)?.components.push(ship.rampState);
@@ -635,7 +638,7 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   ship.interiorShadowCaster.visible = interiorShown;
   for (const mesh of ship.interiorMovingCasters) mesh.castShadow = interiorShown;
   for (const gear of ship.landingGear) {
-    const up = settings.shipFlying ? settings.landingGearUp : 0;
+    const up = ship.gearRaised !== null ? ship.gearRaised * settings.landingGearUp : settings.shipFlying ? settings.landingGearUp : 0;
     gear.node.position.y = gear.restY + up;
     gear.above.value = up > 0 ? ship.cargoFloorY - gear.node.position.y : Infinity;
   }

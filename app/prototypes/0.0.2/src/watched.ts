@@ -89,9 +89,9 @@ const TURNS = [15, -15, 30, -30, 45, -45, 60, -60, 75, -75];
 /** The head is this far under the top of a character's bounds (m). */
 const HEAD_BELOW_TOP = 0.12;
 /** The hand-held drift at strength 1 (degrees, either way): side to side, up and down, roll. */
-const SWAY_DEG = { yaw: 0.4, pitch: 0.25, roll: 0.2 };
+export const SWAY_DEG = { yaw: 0.4, pitch: 0.25, roll: 0.2 };
 /** Each axis's waves at speed 1: [Hz, share, phase]; unrelated frequencies, so it never visibly repeats. */
-const WAVES: Record<keyof typeof SWAY_DEG, [number, number, number][]> = {
+export const WAVES: Record<keyof typeof SWAY_DEG, [number, number, number][]> = {
   yaw: [[0.07, 0.5, 0.3], [0.17, 0.3, 2.1], [0.29, 0.2, 4.4]],
   pitch: [[0.09, 0.5, 1.2], [0.21, 0.3, 5.0], [0.31, 0.2, 0.7]],
   roll: [[0.06, 0.6, 3.3], [0.19, 0.4, 1.9]],
