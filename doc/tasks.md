@@ -8,7 +8,6 @@
 
 0. **SC-171** · Watch scene 0050 (the planet, [what exists](features/planet.md#scene-0050-the-shot-in-the-game)) at http://localhost:5202/?scene=0050: its length (36 s), the ease, the orbit (12°), the title's timing; the look is the default preset of http://localhost:5202/planet.html.
 0. **SC-164** · Review the [landing cutscene plan](plans/features/landing-cutscene.md) and answer its four questions (turbines down: in the file or the game? cameras by hand or in Blender? the clouds tried or not, which images? shot lengths 6 s / 8 s?).
-0. **SC-153** · Decision: your 1.22 animations have Red navigating and Blue piloting: are SC-16/17 done that way (the animation follows the seat)? (below, *Decision*)
 1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
 3. **SC-15** · Dr. Kaufman's book: the Blender task that blocks the flying scene's pass 1, second half.
@@ -17,7 +16,7 @@
 
 - [x] **SC-162** · Answered by the owner 2026-11-07: the column shows on cutscene 3's horizon; a placeholder is in (`light-column.ts`), to be swapped for the temple's shaft after its pass 2.
 - [ ] **SC-151** · The landed scene unlocks every door the flight locks (outer doors, hatches; the jetpacks and her parka are free). Kaufman's and Ogawa's lockers still refuse with your lines (2026-10-21) in every scene: keep that, or open them landed? [plan](plans/features/landed-scene.md#conflicts-with-the-docs-flagged)
-- [ ] **SC-153** · Adam's seats (2026-11-07): Blue sits in the front seat with the joystick, Red at the back. SC-16 says *Red flying*, SC-17 *Blue navigating*, and the script says *Adam Red (in the pilot seat)*, *Adam Blue (in the nav seat)*. Should the animation follow the seat (Blue flies), or the body (move them in the file)? Change the script's directions? *2026-11-07:* your 1.22 gives Red `Adam - Navigation` and Blue `Adam - Piloting Idle` (now in the game, cutscene 2 to landed): if that's the answer, SC-16 and SC-17 are done with the bodies swapped. [note](plans/features/flying-scene.md)
+- [x] **SC-153** · Answered by the owner 2026-11-10: nobody moves; Adam Blue pilots (front seat), Adam Red navigates (back). Script 0200 and its Ink copy say so; the cameras already framed the right bodies.
 - [ ] **SC-169** · 0300's script now says *[Y Get up]* (was *O*). *Get up* is on the interact button today (the pad's right face button, E). Is Y a change of button, and which position: top (Xbox Y) or left (SNES Y)? Not built until answered.
 - [ ] **SC-170** · Script to write (0300): Dr. Kaufman's one-liner after her exchange, and Adam's after their second interaction (a third talk). Placeholders in the game until then. Also Dr. Ogawa's, as before.
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
@@ -29,8 +28,8 @@ The flying scene's tasks: [flying-scene-blender.md](plans/features/flying-scene-
 - [ ] **SC-155** · Her piloting action was renamed `green_piloting` → `Dr. Geen - Piloting` (missing *r*): rename it `Dr. Green - Piloting`, or tell me to use the name as it is. Until then `npm run export:player` stops (the game's files are fine).
 - [ ] **SC-156** · Adam Blue's armature is now `Adam Blue.001` and their mesh `Adam Blue` (the other way round from Red's `Adam Red` / `Adam Red Mesh`). Swap them if it wasn't meant; the crew export names it, one line to change. *(low priority)*
 - [ ] **SC-15** · Dr. Kaufman's book, a prop she holds while reading. *(blocks pass 1)*
-- [ ] **SC-16** · Animation: Adam Red flying the ship (loop).
-- [ ] **SC-17** · Animation: Adam Blue navigating (loop).
+- [x] **SC-16** · Done in 1.22 (owner, 2026-11-10): Adam Blue flying (`Adam - Piloting Idle`).
+- [x] **SC-17** · Done in 1.22 (owner, 2026-11-10): Adam Red navigating (`Adam - Navigation`).
 - [ ] **SC-18** · Animation: Dr. Kaufman reading on the couch (loop).
 - [ ] **SC-19** · Animation: Dr. Ogawa working on the sensor array (loop).
 - [ ] **SC-25** · Animation: Dr. Green pouring the coffee.

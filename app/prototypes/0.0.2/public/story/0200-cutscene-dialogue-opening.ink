@@ -13,10 +13,10 @@ Ogawa: Got a fix on the signal.
 Green: How far?
 Ogawa: Hard to tell.
 Ogawa: A couple thousand kilometers.
-// Adam Red: (in the pilot seat)
+// Adam Red: (in the nav seat)
 Adam Red: About 6 hours if this chunk of garbage holds up.
-Ogawa: Hey..
-// Adam Blue: (in the nav seat)
+Ogawa: Hey...
+// Adam Blue: (in the pilot seat)
 Adam Blue: My apologies.
 Adam Blue: This ship is a veritable work of art.
 Adam Red: Is that a red light on engine 2?
