@@ -66,6 +66,9 @@ export interface FlightKey {
   reach?: number;
   /** The painted bloom per nozzle, times its level (none: 0). */
   glow?: number;
+  /** 1 once the gear stands on the ground: it stays there while the `ship` keys rock the hull on it
+   *  (`gearHold`; none: 0). Keyed 1 only from the touchdown, where the ship's keys are at rest. */
+  planted?: number;
 }
 
 /** The ship's pose off its own, in its file's Blender coordinates. */
@@ -141,6 +144,9 @@ export class CutscenePlayer {
   /** The followers' own matrices, and the sway as a matrix (the ship's now, against its own). */
   private readonly followersRest: THREE.Matrix4[];
   private readonly sway = new THREE.Matrix4();
+  /** The ship's move off its own place, in its own space (offset and tilt), and its inverse. */
+  private readonly moved = new THREE.Matrix4();
+  private readonly hold = new THREE.Matrix4();
 
   constructor(
     /** The ship's object: the keys are in its file's coordinates. */
@@ -163,6 +169,13 @@ export class CutscenePlayer {
     const at = (get: (k: FlightKey) => number) => sample(keys, this.time, get, false);
     const turbines: [number, number] | undefined = keys[0]!.turbines ? [at((k) => k.turbines?.[0] ?? 0), at((k) => k.turbines?.[1] ?? 0)] : undefined;
     return { gear: at((k) => k.gear), flames: at((k) => k.flames), noise: at((k) => k.noise), turbines, front: at((k) => k.front ?? 1), reach: at((k) => k.reach ?? 1), glow: at((k) => k.glow ?? 0) };
+  }
+
+  /** The ship's move undone, in its own space, while the gear is planted (main.ts → `Ship.gearHold`), or null. */
+  get gearHold(): THREE.Matrix4 | null {
+    const keys = this.track?.flight;
+    if (!this.track?.ship || !keys?.length || sample(keys, this.time, (k) => k.planted ?? 0, false) < 0.999) return null;
+    return this.hold.copy(this.moved).invert();
   }
 
   /** 0..1: how far the shot playing has zoomed in, from its first key's lens to its narrowest (the sound's mix: main.ts). */
@@ -276,6 +289,7 @@ export class CutscenePlayer {
       this.ship.quaternion.copy(this.rest.quaternion).multiply(this.tilt);
       // Its shadows with it: the casters by the same move.
       this.ship.updateMatrix();
+      this.moved.copy(this.rest.matrix).invert().multiply(this.ship.matrix);
       this.sway.copy(this.rest.matrix).invert().premultiply(this.ship.matrix);
       this.followers.forEach((f, i) => this.sway.clone().multiply(this.followersRest[i]!).decompose(f.position, f.quaternion, f.scale));
     }

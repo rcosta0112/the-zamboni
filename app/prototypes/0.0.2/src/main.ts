@@ -37,7 +37,7 @@ import { FIRST_SCENE, SceneDirector, TEST_SCENE } from './scenes';
 import { GameStory } from './story';
 import { WatchedConversation } from './watched';
 import { SkipPrompt } from './skip-prompt';
-import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, SHADOW_LAYER, updateShip, type Ship } from './ship';
+import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, placeGear, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
 import StartScreen, { type StartChoice } from './StartScreen.svelte';
 import { Stats } from './stats';
@@ -736,6 +736,12 @@ async function start(): Promise<void> {
     } else if (cutscene?.playing) {
       if (skipping) cutscene.skip();
       else cutscene.update(dt, view.camera.aspect);
+      // The gear held under the rocking hull on every frame, not only on the fixed steps (no lag).
+      if (ship && cutscene.playing) {
+        ship.gearRaised = cutscene.flight?.gear ?? null;
+        ship.gearHold = cutscene.gearHold;
+        placeGear(ship);
+      }
       input.consumeJump();
       input.consumeLook(dt);
     } else if (skipping) watched?.skip();
@@ -783,6 +789,7 @@ async function start(): Promise<void> {
         // A cutscene that keys the flight (the landing) moves the gear itself.
         ship.gearRaised = cutscene?.flight?.gear ?? null;
         ship.turbinesDown = cutscene?.flight?.turbines ?? null;
+        ship.gearHold = cutscene?.gearHold ?? null;
         updateShip(ship, STEP, false, pusher);
       }
       accumulator -= STEP;

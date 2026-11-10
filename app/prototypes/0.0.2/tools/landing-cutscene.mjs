@@ -27,6 +27,20 @@ const EASE = 1.6;
 const SWAY = 1.0;
 const NOSE_UP = 2.5;
 
+// --- The rocking on the gear (pass 3; owner, 2026-11-10): on touchdown the ship dips and tips nose down,
+// springing back in a few fading rocks (a damped spring, baked into the `ship` keys) ---
+/** The dip (m) and the nose-down tip (degrees) at their first, largest swing; a little roll too. */
+// Heavier (owner, 2026-11-10): the rocking 40% less (tip and roll ×0.6; each swing back 0.33 of the one
+// before, was 0.55), the dip deeper (5 → 9 cm) and slower (1.7 → 1.3 rocks a second).
+const ROCK_DIP = 0.09;
+const ROCK_TIP = 0.9;
+const ROCK_ROLL = 0.24;
+/** The rocks per second, and how fast they fade (1/s: about 5% left after 1.5 s). */
+const ROCK_HZ = 1.3;
+const ROCK_FADE = 2.86;
+/** The ship keys' spacing (s): fine enough for the rocks. */
+const SHIP_STEP = 0.05;
+
 // --- The flames: times their strength; they flare as it brakes (owner, 2026-11-10) ---
 const FLAMES = [[0, 0.7], [3, 0.8], [6.5, 1.5], [9.2, 1.7], [9.9, 0]];
 /** The engine noise: on, faded out after touchdown. */
@@ -90,16 +104,24 @@ function ship(t) {
   const fade = Math.sqrt(1 - u);
   // Braking the drift: strongest early, gone by touchdown.
   const braking = (1 - u) ** (EASE - 1);
-  const sway = (hz1, hz2, p) => SWAY * fade * (0.6 * Math.sin(2 * Math.PI * hz1 * t + p) + 0.4 * Math.sin(2 * Math.PI * hz2 * t + 2 * p));
+  const tt = Math.min(t, TOUCHDOWN);
+  const sway = (hz1, hz2, p) => SWAY * fade * (0.6 * Math.sin(2 * Math.PI * hz1 * tt + p) + 0.4 * Math.sin(2 * Math.PI * hz2 * tt + 2 * p));
+  // After touchdown: the spring, starting at rest and swinging down first; each swing normalised so its
+  // first peak is the full size (sin's first peak is a quarter period in, already faded a little).
+  const r = Math.max(0, t - TOUCHDOWN);
+  const w = 2 * Math.PI * ROCK_HZ;
+  const peak = Math.exp(-ROCK_FADE / (4 * ROCK_HZ));
+  const spring = (lag) => (r > lag ? (Math.exp(-ROCK_FADE * (r - lag)) * Math.sin(w * (r - lag))) / peak : 0);
   return {
-    offset: [round(0.15 * Math.sin(0.7 * t) * fade), round(DRIFT * left), round(HEIGHT * left)],
-    // Blender's X: positive tips the nose down.
-    tilt: [round(-NOSE_UP * braking + sway(0.31, 0.73, 0.4), 2), round(sway(0.23, 0.61, 1.9), 2)],
+    offset: [round(0.15 * Math.sin(0.7 * tt) * fade), round(DRIFT * left), round(HEIGHT * left - ROCK_DIP * spring(0))],
+    // Blender's X: positive tips the nose down. The tip follows the dip a moment late (the front gear
+    // takes the weight after the back), the roll later still.
+    tilt: [round(-NOSE_UP * braking + sway(0.31, 0.73, 0.4) + ROCK_TIP * spring(0.06), 2), round(sway(0.23, 0.61, 1.9) + ROCK_ROLL * spring(0.12), 2)],
   };
 }
 
 const shipKeys = [];
-for (let t = 0; t <= DURATION + 1e-9; t += 0.25) shipKeys.push({ t: round(t, 2), ...ship(Math.min(t, TOUCHDOWN)) });
+for (let i = 0; i * SHIP_STEP <= DURATION + 1e-9; i++) shipKeys.push({ t: round(i * SHIP_STEP, 2), ...ship(i * SHIP_STEP) });
 
 const toRad = Math.PI / 180;
 // The ship's left is +X; the reference sees its right flank (the side door, x < 0), the nose to the
@@ -148,6 +170,8 @@ const flight = flightTimes.map((t) => ({
   front: FRONT_FLAMES,
   reach: reach(t),
   glow: GLOW,
+  // The gear stays where it touched down while the hull rocks on it (owner, 2026-11-10).
+  planted: t >= TOUCHDOWN ? 1 : 0,
 }));
 
 const track = {

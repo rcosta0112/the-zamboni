@@ -155,9 +155,12 @@ export interface Ship {
    * shadow. Raised, what would come up through the cargo floor isn't drawn (`above`: that height, in
    * its own space).
    */
-  landingGear: { node: THREE.Object3D; restY: number; above: { value: number } }[];
+  landingGear: { node: THREE.Object3D; restY: number; restAt: THREE.Vector3; rest: THREE.Quaternion; restScale: THREE.Vector3; above: { value: number } }[];
   /** The gear raised as a cutscene keys it (0 down, 1 up), or null: as `settings.shipFlying` has it (main.ts). */
   gearRaised: number | null;
+  /** The ship's move a cutscene undoes on the gear (in the ship's space), or null: the gear stays where it
+   *  touched down while the hull rocks on it (the landing; main.ts from `CutscenePlayer.gearHold`). */
+  gearHold: THREE.Matrix4 | null;
   /** The cargo floor's top, in the ship's space. */
   cargoFloorY: number;
   /** The turbines and their rest turn (pointing back). Each casts its own shadow. */
@@ -302,7 +305,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
       const own = (m: THREE.Material) => Object.assign(m.clone() as THREE.MeshStandardNodeMaterial, { maskNode: positionLocal.y.lessThan(above) });
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(own) : own(mesh.material);
     });
-    landingGear.push({ node, restY: node.position.y, above });
+    landingGear.push({ node, restY: node.position.y, restAt: node.position.clone(), rest: node.quaternion.clone(), restScale: node.scale.clone(), above });
   });
 
   const ship: Ship = {
@@ -350,6 +353,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     interiorMovingCasters: [],
     landingGear,
     gearRaised: null,
+    gearHold: null,
     turbines,
     turbinesDown: null,
     cargoFloorY: object.worldToLocal(new THREE.Vector3(0, floorBox.max.y, 0)).y,
@@ -640,6 +644,32 @@ export function furnitureAt(units: CutUnit[], boxes: THREE.Box3[], from: THREE.V
   return nearest;
 }
 
+const gearParent = new THREE.Matrix4();
+const gearMatrix = new THREE.Matrix4();
+
+/** The landing gear raised as the flight has it, and held in place while a cutscene rocks the hull on it
+ *  (`gearHold`); main.ts also calls it after the cutscene's frame, so the gear never lags the hull. */
+export function placeGear(ship: Ship): void {
+  for (const gear of ship.landingGear) {
+    const up = ship.gearRaised !== null ? ship.gearRaised * settings.landingGearUp : settings.shipFlying ? settings.landingGearUp : 0;
+    // From its own place each time (a hold below moves all of it).
+    gear.node.position.copy(gear.restAt).setY(gear.restY + up);
+    gear.node.quaternion.copy(gear.rest);
+    gear.node.scale.copy(gear.restScale);
+    gear.above.value = up > 0 ? ship.cargoFloorY - gear.node.position.y : Infinity;
+    if (!ship.gearHold) continue;
+    // Its parent in the ship's space (P): the gear's own matrix becomes P⁻¹ · hold · P · its own.
+    gearParent.identity();
+    for (let o = gear.node.parent; o && o !== ship.object; o = o.parent) {
+      o.updateMatrix();
+      gearParent.premultiply(o.matrix);
+    }
+    gear.node.updateMatrix();
+    gearMatrix.copy(gearParent).invert().multiply(ship.gearHold).multiply(gearParent).multiply(gear.node.matrix);
+    gearMatrix.decompose(gear.node.position, gear.node.quaternion, gear.node.scale);
+  }
+}
+
 /**
  * One fixed step: the doors and the ramp toward open or closed, pushing her out of their way, their
  * colliders with them. `force`: jump there (at load).
@@ -652,11 +682,7 @@ export function updateShip(ship: Ship, dt: number, force = false, pusher?: Pushe
   const interiorShown = !(settings.seeThrough && settings.seeThroughStage === 'hull only');
   ship.interiorShadowCaster.visible = interiorShown;
   for (const mesh of ship.interiorMovingCasters) mesh.castShadow = interiorShown;
-  for (const gear of ship.landingGear) {
-    const up = ship.gearRaised !== null ? ship.gearRaised * settings.landingGearUp : settings.shipFlying ? settings.landingGearUp : 0;
-    gear.node.position.y = gear.restY + up;
-    gear.above.value = up > 0 ? ship.cargoFloorY - gear.node.position.y : Infinity;
-  }
+  placeGear(ship);
   // Turned about the ship's cross axis (its x) through each one's pivot; down: the flames from back to down.
   for (const t of ship.turbines) {
     const down = ship.turbinesDown ? ship.turbinesDown[t.front ? 1 : 0] : 0;
