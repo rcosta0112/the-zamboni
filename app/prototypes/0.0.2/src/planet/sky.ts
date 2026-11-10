@@ -137,7 +137,7 @@ export function createSky(preset: SkyPreset): Sky {
 
   const material = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, depthWrite: false });
   material.colorNode = sky;
-  material.outputNode = grainOutput();
+  material.outputNode = grainOutput(dir);
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), material);
   mesh.name = 'Sky';
   mesh.frustumCulled = false;

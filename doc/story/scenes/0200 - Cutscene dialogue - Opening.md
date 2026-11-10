@@ -14,13 +14,13 @@ How far?
 Hard to tell.
 A couple thousand kilometers.
 
-**Adam Red** *(in the pilot seat)*
+**Adam Red** *(in the nav seat)*
 About 6 hours if this chunk of garbage holds up.
 
 **Ogawa**
-Hey..
+Hey...
 
-**Adam Blue** *(in the nav seat)*
+**Adam Blue** *(in the pilot seat)*
 My apologies.
 This ship is a veritable work of art.
 

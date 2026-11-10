@@ -34,7 +34,7 @@ Blender's world *Stars* on the view direction, drawn after the planet (what the 
 
 ## The grain (`src/planet/grain.ts`, preset `grain`)
 
-Like the noise in the owner's EEVEE render (owner, 2026-11-10: tried in the shaders, option A; a full-screen pass would come with the post-processing). The planet, the atmosphere and the sky each multiply their final colour (as seen, after tone mapping) by 1 + a random value per pixel, new each frame: black stays black, the darks get more (*more in the darks*). Panel *Grain*: amount (*Blender*: 0.12), size (px of a 1080-line screen), more in the darks, colour (0: grey), new each frame. Costs next to nothing.
+Like the noise in the owner's EEVEE render (owner, 2026-11-10: tried in the shaders, option A; a full-screen pass would come with the post-processing). The planet, the atmosphere and the sky each multiply their final colour (as seen, after tone mapping) by 1 + a random value: black stays black, the darks get more (*more in the darks*). **Mapped to the surface** (owner, 2026-11-10: on the screen it slid over the planet): a 3D noise on the planet's own position (the sky: its direction), so it turns and zooms with it; its cells stay about *size* pixels on screen, a grid twice as fine fading in each time the lens doubles (as the stars' layers). Panel *Grain*: amount, size (px of a 1080-line screen), more in the darks, colour (0: grey), new each frame (off: still on the surface; on: a render's noise). *Blender* (owner, 2026-11-10): amount 0.325, size 1.55, more in the darks 0.54, colour 0.3, still. Costs next to nothing. **The game's shot uses it too** (`shot.ts` applies the preset's grain).
 
 ## Presets (`src/planet/presets.json`)
 
@@ -43,8 +43,8 @@ Named sets of every value; `default` is the one the page and the game load. *Ble
 ## The tuning page (`planet.html`, dev only)
 
 http://localhost:5202/planet.html: Blender's camera (8.54 m away, 36 mm sensor) and sun, a lil-gui panel.
-- **Dragging on the planet turns it** (owner, 2026-11-09): sideways spins it about its own axis (the *spin* slider follows); up and down tips it towards or away from the camera, for viewing only. Double-click resets the tip. It turns slower when zoomed in.
-- *View*: focal length (20–180 mm), spin, exposure, sun strength.
+- **Dragging orbits the camera round the planet** (owner, 2026-11-10; before, it turned the planet): sideways round its vertical (*camera orbit*, the same angle as the game's shot: 0 is Blender's camera), up and down over it (*camera height*); both sliders follow. The sun stays put, as in Blender, so orbiting shows the night side. Double-click goes back to Blender's camera. Slower when zoomed in. *Planet spin* still turns the planet about its own axis.
+- *View*: focal length (20–180 mm), planet spin, camera orbit and height, exposure, sun strength.
 - *Continents*: seed and *New seed*, the height noise, warp, sea level, coast softness, detail bias.
 - One folder per colour ramp (each stop's colour and position), the band, *Atmosphere*, *Stars*, shading.
 - *Save as default*, *Save as new preset…* (written to `presets.json` through the dev server), *Copy preset*, *Load preset* (copied into the panel's own values, so every slider stays linked). The last values edited are kept in the browser between reloads; values added to the page since are filled in from the default preset (found 2026-11-10: a kept preset without the patch stops crashed the panel, a black page).

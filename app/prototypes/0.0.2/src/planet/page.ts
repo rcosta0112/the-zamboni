@@ -69,12 +69,14 @@ await renderer.init();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; // Blender's view: ACES 1.3
 
-const view = { focalLength: 50, spin: 0, exposure: 1, sunStrength: 7 };
+const view = { focalLength: 50, spin: 0, orbit: 0, height: 0, exposure: 1, sunStrength: 7 };
+/** The camera's distance from the planet (m): Blender's. */
+const DISTANCE = 8.538;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 1000);
 camera.filmGauge = 36; // Blender's sensor (fit: the wider side)
-camera.position.set(0, 0, 8.538);
+camera.position.set(0, 0, DISTANCE);
 
 const sun = new THREE.DirectionalLight(0xffffff, view.sunStrength);
 sun.position.set(0.348, 0.625, 0.699).multiplyScalar(10); // Blender's Sun, (0.894, -0.069, 6.8) rad
@@ -84,12 +86,11 @@ const planet = createPlanet(preset);
 const sky = createSky(preset.sky);
 applyGrain(preset.grain);
 scene.add(sky.mesh);
-// Dragging on the planet's page turns it (owner, 2026-11-09): sideways spins it about its own axis
-// (the spin slider follows), up and down tips it towards or away from the camera (`tip`, a view-only
-// turn about the screen's horizontal axis). Double-click resets the tip.
-const tip = new THREE.Group();
-tip.add(planet.root);
-scene.add(tip);
+// Dragging orbits the camera round the planet (owner, 2026-11-10; it turned the planet before):
+// sideways round its vertical (*orbit*, the angle the game's shot uses, shot.ts: 0 is Blender's camera),
+// up and down over it (*height*). The sun stays put, as in Blender: orbiting shows the night side.
+// Double-click goes back to Blender's camera.
+scene.add(planet.root);
 
 function resize(): void {
   const w = window.innerWidth;
@@ -114,6 +115,10 @@ function changed(): void {
 function viewChanged(): void {
   camera.setFocalLength(view.focalLength);
   planet.spin.rotation.z = THREE.MathUtils.degToRad(view.spin);
+  const yaw = THREE.MathUtils.degToRad(view.orbit);
+  const pitch = THREE.MathUtils.degToRad(view.height);
+  camera.position.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).multiplyScalar(DISTANCE);
+  camera.lookAt(0, 0, 0);
   renderer.toneMappingExposure = view.exposure;
   sun.intensity = view.sunStrength;
 }
@@ -159,7 +164,9 @@ gui.add(actions, 'load').name('Load preset (loses changes)');
 
 const viewFolder = gui.addFolder('View');
 viewFolder.add(view, 'focalLength', 20, 180, 1).name('focal length (mm)').onChange(viewChanged);
-const spinControl = viewFolder.add(view, 'spin', -180, 180, 0.5).name('spin (°)').onChange(viewChanged);
+viewFolder.add(view, 'spin', -180, 180, 0.5).name('planet spin (°)').onChange(viewChanged);
+const orbitControl = viewFolder.add(view, 'orbit', -180, 180, 0.5).name('camera orbit (°)').onChange(viewChanged);
+const heightControl = viewFolder.add(view, 'height', -89, 89, 0.5).name('camera height (°)').onChange(viewChanged);
 viewFolder.add(view, 'exposure', 0.2, 3, 0.01).onChange(viewChanged);
 viewFolder.add(view, 'sunStrength', 0, 20, 0.1).name('sun strength').onChange(viewChanged);
 
@@ -264,16 +271,24 @@ canvas.addEventListener('pointermove', (e) => {
   if (!drag) return;
   // Slower when zoomed in, so the surface under the cursor moves about as fast at every focal length.
   const degPerPixel = (0.3 * 50) / view.focalLength;
-  view.spin = THREE.MathUtils.euclideanModulo(view.spin + (e.clientX - drag.x) * degPerPixel + 180, 360) - 180;
-  tip.rotation.x = THREE.MathUtils.clamp(tip.rotation.x + THREE.MathUtils.degToRad((e.clientY - drag.y) * degPerPixel), -Math.PI / 2, Math.PI / 2);
+  // The scene follows the cursor: dragging right brings the planet's left side round.
+  view.orbit = THREE.MathUtils.euclideanModulo(view.orbit - (e.clientX - drag.x) * degPerPixel + 180, 360) - 180;
+  view.height = THREE.MathUtils.clamp(view.height + (e.clientY - drag.y) * degPerPixel, -89, 89);
   drag = { x: e.clientX, y: e.clientY };
-  spinControl.updateDisplay();
+  orbitControl.updateDisplay();
+  heightControl.updateDisplay();
   viewChanged();
 });
 const endDrag = () => (drag = null);
 canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', endDrag);
-canvas.addEventListener('dblclick', () => (tip.rotation.x = 0));
+canvas.addEventListener('dblclick', () => {
+  view.orbit = 0;
+  view.height = 0;
+  orbitControl.updateDisplay();
+  heightControl.updateDisplay();
+  viewChanged();
+});
 canvas.style.cursor = 'grab';
 
 // Dev hooks for checks.

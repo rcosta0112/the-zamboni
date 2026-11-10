@@ -149,11 +149,11 @@
         }
       },
       "grain": {
-        "amount": 0.12,
-        "size": 1,
-        "response": 0.5,
+        "amount": 0.325,
+        "size": 1.55,
+        "response": 0.54,
         "colour": 0.3,
-        "moving": true
+        "moving": false
       }
     }
   }

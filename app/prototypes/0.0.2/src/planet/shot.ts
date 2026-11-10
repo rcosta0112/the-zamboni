@@ -13,6 +13,7 @@
 import * as THREE from 'three/webgpu';
 import { createPlanet, type PlanetPreset } from './planet';
 import { createSky, type SkyPreset } from './sky';
+import { applyGrain, type GrainPreset } from './grain';
 import presets from './presets.json';
 
 /** The shot's timing (owner, 2026-11-10: to cut or adjust later). */
@@ -63,7 +64,7 @@ const TITLE = ['BMTM-640 B', 'Status: unexplored', 'A signal of unknown origin w
 /** Blender's camera distance (m). */
 const DISTANCE = 8.538;
 
-type ShotPreset = PlanetPreset & { sky: SkyPreset };
+type ShotPreset = PlanetPreset & { sky: SkyPreset; grain?: GrainPreset };
 const file = presets as unknown as { default: string; presets: Record<string, ShotPreset> };
 
 export class PlanetShot {
@@ -104,6 +105,7 @@ export class PlanetShot {
     this.radius = preset.atmosphere.size;
     this.sky = createSky(preset.sky);
     this.scene.add(this.sky.mesh);
+    if (preset.grain) applyGrain(preset.grain); // the grain on the planet and sky, as on the page
 
     // Each line's letters laid out from the start, unseen until typed, so the line doesn't shift as it
     // grows. One line at a time: typed, held, deleted, then the next after a gap.
