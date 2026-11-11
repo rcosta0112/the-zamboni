@@ -217,6 +217,11 @@ export class PlanetShot {
    * placed for each line); the line stays put while it's up. The planet keeps growing: by the third
    * line's end (30 s shot) it reaches the line.
    */
+  /** When the title's last line is fully deleted (s, on `time`'s clock, the lead included; main.ts: the wind starts then). */
+  get titleGone(): number {
+    return SHOT.lead + this.lines[this.lines.length - 1]!.gone;
+  }
+
   /** How far faded to white (0..1): over the last `whiteOut` s. */
   get white(): number {
     return THREE.MathUtils.clamp((this.time - (SHOT_LENGTH - SHOT.whiteOut)) / SHOT.whiteOut, 0, 1);

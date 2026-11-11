@@ -51,7 +51,7 @@ import { Landmarks } from './landmarks';
 import { LightColumn } from './light-column';
 import { Synth } from './synth/synth';
 import { PATCHES } from './synth/presets';
-import { PlanetShot, SHOT_LENGTH } from './planet/shot';
+import { PlanetShot } from './planet/shot';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
@@ -83,8 +83,11 @@ const LANDED_SUN_BACK = 260;
 const TERRAIN_COLLIDER = 2500;
 /** An exterior cutscene's wind fades in over this long from its start (s; owner, 2026-10-24). */
 const WIND_FADE_IN = 3;
-/** Scene 0050's wind starts this long before its end (s; owner, 2026-11-10), its fade going on into cutscene 1. */
-const WIND_BEFORE_CUT = 2;
+/**
+ * Scene 0050's wind starts once the title's last line is deleted (owner, 2026-11-11; about 8 s before the
+ * cut) and fades in very slowly, over this long (s), its fade going on at the same pace into cutscene 1.
+ */
+const WIND_FADE_IN_0050 = 14;
 /**
  * What the save keeps of her beyond the story (owner, 2026-10-22: the player never repeats an action
  * unless the story asks for it): each a setting kept with an Ink variable. The list grows as we go
@@ -493,6 +496,7 @@ async function start(): Promise<void> {
   let insideAmount = 0;
   let heardOutside = false; // an exterior cutscene plays: the sound is heard from its camera, outside
   let windIn = 0; // the wind's fade-in so far (0..1): from an exterior cutscene's start, or scene 0050's last seconds, on into cutscene 1
+  let windSlow = false; // the fade started in scene 0050: at its slow pace until done
   let indoorLight = 0; // 0..1, eased: she's inside the ship (whether or not the see-through hull is on)
   let holeAmount = 0;
   let wasWatching = false; // a cutscene played last frame
@@ -860,11 +864,13 @@ async function start(): Promise<void> {
     // Not under the start screen: its music is heard there.
     // An exterior cutscene starts with the wind alone, faded in from its start, and lowered under the
     // ship's noise as the camera zooms in or comes near (owner, 2026-10-24; 2026-11-06).
-    // Scene 0050 (space) is silent until its last WIND_BEFORE_CUT s; the fade then carries on through the
-    // cut into cutscene 1 (and the black at its start), not started again.
-    const windTail = planetShot?.playing ? planetShot.time >= SHOT_LENGTH - WIND_BEFORE_CUT : false;
-    if (windTail || heardOutside) windIn = Math.min(1, windIn + Math.max(0, dt) / WIND_FADE_IN);
+    // Scene 0050 (space) is silent until the title's last line is deleted; the slow fade then carries on
+    // through the cut into cutscene 1 (and the black at its start), not started again.
+    const windTail = planetShot?.playing ? planetShot.time >= planetShot.titleGone : false;
+    if (windTail) windSlow = true;
+    if (windTail || heardOutside) windIn = Math.min(1, windIn + Math.max(0, dt) / (windSlow ? WIND_FADE_IN_0050 : WIND_FADE_IN));
     else if (!black) windIn = 0;
+    if (windIn >= 1 || (!windTail && !heardOutside && !black)) windSlow = false;
     if (begun) wind.update(dt, chest, ship, planetShot?.playing ? windIn : heardOutside ? windIn * THREE.MathUtils.lerp(1, settings.cutsceneWindEnd, cutscene!.heardNear) : null);
     // Indoors: inside the hull, in front of the bulkheads and the crew quarters' furniture.
     const s = ship;

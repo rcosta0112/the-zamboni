@@ -3,7 +3,7 @@
 //     node tools/probe-01.mjs tools/planet-shot-probe.js --game --shots .export/planet-shot
 //
 // A new game plays the planet shot first (the bars on), the title typed in, a screenshot at several times
-// (set by hand); the wind in its last 2 s carried into cutscene 1, which follows. Runs in the page (probe-01.mjs).
+// (set by hand); the wind from the title's last line gone, carried into cutscene 1, which follows. Runs in the page (probe-01.mjs).
 
 const results = [];
 const THREE_deg = (p) => (Math.atan2(p.x, p.z) * 180) / Math.PI;
@@ -63,13 +63,16 @@ for (const t of [0.5, 3, 10, 13, 16.5, 18, 21, 25, 29.5, 30.3, 30.99]) {
   results.push(`  t ${t} s: ${shotP.camera.getFocalLength().toFixed(1)} mm, orbit ${THREE_deg(shotP.camera.position).toFixed(1)}°`);
 }
 shotP.update = advance;
-// The wind: silent in space until 2 s before the end, then fading in, on through the cut into cutscene 1
-// without dropping back (owner, 2026-11-10).
+// The wind: silent in space until the title's last line is deleted, then fading in slowly, on through the
+// cut into cutscene 1 without dropping back (owner, 2026-11-10; 2026-11-11).
 const end = 31; // the 1 s lead and the 30 s zoom
-shotP.time = end - 4;
-await until(() => shotP.time > end - 2.5, 4000);
+const gone = shotP.titleGone;
+shotP.time = gone - 1.5;
+await until(() => shotP.time > gone - 0.5, 4000);
 const before = w.__wind.level;
-await until(() => shotP.time > end - 0.1, 4000);
+await until(() => shotP.time > gone + 3, 6000);
+const early = w.__wind.level;
+await until(() => shotP.time > end - 0.1, 8000);
 const atCut = w.__wind.level;
 const whiteAtCut = Number(getComputedStyle(document.querySelector('#white')).opacity);
 const barsAtCut = document.querySelector('#bars').classList.contains('on');
@@ -86,6 +89,6 @@ await until(() => !white.classList.contains('on'), 8000);
 await wait(1200);
 const whiteGone = Number(getComputedStyle(white).opacity);
 report(whiteAtCut > 0.9 && barsAtCut && barsKept && whiteGone < 0.02, 'to white at the end, the bars kept, cutscene 1 in from white', `white ${whiteAtCut.toFixed(2)} at the cut, ${whiteGone.toFixed(2)} after; bars ${barsAtCut}/${barsKept}`);
-report(before === 0 && atCut > 0.4 && !dropped && after.at(-1) > atCut, 'the wind: silent until 2 s before the end, carried on into cutscene 1', `${before.toFixed(2)} at ${end - 2.5} s, ${atCut.toFixed(2)} at the cut, ${Math.min(...after).toFixed(2)}–${after.at(-1).toFixed(2)} in cutscene 1's first 1.5 s`);
+report(before === 0 && early > 0 && early < atCut && atCut > 0.25 && atCut < 0.8 && !dropped && after.at(-1) > atCut, 'the wind: silent until the title is gone, fading in slowly, carried on into cutscene 1', `${before.toFixed(2)} at ${(gone - 0.5).toFixed(2)} s, ${early.toFixed(2)} 3 s after, ${atCut.toFixed(2)} at the cut, ${Math.min(...after).toFixed(2)}–${after.at(-1).toFixed(2)} in cutscene 1's first 1.5 s`);
 report(!shotP.playing && w.__cutscene().track?.id === 'cutscene-1' && title.hidden, 'played out: cutscene 1 plays, the title gone', w.__cutscene().track?.id);
 return results.join('\n');
