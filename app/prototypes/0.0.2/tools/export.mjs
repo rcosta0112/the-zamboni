@@ -55,17 +55,20 @@ const JOBS = {
     runs: (raw) => [
       [
         '--armature', 'Dr. Green Parka',
-        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack',
+        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack,Binoculars.001',
         '--force-double-sided',
         // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
         '--clip', 'Dr. Green - Ladder x1.25',
         '--clip-start', 'Dr. Green Jump suit',
         // Her piloting loop (2026-10-24), made on her copy sitting in her seat for cutscene 2:
         // where that copy sits is tagged `pilot`; a key every 4 frames (`thin` below).
-        '--loop', 'green_piloting',
+        '--loop', 'Dr. Green - Piloting',
         '--loop-frames', '0-200',
         '--loop-step', '4',
         '--loop-at', 'Dr. Green Jump suit.001',
+        // The binoculars (2026-11-16): her raise, and the binoculars' own turn played with it, moved
+        // from the IK target they hang on in the file onto her right hand's bone.
+        '--action', 'Dr. Green - Binoculars=Binoculars.001:Binoculars:Hand_r',
         '--out', join(raw, 'green-parka.glb'),
       ],
       [
@@ -76,7 +79,7 @@ const JOBS = {
       ],
     ],
     // thin:<animation>:<step>: that clip keeps a key every <step> frames (thin-clip.mjs).
-    files: { 'green-parka.glb': ['thin:green_piloting:4', 'copy'], 'green-jumpsuit.glb': ['copy'] },
+    files: { 'green-parka.glb': ['thin:Dr. Green - Piloting:4', 'copy'], 'green-jumpsuit.glb': ['copy'] },
   },
   // The temple and its light shaft for the landed scene (2026-11-07): `public/scenery/`, not `public/test/`.
   temple: {

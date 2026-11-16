@@ -14,7 +14,12 @@ nothing is saved back.
   starts in the ship as ``climb``) and ``--loop`` (her piloting since 2026-10-24: baked the same
   way over ``--loop-frames``, each curve's end eased onto its start so it loops, a key every
   ``--loop-step`` frames kept (export.mjs's ``thin`` step drops the frames the exporter samples in
-  between); ``--loop-at`` tags where it's played in the ship as ``--loop-tag``). Part 1's walk,
+  between); ``--loop-at`` tags where it's played in the ship as ``--loop-tag``), and each
+  ``--action`` (since 2026-11-16: the binoculars), baked like ``--clip``, untagged. An action can
+  carry a held object: ``--action "<action>=<object>:<its action>:<bone>"`` plays the object's own
+  action with hers, then moves the object onto ``<bone>`` (a bone the game has: the file's may hang
+  on an IK target, which isn't exported) with its place on that bone keyed every frame, on an NLA
+  track of the same name, so the exporter writes both into one animation. Part 1's walk,
   run, jump and flight come from Part 1's file.
 - Modifiers are applied (mirrored halves, subdivision), **keeping shape keys** (the hood's
   ``jetpack``): the glTF exporter drops shape keys when it applies modifiers itself, so each part's
@@ -57,6 +62,7 @@ parser.add_argument('--loop-frames', default='0-200', help="the loop's frames: f
 parser.add_argument('--loop-step', type=int, default=4, help='a key every this many frames')
 parser.add_argument('--loop-at', help='the armature posed where the loop is played in the ship (its place and facing tagged)')
 parser.add_argument('--loop-tag', default='pilot', help='the tag on the armature for --loop-at')
+parser.add_argument('--action', action='append', default=[], help='another action, baked like --clip; "<action>=<object>:<its action>:<bone>" with a held object')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
 switch_collections()  # as export-collections.json says, whatever the file has
@@ -123,8 +129,17 @@ for mat in sorted(materials, key=lambda m: m.name):
 # bones. Only the bones are keyed (her place in the ship comes from --clip-start). Where it starts:
 # that armature's place and facing at the first frame, in the ship's space (glTF axes), tagged
 # `climb` on the armature.
+filed_pose = {pb.name: (pb.rotation_mode, pb.location.copy(), pb.rotation_quaternion.copy(), pb.rotation_euler.copy(), pb.scale.copy())
+              for pb in armature.pose.bones}
+
+
 def bake(name, first, last):
     """The action played on the armature, baked with its constraints on: a new action, named as it."""
+    # The armature's own pose from the file first, for what the action doesn't key: the clip baked
+    # before it leaves its last frame's pose (the binoculars after piloting kept its `Body`, and the
+    # arms' IK reached from it, 2026-11-16).
+    for pb in armature.pose.bones:
+        pb.rotation_mode, pb.location, pb.rotation_quaternion, pb.rotation_euler, pb.scale = filed_pose[pb.name]
     action = bpy.data.actions[name]
     ad = armature.animation_data or armature.animation_data_create()
     ad.action = action
@@ -187,6 +202,64 @@ if args.loop:
         armature[args.loop_tag] = {'clip': args.loop, 'at': at, 'facing': facing}
     keys = max(len(f.keyframe_points) for f in fcurves_of(looped))
     print(f'LOOP: {args.loop!r}: frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked, {keys} keys a curve; the seam\'s largest jump {seam:.4f} -> {after:.6f}' + (f'; {args.loop_tag} at {tuple(round(v, 3) for v in at)}' if args.loop_at else ''))
+
+
+def bake_held(clip, first, last, ob, own, bone):
+    """The held object played with the baked clip: its place relative to `bone` keyed every frame, the
+    object then hung on that bone; an NLA track named as the clip (one animation in the glTF)."""
+    scene = bpy.context.scene
+    ad = armature.animation_data
+    ad.action, ad.action_slot = clip, clip.slots[0]
+    oad = ob.animation_data or ob.animation_data_create()
+    slot = oad.action_slot if oad.action == own else None
+    oad.action = own
+    if slot is None:
+        oad.action_slot = own.slots[0]
+    hand = lambda: armature.matrix_world @ armature.pose.bones[bone].matrix
+    on_bone = []
+    for f in range(first, last + 1):
+        scene.frame_set(f)
+        on_bone.append(hand().inverted() @ ob.matrix_world)
+    oad.action = None
+    world = ob.matrix_world.copy()
+    ob.parent, ob.parent_type, ob.parent_bone = armature, 'BONE', bone
+    ob.matrix_parent_inverse.identity()
+    ob.matrix_world = world
+    ob.rotation_mode = 'QUATERNION'
+    for i, f in enumerate(range(first, last + 1)):
+        scene.frame_set(f)
+        ob.matrix_world = hand() @ on_bone[i]
+        for path in ('location', 'rotation_quaternion', 'scale'):
+            ob.keyframe_insert(path, frame=f)
+    keyed = oad.action
+    keyed.name = clip.name + ' (' + ob.name + ')'
+    oad.action = None
+    ad.action = None
+    track = oad.nla_tracks.new()
+    track.name = clip.name
+    strip = track.strips.new(clip.name, first, keyed)
+    strip.action_slot = keyed.slots[0]
+
+
+for spec in args.action:
+    name, _, held = spec.partition('=')
+    if name not in bpy.data.actions:
+        print(f'STOP: --action {name!r} is not in the file (renamed or deleted?): exported without it')
+        continue
+    first, last = (int(f) for f in bpy.data.actions[name].frame_range)
+    action = bake(name, first, last)
+    tracks.append(action)
+    baked = baked or action
+    note = ''
+    if held:
+        obj, own, bone = held.split(':')
+        missing = [n for n, pool in ((obj, bpy.data.objects), (own, bpy.data.actions)) if n not in pool] + ([] if bone in armature.data.bones else [bone])
+        if missing:
+            print(f'STOP: --action {name!r}: {", ".join(map(repr, missing))} not in the file: exported without the held object\'s movement')
+        else:
+            bake_held(action, first, last, bpy.data.objects[obj], bpy.data.actions[own], bone)
+            note = f'; {obj!r} with its {own!r}, on {bone!r}'
+    print(f'ACTION: {name!r}: frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked{note}')
 # Each clip an NLA track of its own: the exporter writes one animation per track, named after it.
 if tracks:
     ad = armature.animation_data

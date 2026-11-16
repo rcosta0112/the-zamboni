@@ -52,6 +52,7 @@ import { LightColumn } from './light-column';
 import { Synth } from './synth/synth';
 import { PATCHES } from './synth/presets';
 import { PlanetShot } from './planet/shot';
+import { Gadgets } from './gadgets';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
@@ -459,9 +460,10 @@ async function start(): Promise<void> {
   const wind = new Wind(audio);
   const exhaust = new Exhaust(scene);
   const lightColumn = new LightColumn(scene); // cutscene 3's column of light on the horizon (a placeholder)
+  const gadgets = new Gadgets(); // her binoculars (gadgets.ts)
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -847,6 +849,12 @@ async function start(): Promise<void> {
     const sitting = seated.has('green');
     if (sitting) input.consumeJump();
     if (character.model) character.model.seated = sitting;
+    // Her gadget (the binoculars): out into her hands by its button, used (raised to her eyes) by R; put away at once while her hands are taken.
+    gadgets.update(dt, input.consumeGadget(), input.consumeGadgetUse(), !sitting && !(ladders?.climbing ?? false) && !watching && !dialogue.active, character.model?.gadgetSeconds ?? 0);
+    if (character.model) {
+      character.model.gadgetHeld = gadgets.held;
+      character.model.gadgetRaised = gadgets.raised;
+    }
     character.render(accumulator / STEP);
     character.animate(dt);
     const handBone = sitting ? (character.model?.object.getObjectByName(HAND) ?? null) : null;
@@ -1054,8 +1062,8 @@ function tagPlace(ship: THREE.Object3D, at: [number, number, number] | undefined
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · B jump · ZR fly (half-way hovers; push the stick to fly, let go to glide) · A interact · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · Y invert · P quality · ` tuning\n' +
+    'Gamepad: left stick move · right stick camera · B jump · ZR fly (half-way hovers; push the stick to fly, let go to glide) · A interact · D-pad up binoculars, R raise them · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · B binoculars, right click raise them · Y invert · P quality · ` tuning\n' +
     'Ladder: at its foot, E / A to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }

@@ -8,12 +8,17 @@
 // Blends standing → walking → running by speed, keeping walk and run on the same step
 // (shared phase), and plays the jump while airborne. Flying (the jetpack), Part 1's Flying clip
 // loops, blended in and out over FLY_BLEND. Seated (`seated`), her piloting loop is all that's shown.
+// A gadget (2026-11-16: the binoculars) over all that, on her upper body only (`UPPER_BODY`): each
+// movement clip is split in two at load, the legs' half played as before, the upper half handing over
+// to the gadget's clip as it comes into her hands (`gadgetHeld`, the clip's first frame), the clip
+// played on as it's used (`gadgetRaised`: the binoculars to her eyes); the gadget's own object (the
+// binoculars on her hand) keyed in the same clip, shown while it's out.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { ClimbClip } from './ladders';
 import { downloads } from './loading';
-import { named } from './names';
+import { named, sanitize } from './names';
 import { retargetClips } from './retarget';
 import { settings } from './settings';
 
@@ -38,12 +43,46 @@ const HOOD_KEY = 'jetpack';
 /** Time constant of the blend into and out of the flying clip (s). */
 const FLY_BLEND = 0.12;
 
-type Clips = { standing: THREE.AnimationAction; walking: THREE.AnimationAction; running: THREE.AnimationAction; jumping: THREE.AnimationAction; flying: THREE.AnimationAction };
+/** Her upper body: the bones a gadget's clip takes over from the movement clips (her skeleton has no spine: `Body` is the torso, left to the movement). */
+const UPPER_BODY = ['Arm_l', 'Hand_l', 'Arm_r', 'Hand_r', 'Head'];
+/** The binoculars: her clip (the export bakes the binoculars' own turn into it) and the object on her right hand. */
+export const BINOCULARS_CLIP = 'Dr. Green - Binoculars';
+const BINOCULARS = 'Binoculars.001';
+
+const trackNode = (t: THREE.KeyframeTrack) => THREE.PropertyBinding.parseTrackName(t.name).nodeName;
+/** A clip's tracks on these nodes (`keep` true) or on the others, as a clip of its own. */
+function subclip(clip: THREE.AnimationClip, nodes: string[], keep: boolean, suffix: string): THREE.AnimationClip {
+  return new THREE.AnimationClip(clip.name + suffix, clip.duration, clip.tracks.filter((t) => nodes.includes(trackNode(t)) === keep));
+}
+
+/** A gadget's clip on her model: her upper body's part, weighted by how far it's raised, and its object's, at full weight while it shows. */
+interface GadgetClip {
+  body: THREE.AnimationAction;
+  held: THREE.AnimationAction;
+  object: THREE.Object3D | null;
+}
+
+type ClipName = 'standing' | 'walking' | 'running' | 'jumping' | 'flying';
+type Clips = Record<ClipName, THREE.AnimationAction>;
+const CLIP_NAMES: ClipName[] = ['standing', 'walking', 'running', 'jumping', 'flying'];
 
 export class AnimatedModel {
   readonly object: THREE.Object3D;
   private mixer: THREE.AnimationMixer;
+  /** The movement clips: without the upper body when there's a gadget clip (`upper` has it), whole otherwise. */
   private clips: Clips;
+  /** The movement clips' upper-body halves, weighted by what the gadget leaves them; none without a gadget clip. */
+  private upper: Clips | null = null;
+  /** The binoculars, if her model has their clip. */
+  private binoculars: GadgetClip | null = null;
+  /** How far the gadget has come into her hands: 0 away .. 1 held, in its clip's first frame (main.ts, from `Gadgets`). */
+  gadgetHeld = 0;
+  /** How far it's raised from her hands by its clip: 0 .. 1, the clip's time (main.ts, from `Gadgets`). */
+  gadgetRaised = 0;
+  /** The gadget clip's length (s), for `Gadgets`; 0 without one. */
+  get gadgetSeconds(): number {
+    return this.binoculars?.body.getClip().duration ?? 0;
+  }
   /** Position in the walk/run cycle, 0..1, shared so both cycles stay on the same step. */
   private phase = 0;
   /** Where the walk/run cycle is, 0..1 (for the footsteps). */
@@ -69,6 +108,8 @@ export class AnimatedModel {
     private outfits: Partial<Record<Outfit, THREE.Object3D[]>> = {},
     /** Her piloting loop, played while seated (none on Part 1's). */
     pilotClip?: THREE.AnimationClip,
+    /** Her binoculars' clip (none on Part 1's). */
+    binocularsClip?: THREE.AnimationClip,
   ) {
     this.object = object;
     this.mixer = new THREE.AnimationMixer(object);
@@ -79,30 +120,50 @@ export class AnimatedModel {
       this.piloting.setEffectiveWeight(0);
     }
 
-    const action = (name: string) => {
+    const find = (name: string) => {
       const clip = THREE.AnimationClip.findByName(animations, name);
       if (!clip) throw new Error(`Animation "${name}" not found`);
-      return this.mixer.clipAction(clip);
+      return clip;
     };
-    this.clips = {
-      standing: action('standing'),
-      walking: action('walking'),
-      running: action('running'),
-      jumping: action('jumping'),
-      flying: action('flying'),
-    };
-    this.clips.flying.play();
-    this.clips.flying.setEffectiveWeight(0);
-
-    // Walk and run are driven by hand (time set from the shared phase), so they don't advance on their own.
-    for (const a of [this.clips.standing, this.clips.walking, this.clips.running]) {
-      a.play();
-      a.timeScale = 0;
+    // With a gadget clip, each movement clip in two: the legs' half and the upper body's.
+    const clipsOf = (part: 'lower' | 'upper' | 'whole') =>
+      Object.fromEntries(
+        CLIP_NAMES.map((name) => {
+          const clip = find(name);
+          return [name, this.mixer.clipAction(part === 'whole' ? clip : subclip(clip, UPPER_BODY, part === 'upper', ` (${part})`))];
+        }),
+      ) as Clips;
+    this.clips = clipsOf(binocularsClip ? 'lower' : 'whole');
+    if (binocularsClip) this.upper = clipsOf('upper');
+    for (const clips of [this.clips, this.upper]) {
+      if (!clips) continue;
+      clips.flying.play();
+      clips.flying.setEffectiveWeight(0);
+      // Walk and run are driven by hand (time set from the shared phase), so they don't advance on their own.
+      for (const a of [clips.standing, clips.walking, clips.running]) {
+        a.play();
+        a.timeScale = 0;
+      }
+      clips.jumping.setLoop(THREE.LoopOnce, 1);
+      clips.jumping.clampWhenFinished = true;
+      clips.jumping.play();
+      clips.jumping.setEffectiveWeight(0);
     }
-    this.clips.jumping.setLoop(THREE.LoopOnce, 1);
-    this.clips.jumping.clampWhenFinished = true;
-    this.clips.jumping.play();
-    this.clips.jumping.setEffectiveWeight(0);
+    if (binocularsClip) {
+      // Played by hand: its time follows how far they're raised (`gadgetRaised`), both ways.
+      const byHand = (clip: THREE.AnimationClip) => {
+        const a = this.mixer.clipAction(clip);
+        a.play();
+        a.timeScale = 0;
+        a.setEffectiveWeight(0);
+        return a;
+      };
+      const held = [BINOCULARS, sanitize(BINOCULARS)];
+      const object = object3d(this.object, held);
+      if (!object) console.warn(`[0.0.2] her model has no ${BINOCULARS} (the binoculars' clip moves it)`);
+      if (object) object.visible = false;
+      this.binoculars = { body: byHand(subclip(binocularsClip, UPPER_BODY, true, ' (body)')), held: byHand(subclip(binocularsClip, held, true, ' (held)')), object };
+    }
 
     object.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
@@ -198,7 +259,7 @@ export class AnimatedModel {
     if (this.animSpeed < 0.01) this.animSpeed = 0;
     const speed = this.animSpeed;
 
-    const { standing, walking, running, jumping, flying: flyingClip } = this.clips;
+    const { walking, running, jumping } = this.clips;
 
     // Ground blend: 0 = standing, 1 = walking, 2 = running.
     const blend = speed <= walk ? speed / walk : 1 + Math.min(1, (speed - walk) / Math.max(0.01, run - walk));
@@ -219,6 +280,7 @@ export class AnimatedModel {
     if (!grounded && this.wasGrounded && !flying) {
       jumping.reset();
       jumping.play();
+      this.upper?.jumping.reset().play();
     }
     this.wasGrounded = grounded;
     // Flying: the flying clip over everything, eased in and out.
@@ -235,11 +297,37 @@ export class AnimatedModel {
     const wJump = grounded ? 0 : rest;
     const ground = grounded ? rest : 0;
 
-    standing.setEffectiveWeight(wStand * ground);
-    walking.setEffectiveWeight(wWalk * ground);
-    running.setEffectiveWeight(wRun * ground);
-    jumping.setEffectiveWeight(wJump);
-    flyingClip.setEffectiveWeight(climbing || seated ? 0 : this.flyWeight);
+    const weights: Record<ClipName, number> = {
+      standing: wStand * ground,
+      walking: wWalk * ground,
+      running: wRun * ground,
+      jumping: wJump,
+      flying: climbing || seated ? 0 : this.flyWeight,
+    };
+    for (const name of CLIP_NAMES) this.clips[name].setEffectiveWeight(weights[name]);
+
+    // The gadget on her upper body: the movement's upper halves hand over to its clip as it comes into
+    // her hands (eased), the clip held at its first frame; using it plays the clip on (the binoculars
+    // to her eyes) and back. Not while she climbs or sits (main.ts puts it away then).
+    const free = !climbing && !seated;
+    const held = free ? THREE.MathUtils.clamp(this.gadgetHeld, 0, 1) : 0;
+    const raised = free ? THREE.MathUtils.clamp(this.gadgetRaised, 0, 1) : 0;
+    const share = held * held * (3 - 2 * held);
+    if (this.upper) {
+      for (const name of CLIP_NAMES) {
+        const up = this.upper[name];
+        up.setEffectiveWeight(weights[name] * (1 - share));
+        // On the legs' frame: walk, run and stand are set by hand; the jump and the flight run on their own, started with the legs'.
+        if (name !== 'jumping' && name !== 'flying') up.time = this.clips[name].time;
+      }
+    }
+    if (this.binoculars) {
+      const { body, held: inHand, object } = this.binoculars;
+      body.time = inHand.time = raised * body.getClip().duration;
+      body.setEffectiveWeight(share);
+      inHand.setEffectiveWeight(share > 0 ? 1 : 0);
+      if (object) object.visible = share > 0;
+    }
 
     this.mixer.update(dt);
   }
@@ -344,9 +432,15 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   const [a, b, c] = downloads(3, onProgress);
   const [part1, zamboni, jumpsuit] = await Promise.all([loader.loadAsync(PART1_URL, a), loader.loadAsync(ZAMBONI_URL, b), loader.loadAsync(JUMPSUIT_URL, c)]);
 
-  // Her size from the parka (the jumpsuit's hair is 1.4 cm higher than the hood: she doesn't change size).
+  // Her size from the parka (the jumpsuit's hair is 1.4 cm higher than the hood: she doesn't change size),
+  // without the binoculars (on her hand, in the file's pose of their clip's last frame).
+  const binoculars = object3d(zamboni.scene, [BINOCULARS, sanitize(BINOCULARS)]);
+  const hand = binoculars?.parent ?? null;
+  binoculars?.removeFromParent();
   const zamboniHeight = new THREE.Box3().setFromObject(zamboni.scene).getSize(new THREE.Vector3()).y;
-  const outfits = { parka: outfitParts(zamboni.scene), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
+  if (binoculars) hand!.add(binoculars);
+  // The binoculars hang on her hand in the parka's file but belong to neither outfit: shown by their clip.
+  const outfits = { parka: outfitParts(zamboni.scene).filter((p) => p !== binoculars), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
   let climbTag: ClimbTag | null = null;
   let pilotTag: PilotTag | null = null;
   zamboni.scene.traverse((o) => {
@@ -357,8 +451,10 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   const clip = (name: string | undefined) => (name ? THREE.AnimationClip.findByName(zamboni.animations, name) : undefined) ?? undefined;
   const climbClip = clip((climbTag as ClimbTag | null)?.clip) ?? zamboni.animations[0];
   const pilotClip = clip((pilotTag as PilotTag | null)?.clip);
+  const binocularsClip = clip(BINOCULARS_CLIP);
+  if (!binocularsClip) console.warn(`[0.0.2] her model has no clip "${BINOCULARS_CLIP}"`);
   // Without the tracks of bones her skeleton doesn't have (`Hand_r.IK`, an IK target left out of the export: they'd only warn).
-  for (const c of [climbClip, pilotClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
+  for (const c of [climbClip, pilotClip, binocularsClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
   if (pilotTag && !pilotClip) console.warn(`[0.0.2] her model has no clip "${(pilotTag as PilotTag).clip}" (the pilot tag's)`);
   const zamboniClips = retargetClips(part1.scene, zamboni.scene, part1.animations, {
     yawFixDeg: settings.retargetYawFixDeg,
@@ -367,8 +463,8 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   return {
     models: {
       part1: new AnimatedModel(part1.scene, part1.animations, 180, () => 1),
-      // Her model's animations are the ladder's and her piloting (export-crew-character.py --clip, --loop).
-      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip),
+      // Her model's animations are the ladder's, her piloting and the binoculars (export-crew-character.py --clip, --loop, --action).
+      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip, binocularsClip),
     },
     climbTag,
     pilotTag,
@@ -376,6 +472,15 @@ export async function loadModels(onProgress: (share: number) => void = () => und
 }
 
 const isBone = (o: THREE.Object3D | null): boolean => (o as THREE.Bone | null)?.isBone === true;
+
+/** The first object under `root` with one of these names. */
+function object3d(root: THREE.Object3D, names: string[]): THREE.Object3D | null {
+  for (const n of names) {
+    const found = root.getObjectByName(n);
+    if (found) return found;
+  }
+  return null;
+}
 
 /** An outfit's things in its file: the meshes beside the skeleton and what hangs on its bones (not the bones). */
 function outfitParts(root: THREE.Object3D): THREE.Object3D[] {

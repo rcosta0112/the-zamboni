@@ -1,14 +1,14 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-175**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-176**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
 *Updated 2026-11-10, end of session (the landing cutscene's pass 4, the clouds, switched off for now; committed); earlier 2026-11-10 (passes 1–3).*
 
 ## Next up
 
 0. **SC-164** · The landing (0600): pass 4, the clouds, built from your `Cloud.blend` and **switched off for now** (your word; the panel's *Landing: clouds › shown* brings them back). Still to look at: the heavier rocking (http://localhost:5202/?scene=0600, ~9.5–11 s). Still open: shot 1 now or later. The other session's 0400 waits on this cutscene. [plan](plans/features/landing-cutscene.md)
+0. **SC-176** · Binoculars, [pass 1](plans/features/gadgets-binoculars.md) built: D-pad up / B brings them into her hands, R / right click raises them to her eyes; held while she moves. Pass 2 (first person once raised, ZR / ZL zoom, the panel's min/max zoom) on your go.
 0. **SC-173** · Review the [plan](plans/features/scene-0500-split.md) for 0500 as its own scene after the flyby (0400). Built once 0400 is done.
-1. **SC-155** · Blender: the action `Dr. Geen - Piloting` (typo): the player export stops until it's fixed or I point the export at it (below, *Blender*).
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
 3. **SC-15** · Dr. Kaufman's book: the Blender task that blocks the flying scene's pass 1, second half.
 
@@ -26,9 +26,9 @@
 
 The flying scene's tasks: [flying-scene-blender.md](plans/features/flying-scene-blender.md) has the specs. Tell me what changed in the file when you're done.
 
-- [ ] **SC-155** · Her piloting action was renamed `green_piloting` → `Dr. Geen - Piloting` (missing *r*): rename it `Dr. Green - Piloting`, or tell me to use the name as it is. Until then `npm run export:player` stops (the game's files are fine).
 - [ ] **SC-156** · Adam Blue's armature is now `Adam Blue.001` and their mesh `Adam Blue` (the other way round from Red's `Adam Red` / `Adam Red Mesh`). Swap them if it wasn't meant; the crew export names it, one line to change. *(low priority)*
 - [ ] **SC-15** · Dr. Kaufman's book, a prop she holds while reading. *(blocks pass 1)*
+- [x] **SC-175** · Done by the owner 2026-11-16: the temple's `Rock.002` folded into `Rock`; exported and taken.
 - [x] **SC-16** · Done in 1.22 (owner, 2026-11-10): Adam Blue flying (`Adam - Piloting Idle`).
 - [x] **SC-17** · Done in 1.22 (owner, 2026-11-10): Adam Red navigating (`Adam - Navigation`).
 - [ ] **SC-18** · Animation: Dr. Kaufman reading on the couch (loop).

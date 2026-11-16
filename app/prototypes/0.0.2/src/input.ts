@@ -1,6 +1,7 @@
 // Action-based input. The gamepad is the main input; keyboard and mouse are secondary.
 // The rest of the prototype reads actions (move, look, jump…), never raw buttons.
 
+import type { GadgetId } from './gadgets';
 import { settings } from './settings';
 
 export type Device = 'gamepad' | 'keyboard';
@@ -11,6 +12,7 @@ export type Device = 'gamepad' | 'keyboard';
 const PAD_B = 0; // bottom: jump
 const PAD_A = 1; // right: interact, the dialogue box
 const PAD_X = 3; // top: held to skip a cutscene
+const PAD_R = 5; // right shoulder: use the gadget that's out (owner, 2026-11-16)
 const PAD_RT = 7; // right trigger (ZR): fly; analog on most pads (owner, 2026-10-14)
 const PAD_VIEW = 8;
 /** A trigger value this far from both 0 and 1 shows the trigger is analog. */
@@ -47,6 +49,10 @@ export class Input {
   private mouseDX = 0;
   private mouseDY = 0;
   private jumpLatched = false;
+  /** A gadget's button (gadgets.ts; owner, 2026-11-16: the D-pad brings a gadget out, R uses it). */
+  private gadgetLatched: GadgetId | null = null;
+  /** R or the right mouse button: use the gadget that's out (the binoculars: to her eyes). */
+  private gadgetUseLatched = false;
   private interactLatched = false;
   private skipLatched = false;
   /** Enter, Space or a mouse click: advances the dialogue box (as interact does). */
@@ -75,6 +81,7 @@ export class Input {
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
       if (e.code === 'KeyC') this.jumpLatched = true;
       if (e.code === 'KeyE') this.interactLatched = true;
+      if (e.code === 'KeyB') this.gadgetLatched = 'binoculars';
       if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') this.confirmLatched = true;
       if (e.code === 'KeyW' || e.code === 'ArrowUp') this.keyStep = -1;
       if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keyStep = 1;
@@ -101,8 +108,11 @@ export class Input {
     window.addEventListener('mousedown', (e) => {
       this.skipLatched = true;
       if (e.button === 0) this.leftHeld = true;
+      if (e.button === 2) this.gadgetUseLatched = true;
       this.lastDevice = 'keyboard';
     });
+    // The right button uses a gadget: no browser menu over the game.
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.leftHeld = false;
     });
@@ -141,6 +151,8 @@ export class Input {
       this.padPressed = pressed.some((_, i) => justPressed(i));
       if (justPressed(PAD_B)) this.jumpLatched = true;
       if (justPressed(PAD_A)) this.interactLatched = true;
+      if (justPressed(PAD_UP)) this.gadgetLatched = 'binoculars'; // also a menu's up (menuStep): gadgets go away while a dialogue is up
+      if (justPressed(PAD_R)) this.gadgetUseLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
       // Any button shows a cutscene's skip prompt but pause and the tuning panel's.
@@ -247,6 +259,20 @@ export class Input {
     const s = this.skipLatched;
     this.skipLatched = false;
     return s;
+  }
+
+  /** The gadget whose button went down since the last call (the binoculars: the D-pad's up, B), once per press; null if none. */
+  consumeGadget(): GadgetId | null {
+    const g = this.gadgetLatched;
+    this.gadgetLatched = null;
+    return g;
+  }
+
+  /** True once per press of R or the right mouse button (use the gadget that's out). */
+  consumeGadgetUse(): boolean {
+    const u = this.gadgetUseLatched;
+    this.gadgetUseLatched = false;
+    return u;
   }
 
   /** True once per jump press; stays latched until a fixed update consumes it. */

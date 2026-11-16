@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-16 | Gadgets: out with the D-pad, used with R | input | Each gadget brought out and put away by its own D-pad direction (binoculars: up; keyboard B), the gadget that's out used with R (keyboard and mouse: the right button), so interact (A, E) stays interact while she holds one |
 | 2026-11-09 | The planet shot procedural, tuned on its own page | look | The owner's `planet.blend` planet and stars rebuilt as TSL shaders (not baked), with Three's noise instead of Blender's: the look is re-tuned on `planet.html` and saved as presets, so any scene can show the same planet; the octaves follow screen size |
 | 2026-11-07 | Scene files named `NNNN - Type - Description.md` | docs | Four digits counted up by 100 (scenes inserted between without renaming), the type in words (since 2026-11-08: *Cutscene exterior/dialogue*, *Playable interior/exterior*), a short description; no `?` or apostrophes; the Ink files the same name in lowercase with hyphens |
 | 2026-11-07 | The temple's glow painted in, and a real point light | look | The landed scene's temple stands 200 m ahead; its light shaft gets its bloom without post-processing (a core never under 2 px, a glow ribbon and a base flare sized in pixels, additive), the haze kept on it, the file's 15 cm width kept; a bright point light inside in the Blackbody's colour (owner) |
@@ -68,6 +69,22 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-16] — Gadgets: out with the D-pad, used with R (input)
+
+**Context:** The first gadget, the binoculars ([plan](plans/features/gadgets-binoculars.md)). The first draft used interact (A, E) to look through them, so she couldn't use anything while holding them.
+
+**Decision (owner, 2026-11-16):** the default for every gadget. **The D-pad brings a gadget out and puts it away**, one direction per gadget (the binoculars: up; on the keyboard a key per gadget, B for the binoculars). **R uses the gadget that's out** (keyboard and mouse: the right mouse button), a toggle (the binoculars: first person through them). Interact stays interact.
+
+**Alternatives considered:** interact to use the gadget (the first draft): the prompts would have been hidden while a gadget was out.
+
+**Rationale:** she can still interact with her surroundings while holding a gadget.
+
+**Status:** decided; not built (the plan's pass 1).
+
+**Update 2026-11-16 (owner):** the binoculars zoom on ZR (in) and ZL (out), only in first person (where she can't fly); on keyboard and mouse, the mouse wheel (scroll up zooms in). Their zoom is separate from the third-person camera, which keeps the 2026-10-08 rule (fixed distance, no zoom).
+
+**Update 2026-11-16 (owner), after pass 1:** brought out, a gadget sits in her hands (the binoculars: their clip's first frame); **using it (R, the right mouse button) raises them to her eyes**, a toggle (again: back to her hands). First person then follows the raise (pass 2).
 
 ## [2026-11-09] — The planet shot procedural, tuned on its own page (look)
 
