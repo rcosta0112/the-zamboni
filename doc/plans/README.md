@@ -72,6 +72,7 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [Characters look at each other when they talk to Dr. Green](features/look-at-each-other.md) | 0.0.2 | Pass 1 built 2026-11-07 (all four crew); the owner's to try |
 | [The planet shot: a procedural planet and stars, zooming in, before cutscene 1](features/planet-cinematic.md) | Before cutscene 1 (own page first) | Approved 2026-11-09; passes 1–2 (the planet, the page, the atmosphere, the stars) built |
 | [Gadgets, starting with the binoculars (the toggle, the upper-body layer, first person and zoom)](features/gadgets-binoculars.md) | 0.0.2 | Passes 1–2 built 2026-11-16 (in her hands, to her eyes, first person and zoom); pass 3 next |
+| [Gadgets: the scanner (held, scanning with R1 held, the ray, the sound)](features/gadgets-scanner.md) | 0.0.2 | Passes 1–2 built 2026-11-16 (in her hands, the scan's turn, the ray, the sound) |
 
 ## Plan format
 

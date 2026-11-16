@@ -22,6 +22,7 @@ const ANALOG_MARGIN = 0.02;
 const PAD_START = 9; // Options on a PlayStation controller
 const PAD_UP = 12; // the D-pad
 const PAD_DOWN = 13;
+const PAD_LEFT = 14; // the scanner (owner, 2026-11-16)
 /** How far the left stick goes before it moves a menu's choice. */
 const MENU_PUSH = 0.5;
 
@@ -55,6 +56,9 @@ export class Input {
   private gadgetLatched: GadgetId | null = null;
   /** R1 or the right mouse button: use the gadget that's out (the binoculars: to her eyes). */
   private gadgetUseLatched = false;
+  /** R1 or the right mouse button down now (the scanner is on while it is: owner, 2026-11-16). */
+  gadgetUseHeld = false;
+  private rightHeld = false;
   /** L1 minus L2 this frame (-1..1): the binoculars' zoom (owner, 2026-11-16: L1 in, L2 out; R2 is the jetpack's). */
   private padZoom = 0;
   /** Mouse-wheel notches since the last `consumeZoom` (up positive: zooms in). */
@@ -87,7 +91,9 @@ export class Input {
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
       if (e.code === 'KeyC') this.jumpLatched = true;
       if (e.code === 'KeyE') this.interactLatched = true;
-      if (e.code === 'KeyB') this.gadgetLatched = 'binoculars';
+      // Gadgets (owner, 2026-11-16): 1 the binoculars (B before), 2 the scanner.
+      if (e.code === 'Digit1') this.gadgetLatched = 'binoculars';
+      if (e.code === 'Digit2') this.gadgetLatched = 'scanner';
       if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') this.confirmLatched = true;
       if (e.code === 'KeyW' || e.code === 'ArrowUp') this.keyStep = -1;
       if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keyStep = 1;
@@ -114,7 +120,10 @@ export class Input {
     window.addEventListener('mousedown', (e) => {
       this.skipLatched = true;
       if (e.button === 0) this.leftHeld = true;
-      if (e.button === 2) this.gadgetUseLatched = true;
+      if (e.button === 2) {
+        this.gadgetUseLatched = true;
+        this.rightHeld = true;
+      }
       this.lastDevice = 'keyboard';
     });
     // The wheel zooms the binoculars (owner, 2026-11-16: scroll up zooms in).
@@ -126,8 +135,9 @@ export class Input {
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.leftHeld = false;
+      if (e.button === 2) this.rightHeld = false;
     });
-    window.addEventListener('blur', () => (this.leftHeld = false));
+    window.addEventListener('blur', () => (this.leftHeld = this.rightHeld = false));
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
       this.mouseDX += e.movementX;
@@ -148,6 +158,7 @@ export class Input {
     this.pausePressed = false;
     this.menuStep = 0;
     let padFly = false;
+    let padUse = false;
     let trigger: number | null = null;
 
     if (pad) {
@@ -164,7 +175,9 @@ export class Input {
       if (justPressed(PAD_B)) this.jumpLatched = true;
       if (justPressed(PAD_A)) this.interactLatched = true;
       if (justPressed(PAD_UP)) this.gadgetLatched = 'binoculars'; // also a menu's up (menuStep): gadgets go away while a dialogue is up
+      if (justPressed(PAD_LEFT)) this.gadgetLatched = 'scanner';
       if (justPressed(PAD_R1)) this.gadgetUseLatched = true;
+      padUse = pressed[PAD_R1] === true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
       // Any button shows a cutscene's skip prompt but pause and the tuning panel's.
@@ -196,6 +209,7 @@ export class Input {
     if (this.keys.has('KeyW')) keyY += 1;
     if (this.keys.has('KeyS')) keyY -= 1;
     const keyLen = Math.hypot(keyX, keyY);
+    this.gadgetUseHeld = padUse || this.rightHeld;
     this.walkHeld = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
     const spaceFly = this.keys.has('Space');
     this.flyHeld = spaceFly || padFly;

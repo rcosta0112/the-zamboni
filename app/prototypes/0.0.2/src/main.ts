@@ -59,6 +59,8 @@ const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
 const HAND = 'Hand_l';
 const HAND_LENGTH = 0.141;
+/** The scanner's loop dies away over this long (s) when she stops scanning. */
+const SCAN_SOUND_FADE = 0.2;
 /** The binoculars' zoom sound dies away over this long (s) when the zoom stops. */
 const ZOOM_SOUND_FADE = 0.08;
 /** Without her model, her head is this far under the top of her height (m), as watched.ts takes the crew's. */
@@ -466,6 +468,7 @@ async function start(): Promise<void> {
   const gadgets = new Gadgets(); // her binoculars (gadgets.ts)
   const binocularView = new BinocularView(); // their zoom in first person, and the gadget prompt
   let zoomSound: -1 | 0 | 1 = 0; // which zoom sound is playing (binocularView.moving when it started)
+  let scanSound = false; // the scanner's loop playing
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
@@ -855,11 +858,20 @@ async function start(): Promise<void> {
     const sitting = seated.has('green');
     if (sitting) input.consumeJump();
     if (character.model) character.model.seated = sitting;
-    // Her gadget (the binoculars): out into her hands by its button, used (raised to her eyes) by R; put away at once while her hands are taken.
-    gadgets.update(dt, input.consumeGadget(), input.consumeGadgetUse(), !sitting && !(ladders?.climbing ?? false) && !watching && !dialogue.active, character.model?.gadgetSeconds ?? 0);
+    // Her gadget (the binoculars, the scanner): out into her hands by its button, used by R1 (the binoculars raised to her eyes, a toggle; the scanner on while it's held); put away at once while her hands are taken.
+    gadgets.update(dt, input.consumeGadget(), input.consumeGadgetUse(), input.gadgetUseHeld, !sitting && !(ladders?.climbing ?? false) && !watching && !dialogue.active, character.model?.gadgetSeconds ?? 0);
     if (character.model) {
       character.model.gadgetHeld = gadgets.held;
       character.model.gadgetRaised = gadgets.raised;
+      character.model.gadgetShown = gadgets.shown;
+      character.model.gadgetScan = gadgets.scan;
+    }
+    // The scanner's noise (owner, 2026-11-16): looped while she scans, faded out when she lets go.
+    const scanning = gadgets.out === 'scanner' && gadgets.using;
+    if (scanning !== scanSound) {
+      if (scanning) audio.play('sfx_scanner_loop');
+      else audio.stop('sfx_scanner_loop', undefined, SCAN_SOUND_FADE);
+      scanSound = scanning;
     }
     character.render(accumulator / STEP);
     character.animate(dt);
@@ -910,7 +922,7 @@ async function start(): Promise<void> {
     const gadgetObject = character.model?.gadgetObject ?? null;
     const firstPerson = gadgets.firstPerson && !watching && gadgetObject !== null;
     const zoom = input.consumeZoom();
-    const lens = binocularView.update(dt, gadgets.out === 'binoculars' && !watching && !dialogue.active, firstPerson, zoom.hold, zoom.steps, view.baseFov, input.lastDevice);
+    const lens = binocularView.update(dt, !watching && !dialogue.active ? gadgets.out : null, firstPerson, zoom.hold, zoom.steps, view.baseFov, input.lastDevice);
     // The zoom's motor: heard while the magnification moves, from its start each time; cut short when it stops.
     if (binocularView.moving !== zoomSound) {
       if (zoomSound !== 0) audio.stop(zoomSound > 0 ? 'sfx_binoculars_zoom_in' : 'sfx_binoculars_zoom_out', undefined, ZOOM_SOUND_FADE);
@@ -1088,8 +1100,8 @@ function tagPlace(ship: THREE.Object3D, at: [number, number, number] | undefined
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · B jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · A interact · D-pad up binoculars, R1 look through them, L1 / L2 zoom · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · B binoculars, right click look through them, wheel zoom · Y invert · P quality · ` tuning\n' +
+    'Gamepad: left stick move · right stick camera · B jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · A interact · D-pad up binoculars, R1 look through them, L1 / L2 zoom · D-pad left scanner, hold R1 to scan · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · 1 binoculars, right click look through them, wheel zoom · 2 scanner, hold the right button to scan · Y invert · P quality · ` tuning\n' +
     'Ladder: at its foot, E / A to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }

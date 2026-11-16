@@ -45,7 +45,10 @@ const EIGODOJO = process.env.EIGODOJO_SFX ?? 'C:/Users/31658/Desktop/Eigodojo/ei
 const SUPER8_NAME = 'freesound_community-super8-speed-and-zoom_trlr-67192.mp3';
 const SUPER8 = [resolve(ROOT, 'resources', 'audio', SUPER8_NAME), join(process.env.USERPROFILE ?? '', 'Downloads', SUPER8_NAME)].find((p) => existsSync(p)) ?? resolve(ROOT, 'resources', 'audio', SUPER8_NAME);
 const ZOOM_CUT = 'atrim=3.42:7.42,asetpts=PTS-STARTPTS,volume=12dB,afade=t=out:st=3.95:d=0.05';
+// The scanner (owner, 2026-11-16): a Pixabay fMRI scanner's noise, in resources/audio/; looped while she scans.
+const SCANNER = resolve(ROOT, 'resources', 'audio', 'u_c3u7ozdc09-fmri-scanner-noise-269152.mp3');
 const ELSEWHERE = [
+  ['sfx_scanner_loop', SCANNER, '48k', 1, undefined, undefined, 'volume=16dB'], // quiet as it comes (peaks -20 dB)
   ['sfx_binoculars_zoom_in', SUPER8, '48k', 1, undefined, undefined, ZOOM_CUT],
   ['sfx_binoculars_zoom_out', SUPER8, '48k', 1, undefined, undefined, `${ZOOM_CUT},areverse`],
   ['ui_wrong', join(EIGODOJO, 'incorrect.wav'), '48k', 1],

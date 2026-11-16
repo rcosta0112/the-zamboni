@@ -12,14 +12,19 @@
 // movement clip is split in two at load, the legs' half played as before, the upper half handing over
 // to the gadget's clip as it comes into her hands (`gadgetHeld`, the clip's first frame), the clip
 // played on as it's used (`gadgetRaised`: the binoculars to her eyes); the gadget's own object (the
-// binoculars on her hand) keyed in the same clip, shown while it's out.
+// binoculars on her hand) keyed in the same clip, shown while it's out. The scanner (2026-11-16):
+// its clip is one frame, the hold; while it's on (`gadgetScan`), `Body` and `Head` turn about their
+// length by a smooth made-up noise (the file's Noise modifiers, copied loosely: owner, "the easiest
+// way"), written after the mixer; `Body`'s share only while she stands (no spine: it turns her legs).
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { GadgetId } from './gadgets';
 import type { ClimbClip } from './ladders';
 import { downloads } from './loading';
 import { named, sanitize } from './names';
 import { retargetClips } from './retarget';
+import { ScannerRay } from './scanner-ray';
 import { settings } from './settings';
 
 const PART1_URL = '/test/part1-dr-green.glb';
@@ -48,6 +53,16 @@ const UPPER_BODY = ['Arm_l', 'Hand_l', 'Arm_r', 'Hand_r', 'Head'];
 /** The binoculars: her clip (the export bakes the binoculars' own turn into it) and the object on her right hand. */
 export const BINOCULARS_CLIP = 'Dr. Green - Binoculars';
 const BINOCULARS = 'Binoculars.001';
+/** The scanner: her hold (one frame), the scanner on `Body` and its ray (a child, shown while it's on: scanner pass 2). */
+export const SCANNER_CLIP = 'Dr. Green - Scanner';
+const SCANNER = 'Scanner';
+const SCANNER_RAY = 'Scanner Ray';
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const SCAN_TURN = new THREE.Quaternion();
+/** The scan's turn: two sines (periods in s, at `scannerTurnSpeed` 1), close to the file's Noise of size 100 frames. */
+const wobble = (t: number) => 0.62 * Math.sin((2 * Math.PI * t) / 4.3) + 0.38 * Math.sin((2 * Math.PI * t) / 2.7 + 1.3);
+/** The head's turn this much later (s): the file's offset of 25 frames, and more so the two don't move as one. */
+const HEAD_LATER = 1.04 + 7.1;
 
 const trackNode = (t: THREE.KeyframeTrack) => THREE.PropertyBinding.parseTrackName(t.name).nodeName;
 /** A clip's tracks on these nodes (`keep` true) or on the others, as a clip of its own. */
@@ -58,7 +73,8 @@ function subclip(clip: THREE.AnimationClip, nodes: string[], keep: boolean, suff
 /** A gadget's clip on her model: her upper body's part, weighted by how far it's raised, and its object's, at full weight while it shows. */
 interface GadgetClip {
   body: THREE.AnimationAction;
-  held: THREE.AnimationAction;
+  /** Its object's own tracks (the binoculars' turn); none when the object only hangs on a bone (the scanner). */
+  held: THREE.AnimationAction | null;
   object: THREE.Object3D | null;
 }
 
@@ -73,19 +89,33 @@ export class AnimatedModel {
   private clips: Clips;
   /** The movement clips' upper-body halves, weighted by what the gadget leaves them; none without a gadget clip. */
   private upper: Clips | null = null;
-  /** The binoculars, if her model has their clip. */
-  private binoculars: GadgetClip | null = null;
+  /** Her gadgets' clips (binoculars, scanner), those her model has. */
+  private gadgets: Partial<Record<GadgetId, GadgetClip>> = {};
+  /** Which gadget's clip and object show (main.ts, from `Gadgets.shown`). */
+  gadgetShown: GadgetId | null = null;
+  /** The scanner on: 0 .. 1 (main.ts, from `Gadgets.scan`): her body and head turn as she scans. */
+  gadgetScan = 0;
+  /** The scanner's ray, shown while she scans (scanner-ray.ts); null without one. */
+  scannerRay: ScannerRay | null = null;
+  private scannerRayObject: THREE.Object3D | null = null;
+  private scanTime = 0;
+  private bodyBone: THREE.Object3D | null = null;
+  private headBone: THREE.Object3D | null = null;
+  /** `Body`'s and `Head`'s rotations as the mixer left them, before the scan's turn: put back before
+   * the next mixer update (it writes a bone only when its value changes: unrestored, the turn piles up). */
+  private readonly scanBase = [new THREE.Quaternion(), new THREE.Quaternion()];
+  private scanTurned = false;
   /** How far the gadget has come into her hands: 0 away .. 1 held, in its clip's first frame (main.ts, from `Gadgets`). */
   gadgetHeld = 0;
   /** How far it's raised from her hands by its clip: 0 .. 1, the clip's time (main.ts, from `Gadgets`). */
   gadgetRaised = 0;
   /** The gadget in her hands (the binoculars), for the first-person camera at it; null without one. */
   get gadgetObject(): THREE.Object3D | null {
-    return this.binoculars?.object ?? null;
+    return this.gadgets.binoculars?.object ?? null;
   }
   /** The gadget clip's length (s), for `Gadgets`; 0 without one. */
   get gadgetSeconds(): number {
-    return this.binoculars?.body.getClip().duration ?? 0;
+    return this.gadgets.binoculars?.body.getClip().duration ?? 0;
   }
   /** Position in the walk/run cycle, 0..1, shared so both cycles stay on the same step. */
   private phase = 0;
@@ -114,6 +144,8 @@ export class AnimatedModel {
     pilotClip?: THREE.AnimationClip,
     /** Her binoculars' clip (none on Part 1's). */
     binocularsClip?: THREE.AnimationClip,
+    /** Her scanner's clip (none on Part 1's). */
+    scannerClip?: THREE.AnimationClip,
   ) {
     this.object = object;
     this.mixer = new THREE.AnimationMixer(object);
@@ -137,8 +169,9 @@ export class AnimatedModel {
           return [name, this.mixer.clipAction(part === 'whole' ? clip : subclip(clip, UPPER_BODY, part === 'upper', ` (${part})`))];
         }),
       ) as Clips;
-    this.clips = clipsOf(binocularsClip ? 'lower' : 'whole');
-    if (binocularsClip) this.upper = clipsOf('upper');
+    const anyGadget = binocularsClip !== undefined || scannerClip !== undefined;
+    this.clips = clipsOf(anyGadget ? 'lower' : 'whole');
+    if (anyGadget) this.upper = clipsOf('upper');
     for (const clips of [this.clips, this.upper]) {
       if (!clips) continue;
       clips.flying.play();
@@ -153,20 +186,30 @@ export class AnimatedModel {
       clips.jumping.play();
       clips.jumping.setEffectiveWeight(0);
     }
+    // Played by hand: the binoculars' time follows how far they're raised (`gadgetRaised`), both ways.
+    const byHand = (clip: THREE.AnimationClip) => {
+      const a = this.mixer.clipAction(clip);
+      a.play();
+      a.timeScale = 0;
+      a.setEffectiveWeight(0);
+      return a;
+    };
     if (binocularsClip) {
-      // Played by hand: its time follows how far they're raised (`gadgetRaised`), both ways.
-      const byHand = (clip: THREE.AnimationClip) => {
-        const a = this.mixer.clipAction(clip);
-        a.play();
-        a.timeScale = 0;
-        a.setEffectiveWeight(0);
-        return a;
-      };
       const held = [BINOCULARS, sanitize(BINOCULARS)];
       const object = object3d(this.object, held);
       if (!object) console.warn(`[0.0.2] her model has no ${BINOCULARS} (the binoculars' clip moves it)`);
       if (object) object.visible = false;
-      this.binoculars = { body: byHand(subclip(binocularsClip, UPPER_BODY, true, ' (body)')), held: byHand(subclip(binocularsClip, held, true, ' (held)')), object };
+      this.gadgets.binoculars = { body: byHand(subclip(binocularsClip, UPPER_BODY, true, ' (body)')), held: byHand(subclip(binocularsClip, held, true, ' (held)')), object };
+    }
+    if (scannerClip) {
+      const object = object3d(this.object, [SCANNER]);
+      if (!object) console.warn(`[0.0.2] her model has no ${SCANNER}`);
+      if (object) object.visible = false;
+      this.scannerRayObject = object3d(this.object, [SCANNER_RAY, sanitize(SCANNER_RAY)]);
+      if (!this.scannerRayObject) console.warn(`[0.0.2] her model has no ${SCANNER_RAY}`);
+      this.gadgets.scanner = { body: byHand(subclip(scannerClip, UPPER_BODY, true, ' (body)')), held: null, object };
+      this.bodyBone = this.object.getObjectByName('Body') ?? null;
+      this.headBone = this.object.getObjectByName('Head') ?? null;
     }
 
     object.traverse((child) => {
@@ -186,6 +229,8 @@ export class AnimatedModel {
       if (named(child, JETPACK)) this.jetpack = child;
       if (named(child, BACKPACK)) this.backpack = child;
     });
+    // The ray's own material, after her fade's setup (it isn't dithered with her: it's never close to the camera's cut-off).
+    if (this.scannerRayObject) this.scannerRay = new ScannerRay(this.scannerRayObject);
     for (const [outfit, parts] of Object.entries(this.outfits)) {
       const jetpack = parts.find((p) => named(p, JETPACK) || named(p, JUMPSUIT_JETPACK));
       if (jetpack) this.jetpacks.set(outfit as Outfit, jetpack);
@@ -325,15 +370,37 @@ export class AnimatedModel {
         if (name !== 'jumping' && name !== 'flying') up.time = this.clips[name].time;
       }
     }
-    if (this.binoculars) {
-      const { body, held: inHand, object } = this.binoculars;
-      body.time = inHand.time = raised * body.getClip().duration;
-      body.setEffectiveWeight(share);
-      inHand.setEffectiveWeight(share > 0 ? 1 : 0);
-      if (object) object.visible = share > 0;
+    for (const [id, gadget] of Object.entries(this.gadgets) as [GadgetId, GadgetClip][]) {
+      const { body, held: inHand, object } = gadget;
+      const mine = id === this.gadgetShown ? share : 0;
+      body.time = id === 'binoculars' ? raised * body.getClip().duration : 0;
+      if (inHand) inHand.time = body.time;
+      body.setEffectiveWeight(mine);
+      inHand?.setEffectiveWeight(mine > 0 ? 1 : 0);
+      if (object) object.visible = mine > 0;
     }
 
+    if (this.scanTurned) {
+      this.bodyBone?.quaternion.copy(this.scanBase[0]!);
+      this.headBone?.quaternion.copy(this.scanBase[1]!);
+      this.scanTurned = false;
+    }
     this.mixer.update(dt);
+
+    // Scanning: `Body` and `Head` turn about their length (the file's Noise: size 100 frames,
+    // strength 1, the head's 25 frames later). `Body`'s share only while she stands: walking,
+    // running or in the air it would turn her legs off her path.
+    const on = free && this.gadgetShown === 'scanner' ? THREE.MathUtils.clamp(this.gadgetScan, 0, 1) : 0;
+    if (on > 0) {
+      this.scanTime += Math.max(0, dt) * settings.scannerTurnSpeed;
+      const amp = THREE.MathUtils.degToRad(settings.scannerTurnDeg) * on * on * (3 - 2 * on) * share;
+      if (this.bodyBone) this.scanBase[0]!.copy(this.bodyBone.quaternion);
+      if (this.headBone) this.scanBase[1]!.copy(this.headBone.quaternion);
+      this.scanTurned = true;
+      if (this.bodyBone) this.bodyBone.quaternion.multiply(SCAN_TURN.setFromAxisAngle(Y_AXIS, amp * weights.standing * wobble(this.scanTime)));
+      if (this.headBone) this.headBone.quaternion.multiply(SCAN_TURN.setFromAxisAngle(Y_AXIS, amp * wobble(this.scanTime + HEAD_LATER)));
+    } else this.scanTime = 0;
+    this.scannerRay?.update(on);
   }
 }
 
@@ -444,7 +511,8 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   const zamboniHeight = new THREE.Box3().setFromObject(zamboni.scene).getSize(new THREE.Vector3()).y;
   if (binoculars) hand!.add(binoculars);
   // The binoculars hang on her hand in the parka's file but belong to neither outfit: shown by their clip.
-  const outfits = { parka: outfitParts(zamboni.scene).filter((p) => p !== binoculars), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
+  const scanner = object3d(zamboni.scene, [SCANNER]);
+  const outfits = { parka: outfitParts(zamboni.scene).filter((p) => p !== binoculars && p !== scanner), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
   let climbTag: ClimbTag | null = null;
   let pilotTag: PilotTag | null = null;
   zamboni.scene.traverse((o) => {
@@ -457,8 +525,10 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   const pilotClip = clip((pilotTag as PilotTag | null)?.clip);
   const binocularsClip = clip(BINOCULARS_CLIP);
   if (!binocularsClip) console.warn(`[0.0.2] her model has no clip "${BINOCULARS_CLIP}"`);
+  const scannerClip = clip(SCANNER_CLIP);
+  if (!scannerClip) console.warn(`[0.0.2] her model has no clip "${SCANNER_CLIP}"`);
   // Without the tracks of bones her skeleton doesn't have (`Hand_r.IK`, an IK target left out of the export: they'd only warn).
-  for (const c of [climbClip, pilotClip, binocularsClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
+  for (const c of [climbClip, pilotClip, binocularsClip, scannerClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
   if (pilotTag && !pilotClip) console.warn(`[0.0.2] her model has no clip "${(pilotTag as PilotTag).clip}" (the pilot tag's)`);
   const zamboniClips = retargetClips(part1.scene, zamboni.scene, part1.animations, {
     yawFixDeg: settings.retargetYawFixDeg,
@@ -468,7 +538,7 @@ export async function loadModels(onProgress: (share: number) => void = () => und
     models: {
       part1: new AnimatedModel(part1.scene, part1.animations, 180, () => 1),
       // Her model's animations are the ladder's, her piloting and the binoculars (export-crew-character.py --clip, --loop, --action).
-      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip, binocularsClip),
+      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip, binocularsClip, scannerClip),
     },
     climbTag,
     pilotTag,

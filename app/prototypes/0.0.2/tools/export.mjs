@@ -55,7 +55,7 @@ const JOBS = {
     runs: (raw) => [
       [
         '--armature', 'Dr. Green Parka',
-        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack,Binoculars.001',
+        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack,Binoculars.001,Scanner,Scanner Ray',
         '--force-double-sided',
         // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
         '--clip', 'Dr. Green - Ladder x1.25',
@@ -69,6 +69,10 @@ const JOBS = {
         // The binoculars (2026-11-16): her raise, and the binoculars' own turn played with it, moved
         // from the IK target they hang on in the file onto her right hand's bone.
         '--action', 'Dr. Green - Binoculars=Binoculars.001:Binoculars:Hand_r',
+        // The scanner (2026-11-16): her hold, one frame; it hangs on `Body` in the file, its ray a
+        // child. Its Noise (Body and Head turning) is muted: the game turns her itself.
+        '--action', 'Dr. Green - Scanner',
+        '--still', 'Dr. Green - Scanner',
         '--out', join(raw, 'green-parka.glb'),
       ],
       [

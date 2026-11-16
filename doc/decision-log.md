@@ -103,6 +103,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Update 2026-11-16 (owner):** in first person nothing of hers is held: she walks, runs, jumps and flies (R2 / Space) while looking through them. Opening or closing a gadget never changes the jet. (An update the same day had held walking and jumping; the plan before that, all of it.)
 
+**Update 2026-11-16 (owner): the second gadget, the scanner** ([plan](plans/features/gadgets-scanner.md)). The keyboard's gadget keys are numbers: **1 the binoculars** (was B), **2 the scanner**; on the pad **D-pad left** is the scanner. **What R1 does is the gadget's own:** a toggle for the binoculars, **a hold for the scanner** (on while R1 / the right button is down). Choosing a gadget while another is out puts that one away at once.
+
 ## [2026-11-09] — The planet shot procedural, tuned on its own page (look)
 
 **Context.** A shot before cutscene 1 zooms into the planet of the owner's `resources/models/props/planet.blend` (20 → 180 mm, two jump cuts). Its planet and stars are Blender procedural textures. The owner wants to adjust the noise to pick a nice result, and to show the planet elsewhere too; the exact continents don't matter (2026-11-09).

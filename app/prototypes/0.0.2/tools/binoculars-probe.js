@@ -1,4 +1,4 @@
-// The binoculars, passes 1 and 2 (doc/plans/features/gadgets-binoculars.md): B and the pad's D-pad up
+// The binoculars, passes 1 and 2 (doc/plans/features/gadgets-binoculars.md): 1 (B before 2026-11-16) and the pad's D-pad up
 // bring them out into her hands (the clip's first frame); the right mouse button and the pad's R1 raise
 // them to her eyes, then first person through them, L1 / L2 and the wheel zooming; R1 again lowers them
 // back to her hands, the camera cut back at once (owner, 2026-11-16).
@@ -78,7 +78,7 @@ await front();
 report(gadgets.held === 0 && !binoculars.visible, 'away at first: hidden', `held ${gadgets.held}, visible ${binoculars.visible}`);
 
 // B: out, in her hands (the clip's first frame), not raised.
-await tap('KeyB');
+await tap('Digit1');
 await until(() => gadgets.held === 1, 2000);
 await wait(300);
 const handsAt = inHead();
@@ -201,7 +201,7 @@ report(gadgetPrompt()?.replace(/ /g, '') === 'R1toUse', 'on the pad, out: the R1
 await shot('7-held-pad-prompt');
 
 // B: away, hidden. R1 with nothing out does nothing; the pad's D-pad up brings them out.
-await tap('KeyB');
+await tap('Digit1');
 await until(() => gadgets.held === 0, 2000);
 await wait(100);
 report(gadgets.held === 0 && !binoculars.visible && gadgetPrompt() === null, 'B puts them away: hidden, no prompt');

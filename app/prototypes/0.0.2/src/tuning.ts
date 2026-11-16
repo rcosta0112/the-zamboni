@@ -28,6 +28,11 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   const binoculars = gui.addFolder('Binoculars');
   binoculars.add(settings, 'binocularZoomMin', 1, 20, 0.1).name('zoom: widest (×)');
   binoculars.add(settings, 'binocularZoomMax', 1, 40, 0.1).name('zoom: narrowest (×)');
+  // The scanner (owner, 2026-11-16), also shown while gadgets are built.
+  const scanner = gui.addFolder('Scanner');
+  scanner.add(settings, 'scannerTurnDeg', 0, 60, 1).name('turn: at most (°)');
+  scanner.add(settings, 'scannerTurnSpeed', 0.1, 4, 0.05).name('turn: speed (×)');
+  scanner.add(settings, 'scannerRayStrength', 0, 4, 0.05).name('ray: brightness (×)');
   if (ALL_FOLDERS) {
 
   const move = gui.addFolder('Movement');
@@ -385,7 +390,7 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   }
 
   // Everything starts collapsed: the folders (but the binoculars'), and the panel itself.
-  for (const folder of gui.foldersRecursive()) if (folder !== binoculars) folder.close();
+  for (const folder of gui.foldersRecursive()) if (folder !== binoculars && folder !== scanner) folder.close();
   gui.close();
   return gui;
 }

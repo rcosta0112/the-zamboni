@@ -19,7 +19,9 @@ nothing is saved back.
   carry a held object: ``--action "<action>=<object>:<its action>:<bone>"`` plays the object's own
   action with hers, then moves the object onto ``<bone>`` (a bone the game has: the file's may hang
   on an IK target, which isn't exported) with its place on that bone keyed every frame, on an NLA
-  track of the same name, so the exporter writes both into one animation. Part 1's walk,
+  track of the same name, so the exporter writes both into one animation. ``--still <action>``
+  bakes that action with its curves' modifiers muted (the scanner, 2026-11-16: its Noise is
+  the game's own). Part 1's walk,
   run, jump and flight come from Part 1's file.
 - Modifiers are applied (mirrored halves, subdivision), **keeping shape keys** (the hood's
   ``jetpack``): the glTF exporter drops shape keys when it applies modifiers itself, so each part's
@@ -63,6 +65,7 @@ parser.add_argument('--loop-step', type=int, default=4, help='a key every this m
 parser.add_argument('--loop-at', help='the armature posed where the loop is played in the ship (its place and facing tagged)')
 parser.add_argument('--loop-tag', default='pilot', help='the tag on the armature for --loop-at')
 parser.add_argument('--action', action='append', default=[], help='another action, baked like --clip; "<action>=<object>:<its action>:<bone>" with a held object')
+parser.add_argument('--still', action='append', default=[], help="an --action baked with its curves' modifiers muted (the scanner's noise: the game makes its own)")
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1 :])
 
 switch_collections()  # as export-collections.json says, whatever the file has
@@ -247,7 +250,16 @@ for spec in args.action:
         print(f'STOP: --action {name!r} is not in the file (renamed or deleted?): exported without it')
         continue
     first, last = (int(f) for f in bpy.data.actions[name].frame_range)
+    # --still: its curves' modifiers muted while baked (the scanner's Noise on `Body` and `Head`: the
+    # game turns her itself; baked, frame 1's noise would be in the hold), unmuted after.
+    muted = [m for f in fcurves_of(bpy.data.actions[name]) for m in f.modifiers if not m.mute] if name in args.still else []
+    for m in muted:
+        m.mute = True
     action = bake(name, first, last)
+    for m in muted:
+        m.mute = False
+    if muted:
+        print(f'NOTE: --action {name!r}: baked with {len(muted)} curve modifier(s) muted (--still)')
     tracks.append(action)
     baked = baked or action
     note = ''
@@ -341,6 +353,13 @@ for ob in parts:
     if ob.type == 'MESH':
         bake_modifiers(ob)
 bpy.context.view_layer.update()
+
+# Blender stashes an action left with no user on an `[Action Stash]` NLA track (the scanner's, no fake
+# user, 2026-11-16): the exporter would write it as an animation. Dropped.
+for ob in [armature, *parts]:
+    if ob.animation_data:
+        for track in [t for t in ob.animation_data.nla_tracks if t.name.startswith('[Action Stash]')]:
+            ob.animation_data.nla_tracks.remove(track)
 
 # Export only the armature and its parts.
 bpy.ops.object.select_all(action='DESELECT')

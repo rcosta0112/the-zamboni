@@ -444,6 +444,10 @@ export const settings = {
   binocularZoomMin: 2, // magnification at the widest (what the view starts at)
   binocularZoomMax: 10, // magnification at the narrowest
   binocularZoomSpeed: 1.5, // doublings of the magnification a second, R2 / L2 fully pressed
+  // The scanner's turn while it's on (gadgets: the scanner; the file's Noise modifiers, copied loosely).
+  scannerTurnDeg: 25, // at most, each way: her body (standing) and her head about their length
+  scannerTurnSpeed: 1, // 1: about the file's (Noise size 100 frames); 2 twice as fast
+  scannerRayStrength: 1, // the ray's emission × this (1: the file's 1..10)
 };
 
 export type Settings = typeof settings;

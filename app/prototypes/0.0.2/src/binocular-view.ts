@@ -5,9 +5,10 @@
 // sfx_binoculars_zoom_in while it moves in, the same reversed while it moves out; owner, 2026-11-16). The lens it gives the camera (`fov`). No overlay
 // (owner, 2026-11-16: removed). The prompt at the bottom right (owner, 2026-11-16): "R1 to Use" while
 // they're out; looking through them "R1 to Close" over "L1 / L2 to Zoom" (owner, 2026-11-16); the
-// last device's buttons, as icons.
+// last device's buttons, as icons. The scanner's (2026-11-16): "Hold R1 to Scan" while it's out.
 
 import * as THREE from 'three/webgpu';
+import type { GadgetId } from './gadgets';
 import type { Device } from './input';
 import { shoulderGlyph } from './pad-glyph';
 import { settings } from './settings';
@@ -24,18 +25,19 @@ const mouse = (part: 'right' | 'wheel') =>
   (part === 'right' ? '<path d="M7 0.75A6.25 6.25 0 0 1 13.25 7V8.5H7Z" fill="currentColor"/>' : '<rect x="5.5" y="3" width="3" height="5" rx="1.5" fill="currentColor" stroke="none"/>') +
   '</svg>';
 
-/** What the corner shows: 'use' while they're out, 'zoom' while looking through them (with 'close' over it). */
-type Prompt = 'use' | 'zoom' | null;
-type PromptRow = 'use' | 'close' | 'zoom';
-/** Each prompt's glyphs (key boxes, or the mouse icon) and words, by device. */
-const PROMPTS: Record<PromptRow, Record<Device, { glyphs: string[]; words: string }>> = {
+/** What the corner shows: 'use' while they're out, 'zoom' while looking through them (with 'close' over it); 'scan' while the scanner is out. */
+type Prompt = 'use' | 'zoom' | 'scan' | null;
+type PromptRow = 'use' | 'close' | 'zoom' | 'scan';
+/** Each prompt's glyphs (key boxes, or the mouse icon) and words (`before` them, if any), by device. */
+const PROMPTS: Record<PromptRow, Record<Device, { glyphs: string[]; words: string; before?: string }>> = {
+  scan: { gamepad: { before: 'Hold', glyphs: [shoulderGlyph('R1')], words: 'to Scan' }, keyboard: { before: 'Hold', glyphs: [mouse('right')], words: 'to Scan' } },
   use: { gamepad: { glyphs: [shoulderGlyph('R1')], words: 'to Use' }, keyboard: { glyphs: [mouse('right')], words: 'to Use' } },
   close: { gamepad: { glyphs: [shoulderGlyph('R1')], words: 'to Close' }, keyboard: { glyphs: [mouse('right')], words: 'to Close' } },
   zoom: { gamepad: { glyphs: [shoulderGlyph('L1'), shoulderGlyph('L2')], words: 'to Zoom' }, keyboard: { glyphs: [mouse('wheel')], words: 'to Zoom' } },
 };
 
 /** One prompt as a pill: its glyphs (two with a slash between: "L1 / L2 to Zoom"), then its words. */
-function pill({ glyphs, words }: { glyphs: string[]; words: string }): HTMLElement {
+function pill({ glyphs, words, before }: { glyphs: string[]; words: string; before?: string }): HTMLElement {
   const el = document.createElement('div');
   el.className = 'pill';
   const boxes = glyphs.map((g) => {
@@ -44,7 +46,7 @@ function pill({ glyphs, words }: { glyphs: string[]; words: string }): HTMLEleme
     span.innerHTML = g;
     return span;
   });
-  el.append(...(boxes.length === 2 ? [boxes[0]!, '/', boxes[1]!] : boxes), words);
+  el.append(...(before ? [before] : []), ...(boxes.length === 2 ? [boxes[0]!, '/', boxes[1]!] : boxes), words);
   return el;
 }
 
@@ -69,11 +71,11 @@ export class BinocularView {
   }
 
   /**
-   * Called every rendered frame. `out`: the binoculars are out (in her hands or up); `on`: looking
+   * Called every rendered frame. `out`: the gadget out (the binoculars in her hands or up); `on`: looking
    * through them. `hold`: L1 minus L2 (-1..1); `steps`: the wheel's notches (up positive). Returns the
    * lens for the camera (vertical degrees, from `baseFov`).
    */
-  update(dt: number, out: boolean, on: boolean, hold: number, steps: number, baseFov: number, device: Device): number {
+  update(dt: number, out: GadgetId | null, on: boolean, hold: number, steps: number, baseFov: number, device: Device): number {
     const min = Math.max(1, settings.binocularZoomMin);
     const max = Math.max(min, settings.binocularZoomMax);
     if (on && !this.on) this.zoom = min; // each look starts at the widest
@@ -90,7 +92,7 @@ export class BinocularView {
       this.wheelWay = change > 1 ? 1 : -1;
     } else this.wheelLeft = on ? Math.max(0, this.wheelLeft - Math.max(0, dt)) : 0;
     this.moving = hold !== 0 && Math.abs(change - 1) > 1e-6 ? (change > 1 ? 1 : -1) : this.wheelLeft > 0 ? this.wheelWay : 0;
-    this.showPrompt(on ? 'zoom' : out ? 'use' : null, device);
+    this.showPrompt(on ? 'zoom' : out === 'binoculars' ? 'use' : out === 'scanner' ? 'scan' : null, device);
     const half = THREE.MathUtils.degToRad(baseFov / 2);
     return THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(half) / this.zoom));
   }
@@ -102,7 +104,7 @@ export class BinocularView {
     this.el.hidden = prompt === null;
     if (prompt === null) return;
     // Looking through them, two (owner, 2026-11-16): "R1 to Close" over "L1 / L2 to Zoom".
-    const rows: PromptRow[] = prompt === 'zoom' ? ['close', 'zoom'] : ['use'];
+    const rows: PromptRow[] = prompt === 'zoom' ? ['close', 'zoom'] : [prompt];
     this.el.replaceChildren(...rows.map((row) => pill(PROMPTS[row][device])));
   }
 }
