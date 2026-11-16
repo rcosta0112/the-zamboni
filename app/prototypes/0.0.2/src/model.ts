@@ -79,6 +79,10 @@ export class AnimatedModel {
   gadgetHeld = 0;
   /** How far it's raised from her hands by its clip: 0 .. 1, the clip's time (main.ts, from `Gadgets`). */
   gadgetRaised = 0;
+  /** The gadget in her hands (the binoculars), for the first-person camera at it; null without one. */
+  get gadgetObject(): THREE.Object3D | null {
+    return this.binoculars?.object ?? null;
+  }
   /** The gadget clip's length (s), for `Gadgets`; 0 without one. */
   get gadgetSeconds(): number {
     return this.binoculars?.body.getClip().duration ?? 0;

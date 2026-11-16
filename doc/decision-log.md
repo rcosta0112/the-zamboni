@@ -8,13 +8,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
-| 2026-11-16 | Gadgets: out with the D-pad, used with R | input | Each gadget brought out and put away by its own D-pad direction (binoculars: up; keyboard B), the gadget that's out used with R (keyboard and mouse: the right button), so interact (A, E) stays interact while she holds one |
+| 2026-11-16 | Shoulders L1 / R1, triggers L2 / R2 | input | The pad's shoulders and triggers named as on a PlayStation controller (L / R, ZL / ZR before); the face buttons keep the Nintendo positions; the prompts show them as icons |
+| 2026-11-16 | Gadgets: out with the D-pad, used with R1 | input | Each gadget brought out and put away by its own D-pad direction (binoculars: up; keyboard B), the gadget that's out used with R (keyboard and mouse: the right button), so interact (A, E) stays interact while she holds one; first person zooms on L / ZL and the wheel |
 | 2026-11-09 | The planet shot procedural, tuned on its own page | look | The owner's `planet.blend` planet and stars rebuilt as TSL shaders (not baked), with Three's noise instead of Blender's: the look is re-tuned on `planet.html` and saved as presets, so any scene can show the same planet; the octaves follow screen size |
 | 2026-11-07 | Scene files named `NNNN - Type - Description.md` | docs | Four digits counted up by 100 (scenes inserted between without renaming), the type in words (since 2026-11-08: *Cutscene exterior/dialogue*, *Playable interior/exterior*), a short description; no `?` or apostrophes; the Ink files the same name in lowercase with hyphens |
 | 2026-11-07 | The temple's glow painted in, and a real point light | look | The landed scene's temple stands 200 m ahead; its light shaft gets its bloom without post-processing (a core never under 2 px, a glow ribbon and a base flare sized in pixels, additive), the haze kept on it, the file's 15 cm width kept; a bright point light inside in the Blackbody's colour (owner) |
 | 2026-11-07 | Characters face Dr. Green as their pose allows | feature | Only in her conversations: standing, the whole body turns to face her; seated with her in reach (70°), the head and a little of the body; out of reach, the head 15° toward her side, as if listening; everyone turns back after, her too; replaces the dialogue plan's head-only turn |
 | 2026-11-06 | The ship lands on the travel terrain, stopped | scope | The landed scene shows the icy plain stopped at a chosen spot (14,697 m along: flat under the ship, no rocks within 60 m), her ground its hills; replaces the flat snow and the exterior swap for now; the checks keep their own `landed` (flat ground, read first under `?test`) |
-| 2026-10-28 | Controller buttons named as on a Nintendo controller | input | A B X Y by position (A right, B bottom, Y left, X top), shoulders L / R, triggers ZL / ZR, in every prompt and doc (Xbox / PlayStation names before); the buttons themselves unchanged (B jumps, A interacts and moves the dialogue on, ZR flies), but skipping a cutscene is held on **X** (was A, which also moves the dialogue on) |
+| 2026-10-28 | Controller buttons named as on a Nintendo controller | input | A B X Y by position (A right, B bottom, Y left, X top), shoulders L / R, triggers ZL / ZR, in every prompt and doc (Xbox / PlayStation names before); the buttons themselves unchanged (B jumps, A interacts and moves the dialogue on, ZR flies), but skipping a cutscene is held on **X** (was A, which also moves the dialogue on); **2026-11-16:** the shoulders L1 / R1, the triggers L2 / R2 (entry below) |
 | 2026-10-28 | The owner's tasks in `doc/tasks.md`, not Linear | process | Linear dropped (not worth the upkeep); one Markdown list grouped by kind (look at, decision, Blender, script, Figma, review), *Next up* first, the agent's queue at the bottom; the `SC-n` and item numbers kept, new tasks continue from SC-146 |
 | 2026-10-27 | Plans estimate the agent's build and the review rounds apart | process | Each pass gives two figures, the agent's build time and the expected review rounds with the owner; the *As built* note records the actual time next to them; build estimates are a fifth of the old ones |
 | 2026-10-24 | No light baking in the web build | look | The ship stays lit in real time (sun and its shadow map, room lights, sky); lightmaps cost download, a second UV set and a bake per change; notes kept for a packaged build in `architecture/lighting.md`; whether post-processing is worth it: a later pass |
@@ -70,7 +71,19 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 ---
 
-## [2026-11-16] — Gadgets: out with the D-pad, used with R (input)
+## [2026-11-16] — Shoulders L1 / R1, triggers L2 / R2 (input)
+
+**Context:** The binoculars' prompts got icons (owner, from a reference sheet of controller icons). The pad's buttons had been named as on a Nintendo controller since 2026-10-28 (index row above: shoulders L / R, triggers ZL / ZR).
+
+**Decision (owner, 2026-11-16):** the shoulders are **L1 / R1** and the triggers **L2 / R2**, in every prompt and doc. The face buttons keep their Nintendo positions and names (A right, B bottom, Y left, X top). The prompts show the shoulders and triggers as icons: the button's outline with its name inside (`pad-glyph.ts` `shoulderGlyph`, drawn in the style of the reference).
+
+**Alternatives considered:** the Nintendo names throughout (the 2026-10-28 rule). *[Agent note: the names are now mixed, PlayStation for the shoulders and triggers, Nintendo for the face buttons; flagged to the owner.]*
+
+**Rationale:** the owner's naming.
+
+**Status:** done 2026-11-16: the code, its comments and the docs that describe what exists renamed; plans and older entries keep the names of their day.
+
+## [2026-11-16] — Gadgets: out with the D-pad, used with R1 (input)
 
 **Context:** The first gadget, the binoculars ([plan](plans/features/gadgets-binoculars.md)). The first draft used interact (A, E) to look through them, so she couldn't use anything while holding them.
 
@@ -85,6 +98,10 @@ A running record of project decisions: technology, architecture, pipeline, scope
 **Update 2026-11-16 (owner):** the binoculars zoom on ZR (in) and ZL (out), only in first person (where she can't fly); on keyboard and mouse, the mouse wheel (scroll up zooms in). Their zoom is separate from the third-person camera, which keeps the 2026-10-08 rule (fixed distance, no zoom).
 
 **Update 2026-11-16 (owner), after pass 1:** brought out, a gadget sits in her hands (the binoculars: their clip's first frame); **using it (R, the right mouse button) raises them to her eyes**, a toggle (again: back to her hands). First person then follows the raise (pass 2).
+
+**Update 2026-11-16 (owner):** the zoom moved from ZR / ZL to **L (in) / ZL (out)**: ZR clashed with the jetpack. The wheel unchanged.
+
+**Update 2026-11-16 (owner):** in first person nothing of hers is held: she walks, runs, jumps and flies (R2 / Space) while looking through them. Opening or closing a gadget never changes the jet. (An update the same day had held walking and jumping; the plan before that, all of it.)
 
 ## [2026-11-09] — The planet shot procedural, tuned on its own page (look)
 

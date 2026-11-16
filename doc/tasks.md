@@ -7,7 +7,7 @@
 ## Next up
 
 0. **SC-164** · The landing (0600): pass 4, the clouds, built from your `Cloud.blend` and **switched off for now** (your word; the panel's *Landing: clouds › shown* brings them back). Still to look at: the heavier rocking (http://localhost:5202/?scene=0600, ~9.5–11 s). Still open: shot 1 now or later. The other session's 0400 waits on this cutscene. [plan](plans/features/landing-cutscene.md)
-0. **SC-176** · Binoculars, [pass 1](plans/features/gadgets-binoculars.md) built: D-pad up / B brings them into her hands, R / right click raises them to her eyes; held while she moves. Pass 2 (first person once raised, ZR / ZL zoom, the panel's min/max zoom) on your go.
+0. **SC-176** · Binoculars, [passes 1–2](plans/features/gadgets-binoculars.md) built: try D-pad up / B (in her hands), R1 / right click (to her eyes, first person), L1 / L2 / wheel (zoom); **set the zoom's range** on the panel's *Binoculars* folder (now 2×–10×; the only folder while this is built). Pass 3 (the far view at full zoom, docs) on your go.
 0. **SC-173** · Review the [plan](plans/features/scene-0500-split.md) for 0500 as its own scene after the flyby (0400). Built once 0400 is done.
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
 3. **SC-15** · Dr. Kaufman's book: the Blender task that blocks the flying scene's pass 1, second half.

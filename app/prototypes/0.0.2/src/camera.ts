@@ -1,6 +1,7 @@
 // Third-person orbit camera: yaw and pitch from the right stick or mouse, smoothed follow of a
 // point at chest height above the character. The distance is fixed: one value indoors, one
-// outdoors (settings), eased from one to the other; there's no zoom (owner, 2026-10-12).
+// outdoors (settings), eased from one to the other; there's no zoom (owner, 2026-10-12). First person
+// through the binoculars (`firstPerson`, 2026-11-16) is a separate view with its own lens.
 
 import * as THREE from 'three/webgpu';
 import { settings } from './settings';
@@ -11,6 +12,8 @@ const DEG = Math.PI / 180;
 const DISTANCE_EASE = 0.17;
 /** Time constant of the pitch's return to its limit after a flight, or on going inside. */
 const PITCH_EASE = 0.25;
+/** First person (the binoculars): how far up and down the view goes (rad). */
+const FIRST_PERSON_PITCH = 80 * DEG;
 
 export class FollowCamera {
   readonly camera: THREE.PerspectiveCamera;
@@ -31,8 +34,11 @@ export class FollowCamera {
   /** The ground's height (world y) under a point: flat at 0 unless the landed scene's terrain says otherwise. */
   groundAt: (x: number, z: number) => number = () => 0;
 
+  /** The orbit's lens (degrees, vertical); first person narrows it. */
+  readonly baseFov = 55;
+
   constructor(aspect: number) {
-    this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 500);
+    this.camera = new THREE.PerspectiveCamera(this.baseFov, aspect, 0.1, 500);
   }
 
   /**
@@ -43,6 +49,7 @@ export class FollowCamera {
    * near the ground, so it looks up; inside, never (the see-through).
    */
   update(dt: number, input: Input, target: THREE.Vector3, indoors: boolean, flight = 0): void {
+    this.setFov(this.baseFov);
     const look = input.consumeLook(dt);
     this.yaw += look.yaw;
     const usual = indoors ? settings.cameraMinPitchDeg : Math.min(settings.cameraMinPitchOutdoorsDeg, settings.cameraMinPitchDeg);
@@ -94,6 +101,30 @@ export class FollowCamera {
     // Never go below the ground (the landed scene's hills: `groundAt`).
     this.camera.position.y = Math.max(this.groundAt(this.camera.position.x, this.camera.position.z) + 0.2, this.camera.position.y);
     this.camera.lookAt(this.focus);
+  }
+
+  /**
+   * First person (the binoculars, 2026-11-16): the camera at `eye`, looking along the same yaw and
+   * pitch the orbit uses (so the cut keeps the direction), narrowed to `fovDeg`; the look slowed by
+   * the zoom so it feels the same at any magnification. The orbit's own distance and focus are kept
+   * for the cut back.
+   */
+  firstPerson(dt: number, input: Input, eye: THREE.Vector3, fovDeg: number): void {
+    const look = input.consumeLook(dt);
+    const slow = fovDeg / this.baseFov;
+    this.yaw += look.yaw * slow;
+    this.pitch = THREE.MathUtils.clamp(this.pitch + look.pitch * slow, -FIRST_PERSON_PITCH, FIRST_PERSON_PITCH);
+    const dir = new THREE.Vector3(Math.sin(this.yaw) * Math.cos(this.pitch), Math.sin(this.pitch), Math.cos(this.yaw) * Math.cos(this.pitch));
+    this.camera.position.copy(eye);
+    this.camera.lookAt(eye.clone().sub(dir));
+    this.setFov(fovDeg);
+  }
+
+  /** The lens back to the orbit's (after first person). */
+  private setFov(fovDeg: number): void {
+    if (this.camera.fov === fovDeg) return;
+    this.camera.fov = fovDeg;
+    this.camera.updateProjectionMatrix();
   }
 
   /** How much of her shows, 0..1: she fades out as the camera comes close (cameraFadeStart → cameraFadeEnd). */

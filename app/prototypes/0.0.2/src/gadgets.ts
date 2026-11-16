@@ -1,9 +1,9 @@
 // Her gadgets (2026-11-16; plan doc/plans/features/gadgets-binoculars.md): one out at a time. Its own
 // button brings it out and puts it away (the binoculars: the D-pad's up, B): out, she holds it in her
-// hands (the first frame of its clip, blended in over HOLD_SECONDS). R (the right mouse button) uses
+// hands (the first frame of its clip, blended in over HOLD_SECONDS). R1 (the right mouse button) uses
 // the gadget that's out, a toggle (owner, 2026-11-16): the binoculars raised to her eyes by their clip
-// (model.ts), lowered back to her hands by the same clip backwards. First person once they're up comes
-// with pass 2.
+// (model.ts), lowered back to her hands by the same clip backwards; once they're up, first person
+// through them (`firstPerson`: main.ts, camera.ts, binocular-view.ts).
 
 export type GadgetId = 'binoculars';
 
@@ -26,7 +26,7 @@ export class Gadgets {
     if (this.out === null) this.using = false;
   }
 
-  /** R: use the gadget that's out, or stop using it; nothing with none out. */
+  /** R1: use the gadget that's out, or stop using it; nothing with none out. */
   use(): void {
     if (this.out !== null) this.using = !this.using;
   }
@@ -40,7 +40,7 @@ export class Gadgets {
   }
 
   /**
-   * Called every rendered frame. `pressed`: the gadget whose button went down this frame; `used`: R
+   * Called every rendered frame. `pressed`: the gadget whose button went down this frame; `used`: R1
    * went down; `usable`: her hands are free (not climbing, seated, talking or watching); `seconds`:
    * the use clip's length. Put away from use, it's lowered to her hands first, then leaves them.
    */
@@ -62,5 +62,10 @@ export class Gadgets {
   /** Up at her eyes (the raise has finished). */
   get up(): boolean {
     return this.using && this.raised >= 1;
+  }
+
+  /** Looking through the binoculars: first person, once they're up (lowering them cuts back at once). */
+  get firstPerson(): boolean {
+    return this.out === 'binoculars' && this.up;
   }
 }

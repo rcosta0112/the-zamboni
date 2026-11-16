@@ -138,7 +138,8 @@ body {
 /* The prompt: white with black text, as the dialogue box (owner, 2026-10-22); the button in an outline. */
 /* A cutscene's "Hold X to skip" (skip-prompt.ts): the same look, at the bottom right. */
 #prompt,
-#skip {
+#skip,
+#gadget-prompt .pill {
   position: fixed;
   display: flex;
   align-items: center;
@@ -158,6 +159,27 @@ body {
   top: 0;
 }
 
+/* A gadget's prompts (binocular-view.ts: "R1 to Use"; in first person "R1 to Close" over "L1 / L2 to Zoom"; owner, 2026-11-16): the skip prompt's place (never together). */
+#gadget-prompt {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* Each of its prompts: the shared look, stacked in the corner (two in first person: close, zoom). */
+#gadget-prompt .pill {
+  position: static;
+}
+
+#gadget-prompt[hidden] {
+  display: none;
+}
+
 #skip {
   right: 24px;
   bottom: 24px;
@@ -166,10 +188,17 @@ body {
 
 /* An icon (the pad's buttons, the mouse) is its own outline: no key box round it. */
 #prompt .glyph:has(svg),
-#skip .glyph:has(svg) {
+#skip .glyph:has(svg),
+#gadget-prompt .glyph:has(svg) {
   border: none;
   min-width: 0;
   padding: 0;
+}
+
+/* A shoulder or trigger (pad-glyph.ts shoulderGlyph): 22 x 22, as the face buttons' icons. */
+#gadget-prompt .glyph > svg[viewBox='0 0 22 22'] {
+  width: 22px;
+  height: 22px;
 }
 
 #prompt .glyph > svg[viewBox^='8 8'],
@@ -191,7 +220,8 @@ body {
 }
 
 #prompt .glyph,
-#skip .glyph {
+#skip .glyph,
+#gadget-prompt .glyph {
   display: grid;
   place-content: center;
   min-width: 22px;

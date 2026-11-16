@@ -8,6 +8,8 @@ import { settings } from './settings';
 import { ROCKS_MAX } from './terrain';
 
 const ANTIALIAS_KEY = 'zamboni-01-antialias';
+/** Every folder on the panel; false while the binoculars are built (their folder alone, owner 2026-11-16). */
+const ALL_FOLDERS = false as boolean;
 
 /** Anti-aliasing (MSAA) is fixed when the renderer is created, so it's kept in local storage and applied on reload. Off unless turned on (owner, 2026-10-27). */
 export function antialiasEnabled(): boolean {
@@ -20,6 +22,13 @@ export function antialiasEnabled(): boolean {
 
 export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors: () => void }, describeView: () => object) {
   const gui = new GUI({ title: `Tuning · ${__VERSION__}  ( \` or View button )` });
+
+  // While the binoculars are built (owner, 2026-11-16): their folder alone; every other folder is off
+  // (ALL_FOLDERS false: the code below kept as it is, skipped). Back to true when the feature is done.
+  const binoculars = gui.addFolder('Binoculars');
+  binoculars.add(settings, 'binocularZoomMin', 1, 20, 0.1).name('zoom: widest (×)');
+  binoculars.add(settings, 'binocularZoomMax', 1, 40, 0.1).name('zoom: narrowest (×)');
+  if (ALL_FOLDERS) {
 
   const move = gui.addFolder('Movement');
   move.add(settings, 'walkSpeed', 0.5, 4, 0.1).name('walk speed (m/s)');
@@ -63,24 +72,24 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   fly.add(settings, 'glideLift', 0, 1, 0.05).name('glide: gravity cancelled at top speed');
   fly.add(settings, 'glideSink', 0.5, 20, 0.5).name('glide: fastest fall at top speed (m/s)');
   fly.add(settings, 'skidFriction', 1, 60, 0.5).name('skid: speed lost (m/s²)');
-  fly.add(settings, 'flyTriggerOff', 0, 0.3, 0.01).name('ZR: off below');
-  fly.add(settings, 'hoverLow', 0.05, 0.95, 0.01).name('ZR: hover from');
-  fly.add(settings, 'hoverHigh', 0.05, 0.95, 0.01).name('ZR: hover to');
-  fly.add(settings, 'hoverHysteresis', 0, 0.15, 0.01).name('ZR: hover band widens by');
-  fly.add(settings, 'flyClimbSpeed', 0.5, 20, 0.5).name('ZR: climb speed (also Space) (m/s)');
-  fly.add(settings, 'flyDescendSpeed', 0.5, 20, 0.5).name('ZR: descend speed (m/s)');
-  fly.add(settings, 'flyVerticalAcceleration', 1, 60, 0.5).name('ZR: vertical acceleration (m/s²)');
-  fly.add(settings, 'jetSoundFollowsTrigger').name('jet sound follows ZR');
-  fly.add(settings, 'jetSoundLowLevel', 0, 1, 0.01).name('jet sound: level at ZR bottom');
-  fly.add(settings, 'jetSoundLowRate', 0.5, 1, 0.01).name('jet sound: pitch at ZR bottom');
-  fly.add(settings, 'jetSoundHighRate', 1, 1.5, 0.01).name('jet sound: pitch at ZR top');
+  fly.add(settings, 'flyTriggerOff', 0, 0.3, 0.01).name('R2: off below');
+  fly.add(settings, 'hoverLow', 0.05, 0.95, 0.01).name('R2: hover from');
+  fly.add(settings, 'hoverHigh', 0.05, 0.95, 0.01).name('R2: hover to');
+  fly.add(settings, 'hoverHysteresis', 0, 0.15, 0.01).name('R2: hover band widens by');
+  fly.add(settings, 'flyClimbSpeed', 0.5, 20, 0.5).name('R2: climb speed (also Space) (m/s)');
+  fly.add(settings, 'flyDescendSpeed', 0.5, 20, 0.5).name('R2: descend speed (m/s)');
+  fly.add(settings, 'flyVerticalAcceleration', 1, 60, 0.5).name('R2: vertical acceleration (m/s²)');
+  fly.add(settings, 'jetSoundFollowsTrigger').name('jet sound follows R2');
+  fly.add(settings, 'jetSoundLowLevel', 0, 1, 0.01).name('jet sound: level at R2 bottom');
+  fly.add(settings, 'jetSoundLowRate', 0.5, 1, 0.01).name('jet sound: pitch at R2 bottom');
+  fly.add(settings, 'jetSoundHighRate', 1, 1.5, 0.01).name('jet sound: pitch at R2 top');
   fly.add(settings, 'exhaustGlow').name('exhaust glow');
   fly.add(settings, 'exhaustSize', 0.01, 0.3, 0.005).name('glow: size (share of screen)');
   fly.add(settings, 'exhaustCore', 0.05, 1, 0.01).name('glow: white core (share)');
   fly.addColor(settings, 'exhaustCoreColor').name('glow: core colour');
   fly.addColor(settings, 'exhaustHaloColor').name('glow: halo colour');
   fly.add(settings, 'exhaustHalo', 0, 3, 0.05).name('glow: halo brightness');
-  fly.add(settings, 'exhaustLowLevel', 0, 1, 0.01).name('glow: at ZR bottom (follows jet sound switch)');
+  fly.add(settings, 'exhaustLowLevel', 0, 1, 0.01).name('glow: at R2 bottom (follows jet sound switch)');
   fly.add(settings, 'exhaustFlicker', 0, 0.6, 0.01).name('glow: flicker (share)');
   fly.add(settings, 'exhaustFlickerRate', 1, 60, 1).name('glow: flicker rate (/s)');
   fly.add(settings, 'exhaustShake', 0, 0.03, 0.001).name('glow: shake (m)');
@@ -373,8 +382,10 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
     .add({ view: () => void navigator.clipboard.writeText(JSON.stringify(describeView())) }, 'view')
     .name('Copy view (for a screenshot)');
 
-  // Everything starts collapsed: the folders, and the panel itself.
-  for (const folder of gui.foldersRecursive()) folder.close();
+  }
+
+  // Everything starts collapsed: the folders (but the binoculars'), and the panel itself.
+  for (const folder of gui.foldersRecursive()) if (folder !== binoculars) folder.close();
   gui.close();
   return gui;
 }

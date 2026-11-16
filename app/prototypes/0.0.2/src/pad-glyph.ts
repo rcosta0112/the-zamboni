@@ -16,3 +16,28 @@ const PATHS: Record<PadButton, string> = {
 export function padGlyph(button: PadButton): string {
   return `<svg viewBox="8 8 48 48" fill="currentColor" aria-label="${button} face button"><path fill-rule="evenodd" d="${PATHS[button]}"/></svg>`;
 }
+
+/** The shoulder buttons and triggers, named L1 / R1 (shoulders) and L2 / R2 (triggers) (owner, 2026-11-16). */
+export type ShoulderButton = 'L1' | 'R1' | 'L2' | 'R2';
+
+/**
+ * A shoulder button or trigger as an icon (owner, 2026-11-16: in the style of the reference sheet; drawn
+ * here): the button's outline, its outer top corner swept round as the pad's edge is, its name inside.
+ * A shoulder (1) is low and wide; a trigger (2) taller, rounded over the top. The right ones mirrored.
+ * 22 x 22 px, as the face buttons' icons, centred on the text line (owner, 2026-11-16).
+ */
+export function shoulderGlyph(button: ShoulderButton): string {
+  // In a 22 x 22 box as the face buttons' icons, each outline centred on its middle (y 11), so it sits
+  // on the text line's centre: a shoulder 11 tall (5.5..16.5), a trigger a little taller, 14 (4..18; owner, 2026-11-16).
+  const shape =
+    button.endsWith('1')
+      ? 'M2.75 16.5 H19.25 A1.75 1.75 0 0 0 21 14.75 V7.25 A1.75 1.75 0 0 0 19.25 5.5 H8.5 C4.75 5.5 1.75 7.5 1 10.75 V14.75 A1.75 1.75 0 0 0 2.75 16.5 Z'
+      : 'M2.75 18 H19.25 A1.75 1.75 0 0 0 21 16.25 V7.5 C21 5.4 19.6 4 17.5 4 H8.5 C4.6 4 1.6 6.3 1 9.75 V16.25 A1.75 1.75 0 0 0 2.75 18 Z';
+  const mirror = button.startsWith('R') ? ' transform="translate(22 0) scale(-1 1)"' : '';
+  // The name's middle on the outline's (the capitals ~0.72 of the size: the baseline 3.3 below y 11).
+  return (
+    `<svg viewBox="0 0 22 22" width="22" height="22" aria-label="${button} button">` +
+    `<path d="${shape}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"${mirror}/>` +
+    `<text x="11" y="14.3" text-anchor="middle" font-size="9" font-weight="800" fill="currentColor" font-family="inherit">${button}</text></svg>`
+  );
+}

@@ -53,11 +53,14 @@ import { Synth } from './synth/synth';
 import { PATCHES } from './synth/presets';
 import { PlanetShot } from './planet/shot';
 import { Gadgets } from './gadgets';
+import { BinocularView } from './binocular-view';
 
 const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
 const HAND = 'Hand_l';
 const HAND_LENGTH = 0.141;
+/** The binoculars' zoom sound dies away over this long (s) when the zoom stops. */
+const ZOOM_SOUND_FADE = 0.08;
 /** Without her model, her head is this far under the top of her height (m), as watched.ts takes the crew's. */
 const HEAD_BELOW_TOP = 0.12;
 /** Where cutscene 2's shots aim at her head, this far above her `Head` bone (m): standing, the old guess from her height (1.11 above her feet; the bone 0.695). */
@@ -461,9 +464,12 @@ async function start(): Promise<void> {
   const exhaust = new Exhaust(scene);
   const lightColumn = new LightColumn(scene); // cutscene 3's column of light on the horizon (a placeholder)
   const gadgets = new Gadgets(); // her binoculars (gadgets.ts)
+  const binocularView = new BinocularView(); // their zoom in first person, and the gadget prompt
+  let zoomSound: -1 | 0 | 1 = 0; // which zoom sound is playing (binocularView.moving when it started)
+  const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -835,7 +841,7 @@ async function start(): Promise<void> {
       if (jetSounding) audio.play('sfx_jetpack_loop');
       else audio.stop('sfx_jetpack_loop', undefined, 0.1);
     }
-    // By ZR its level and pitch follow the trigger: quieter and lower hovering, full climbing.
+    // By R2 its level and pitch follow the trigger: quieter and lower hovering, full climbing.
     if (jetSounding) {
       const t = settings.jetSoundFollowsTrigger ? character.flyTrigger : null;
       audio.shape(
@@ -898,14 +904,34 @@ async function start(): Promise<void> {
         : null;
     // In flight the camera's pitch steers her, so it may go below her; hovering it doesn't.
     // Not during a cutscene: the game's camera waits behind her for the hand-back.
-    if (!watching) view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
+    // Through the binoculars: first person at them (at her eyes), she's hidden. Nothing of hers is held
+    // (owner, 2026-11-16: she walks, runs, jumps and flies as usual); standing, she turns with the view,
+    // moving, toward where she goes (camera-relative, as in third person).
+    const gadgetObject = character.model?.gadgetObject ?? null;
+    const firstPerson = gadgets.firstPerson && !watching && gadgetObject !== null;
+    const zoom = input.consumeZoom();
+    const lens = binocularView.update(dt, gadgets.out === 'binoculars' && !watching && !dialogue.active, firstPerson, zoom.hold, zoom.steps, view.baseFov, input.lastDevice);
+    // The zoom's motor: heard while the magnification moves, from its start each time; cut short when it stops.
+    if (binocularView.moving !== zoomSound) {
+      if (zoomSound !== 0) audio.stop(zoomSound > 0 ? 'sfx_binoculars_zoom_in' : 'sfx_binoculars_zoom_out', undefined, ZOOM_SOUND_FADE);
+      if (binocularView.moving !== 0) audio.play(binocularView.moving > 0 ? 'sfx_binoculars_zoom_in' : 'sfx_binoculars_zoom_out');
+      zoomSound = binocularView.moving;
+    }
+    if (firstPerson) {
+      if (input.move.x === 0 && input.move.y === 0) {
+        const turn = view.yaw - character.facing;
+        character.turnBy(Math.atan2(Math.sin(turn), Math.cos(turn)));
+      }
+      gadgetObject.updateWorldMatrix(true, false);
+      view.firstPerson(dt, input, gadgetObject.getWorldPosition(eye), lens);
+    } else if (!watching) view.update(dt, input, character.root.position, inside, character.flying ? character.flightShare : 0);
     // She fades out when the camera comes close (not in a cutscene: its own camera), the glow with her.
-    const shown = watching ? 1 : view.shown;
+    const shown = watching ? 1 : firstPerson ? 0 : view.shown;
     character.setShown(shown);
     // The jetpack's glow, at its nozzles as the animation left them, facing the camera.
     exhaust.update(dt, character.jetpack, character.flying || character.parachuting, character.flyTrigger, view.camera, shown);
     // See-through: which furniture hides her, and whether anything solid does (the hole).
-    const active = inside && settings.seeThrough && !watching;
+    const active = inside && settings.seeThrough && !watching && !firstPerson;
     let holeOpen = active;
     if (ship) {
       const feet = character.root.position;
@@ -952,13 +978,13 @@ async function start(): Promise<void> {
     const talking = dialogue.active;
     const step = input.consumeChoiceStep();
     dialogue.update(dt, talking && input.consumeAdvance(), talking ? step : 0, input.lastDevice);
-    helpEl.hidden = dialogue.active || watching; // it sits where the box and the skip prompt go
+    helpEl.hidden = dialogue.active || watching || firstPerson; // it sits where the box and the skip prompt go
     // Interaction: the target nearest the screen centre within her reach; E / A uses it.
     const pressed = input.consumeInteract();
     // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor
     // while she talks, nor for a moment after.
     if (interaction) interaction.only = sitting ? getUp : null;
-    interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling);
+    interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling || firstPerson);
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     // Landed on the plain, the shadow camera reaches back to the big rocks' tops (terrain.ts `nearRocks`) and its square is wider.
     const landed = treadmill?.parkedAt != null;
@@ -1062,8 +1088,8 @@ function tagPlace(ship: THREE.Object3D, at: [number, number, number] | undefined
 function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
-    'Gamepad: left stick move · right stick camera · B jump · ZR fly (half-way hovers; push the stick to fly, let go to glide) · A interact · D-pad up binoculars, R raise them · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · B binoculars, right click raise them · Y invert · P quality · ` tuning\n' +
+    'Gamepad: left stick move · right stick camera · B jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · A interact · D-pad up binoculars, R1 look through them, L1 / L2 zoom · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · B binoculars, right click look through them, wheel zoom · Y invert · P quality · ` tuning\n' +
     'Ladder: at its foot, E / A to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }

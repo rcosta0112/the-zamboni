@@ -8,12 +8,14 @@ export type Device = 'gamepad' | 'keyboard';
 
 // Standard-mapping button indices, named as on a Nintendo controller (owner, 2026-10-28): the face
 // buttons by position, A on the right, B at the bottom, Y on the left, X at the top; the shoulders
-// L and R (4, 5), the triggers ZL and ZR (6, 7).
+// L1 and R1 (4, 5), the triggers L2 and R2 (6, 7) (owner, 2026-11-16; L, R, ZL, ZR before).
 const PAD_B = 0; // bottom: jump
 const PAD_A = 1; // right: interact, the dialogue box
 const PAD_X = 3; // top: held to skip a cutscene
-const PAD_R = 5; // right shoulder: use the gadget that's out (owner, 2026-11-16)
-const PAD_RT = 7; // right trigger (ZR): fly; analog on most pads (owner, 2026-10-14)
+const PAD_R1 = 5; // right shoulder (R1): use the gadget that's out (owner, 2026-11-16)
+const PAD_L1 = 4; // left shoulder (L1): zoom in through the binoculars (owner, 2026-11-16: R2 flies)
+const PAD_LT = 6; // left trigger (L2): zoom out through the binoculars
+const PAD_RT = 7; // right trigger (R2): fly; analog on most pads (owner, 2026-10-14)
 const PAD_VIEW = 8;
 /** A trigger value this far from both 0 and 1 shows the trigger is analog. */
 const ANALOG_MARGIN = 0.02;
@@ -28,11 +30,11 @@ export class Input {
   readonly move = { x: 0, y: 0 };
   /** Keyboard walk modifier (Shift). The stick walks by being pushed less far. */
   walkHeld = false;
-  /** The jetpack: held, not latched (Space, ZR). */
+  /** The jetpack: held, not latched (Space, R2). */
   flyHeld = false;
   /**
-   * How far ZR is pressed (0..1) when it's analog and flying her; null when she flies by Space or
-   * a digital trigger, which count as ZR held fully.
+   * How far R2 is pressed (0..1) when it's analog and flying her; null when she flies by Space or
+   * a digital trigger, which count as R2 held fully.
    */
   flyTrigger: number | null = null;
   lastDevice: Device = 'keyboard';
@@ -51,8 +53,12 @@ export class Input {
   private jumpLatched = false;
   /** A gadget's button (gadgets.ts; owner, 2026-11-16: the D-pad brings a gadget out, R uses it). */
   private gadgetLatched: GadgetId | null = null;
-  /** R or the right mouse button: use the gadget that's out (the binoculars: to her eyes). */
+  /** R1 or the right mouse button: use the gadget that's out (the binoculars: to her eyes). */
   private gadgetUseLatched = false;
+  /** L1 minus L2 this frame (-1..1): the binoculars' zoom (owner, 2026-11-16: L1 in, L2 out; R2 is the jetpack's). */
+  private padZoom = 0;
+  /** Mouse-wheel notches since the last `consumeZoom` (up positive: zooms in). */
+  private wheelSteps = 0;
   private interactLatched = false;
   private skipLatched = false;
   /** Enter, Space or a mouse click: advances the dialogue box (as interact does). */
@@ -63,7 +69,7 @@ export class Input {
   private padLook = { x: 0, y: 0 };
   private menuStick = 0;
   /**
-   * The pad whose ZR has been seen between 0 and 1: it's analog. A digital trigger only ever reports
+   * The pad whose R2 has been seen between 0 and 1: it's analog. A digital trigger only ever reports
    * 0 or 1; an analog one passes through values between as it goes down, so it shows itself on its
    * first press. Until then it counts as digital.
    */
@@ -111,6 +117,11 @@ export class Input {
       if (e.button === 2) this.gadgetUseLatched = true;
       this.lastDevice = 'keyboard';
     });
+    // The wheel zooms the binoculars (owner, 2026-11-16: scroll up zooms in).
+    window.addEventListener('wheel', (e) => {
+      this.wheelSteps += -Math.sign(e.deltaY);
+      this.lastDevice = 'keyboard';
+    }, { passive: true });
     // The right button uses a gadget: no browser menu over the game.
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
@@ -133,6 +144,7 @@ export class Input {
     this.padLook.x = 0;
     this.padLook.y = 0;
     this.padPressed = false;
+    this.padZoom = 0;
     this.pausePressed = false;
     this.menuStep = 0;
     let padFly = false;
@@ -152,7 +164,7 @@ export class Input {
       if (justPressed(PAD_B)) this.jumpLatched = true;
       if (justPressed(PAD_A)) this.interactLatched = true;
       if (justPressed(PAD_UP)) this.gadgetLatched = 'binoculars'; // also a menu's up (menuStep): gadgets go away while a dialogue is up
-      if (justPressed(PAD_R)) this.gadgetUseLatched = true;
+      if (justPressed(PAD_R1)) this.gadgetUseLatched = true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
       // Any button shows a cutscene's skip prompt but pause and the tuning panel's.
@@ -163,6 +175,7 @@ export class Input {
       else if (justPressed(PAD_DOWN)) this.menuStep = 1;
       else if (stick !== this.menuStick) this.menuStep = stick;
       this.menuStick = stick;
+      this.padZoom = (pad.buttons[PAD_L1]?.value ?? 0) - (pad.buttons[PAD_LT]?.value ?? 0);
       const rt = pad.buttons[PAD_RT];
       if (rt) {
         if (rt.value > ANALOG_MARGIN && rt.value < 1 - ANALOG_MARGIN) this.analogPad = pad.id;
@@ -186,7 +199,7 @@ export class Input {
     this.walkHeld = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
     const spaceFly = this.keys.has('Space');
     this.flyHeld = spaceFly || padFly;
-    // Space wins: held, it counts as ZR held fully whatever the trigger does.
+    // Space wins: held, it counts as R2 held fully whatever the trigger does.
     this.flyTrigger = spaceFly ? null : trigger;
 
     if (keyLen > 0) {
@@ -211,7 +224,7 @@ export class Input {
     return { yaw, pitch };
   }
 
-  /** The gamepad's ZR has shown itself to be analog. */
+  /** The gamepad's R2 has shown itself to be analog. */
   get analogTrigger(): boolean {
     return this.analogPad !== null;
   }
@@ -268,11 +281,18 @@ export class Input {
     return g;
   }
 
-  /** True once per press of R or the right mouse button (use the gadget that's out). */
+  /** True once per press of R1 or the right mouse button (use the gadget that's out). */
   consumeGadgetUse(): boolean {
     const u = this.gadgetUseLatched;
     this.gadgetUseLatched = false;
     return u;
+  }
+
+  /** The binoculars' zoom this frame: `hold` L1 minus L2 (-1..1), `steps` the wheel's notches since the last call (up positive). */
+  consumeZoom(): { hold: number; steps: number } {
+    const steps = this.wheelSteps;
+    this.wheelSteps = 0;
+    return { hold: this.padZoom, steps };
   }
 
   /** True once per jump press; stays latched until a fixed update consumes it. */

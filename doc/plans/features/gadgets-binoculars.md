@@ -1,6 +1,6 @@
 # Gadgets, starting with the binoculars
 
-**Status:** draft 2026-11-16, for review (three passes); controls revised the same day (owner: R / the right mouse button uses a gadget, interact stays interact), then the owner's answers (zoom on ZR / ZL, flying allowed, the tuning panel). **Pass 1 built 2026-11-16** (owner: "let's do pass 1").
+**Status:** draft 2026-11-16, for review (three passes); controls revised the same day (owner: R / the right mouse button uses a gadget, interact stays interact), then the owner's answers (zoom on ZR / ZL, flying allowed, the tuning panel). **Passes 1 and 2 built 2026-11-16** (owner: "let's do pass 1", then "move on to pass 2").
 
 ## Goal
 
@@ -29,7 +29,7 @@ Later gadgets take the D-pad's other directions (left, right, down) and their ow
 | Look through them: first person | **R** | **right mouse button** |
 | Back to third person, still holding them | R again | right button again |
 | Put them away (from either view) | D-pad up again | B again |
-| Zoom in / out (first person) | **ZR** / **ZL** (owner, 2026-11-16; ZR flies, but she can't fly in first person) | **mouse wheel**, scroll up zooms in (owner, 2026-11-16) |
+| Zoom in / out (first person) | **L** / **ZL** (owner, 2026-11-16; ZR before, which clashed with the jetpack) | **mouse wheel**, scroll up zooms in (owner, 2026-11-16) |
 | Look (first person) | right stick | mouse |
 
 **The sequence:** the toggle plays the animation and she **keeps holding them up in third person**, still able to walk, run, jump, fly and use things. R then switches to first person; pressed while she's still raising them, first person comes when the animation ends, so the animation always comes first. Putting them away from first person cuts back to third person **at once** while she lowers them (the animation backwards), so the player isn't left looking at nothing. R does nothing while no gadget is out.
@@ -106,6 +106,10 @@ Today one `AnimationMixer` drives her whole body: walk/run/stand blended by spee
 6. **Check**: a probe that enters first person, zooms both ways, leaves; screenshots at both ends of the zoom, indoors and on the plain (`?scene=landed`).
 
 *Agent build:* ~1 h. *Review rounds:* 2 (the eye position, the zoom's range and speed, the overlay), ~10–15 min each.
+
+**As built (2026-11-16):** first person once the raise ends (R), the camera at the binoculars themselves; the zoom as magnification (2×–10×, the panel's two sliders), ZR / ZL at 1.5 doublings a second, 1.25× a wheel notch; the overlay an SVG placeholder; the panel down to its Binoculars folder (`ALL_FOLDERS = false`); help text hidden too. With first person on the raise, she can't walk with them *up* any more (she stands still in first person, as planned): walking, running and jumping are with them in her hands. Probe 24/24; smoke 83 pass, the 4 known fails. *Actual time:* about 25 min.
+
+**Changed after pass 2 (owner, 2026-11-16):** the overlay removed; a prompt at the bottom right instead: *R to Use* while they're out, *ZL / ZR to Zoom* in first person (the mouse's right button and wheel on the keyboard). Probe 29/29. **Then the zoom moved to L (in) / ZL (out)** (owner: ZR clashed with the jetpack). **Then the shoulders and triggers were renamed L1 / R1, L2 / R2** (owner, 2026-11-16), shown as icons in the prompts: R1 uses, L1 / L2 zoom. **Then (owner):** the icons at the face buttons' size; *R1 to Close* over the zoom prompt in first person; **the jetpack keeps working in first person** (it was held with her feet: she can now hover and look at once). Probe 37/37. **Then (owner):** the icons 22 × 22, centred on the text line; **in first person she walks, runs and jumps too** (nothing of hers held; standing she turns with the view). Probe 39/39.
 
 ### Pass 3: the rules
 
