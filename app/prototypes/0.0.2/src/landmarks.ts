@@ -46,8 +46,8 @@ const SHAFT_COLOUR = [1, 0.45, 0.1];
 const SHAFT_WIDTH = 0.45;
 /** The `Rock` stone as the owner's reference render: matte, a warm near-white (linear; the file's grey 0.67, metalness 0.23, before). */
 const STONE = { color: new THREE.Color(0.9, 0.86, 0.85), roughness: 1, metalness: 0 };
-/** The file's materials drawn as STONE: the steps' and plinth's `Rock`, the ruins' and fragments' `Rock.002` (owner, 2026-11-08). */
-const STONE_MATERIALS = new Set(['Rock', 'Rock.002']);
+/** The file's materials drawn as STONE (owner, 2026-11-08): `Rock`, on the steps, plinth, ruins and fragments (`Rock.002` folded into it, 2026-11-16). */
+const STONE_MATERIALS = new Set(['Rock']);
 
 interface Landmark {
   object: THREE.Object3D;

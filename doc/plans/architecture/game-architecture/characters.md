@@ -83,6 +83,8 @@ The player changes Dr. Green's clothes at her locker (owner, 2026-10-21: [locker
 
 **Cost:** small. The meshes are a few hundred triangles; the cost is the textures. At 1024² in KTX2, roughly 0.1–0.5 MB per outfit *(estimate)*. Dr. Kaufman's 2048² texture can go to 1024² at third-person distance with no visible loss.
 
+> **[Agent note]** **Checked 2026-11-16:** already handled. The crew export (`export.mjs`, `crew`) resizes every texture to 512 px, so her 2048² image is never in the game. Dr. Ogawa's duplicate materials (`Black.002`… on her 1.22 mesh and headphones) were folded on 2026-10-26 (`merge-materials.py`); a dry run on 1.22 finds no character materials left to merge.
+
 ## Adam
 
 - **Rigid skinning:** every block's vertices belong 100% to one bone, so nothing bends. One mesh, one draw call per body; same skeleton, files and code as the humans. The export script checks that each block is fully assigned to a single bone.
