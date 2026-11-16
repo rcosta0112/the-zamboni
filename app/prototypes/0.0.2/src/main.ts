@@ -997,6 +997,8 @@ async function start(): Promise<void> {
     // while she talks, nor for a moment after.
     if (interaction) interaction.only = sitting ? getUp : null;
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling || firstPerson);
+    // The scanner aims at the closest of these (scanner pass 3): next frame's, from this frame's.
+    if (character.model) character.model.scanTargets = interaction?.inReach ?? [];
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);
     // Landed on the plain, the shadow camera reaches back to the big rocks' tops (terrain.ts `nearRocks`) and its square is wider.
     const landed = treadmill?.parkedAt != null;

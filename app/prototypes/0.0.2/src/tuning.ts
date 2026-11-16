@@ -33,6 +33,12 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   scanner.add(settings, 'scannerTurnDeg', 0, 60, 1).name('turn: at most (°)');
   scanner.add(settings, 'scannerTurnSpeed', 0.1, 4, 0.05).name('turn: speed (×)');
   scanner.add(settings, 'scannerRayStrength', 0, 4, 0.05).name('ray: brightness (×)');
+  scanner.add(settings, 'scannerReach', 0.5, 4, 0.1).name('aim: reach (m)');
+  scanner.add(settings, 'scannerAimYawDeg', 0, 90, 1).name('aim: turn at most (°)');
+  scanner.add(settings, 'scannerAimPitchDeg', 0, 60, 1).name('aim: up/down at most (°)');
+  scanner.add(settings, 'scannerAimEase', 0.05, 1.5, 0.05).name('aim: ease (s)');
+  scanner.add(settings, 'scannerAimHold', 0, 1, 0.05).name('aim: switch when closer by (m)');
+  scanner.add(settings, 'scannerAimWobble', 0, 1, 0.05).name('aim: random scan kept (×)');
   if (ALL_FOLDERS) {
 
   const move = gui.addFolder('Movement');

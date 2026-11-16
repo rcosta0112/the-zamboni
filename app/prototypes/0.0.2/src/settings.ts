@@ -448,6 +448,13 @@ export const settings = {
   scannerTurnDeg: 25, // at most, each way: her body (standing) and her head about their length
   scannerTurnSpeed: 1, // 1: about the file's (Noise size 100 frames); 2 twice as fast
   scannerRayStrength: 1, // the ray's emission × this (1: the file's 1..10)
+  // Aimed at the closest interaction point while she scans (scanner pass 3, owner 2026-11-16).
+  scannerReach: 1.0, // m, from her chest to its bounds (as interactReach: the owner's "similar")
+  scannerAimYawDeg: 60, // her body's turn toward it at most, each way; further round: not aimed at
+  scannerAimPitchDeg: 30, // up and down at most
+  scannerAimEase: 0.35, // s, about how long the turn takes to get there
+  scannerAimHold: 0.3, // m: another point must be this much closer to take the aim
+  scannerAimWobble: 0.3, // the random scan's share kept on top while aimed (1: all of it)
 };
 
 export type Settings = typeof settings;

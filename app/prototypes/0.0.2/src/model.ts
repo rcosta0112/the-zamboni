@@ -16,6 +16,9 @@
 // its clip is one frame, the hold; while it's on (`gadgetScan`), `Body` and `Head` turn about their
 // length by a smooth made-up noise (the file's Noise modifiers, copied loosely: owner, "the easiest
 // way"), written after the mixer; `Body`'s share only while she stands (no spine: it turns her legs).
+// Aimed (scanner pass 3, owner 2026-11-16): while she scans, `Body` turns toward the closest
+// interaction point within reach (`scanTargets`, from interaction.ts), up and down too, eased, the legs
+// turned back so her steps stay on her path; her heading, movement and the camera are untouched.
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -63,6 +66,16 @@ const SCAN_TURN = new THREE.Quaternion();
 const wobble = (t: number) => 0.62 * Math.sin((2 * Math.PI * t) / 4.3) + 0.38 * Math.sin((2 * Math.PI * t) / 2.7 + 1.3);
 /** The head's turn this much later (s): the file's offset of 25 frames, and more so the two don't move as one. */
 const HEAD_LATER = 1.04 + 7.1;
+const AIM_Q = new THREE.Quaternion();
+const AIM_Q2 = new THREE.Quaternion();
+const AIM_P = new THREE.Quaternion();
+const AIM_V = new THREE.Vector3();
+const AIM_O = new THREE.Vector3();
+const AIM_D = new THREE.Vector3();
+const AIM_W = new THREE.Vector3();
+const AIM_R = new THREE.Vector3();
+/** Eased toward `target` by a share that stays the same at any frame rate (`time`: about how long it takes). */
+const easeTo = (value: number, target: number, dt: number, time: number) => value + (target - value) * (1 - Math.exp(-Math.max(0, dt) / Math.max(1e-3, time / 3)));
 
 const trackNode = (t: THREE.KeyframeTrack) => THREE.PropertyBinding.parseTrackName(t.name).nodeName;
 /** A clip's tracks on these nodes (`keep` true) or on the others, as a clip of its own. */
@@ -105,6 +118,23 @@ export class AnimatedModel {
    * the next mixer update (it writes a bone only when its value changes: unrestored, the turn piles up). */
   private readonly scanBase = [new THREE.Quaternion(), new THREE.Quaternion()];
   private scanTurned = false;
+  /** Her legs (`Leg_l`, `Leg_r`): turned back under the aim's turn of `Body`; their mixer poses kept as `scanBase`'s are. */
+  private legBones: THREE.Object3D[] = [];
+  private readonly legBase: THREE.Quaternion[] = [];
+  private readonly legWorld: THREE.Quaternion[] = [];
+  /** What the scanner may aim at (main.ts, from `Interaction.inReach`): world points. */
+  scanTargets: { name: string; point: THREE.Vector3 }[] = [];
+  /** The point aimed at now (its name), or null. */
+  private scanAimed: string | null = null;
+  /** The aim's turn of `Body` now (radians, eased): about the vertical (+ left), then up (+). */
+  private aimYaw = 0;
+  private aimPitch = 0;
+  /** 0 .. 1, eased: how much it's aimed (the random scan made smaller by it). */
+  private aimShare = 0;
+  /** For checks: what it's aimed at and the turn now (degrees). */
+  get scanAim(): { target: string | null; yaw: number; pitch: number; share: number } {
+    return { target: this.scanAimed, yaw: THREE.MathUtils.radToDeg(this.aimYaw), pitch: THREE.MathUtils.radToDeg(this.aimPitch), share: this.aimShare };
+  }
   /** How far the gadget has come into her hands: 0 away .. 1 held, in its clip's first frame (main.ts, from `Gadgets`). */
   gadgetHeld = 0;
   /** How far it's raised from her hands by its clip: 0 .. 1, the clip's time (main.ts, from `Gadgets`). */
@@ -210,6 +240,11 @@ export class AnimatedModel {
       this.gadgets.scanner = { body: byHand(subclip(scannerClip, UPPER_BODY, true, ' (body)')), held: null, object };
       this.bodyBone = this.object.getObjectByName('Body') ?? null;
       this.headBone = this.object.getObjectByName('Head') ?? null;
+      this.legBones = ['Leg_l', 'Leg_r'].flatMap((n) => this.object.getObjectByName(n) ?? []);
+      for (let i = 0; i < this.legBones.length; i++) {
+        this.legBase.push(new THREE.Quaternion());
+        this.legWorld.push(new THREE.Quaternion());
+      }
     }
 
     object.traverse((child) => {
@@ -383,6 +418,7 @@ export class AnimatedModel {
     if (this.scanTurned) {
       this.bodyBone?.quaternion.copy(this.scanBase[0]!);
       this.headBone?.quaternion.copy(this.scanBase[1]!);
+      this.legBones.forEach((b, i) => b.quaternion.copy(this.legBase[i]!));
       this.scanTurned = false;
     }
     this.mixer.update(dt);
@@ -396,11 +432,102 @@ export class AnimatedModel {
       const amp = THREE.MathUtils.degToRad(settings.scannerTurnDeg) * on * on * (3 - 2 * on) * share;
       if (this.bodyBone) this.scanBase[0]!.copy(this.bodyBone.quaternion);
       if (this.headBone) this.scanBase[1]!.copy(this.headBone.quaternion);
+      this.legBones.forEach((b, i) => this.legBase[i]!.copy(b.quaternion));
       this.scanTurned = true;
-      if (this.bodyBone) this.bodyBone.quaternion.multiply(SCAN_TURN.setFromAxisAngle(Y_AXIS, amp * weights.standing * wobble(this.scanTime)));
-      if (this.headBone) this.headBone.quaternion.multiply(SCAN_TURN.setFromAxisAngle(Y_AXIS, amp * wobble(this.scanTime + HEAD_LATER)));
-    } else this.scanTime = 0;
+      this.aim(dt, on);
+      // The random scan on top, smaller while aimed (owner: a little of it kept).
+      const kept = THREE.MathUtils.lerp(1, settings.scannerAimWobble, this.aimShare);
+      if (this.bodyBone) this.bodyBone.quaternion.multiply(SCAN_TURN.setFromAxisAngle(Y_AXIS, kept * amp * weights.standing * wobble(this.scanTime)));
+      if (this.headBone) this.headBone.quaternion.multiply(SCAN_TURN.setFromAxisAngle(Y_AXIS, kept * amp * wobble(this.scanTime + HEAD_LATER)));
+    } else {
+      this.scanTime = 0;
+      this.aimYaw = this.aimPitch = this.aimShare = 0;
+      this.scanAimed = null;
+    }
     this.scannerRay?.update(on);
+  }
+
+  /**
+   * The aim (scanner pass 3): of the points in reach, the closest the turn can get to, kept unless
+   * another is closer by `scannerAimHold`; `Body` eased toward it (or back), the legs turned back.
+   * Starts from the mixer's pose (`scanBase`).
+   */
+  private aim(dt: number, on: number): void {
+    const ray = this.scannerRay;
+    if (!this.bodyBone || !ray) return;
+    this.object.updateMatrixWorld(true);
+    this.legBones.forEach((leg, i) => leg.getWorldQuaternion(this.legWorld[i]!));
+    // Where the ray points as the animation has it, flattened: the turn's frame.
+    const origin = ray.object.getWorldPosition(AIM_O);
+    const ahead = AIM_V.copy(ray.axis).applyQuaternion(ray.object.getWorldQuaternion(AIM_Q)).setY(0);
+    if (ahead.lengthSq() < 1e-6) return;
+    ahead.normalize();
+    const right = AIM_R.crossVectors(ahead, Y_AXIS).normalize(); // a turn about it, +: up
+    const maxYaw = THREE.MathUtils.degToRad(settings.scannerAimYawDeg);
+    const maxPitch = THREE.MathUtils.degToRad(settings.scannerAimPitchDeg);
+
+    type Aim = { name: string; yaw: number; pitch: number; distance: number };
+    let best: Aim | null = null;
+    let current: Aim | null = null;
+    const from = origin.clone();
+    for (const t of this.scanTargets) {
+      const distance = t.point.distanceTo(from);
+      if (best && distance >= best.distance && t.name !== this.scanAimed) continue;
+      const turn = this.solveAim(t.point, right);
+      if (!turn || Math.abs(turn.yaw) > maxYaw || Math.abs(turn.pitch) > maxPitch) continue;
+      const found = { name: t.name, ...turn, distance };
+      if (t.name === this.scanAimed) current = found;
+      if (!best || distance < best.distance) best = found;
+    }
+    const chosen = current && best && best.distance > current.distance - settings.scannerAimHold ? current : best;
+    this.scanAimed = chosen?.name ?? null;
+    const time = settings.scannerAimEase;
+    this.aimYaw = easeTo(this.aimYaw, chosen?.yaw ?? 0, dt, time);
+    this.aimPitch = easeTo(this.aimPitch, chosen?.pitch ?? 0, dt, time);
+    this.aimShare = easeTo(this.aimShare, chosen ? 1 : 0, dt, time);
+    const share = on * on * (3 - 2 * on);
+    this.turnBody(this.aimYaw * share, this.aimPitch * share, right, true);
+  }
+
+  /** The turn (radians) that puts the ray's axis through `point`: up to six steps, the scanner being off `Body`'s pivot. Leaves `Body` at its mixer pose. */
+  private solveAim(point: THREE.Vector3, right: THREE.Vector3): { yaw: number; pitch: number } | null {
+    const ray = this.scannerRay!;
+    let yaw = 0;
+    let pitch = 0;
+    for (let i = 0; i < 6; i++) {
+      this.turnBody(yaw, pitch, right, false);
+      const origin = ray.object.getWorldPosition(AIM_O);
+      const dir = AIM_D.copy(ray.axis).applyQuaternion(ray.object.getWorldQuaternion(AIM_Q)).normalize();
+      const want = AIM_W.subVectors(point, origin);
+      if (want.lengthSq() < 1e-4) return null;
+      want.normalize();
+      // About the vertical from the ray's way to the wanted way (+ left), then the difference in elevation.
+      const dYaw = Math.atan2(dir.z * want.x - dir.x * want.z, dir.x * want.x + dir.z * want.z);
+      const dPitch = Math.asin(THREE.MathUtils.clamp(want.y, -1, 1)) - Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+      yaw += dYaw;
+      pitch += dPitch;
+      if (Math.abs(dYaw) + Math.abs(dPitch) < 0.002) break; // about a tenth of a degree
+    }
+    this.turnBody(0, 0, right, false);
+    return { yaw, pitch };
+  }
+
+  /** `Body` from its mixer pose turned in the world: `pitch` about `right` (+ up), then `yaw` about the vertical (+ left); with `legs`, the legs turned back to where they were. */
+  private turnBody(yaw: number, pitch: number, right: THREE.Vector3, legs: boolean): void {
+    const body = this.bodyBone!;
+    body.quaternion.copy(this.scanBase[0]!);
+    const turn = AIM_Q.setFromAxisAngle(Y_AXIS, yaw).multiply(AIM_Q2.setFromAxisAngle(right, pitch));
+    if (body.parent) {
+      body.parent.getWorldQuaternion(AIM_P);
+      turn.multiply(AIM_P).premultiply(AIM_P.invert()); // into the parent's space
+    }
+    body.quaternion.premultiply(turn);
+    body.updateMatrixWorld(true);
+    if (!legs) return;
+    this.legBones.forEach((leg, i) => {
+      leg.quaternion.copy(leg.parent!.getWorldQuaternion(AIM_Q2).invert().multiply(this.legWorld[i]!));
+      leg.updateMatrixWorld(true);
+    });
   }
 }
 

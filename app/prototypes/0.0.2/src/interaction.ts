@@ -358,6 +358,8 @@ const HOLD = THREE.MathUtils.degToRad(4);
 
 export class Interaction {
   target: Interactable | null = null;
+  /** The things within the scanner's reach (`scannerReach`), in her room, not hidden, each with the point it aims at: a fresh list each frame (scanner pass 3). */
+  inReach: { name: string; point: THREE.Vector3 }[] = [];
   /** The things whose circles show now (their names): for checks. */
   get marked(): string[] {
     return [...this.marks].filter(([, mark]) => mark.classList.contains('shown')).map(([item]) => item.name);
@@ -417,6 +419,7 @@ export class Interaction {
    */
   update(chest: THREE.Vector3, facing: number, camera: THREE.Camera, device: Device, pressed: boolean, off = false): void {
     // Off (she's climbing the ladder): no target, no prompt, no circles.
+    this.inReach = [];
     if (off) {
       this.target = null;
       this.prompt.hidden = true;
@@ -452,7 +455,7 @@ export class Interaction {
       const distance = this.box.distanceToPoint(chest);
       // Within reach it can be used; a dot shows further (owner, 2026-10-22: everything close to her).
       const reach = item.reach?.() ?? settings.interactReach;
-      if (distance > Math.max(reach, settings.interactDotReach)) continue;
+      if (distance > Math.max(reach, settings.interactDotReach, settings.scannerReach)) continue;
       // In her room (through a doorway, Adam in the cockpit isn't).
       if (mine.length) {
         const theirs = this.roomsOf!(this.box, item.oneSide ? 0 : undefined);
@@ -463,6 +466,8 @@ export class Interaction {
       else this.box.clampPoint(chest, this.closest);
       const hit = distance > 0.05 ? this.physics.castRay(chest, this.closest) : null;
       if (hit !== null && hit < distance - (item.sightMargin ?? 0.15)) continue;
+      if (distance <= settings.scannerReach) this.inReach.push({ name: item.name, point: (item.above ? this.box.getCenter(new THREE.Vector3()) : this.pointOf(item).clone()) });
+      if (distance > Math.max(reach, settings.interactDotReach)) continue;
       nearby.push(item);
       if (distance > reach) continue;
       // The angles to its prompt's point: across from the camera and from her facing, up/down

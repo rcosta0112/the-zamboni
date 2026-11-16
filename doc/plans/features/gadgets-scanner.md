@@ -33,6 +33,18 @@ A second gadget, the **scanner** (owner, 2026-11-16, added to `The Zamboni 1.22.
 
 **As built (2026-11-16):** as above, the brightness copied as the file's (1–10) instead of remapped: drawn premultiplied as Blender mixes it (emission × alpha over what's behind), it shows as there, the tone mapping rolling off the top; `scannerRayStrength` (panel) scales it. The sound raised 16 dB (it peaked at −20 dB). Probe 18/18; smoke 83 pass, the 4 known fails.
 
+## Pass 3: aimed at the closest interaction point (owner, 2026-11-16)
+
+While she scans, the scanner turns gently toward the **closest interaction point within reach** (`interactReach`, as the prompt; every kind, scanner-only points later), up and down too; the player keeps her heading, movement and the camera.
+
+1. **Targets:** `Interaction` lists the items within reach (in her room, not hidden) each frame, with a point (a door's handle; a character's middle). The closest the turn can reach is aimed at; it keeps the aim unless another is closer by `scannerAimHold`.
+2. **The turn:** `Body` turned in the world (about the vertical, then about her right) so the ray's axis passes through the point (solved in three steps: the scanner is off `Body`'s pivot), limited to `scannerAimYawDeg` / `scannerAimPitchDeg`; out of that, no target. The legs turned back so her steps stay on her path (as `look.ts` seated). Eased (`scannerAimEase`); the random scan kept on top, smaller (`scannerAimWobble`). Nothing in reach: the random scan as before.
+3. Panel *Scanner*; the probe extended; docs.
+
+**As built (2026-11-16):** as above; the solve needed up to six steps (three missed by 6 cm at 0.45 m), stopping once a step is under a tenth of a degree. Probe `tools/scanner-aim-probe.js` 9/9 (the ray within 1.1 cm of the keypad's point); `scanner-probe.js` 18/18.
+
+Owner: "do it" after the questions (every interaction point; only while scanning; reach as the interaction's; a little of the random scan kept). *Agent build:* ~30 min.
+
 ## Issues to flag
 
 - **Her skeleton has no spine:** a turn on `Body` turns her legs too. Standing it reads as scanning; **walking it would twist her off her path.** *Recommended:* `Body`'s share fades out as she moves (the head keeps scanning). Alternative: the whole turn always.

@@ -6,7 +6,7 @@
 // The Blender material: a Principled BSDF, emission colour = base colour (0.8, 0, 0.258, linear);
 // **emission strength** a 4D noise (FBM, scale 2, no detail, on the Generated coordinates, its W driven
 // by `frame / 20`: 1.2 a second at 24 fps) mapped 0..1 → 1..10; **alpha** a ramp on the Generated Y
-// (along the cone: 1 at the lens, 0 at the far end) from 0 at 0.159 to 0.2075 at 1. Blended.
+// (along the cone: 1 at the lens, 0 at the far end) from 0 at 0.159 to 0.2075 at 1 (raised in the game to 0.7 at the lens: owner, 2026-11-16). Blended.
 // Copied as: three's TSL noise is 3D only, so the noise drifts through 3D (its W added to the
 // coordinates) instead of changing in place; the lit part (base colour, roughness 1) left out (next to
 // the emission it barely shows). Drawn as Blender mixes it: what's behind × (1 − alpha) + the emission
@@ -21,7 +21,7 @@ import { settings } from './settings';
 const COLOUR = new THREE.Vector3(0.8, 0, 0.2579);
 /** The alpha ramp: 0 below this along the cone (from the far end), up to ALPHA_MAX at the lens. */
 const RAMP_FROM = 0.1591;
-const ALPHA_MAX = 0.2075;
+const ALPHA_MAX = 0.7; // owner, 2026-11-16 (the file's ramp ends at 0.2075)
 /** The noise's W a second: the driver's frame / 20 at 24 fps. */
 const W_RATE = 24 / 20;
 
@@ -31,6 +31,8 @@ export class ScannerRay {
   private readonly appear = uniform(0);
   private readonly strength = uniform(1);
   private readonly baseScale: THREE.Vector3;
+  /** From the lens out along the cone, in the object's own axes (unit): where it points (scanner pass 3). */
+  readonly axis = new THREE.Vector3(0, 0, -1);
 
   constructor(readonly object: THREE.Object3D) {
     this.baseScale = object.scale.clone();
@@ -55,6 +57,7 @@ export class ScannerRay {
     const lo = box.min.getComponent(axis);
     const hi = box.max.getComponent(axis);
     const lensAtMax = Math.abs(hi) < Math.abs(lo);
+    this.axis.set(0, 0, 0).setComponent(axis, lensAtMax ? -1 : 1);
     const p = positionGeometry;
     const generated = p.sub(vec3(box.min.x, box.min.y, box.min.z)).div(vec3(Math.max(size.x, 1e-6), Math.max(size.y, 1e-6), Math.max(size.z, 1e-6)));
     const along = [generated.x, generated.y, generated.z][axis]!;
