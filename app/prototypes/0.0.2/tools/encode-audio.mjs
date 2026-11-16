@@ -38,7 +38,16 @@ const NOISE = { name: 'amb_ship_noise_loop', a: 'plane_cessna152_flight-52790_01
 const ISLANDS = process.env.ISLANDS_AUDIO ?? 'C:/Users/31658/Projects/Islands-29a650/Assets/Audio';
 // A locked door's "wrong" (owner, 2026-10-24): Eigodojo's wrong-answer sound, from its UI package.
 const EIGODOJO = process.env.EIGODOJO_SFX ?? 'C:/Users/31658/Desktop/Eigodojo/eigodojo/packages/ui/src/assets/sfx';
+// The binoculars' zoom (owner, 2026-11-16): the first of the two sounds in a Freesound super-8 recording,
+// in resources/audio/ (or still in Downloads, where the owner saved it): the motor starting (3.45 s)
+// and 4 s of its whirr, raised 12 dB (peaks at -1 dB), its last 50 ms faded. Zooming out is the same
+// sound reversed (owner). An ffmpeg filter, the 7th field, does the cut ([from, to] would seek instead).
+const SUPER8_NAME = 'freesound_community-super8-speed-and-zoom_trlr-67192.mp3';
+const SUPER8 = [resolve(ROOT, 'resources', 'audio', SUPER8_NAME), join(process.env.USERPROFILE ?? '', 'Downloads', SUPER8_NAME)].find((p) => existsSync(p)) ?? resolve(ROOT, 'resources', 'audio', SUPER8_NAME);
+const ZOOM_CUT = 'atrim=3.42:7.42,asetpts=PTS-STARTPTS,volume=12dB,afade=t=out:st=3.95:d=0.05';
 const ELSEWHERE = [
+  ['sfx_binoculars_zoom_in', SUPER8, '48k', 1, undefined, undefined, ZOOM_CUT],
+  ['sfx_binoculars_zoom_out', SUPER8, '48k', 1, undefined, undefined, `${ZOOM_CUT},areverse`],
   ['ui_wrong', join(EIGODOJO, 'incorrect.wav'), '48k', 1],
   ['mus_part1_theme', join(PART1, 'Background Music.wav'), '128k', 2],
   ['sfx_jetpack_loop', join(PART1, 'Thrusters.mp3'), '64k', 2],
@@ -54,7 +63,7 @@ const found = FILES.map(([name, from, bitrate, channels]) => {
   const master = masters.find((f) => f.startsWith(from) && f.toLowerCase().endsWith('.wav'));
   return [name, master ? join(MASTERS, master) : null, bitrate, channels, `${from}*.wav`];
 });
-for (const [name, path, bitrate, channels, wanted, trim] of [...found, ...ELSEWHERE]) {
+for (const [name, path, bitrate, channels, wanted, trim, filter] of [...found, ...ELSEWHERE]) {
   if (ONLY && name !== ONLY) continue;
   if (!path || !existsSync(path)) {
     console.error(`MISSING  ${wanted ?? path} (for ${name})`);
@@ -65,7 +74,7 @@ for (const [name, path, bitrate, channels, wanted, trim] of [...found, ...ELSEWH
   const out = join(OUT, `${name}.m4a`);
   // -movflags +faststart: the index first, so a streamed file starts playing before it's all here.
   const cut = trim ? ['-ss', String(trim[0]), '-to', String(trim[1])] : [];
-  const run = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', path, ...cut, '-vn', '-ac', String(channels), '-c:a', 'aac', '-b:a', bitrate, '-movflags', '+faststart', out], { stdio: ['ignore', 'inherit', 'inherit'] });
+  const run = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', path, ...cut, ...(filter ? ['-af', filter] : []), '-vn', '-ac', String(channels), '-c:a', 'aac', '-b:a', bitrate, '-movflags', '+faststart', out], { stdio: ['ignore', 'inherit', 'inherit'] });
   if (run.status !== 0) {
     console.error(`FAILED   ${name}`);
     failed++;

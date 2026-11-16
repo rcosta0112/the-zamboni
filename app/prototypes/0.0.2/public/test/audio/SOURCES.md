@@ -62,6 +62,13 @@ The click on every interaction and every press in the dialogue box (`ui_interact
 
 The boombox's tracks are numbered in the order of the inventory's table. **Not confirmed against the Blueprint:** the order of its track list isn't readable from the `.uasset`.
 
+## The binoculars' zoom (2026-11-16)
+
+| Game file | Source | Author | License |
+|---|---|---|---|
+| `sfx_binoculars_zoom_in.m4a` | `freesound_community-super8-speed-and-zoom_trlr-67192.mp3` (the owner's download, 48.7 s, 24 kHz stereo; two motor sounds), the first one's start, 3.42 to 7.42 s (the motor starting, then its whirr), raised 12 dB, the last 50 ms faded, by [`encode-audio.mjs`](../../../tools/encode-audio.mjs): 48 kbit/s mono | trlr, by the file's name (Freesound) | Not known: the Freesound page isn't recorded |
+| `sfx_binoculars_zoom_out.m4a` | The same, reversed (owner) | The same | The same |
+
 ## The temple's hum (2026-11-07)
 
 | Game file | Source | Author | License |
