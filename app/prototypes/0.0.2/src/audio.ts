@@ -273,6 +273,11 @@ export class GameAudio {
     return this.voices.get(key(id, at))?.playing ?? false;
   }
 
+  /** A bus's input, for a sound made in code that isn't placed in the world (the scanner's synth). */
+  bus(bus: Bus): AudioNode {
+    return this.buses[bus];
+  }
+
   /** Change a placed cue's falloff (it starts with the cue's own): full within, gone at (m). */
   falloff(id: CueId, at: THREE.Object3D, full: number, gone: number): void {
     const positional = this.voices.get(key(id, at))?.positional;

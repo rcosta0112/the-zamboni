@@ -46,6 +46,12 @@ export interface Patch {
   /** At the light's darkest (0), the volume dips this share and the cutoff this many octaves. */
   lightDepth: number;
   lightCutoff: number;
+  /** Vibrato (2026-11-16, the scanner): one LFO on both oscillators' pitch, `vibratoRate` Hz,
+   *  ±`vibratoDepth` cents, reaching its depth over `vibratoDelay` s from each note's start.
+   *  Optional: patches without it (the temple chord) have none. */
+  vibratoRate?: number;
+  vibratoDepth?: number;
+  vibratoDelay?: number;
 }
 
 const LOOKAHEAD = 0.3; // s: notes are put on the audio clock this far ahead, so steps don't drift
@@ -78,6 +84,9 @@ class Voice {
   private level1: GainNode;
   private level2: GainNode;
   private env: GainNode;
+  private lfo: OscillatorNode;
+  private vibrato: GainNode;
+  private startedAt = Infinity;
 
   constructor(context: AudioContext, p: Patch, hz: number, to: AudioNode) {
     this.osc1 = new OscillatorNode(context, { type: p.wave, frequency: hz, detune: osc1Cents(p) });
@@ -88,6 +97,12 @@ class Voice {
     this.osc1.connect(this.level1).connect(this.env);
     this.osc2.connect(this.level2).connect(this.env);
     this.env.connect(to);
+    // Vibrato: a sine in cents, added to both oscillators' detune.
+    this.lfo = new OscillatorNode(context, { type: 'sine', frequency: p.vibratoRate ?? 5 });
+    this.vibrato = new GainNode(context, { gain: 0 });
+    this.lfo.connect(this.vibrato);
+    this.vibrato.connect(this.osc1.detune);
+    this.vibrato.connect(this.osc2.detune);
     this.apply(p, true);
   }
 
@@ -102,6 +117,9 @@ class Voice {
     set(this.osc1.detune, osc1Cents(p));
     set(this.level2.gain, p.osc2 ? p.level2 : 0);
     set(this.osc2.detune, osc2Cents(p));
+    set(this.lfo.frequency, Math.max(0.01, p.vibratoRate ?? 5));
+    // Live depth changes only once the note's fade-in is over (before that, its ramp stands).
+    if (t >= this.startedAt + Math.max(0, p.vibratoDelay ?? 0)) set(this.vibrato.gain, p.vibratoDepth ?? 0);
   }
 
   /** Moves to a new note at `at`, sliding `glide` seconds from `fromHz` (legato). */
@@ -119,8 +137,15 @@ class Voice {
     g.setValueAtTime(0, at);
     g.linearRampToValueAtTime(1, at + Math.max(0.001, p.attack));
     g.linearRampToValueAtTime(p.sustain, at + Math.max(0.001, p.attack) + Math.max(0.001, p.decay));
+    const v = this.vibrato.gain;
+    const depth = p.vibratoDepth ?? 0;
+    const delay = Math.max(0, p.vibratoDelay ?? 0);
+    v.setValueAtTime(delay > 0 ? 0 : depth, at);
+    if (delay > 0) v.linearRampToValueAtTime(depth, at + delay);
+    this.startedAt = at;
     this.osc1.start(at);
     this.osc2.start(at);
+    this.lfo.start(at);
   }
 
   /** Fades out from wherever the envelope is at `at`, then stops. */
@@ -131,6 +156,7 @@ class Voice {
     const end = at + Math.max(0.001, p.release) + 0.05;
     this.osc1.stop(end);
     this.osc2.stop(end);
+    this.lfo.stop(end);
   }
 }
 

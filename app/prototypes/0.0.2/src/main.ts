@@ -50,7 +50,7 @@ import { Treadmill } from './terrain';
 import { Landmarks } from './landmarks';
 import { LightColumn } from './light-column';
 import { Synth } from './synth/synth';
-import { PATCHES } from './synth/presets';
+import { PATCHES, SCANNER_PATCH } from './synth/presets';
 import { PlanetShot } from './planet/shot';
 import { Gadgets } from './gadgets';
 import { BinocularView } from './binocular-view';
@@ -59,8 +59,6 @@ const STEP = 1 / 60; // fixed simulation step
 /** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
 const HAND = 'Hand_l';
 const HAND_LENGTH = 0.141;
-/** The scanner's loop dies away over this long (s) when she stops scanning. */
-const SCAN_SOUND_FADE = 0.2;
 /** The binoculars' zoom sound dies away over this long (s) when the zoom stops. */
 const ZOOM_SOUND_FADE = 0.08;
 /** Without her model, her head is this far under the top of her height (m), as watched.ts takes the crew's. */
@@ -468,11 +466,12 @@ async function start(): Promise<void> {
   const gadgets = new Gadgets(); // her binoculars (gadgets.ts)
   const binocularView = new BinocularView(); // their zoom in first person, and the gadget prompt
   let zoomSound: -1 | 0 | 1 = 0; // which zoom sound is playing (binocularView.moving when it started)
-  let scanSound = false; // the scanner's loop playing
+  let scanSound = false; // the scanner's sound playing
+  let scanSynth: Synth | null = null; // the scanner's sound (made on first use: the synth's *Scanner* patch)
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -866,11 +865,12 @@ async function start(): Promise<void> {
       character.model.gadgetShown = gadgets.shown;
       character.model.gadgetScan = gadgets.scan;
     }
-    // The scanner's noise (owner, 2026-11-16): looped while she scans, faded out when she lets go.
+    // The scanner's sound (owner, 2026-11-16): the synth's *Scanner* patch (scanner-synth.html), its
+    // note held while she scans (the attack on R1 down), released when she lets go (the patch's release).
     const scanning = gadgets.out === 'scanner' && gadgets.using;
     if (scanning !== scanSound) {
-      if (scanning) audio.play('sfx_scanner_loop');
-      else audio.stop('sfx_scanner_loop', undefined, SCAN_SOUND_FADE);
+      if (scanning) (scanSynth ??= new Synth(audio.context, { ...SCANNER_PATCH }, audio.bus('sfx'))).play();
+      else scanSynth?.stop();
       scanSound = scanning;
     }
     character.render(accumulator / STEP);

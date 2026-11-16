@@ -1,0 +1,38 @@
+{
+  "default": "Scanner",
+  "patches": {
+    "Scanner": {
+      "osc1": true,
+      "wave": "sine",
+      "level1": 0.5,
+      "osc1Octave": 1,
+      "osc1Semis": 10,
+      "osc1Detune": 0,
+      "osc2": true,
+      "osc2Wave": "sine",
+      "level2": 0.3,
+      "osc2Octave": 1,
+      "osc2Semis": 0,
+      "osc2Detune": 6,
+      "volume": 0.25,
+      "cutoff": 2400,
+      "resonance": 0.4,
+      "attack": 0.08,
+      "decay": 0.2,
+      "sustain": 0.7,
+      "release": 0.25,
+      "reverbTime": 1.5,
+      "reverbMix": 0.25,
+      "held": "C5",
+      "line": "",
+      "step": 1,
+      "legato": false,
+      "glide": 0,
+      "lightDepth": 0,
+      "lightCutoff": 0,
+      "vibratoRate": 6,
+      "vibratoDepth": 20,
+      "vibratoDelay": 0.3
+    }
+  }
+}

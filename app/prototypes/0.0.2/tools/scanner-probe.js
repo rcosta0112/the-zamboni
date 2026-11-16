@@ -65,14 +65,13 @@ report(bodyTurn > 3, 'standing, her body turns too', `${bodyTurn.toFixed(1)}°`)
 // The ray (pass 2): shown at full size while on, its material the game's.
 const rayMesh = ray.isMesh ? ray : ray.getObjectByProperty('isMesh', true);
 report(ray.visible && model.scannerRay?.amount === 1 && rayMesh?.material?.name === 'Scanner Ray (game)', "on: the ray shown, full size, the game's material", `visible ${ray.visible}, amount ${model.scannerRay?.amount}, material ${rayMesh?.material?.name}`);
-const sounds = w.__audio.playing();
-report(sounds.includes('sfx_scanner_loop'), "on: the scanner's loop plays", sounds.join(', ') || 'nothing playing');
+report(w.__scanSynth()?.playing === true, "on: the scanner's synth plays", `synth ${w.__scanSynth()?.playing}`);
 await shot('2-scanning');
 right(false);
 await until(() => gadgets.scan === 0, 2000);
 await wait(300);
 report(!gadgets.using && gadgets.scan === 0 && scanner.visible, 'let go: off, still in her hands', `scan ${gadgets.scan}`);
-report(!ray.visible && !w.__audio.playing().includes('sfx_scanner_loop'), 'let go: the ray hidden, the loop stopped', `ray ${ray.visible}; ${w.__audio.playing().join(', ')}`);
+report(!ray.visible && w.__scanSynth()?.playing === false, 'let go: the ray hidden, the synth released', `ray ${ray.visible}; synth ${w.__scanSynth()?.playing}`);
 // Halfway on: the ray part-grown (it grows out of the lens).
 right(true);
 await until(() => gadgets.scan > 0.4, 2000);

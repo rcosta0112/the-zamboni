@@ -9,6 +9,7 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
  * The tuning pages' saved presets (dev only), one JSON file each: GET <route> reads the file; POST saves
  * one ({ name, <item>: {...} }) under `<key>.<name>` and makes it the default. The pages fetch instead of
  * importing the file, so a save doesn't reload them. synth.html: /__synth/patches (src/synth/patches.json);
+ * scanner-synth.html: /__synth/scanner (src/synth/scanner-patches.json);
  * planet.html: /__planet/presets (src/planet/presets.json).
  */
 function savedPresets(route: string, path: string, key: string, item: string): Plugin {
@@ -50,6 +51,7 @@ export default defineConfig({
   plugins: [
     svelte(),
     savedPresets('/__synth/patches', './src/synth/patches.json', 'patches', 'patch'),
+    savedPresets('/__synth/scanner', './src/synth/scanner-patches.json', 'patches', 'patch'),
     savedPresets('/__planet/presets', './src/planet/presets.json', 'presets', 'preset'),
   ],
   // Game files, fonts and UI images: this version's own, in public/ (Vite's default), served at the root.

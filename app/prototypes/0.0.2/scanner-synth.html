@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scanner synth · 0.0.2</title>
+    <link rel="icon" href="data:," />
+    <style>
+      body { margin: 0; background: #14161a; color: #d8dbe0; font: 14px/1.5 system-ui, sans-serif; }
+      main { max-width: 34rem; padding: 2rem 1.5rem; }
+      h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+      p { margin: 0 0 1rem; color: #9aa0a8; }
+      button { font: inherit; padding: 0.6rem 1.4rem; border: 0; border-radius: 4px; background: #e0a040; color: #14161a; cursor: pointer; user-select: none; touch-action: none; }
+      button.on { background: #ff40c0; }
+      label { margin-left: 1rem; color: #9aa0a8; }
+      #now { margin-top: 1rem; font-variant-numeric: tabular-nums; color: #9aa0a8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Scanner synth</h1>
+      <p>The scanner's sound, made in code. <strong>Hold</strong> the button (or Space) to play, as R1 in the game: the attack on press, the release on letting go. <em>Latch</em> keeps the note on while you tune. The page remembers the last patch.</p>
+      <button id="play">Hold to play</button>
+      <label><input type="checkbox" id="latch" /> latch</label>
+      <div id="now"></div>
+    </main>
+    <script type="module" src="/src/synth/scanner-page.ts"></script>
+  </body>
+</html>
