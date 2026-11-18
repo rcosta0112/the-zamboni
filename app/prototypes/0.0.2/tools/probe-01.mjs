@@ -16,7 +16,8 @@
 // The page is the checks' game (`?test`: the test story, from the landed ship); with `--game`, the
 // game's own (its story, from chapter 1). `--query <q>` adds to the address (`--query scene=opening`).
 // Uses the dev server already on port 5202, or starts one. For trying a check out before it goes
-// into smoke-01.mjs, and for looking at one thing after a change.
+// into smoke-01.mjs, and for looking at one thing after a change. `--init <file.js>` runs that file in
+// the page before the game's own code, on every load (e.g. a trace of the load: compile-trace-init.js).
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -42,6 +43,8 @@ const stayAt = args.indexOf('--stay');
 if (stayAt >= 0) args.splice(stayAt, 1);
 const reloadAt = args.indexOf('--reload');
 const reloadFile = reloadAt >= 0 ? args.splice(reloadAt, 2)[1] : null;
+const initAt = args.indexOf('--init'); // a script run in the page before the game's own (each load)
+const initFile = initAt >= 0 ? args.splice(initAt, 2)[1] : null;
 if (!args[0]) {
   console.error('probe: node tools/probe-01.mjs <file.js> [--shot <out.png>] [--stay]');
   process.exit(2);
@@ -115,6 +118,7 @@ try {
       console.log(JSON.stringify(result.result.result.value, null, 1));
     }
   };
+  if (initFile) await send('Page.addScriptToEvaluateOnNewDocument', { source: readFileSync(initFile, 'utf8') });
   await send('Page.navigate', { url: URL_01 });
   await runFile(body);
   if (reloadFile) {

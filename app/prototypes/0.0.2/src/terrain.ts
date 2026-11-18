@@ -775,7 +775,7 @@ async function fileMeshes(url: string): Promise<THREE.BufferGeometry[]> {
  * Gradient noise (as Blender's, one layer) over a tile that repeats: `cells` cells across `size`
  * pixels, its gradients wrapping at the edge. Stored 0..1 (0.5 is 0), with mip levels.
  */
-function noiseTile(size: number, cells: number): THREE.DataTexture {
+export function noiseTile(size: number, cells: number): THREE.DataTexture {
   const random = mulberry32(7);
   const gradients = Array.from({ length: cells * cells }, () => {
     const a = random() * Math.PI * 2;

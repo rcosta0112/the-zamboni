@@ -35,7 +35,7 @@ Its own plan: **[palette-material.md](palette-material.md)** (open questions the
 5. **KTX2 textures** (instead of WebP, if GPU memory matters on the MacBook): textures stay compressed on the GPU, ≈ 25 → 5 MB *(estimate)*, faster upload. Costs a decoder in the game (a few hundred KB) and closer checks of small text.
 6. **In the `.blend` (owner's, low priority):** `Contraption` (renamed `Scanner Array` by the owner; the saved 1.22 still says `Contraption`) is 21,530 triangles, 23% of the ship: 11,365 faces, almost all quads, 0.84 × 1.39 × 1.24 m, most of it `Metal` (11,300 triangles) and `Black` (8,700). The owner sees no excess geometry; dense for its size but not a problem at today's triangle count. Left as is unless triangles become a cost; the parka is 5× the jumpsuit's size from geometry, worth a look before the parkas ship; the 9 mirrored objects (`Bench`, `Monitor001`, `Turbine_Right`…) could have their scale applied (the game copies their geometry at load to fix them; the two door hinges need care).
 
-**Not in this plan:** lightmaps (a look decision, see [performance.md](../architecture/game-architecture/performance.md)); the rest of the first-load compile (fewer kinds of material, its own pass if the load bothers you).
+**Not in this plan:** lightmaps (a look decision, see [performance.md](../architecture/game-architecture/performance.md)). **The first-load compile:** its own plan, [first-load-compile.md](first-load-compile.md) (measured 2026-11-18: three builds the 56 pipelines one at a time; in parallel ≈ 5× faster).
 
 ## Estimates
 
