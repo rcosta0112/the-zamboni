@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-18 | Optimisation never changes the game; the old see-through rules mode may go | tech | Optimisation (SC-180) must not change how the game looks or works; the unused per-object see-through rules mode doesn't count, so merging static meshes per room may break it |
 | 2026-11-18 | The ship's flat colours as palette materials, at export | pipeline | Opaque untextured single-sided colours fold into `Palette` / `Palette Metal` after Blender's export (`palette.mjs`), exact values in small images; 60 → 32 materials; the `.blend` keeps its named colour materials |
 | 2026-11-16 | Shoulders L1 / R1, triggers L2 / R2 | input | The pad's shoulders and triggers named as on a PlayStation controller (L / R, ZL / ZR before); the face buttons keep the Nintendo positions; the prompts show them as icons |
 | 2026-11-16 | Gadgets: out with the D-pad, used with R1 | input | Each gadget brought out and put away by its own D-pad direction (binoculars: up; keyboard B), the gadget that's out used with R (keyboard and mouse: the right button), so interact (A, E) stays interact while she holds one; first person zooms on L / ZL and the wheel |
@@ -71,6 +72,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-18] — Optimisation never changes the game; the old see-through rules mode may go (tech)
+
+**Context:** Step 3 of the optimisation plan (SC-180) merges the ship's static meshes per room. A merged mesh can't be faded one object at a time, as the older see-through rules mode does (`settings.seeThroughStage` other than `'hull only'`; unused since 2026-10-14).
+
+**Decision (owner, 2026-11-18):** Optimisation must not affect how the game looks or works in any way. The old rules mode isn't needed: breaking it doesn't count as changing the game. [Step 3's plan](plans/features/merge-per-room.md).
+
+**Alternatives considered:** Keeping the old mode working with a per-object value table on the GPU (more work, for a mode nobody uses).
+
+**Rationale:** The aim is performance and loading times; the game as played is the reference.
+
+**Status:** Active.
 
 ## [2026-11-18] — The ship's flat colours as palette materials, at export (pipeline)
 

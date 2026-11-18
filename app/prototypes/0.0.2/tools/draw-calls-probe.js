@@ -1,8 +1,9 @@
 // Draw calls per view, the pipelines and the ship's shader compile (the optimisation plan, SC-180,
 // step 2's pass 2: doc/plans/features/palette-material.md). In app/:
 //
-//     npm run probe -- prototypes/0.0.2/tools/draw-calls-probe.js --reload prototypes/0.0.2/tools/draw-calls-probe.js
+//     npm run probe -- tools/draw-calls-probe.js --reload tools/draw-calls-probe.js
 //     ... --query ship=<name>     (an older export in .export/<name>.glb, dev builds only)
+//     ... --query merge=0         (the static meshes not merged per room, merge-rooms.ts)
 //
 // The first run is a cold load (the probe's fresh profile), the reload a warm one. For each room
 // (her in its aisle, as see-through-views.js does) and from outside the ship: the draw calls per
@@ -35,6 +36,7 @@ async function calls() {
 const out = {
   ship: new URLSearchParams(location.search).get('ship') ?? 'current',
   compileMs: w.__shipCompiledIn,
+  mergeMs: ship.mergedInMs,
   sinceNavigation: Math.round(performance.now()),
   pipelines: renderer._pipelines?.caches?.size,
   programs: renderer._pipelines ? `${renderer._pipelines.programs.vertex.size} vertex, ${renderer._pipelines.programs.fragment.size} fragment` : null,

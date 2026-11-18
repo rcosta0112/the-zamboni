@@ -235,6 +235,14 @@ export function fillBackFaces(mesh: THREE.Mesh): void {
     frontCopies.set(source, front);
   }
   mesh.material = front;
+  addHullGapFill(mesh);
+}
+
+/**
+ * The hull gap's fill on a mesh's geometry (fillBackFaces), reading the mesh's cut values. Also for
+ * a merged mesh of the hull's parts (merge-rooms.ts), whose material is already the front copy.
+ */
+export function addHullGapFill(mesh: THREE.Mesh): void {
   if (!fill) {
     fill = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide });
     fill.name = 'hull gap';
@@ -251,6 +259,7 @@ export function fillBackFaces(mesh: THREE.Mesh): void {
     get cutFade() { return of.cutFade; },
     get cutWhole() { return of.cutWhole; },
     get cutSolid() { return of.cutSolid; },
+    hullGap: true,
   };
   fillMesh.castShadow = false;
   fillMesh.receiveShadow = false;

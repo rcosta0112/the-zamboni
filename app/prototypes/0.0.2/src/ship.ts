@@ -18,6 +18,7 @@ import { fillBackFaces, makeCuttable } from './cutaway';
 import { advance, createDoors, updateAutoDoors, type Door, type Pusher } from './doors';
 import { Entities, type Openable } from './entities';
 import { downloads } from './loading';
+import { mergeRooms, mergedInMs } from './merge-rooms';
 import { named, sanitize } from './names';
 import { sameLayouts, unmirror } from './pipelines';
 import { isDrawn, isHullPart, newCutUnit, prepareRaycasts, type CutUnit } from './visibility';
@@ -27,6 +28,8 @@ import { settings } from './settings';
 // Dev builds: `?ship=<name>` loads `.export/<name>.glb` instead (an older export, for measuring
 // before / after; the optimisation plan, SC-180).
 const shipOverride = import.meta.env.DEV ? new URLSearchParams(location.search).get('ship') : null;
+/** `?merge=0` (dev builds): the static meshes not merged (merge-rooms.ts), to compare. */
+const noMerge = import.meta.env.DEV && new URLSearchParams(location.search).get('merge') === '0';
 const SHIP_URL = shipOverride ? `/.export/${shipOverride}.glb` : '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 /** The ship's collider in its file; every other mesh there is a collision box. */
@@ -147,6 +150,10 @@ export interface Ship {
   rampState: Openable;
   /** The static ship's shadow, as one mesh only the sun's shadow camera sees (SHADOW_LAYER). */
   shadowCaster: THREE.Mesh;
+  /** The static meshes merged per room and material (merge-rooms.ts); the originals hidden. */
+  merged: THREE.Mesh[];
+  /** How long the merge took at load (ms). */
+  mergedInMs: number;
   /** The same for what's inside the shell: off while it's hidden (see-through stage 'hull only'). */
   interiorShadowCaster: THREE.Mesh;
   /** The moving parts inside the shell that cast shadows of their own (doors): off with it. */
@@ -311,6 +318,9 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     landingGear.push({ node, restY: node.position.y, restAt: node.position.clone(), rest: node.quaternion.clone(), restScale: node.scale.clone(), above });
   });
 
+  const roomsOf = roomsIn(object, interior, upperFloorY);
+  const moving = [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node), ...turbines.map((t) => t.node)];
+
   const ship: Ship = {
     object,
     collider: col,
@@ -326,7 +336,7 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
     ladderColliders,
     interior,
     upperFloorY,
-    roomsOf: roomsIn(object, interior, upperFloorY),
+    roomsOf,
     cutUnits,
     hullUnit: cutUnits.find((u) => named(u.object, 'Hull_Merged')),
     rampUnits: cutUnits.filter((u) => isInside(u.object, rampDoor)),
@@ -352,8 +362,10 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
         return ship.rampAmount;
       },
     },
-    ...mergeShadowCasters(object, [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node), ...turbines.map((t) => t.node)], new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
+    ...mergeShadowCasters(object, moving, new Set(cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes))),
     interiorMovingCasters: [],
+    merged: [],
+    mergedInMs: 0,
     landingGear,
     gearRaised: null,
     gearHold: null,
@@ -365,6 +377,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   // Left casting by mergeShadowCasters: the moving parts.
   ship.interiorMovingCasters = cutUnits.filter((u) => !isDrawn(u)).flatMap((u) => u.meshes).filter((m) => m.castShadow);
   scene.add(ship.shadowCaster, ship.interiorShadowCaster, ship.glassShadowCaster);
+  // Fewer draw calls: the static meshes merged per room and material, once, here (merge-rooms.ts).
+  // After the shadow is merged (from the originals): the merged meshes don't cast.
+  if (!noMerge) {
+    ship.merged = mergeRooms({ object, cutUnits, roomsOf, moving });
+    ship.mergedInMs = mergedInMs;
+  }
   updateShip(ship, 0, true);
   return ship;
 }

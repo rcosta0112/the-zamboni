@@ -307,14 +307,18 @@ export class WatchedConversation {
     const crew = new Set<THREE.Object3D>();
     for (const e of this.entities.ofKind('character')) e.object.traverse((o) => crew.add(o));
     const solid: THREE.Mesh[] = [];
-    // Only what's drawn (the colliders and collision boxes are hidden meshes in the ship).
-    this.ship.traverseVisible((o) => {
+    // Only what's drawn (the colliders and collision boxes are hidden meshes in the ship). Merged
+    // meshes (merge-rooms.ts) count by their originals, which are hidden but keep their BVHs.
+    const visit = (o: THREE.Object3D) => {
+      if (!o.visible && !o.userData.mergedInto) return;
+      for (const child of o.children) visit(child);
       const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh || crew.has(o) || (o as THREE.SkinnedMesh).isSkinnedMesh) return;
+      if (!mesh.isMesh || o.userData.mergedFrom || crew.has(o) || (o as THREE.SkinnedMesh).isSkinnedMesh) return;
       const material = mesh.material as THREE.MeshPhysicalMaterial;
       if (Array.isArray(material) || material.transparent || (material.transmission ?? 0) > 0) return;
       solid.push(mesh);
-    });
+    };
+    visit(this.ship);
     this.solid = solid;
     return solid;
   }
