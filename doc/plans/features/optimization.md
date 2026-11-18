@@ -31,7 +31,7 @@ Its own plan: **[palette-material.md](palette-material.md)** (open questions the
 ## Provisional (later, each asked for first)
 
 3. **Static objects merged per room** (after step 2). Today 161–415 draw calls per room view, 458 from outside → about 100–150 *(estimate)*. Doors, see-through units, pickables and lights stay separate; the merge has to follow the see-through hull's groups. The most work here; its own plan: **[merge-per-room.md](merge-per-room.md)**. **Built 2026-11-18:** outside 458 → 304, rooms 122–276, pipelines unchanged, 70–150 ms at load.
-4. **The crew's colours in the palette** (`export:crew`). 34 → ≈ 10–15 draw calls; folds the duplicates (`Black.002`…). Small once step 2 exists.
+4. **The crew's colours in the palette** (`export:crew`). 34 → ≈ 10–15 draw calls; folds the duplicates (`Black.002`…). Small once step 2 exists. **Built 2026-11-18** (owner: "proceed"): see *As built (step 4)*.
 5. **KTX2 textures** (instead of WebP, if GPU memory matters on the MacBook): textures stay compressed on the GPU, ≈ 25 → 5 MB *(estimate)*, faster upload. Costs a decoder in the game (a few hundred KB) and closer checks of small text.
 6. **In the `.blend` (owner's, low priority):** `Contraption` (renamed `Scanner Array` by the owner; the saved 1.22 still says `Contraption`) is 21,530 triangles, 23% of the ship: 11,365 faces, almost all quads, 0.84 × 1.39 × 1.24 m, most of it `Metal` (11,300 triangles) and `Black` (8,700). The owner sees no excess geometry; dense for its size but not a problem at today's triangle count. Left as is unless triangles become a cost; the parka is 5× the jumpsuit's size from geometry, worth a look before the parkas ship; the 9 mirrored objects (`Bench`, `Monitor001`, `Turbine_Right`…) could have their scale applied (the game copies their geometry at load to fix them; the two door hinges need care).
 
@@ -52,6 +52,13 @@ Answered 2026-11-18: the export from 1.22 is safe; step 2's answers in its plan.
 - `tools/webp.mjs`, the `webp` step in `export.mjs` (ship only: `resize, dedup, uvs, webp, meshopt`), a `WEBP:` line in the summary. The ship: **3.90 → 2.07 MB** (images 2.42 → 0.59 MB, 28 textures, `Color Palette` lossless). Export time unchanged (24 s).
 - **Checked:** the gate saw only the textures' bytes differ (same objects, triangles, bounds, tags); the after-export check passes; every room's screenshot (`npm run see-through`) against the old file: differences only the see-through's random dither and single edge pixels (run-to-run noise), the keyboards and screens unchanged; `npm run check`, `npm run build`; the smoke: 83 pass, the 4 known failures (SC-168).
 - **Not done:** the crew and player exports (their images are tiny; not worth a step).
+
+## As built (step 4, 2026-11-18)
+
+- `export.mjs`: the crew's steps `resize, palette, meshopt` (no code change; `palette.mjs` as for the ship). Nothing in the game reads a crew material by name.
+- **The crew file:** 18 colours joined; materials 20 → 4 (`Palette`, `Palette Metal`, `Glass`: transparent, `Blue White Stripes`: double-sided and textured); primitives 34 → 10; 0.27 → 0.20 MB. The gate stopped on the materials and on Dr. Kaufman's mesh, 3456 → 3452 vertices: **already so in Blender's raw export, before the palette step** (`Black` −6, `Skin White` +2; the `.blend` since the 7 Nov export, or seam noise as in the player export). Taken.
+- **Measured** (`draw-calls-probe.js`, step 3 → 4): outside 304 → 257, start view 256; rooms 122–228 (were 122–276): **every view under the 300 budget now.** Pipelines 98 → 87 (vertex programs 82 → 74), compile 12.3 s cold (14.4 at step 2; one run, within noise).
+- **Checked:** the after-export check passes; `dialogue-probe.js`'s screenshots of the four crew before and after: the Adams identical (mean difference ≤ 0.07 / 255), Dr. Ogawa within her idle loop's movement, Dr. Kaufman in another moment of her 13.4 s loop, colours the same.
 
 ## After
 

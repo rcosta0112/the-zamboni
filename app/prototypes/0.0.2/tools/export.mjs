@@ -44,7 +44,7 @@ const JOBS = {
   crew: {
     script: 'export-ship-crew.py',
     args: (raw) => ['--out', join(raw, 'zamboni-crew.glb')],
-    files: { 'zamboni-crew.glb': ['resize', 'meshopt'] },
+    files: { 'zamboni-crew.glb': ['resize', 'palette', 'meshopt'] }, // palette: SC-180 step 4
   },
   // The player's Dr. Green (the `Player` collection), at the file's scale (the game's since
   // 2026-10-19); not compressed (the game loads it without a Meshopt decoder). Two outfits, one
