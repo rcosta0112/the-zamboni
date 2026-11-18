@@ -1,20 +1,24 @@
 <!--
-  The dialogue box (placeholder, owner 2026-10-21): a solid white rectangle low in the middle of the
-  screen, the speaker's name at its top left (in the character's colour: owner, 2026-11-07), the line typed out, and a small button prompt at its
+  The dialogue box, from the Figma mockup (page "Dialogue System", 2026-11-18; a placeholder before,
+  owner 2026-10-21): a white rectangle low in the middle of the screen, the line centred in it; the
+  speaker's name in a pill over the box's top left edge, white on the character's colour (owner,
+  2026-11-07; the mockup's navy is Dr. Ogawa's), and a small button prompt at its
   bottom right saying what the button does now (Next, End; Next while a line types too, though the
   press finishes the line first: owner, 2026-11-07). Every character is laid out from
   the start and the untyped ones are transparent, so line breaks never move (as the Design
   Challenge's Typewriter.svelte). Topics (owner, 2026-10-22): her lines to choose from, in the box in
   place of the line, under her name, the selected one marked; shown at once, never typed. The game drives it: `show(view)` each time something changes,
   `show(null)` to take it away. Sizes in --ui-unit, one pixel of a 1440 × 1024 frame scaled to fit
-  the window, as the start screen's: about 45% × 17% of a 16:9 window.
+  the window, as the start screen's: about 45% × 14% of a 16:9 window. The mockup is a 1278 px
+  screenshot whose box is 691 px for the game's 790 units: its pixels are 0.875 of a unit (its 23 px
+  text is the 26 units the box had already).
   Plan: doc/plans/features/dialogue.md
 -->
 <script module lang="ts">
   export interface DialogueView {
     /** Who's talking (null: narration, no name). */
     speaker: string | null;
-    /** The name's colour (a CSS colour, at least 4.5:1 on the box's white; null: the text's). */
+    /** The name tag's colour, under white text (a CSS colour, at least 4.5:1 with white; null: --color-ink). */
     color: string | null;
     text: string;
     /** How many characters of `text` are shown. */
@@ -41,7 +45,7 @@
 
 {#if view}
   <div class="box" role="dialog" aria-live="polite">
-    {#if view.speaker}<div class="speaker" style:color={view.color}>{view.speaker}</div>{/if}
+    {#if view.speaker}<div class="speaker" style:background-color={view.color}>{view.speaker}</div>{/if}
     {#if view.topics.length > 0}
       <ul class="topics" class:four={view.topics.length > 3} role="listbox" aria-label="Topics">
         {#each view.topics as topic, i (i)}
@@ -65,24 +69,41 @@
     --ui-unit: min(100vw / 1440, 100vh / 1024);
     position: fixed;
     left: 50%;
-    bottom: calc(30 * var(--ui-unit));
+    bottom: calc(24 * var(--ui-unit));
     transform: translateX(-50%);
     box-sizing: border-box;
     width: calc(790 * var(--ui-unit));
-    height: calc(170 * var(--ui-unit));
-    padding: calc(20 * var(--ui-unit)) calc(28 * var(--ui-unit));
+    height: calc(146 * var(--ui-unit));
+    /* Three lines of text fit between the paddings. */
+    padding: calc(24 * var(--ui-unit)) calc(28 * var(--ui-unit));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     background: var(--color-white);
-    border-radius: calc(16 * var(--ui-unit));
-    color: var(--color-ink);
+    border-radius: calc(7 * var(--ui-unit));
+    color: var(--color-dialogue-text);
     font-family: var(--font-text);
     pointer-events: none;
   }
 
+  /* The name tag: half over the box's top edge, as wide as the name. Narration has none. */
   .speaker {
-    font-weight: 700;
-    font-size: calc(24 * var(--ui-unit));
-    line-height: 1.1;
-    margin-bottom: calc(6 * var(--ui-unit));
+    position: absolute;
+    left: calc(14 * var(--ui-unit));
+    top: calc(-19 * var(--ui-unit));
+    box-sizing: border-box;
+    height: calc(38 * var(--ui-unit));
+    padding: 0 calc(18 * var(--ui-unit)) calc(2 * var(--ui-unit));
+    display: flex;
+    align-items: center;
+    border-radius: calc(15 * var(--ui-unit));
+    background-color: var(--color-ink);
+    color: var(--color-white);
+    font-weight: 600;
+    font-size: calc(21 * var(--ui-unit));
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .text {
@@ -90,6 +111,8 @@
     font-weight: 400;
     font-size: calc(26 * var(--ui-unit));
     line-height: 1.25;
+    letter-spacing: -0.005em;
+    text-align: center;
   }
 
   .untyped {
@@ -139,6 +162,7 @@
 
   /* Her lines, as the text's size; three fit the box's height, a fourth a little tighter. */
   .topics {
+    align-self: stretch;
     margin: 0;
     padding: 0;
     list-style: none;

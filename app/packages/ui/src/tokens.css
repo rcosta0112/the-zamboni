@@ -31,7 +31,8 @@
   --color-fill-hover: rgb(255 255 255 / 0.14); /* a control under the pointer, or the one a gamepad is on */
   --color-fill-active: rgb(255 255 255 / 0.26); /* a control pressed */
   --color-track: rgb(0 0 0 / 0.12); /* a progress bar's empty part: a little darker than what's under it */
-  --color-ink: #1d1f24; /* text on white: the dialogue box (a placeholder, not from the mockup) */
+  --color-ink: #1d1f24; /* text on white: the interaction prompts (a placeholder, not from a mockup) */
+  --color-dialogue-text: #411f24; /* the dialogue box's line (Figma, "Dialogue System", 2026-11-18) */
 
   /* Type */
   --font-title: 'Digital Desolation Plus', sans-serif;
