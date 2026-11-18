@@ -19,6 +19,10 @@
 // Aimed (scanner pass 3, owner 2026-11-16): while she scans, `Body` turns toward the closest
 // interaction point within reach (`scanTargets`, from interaction.ts), up and down too, eased, the legs
 // turned back so her steps stay on her path; her heading, movement and the camera are untouched.
+// The coffee (2026-11-18; plan doc/plans/features/coffee.md): her drinking loop on her right arm only
+// (`RIGHT_ARM`: the movement's upper half is split again, so her left arm keeps its swing), held on its
+// first frame (`coffeeHeld`) and played once for a sip (`coffeeSip`, `coffeeSipShare`); the mug on her
+// right hand keyed in the same clip, shown while she holds it (not while she climbs or sits).
 
 import * as THREE from 'three/webgpu';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -53,6 +57,11 @@ const FLY_BLEND = 0.12;
 
 /** Her upper body: the bones a gadget's clip takes over from the movement clips (her skeleton has no spine: `Body` is the torso, left to the movement). */
 const UPPER_BODY = ['Arm_l', 'Hand_l', 'Arm_r', 'Hand_r', 'Head'];
+/** Her right arm: the coffee's clip takes it over from the movement clips (the left arm keeps its swing). */
+const RIGHT_ARM = ['Arm_r', 'Hand_r'];
+/** The coffee: her drinking loop (frame 1 the hold; export-crew-character.py --action) and the mug on her right hand. */
+export const COFFEE_CLIP = 'Dr. Green - Coffee';
+const MUG = 'Mug';
 /** The binoculars: her clip (the export bakes the binoculars' own turn into it) and the object on her right hand. */
 export const BINOCULARS_CLIP = 'Dr. Green - Binoculars';
 const BINOCULARS = 'Binoculars.001';
@@ -104,6 +113,19 @@ export class AnimatedModel {
   private upper: Clips | null = null;
   /** Her gadgets' clips (binoculars, scanner), those her model has. */
   private gadgets: Partial<Record<GadgetId, GadgetClip>> = {};
+  /** The movement clips' right-arm part, with a coffee clip (then `upper` has the rest of the upper body). */
+  private right: Clips | null = null;
+  /** The coffee's clip on her right arm, twice (the hold, at frame 1; the sip, played), the mug's tracks the same, and the mug. */
+  private coffee: { hold: THREE.AnimationAction; sip: THREE.AnimationAction; mugHold: THREE.AnimationAction; mugSip: THREE.AnimationAction; mug: THREE.Object3D | null } | null = null;
+  /** How far the mug's hold has come into her arm: 0 .. 1 (main.ts, from `Coffee.held`). */
+  coffeeHeld = 0;
+  /** The sip's place in the loop, 0 .. 1, and its share over the hold (main.ts, from `Coffee`). */
+  coffeeSip = 0;
+  coffeeSipShare = 0;
+  /** The coffee clip's length (s), for `Coffee`'s sips; 0 without one. */
+  get coffeeSeconds(): number {
+    return this.coffee?.sip.getClip().duration ?? 0;
+  }
   /** Which gadget's clip and object show (main.ts, from `Gadgets.shown`). */
   gadgetShown: GadgetId | null = null;
   /** The scanner on: 0 .. 1 (main.ts, from `Gadgets.scan`): her body and head turn as she scans. */
@@ -176,6 +198,8 @@ export class AnimatedModel {
     binocularsClip?: THREE.AnimationClip,
     /** Her scanner's clip (none on Part 1's). */
     scannerClip?: THREE.AnimationClip,
+    /** Her coffee's clip (none on Part 1's). */
+    coffeeClip?: THREE.AnimationClip,
   ) {
     this.object = object;
     this.mixer = new THREE.AnimationMixer(object);
@@ -192,17 +216,22 @@ export class AnimatedModel {
       return clip;
     };
     // With a gadget clip, each movement clip in two: the legs' half and the upper body's.
-    const clipsOf = (part: 'lower' | 'upper' | 'whole') =>
+    // With the coffee's clip, the upper half in two again: the right arm and the rest.
+    const upperRest = UPPER_BODY.filter((b) => !(coffeeClip && RIGHT_ARM.includes(b)));
+    const clipsOf = (part: 'lower' | 'upper' | 'right' | 'whole') =>
       Object.fromEntries(
         CLIP_NAMES.map((name) => {
           const clip = find(name);
-          return [name, this.mixer.clipAction(part === 'whole' ? clip : subclip(clip, UPPER_BODY, part === 'upper', ` (${part})`))];
+          const piece =
+            part === 'whole' ? clip : part === 'lower' ? subclip(clip, UPPER_BODY, false, ' (lower)') : subclip(clip, part === 'upper' ? upperRest : RIGHT_ARM, true, ` (${part})`);
+          return [name, this.mixer.clipAction(piece)];
         }),
       ) as Clips;
-    const anyGadget = binocularsClip !== undefined || scannerClip !== undefined;
+    const anyGadget = binocularsClip !== undefined || scannerClip !== undefined || coffeeClip !== undefined;
     this.clips = clipsOf(anyGadget ? 'lower' : 'whole');
     if (anyGadget) this.upper = clipsOf('upper');
-    for (const clips of [this.clips, this.upper]) {
+    if (coffeeClip) this.right = clipsOf('right');
+    for (const clips of [this.clips, this.upper, this.right]) {
       if (!clips) continue;
       clips.flying.play();
       clips.flying.setEffectiveWeight(0);
@@ -230,6 +259,15 @@ export class AnimatedModel {
       if (!object) console.warn(`[0.0.2] her model has no ${BINOCULARS} (the binoculars' clip moves it)`);
       if (object) object.visible = false;
       this.gadgets.binoculars = { body: byHand(subclip(binocularsClip, UPPER_BODY, true, ' (body)')), held: byHand(subclip(binocularsClip, held, true, ' (held)')), object };
+    }
+    if (coffeeClip) {
+      const mugNames = [MUG, sanitize(MUG)];
+      const mug = object3d(this.object, mugNames);
+      if (!mug) console.warn(`[0.0.2] her model has no ${MUG} (the coffee's clip moves it)`);
+      if (mug) mug.visible = false;
+      const arm = subclip(coffeeClip, RIGHT_ARM, true, ' (arm)');
+      const onHand = subclip(coffeeClip, mugNames, true, ' (mug)');
+      this.coffee = { hold: byHand(arm), sip: byHand(arm.clone()), mugHold: byHand(onHand), mugSip: byHand(onHand.clone()), mug };
     }
     if (scannerClip) {
       const object = object3d(this.object, [SCANNER]);
@@ -365,6 +403,7 @@ export class AnimatedModel {
       jumping.reset();
       jumping.play();
       this.upper?.jumping.reset().play();
+      this.right?.jumping.reset().play();
     }
     this.wasGrounded = grounded;
     // Flying: the flying clip over everything, eased in and out.
@@ -397,13 +436,32 @@ export class AnimatedModel {
     const held = free ? THREE.MathUtils.clamp(this.gadgetHeld, 0, 1) : 0;
     const raised = free ? THREE.MathUtils.clamp(this.gadgetRaised, 0, 1) : 0;
     const share = held * held * (3 - 2 * held);
-    if (this.upper) {
+    // The coffee on her right arm (never with a gadget: main.ts locks them while she holds it).
+    const coffeeHeld = free && this.coffee ? THREE.MathUtils.clamp(this.coffeeHeld, 0, 1) : 0;
+    const coffeeShare = coffeeHeld * coffeeHeld * (3 - 2 * coffeeHeld);
+    for (const [part, left] of [
+      [this.upper, 1 - share],
+      [this.right, (1 - share) * (1 - coffeeShare)],
+    ] as const) {
+      if (!part) continue;
       for (const name of CLIP_NAMES) {
-        const up = this.upper[name];
-        up.setEffectiveWeight(weights[name] * (1 - share));
+        const up = part[name];
+        up.setEffectiveWeight(weights[name] * left);
         // On the legs' frame: walk, run and stand are set by hand; the jump and the flight run on their own, started with the legs'.
         if (name !== 'jumping' && name !== 'flying') up.time = this.clips[name].time;
       }
+    }
+    if (this.coffee) {
+      const { hold, sip, mugHold, mugSip, mug } = this.coffee;
+      const sipShare = THREE.MathUtils.clamp(this.coffeeSipShare, 0, 1);
+      hold.time = mugHold.time = 0;
+      sip.time = mugSip.time = THREE.MathUtils.clamp(this.coffeeSip, 0, 1) * sip.getClip().duration;
+      hold.setEffectiveWeight(coffeeShare * (1 - sipShare));
+      sip.setEffectiveWeight(coffeeShare * sipShare);
+      const shown = coffeeShare > 0;
+      mugHold.setEffectiveWeight(shown ? 1 - sipShare : 0);
+      mugSip.setEffectiveWeight(shown ? sipShare : 0);
+      if (mug) mug.visible = shown;
     }
     for (const [id, gadget] of Object.entries(this.gadgets) as [GadgetId, GadgetClip][]) {
       const { body, held: inHand, object } = gadget;
@@ -632,14 +690,16 @@ export async function loadModels(onProgress: (share: number) => void = () => und
 
   // Her size from the parka (the jumpsuit's hair is 1.4 cm higher than the hood: she doesn't change size),
   // without the binoculars (on her hand, in the file's pose of their clip's last frame).
+  // (and without the mug: its place in the file is wherever the coffee's clip left it).
   const binoculars = object3d(zamboni.scene, [BINOCULARS, sanitize(BINOCULARS)]);
-  const hand = binoculars?.parent ?? null;
-  binoculars?.removeFromParent();
+  const mug = object3d(zamboni.scene, [MUG, sanitize(MUG)]);
+  const held = [binoculars, mug].flatMap((o) => (o?.parent ? [{ o, parent: o.parent }] : []));
+  for (const h of held) h.o.removeFromParent();
   const zamboniHeight = new THREE.Box3().setFromObject(zamboni.scene).getSize(new THREE.Vector3()).y;
-  if (binoculars) hand!.add(binoculars);
-  // The binoculars hang on her hand in the parka's file but belong to neither outfit: shown by their clip.
+  for (const h of held) h.parent.add(h.o);
+  // The binoculars, the scanner and the mug hang on her in the parka's file but belong to neither outfit: shown by their clips.
   const scanner = object3d(zamboni.scene, [SCANNER]);
-  const outfits = { parka: outfitParts(zamboni.scene).filter((p) => p !== binoculars && p !== scanner), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
+  const outfits = { parka: outfitParts(zamboni.scene).filter((p) => p !== binoculars && p !== scanner && p !== mug), jumpsuit: dress(zamboni.scene, jumpsuit.scene) };
   let climbTag: ClimbTag | null = null;
   let pilotTag: PilotTag | null = null;
   zamboni.scene.traverse((o) => {
@@ -654,8 +714,10 @@ export async function loadModels(onProgress: (share: number) => void = () => und
   if (!binocularsClip) console.warn(`[0.0.2] her model has no clip "${BINOCULARS_CLIP}"`);
   const scannerClip = clip(SCANNER_CLIP);
   if (!scannerClip) console.warn(`[0.0.2] her model has no clip "${SCANNER_CLIP}"`);
+  const coffeeClip = clip(COFFEE_CLIP);
+  if (!coffeeClip) console.warn(`[0.0.2] her model has no clip "${COFFEE_CLIP}"`);
   // Without the tracks of bones her skeleton doesn't have (`Hand_r.IK`, an IK target left out of the export: they'd only warn).
-  for (const c of [climbClip, pilotClip, binocularsClip, scannerClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
+  for (const c of [climbClip, pilotClip, binocularsClip, scannerClip, coffeeClip]) if (c) c.tracks = c.tracks.filter((t) => zamboni.scene.getObjectByName(THREE.PropertyBinding.parseTrackName(t.name).nodeName));
   if (pilotTag && !pilotClip) console.warn(`[0.0.2] her model has no clip "${(pilotTag as PilotTag).clip}" (the pilot tag's)`);
   const zamboniClips = retargetClips(part1.scene, zamboni.scene, part1.animations, {
     yawFixDeg: settings.retargetYawFixDeg,
@@ -665,7 +727,7 @@ export async function loadModels(onProgress: (share: number) => void = () => und
     models: {
       part1: new AnimatedModel(part1.scene, part1.animations, 180, () => 1),
       // Her model's animations are the ladder's, her piloting and the binoculars (export-crew-character.py --clip, --loop, --action).
-      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip, binocularsClip, scannerClip),
+      zamboni: new AnimatedModel(zamboni.scene, zamboniClips, settings.zamboniBaseYawDeg, () => settings.zamboniHeight / zamboniHeight, climbClip, outfits, pilotClip, binocularsClip, scannerClip, coffeeClip),
     },
     climbTag,
     pilotTag,

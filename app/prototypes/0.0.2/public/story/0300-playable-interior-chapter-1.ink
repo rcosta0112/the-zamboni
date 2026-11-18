@@ -17,6 +17,21 @@ Green: Did anyone make coffee?
 // The flight rules (owner, 2026-10-22, the flying scene's plan): while the ship is flying, the game
 // locks the outer doors and hatches (their keypads with them), the jetpacks and her parka; these
 // knots run instead. One line for all the outer doors (variations perhaps later).
+// The coffee (the owner's lines, given in chat 2026-11-18; not yet in the scene file). Her seat
+// before she has poured one (main.ts, *Sit down*); the pot once she's had her coffee (in the sink or
+// gone with her); the pot after the landing (the landed scene: the ship isn't flying).
+=== seat_without_coffee ===
+Green: I want some coffee first.
+-> DONE
+
+=== coffee_pot_again ===
+Green: That's enough coffee for now. Better get back to work.
+-> DONE
+
+=== coffee_pot_landed ===
+Green: No time for that now.
+-> DONE
+
 === flight_outer_door ===
 Green: It's not safe to open that right now.
 -> DONE

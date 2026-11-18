@@ -179,7 +179,19 @@ Built 2026-10-14 (item 38; [plan](../plans/features/jetpack-glow.md)). **Part 1'
 
 ## Picking things up
 
-**Curated events only** (owner, 2026-10-23; [decision log](../decision-log.md)): an object she can pick up is chosen and designed one at a time, with its own prompt, animation, outcome and save state, like the coffee mug ([flying scene](../plans/features/flying-scene.md#the-coffee-its-own-pass)) and the jetpacks ([the rack](#the-jetpack-rack)). No free pick-up of small objects: the props stay part of the scenery. **Physics on objects (dropping, throwing, rigid bodies) is open**: kept for a future interaction that needs it ([architecture](../architecture/README.md)). Playtests showed the interactions as they are give plenty to do.
+**Curated events only** (owner, 2026-10-23; [decision log](../decision-log.md)): an object she can pick up is chosen and designed one at a time, with its own prompt, animation, outcome and save state, like the coffee mug ([the coffee](#the-coffee)) and the jetpacks ([the rack](#the-jetpack-rack)). No free pick-up of small objects: the props stay part of the scenery. **Physics on objects (dropping, throwing, rigid bodies) is open**: kept for a future interaction that needs it ([architecture](../architecture/README.md)). Playtests showed the interactions as they are give plenty to do.
+
+## The coffee
+
+Built 2026-11-18 ([plan](../plans/features/coffee.md)). One coffee, in chapter 1.
+
+- **The pot** (`coffee-pot`, the galley): *Pour coffee* puts the mug in her right hand, at once (no pouring animation). Not offered while she holds it. After that (cup in the sink, or gone with her to her seat): *"That's enough coffee for now. Better get back to work."* After the landing (the ship not flying): *"No time for that now."*
+- **Holding it:** her drinking loop (`Dr. Green - Coffee`, frames 1–84) on her right arm only, held on frame 1; her left arm keeps the walk's swing. **A sip** (the loop played once, 3.5 s) at random every 5–10 s (tuning panel, *Jetpack › coffee*), only on the ground, not while she climbs, sits or a cutscene plays; **talking, she still sips**, and she can run with it (owner, 2026-11-18); a jump stops one, blended back to the hold in 0.2 s. **No gadgets**: their buttons do nothing, and pouring puts one away. The mug shows in both outfits.
+- **The ladder** (owner): the mug is hidden while the climbing animation plays and back when it ends. Dropping through the floor hatch is a fall, not the climb: she keeps the mug in her hand.
+- **The sink:** *Put cup in sink* (at the sink cup's place, `sink-cup`) while she holds it: the mug goes, the cup in the sink (hidden till then) shows.
+- **Her seat:** *Sit down* before she has poured one gives *"I want some coffee first."* and she stays up. Once poured, she sits, mug or not; a mug in her hand is gone (`done`), and the scene goes on to the landing.
+- **The save:** Ink's `green_coffee` (`none`, `holding`, `sink`, `done`), kept with her as her clothes are.
+- **Code:** `coffee.ts` (the state, the prompts, the sips' timing), `model.ts` (the right-arm layer, the mug), `main.ts` (the seat, no gadgets, KEPT). Check: `tools/coffee-probe.js`.
 
 ## Ladders
 

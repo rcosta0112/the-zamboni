@@ -50,6 +50,11 @@
   "name": "Seat.001",
   "collection": "Cockpit"
  },
+ "coffee-pot": {
+  "kind": "coffee-pot",
+  "name": "Coffee Pot",
+  "collection": "Scene Collection"
+ },
  "crew-locker-door-1": {
   "kind": "door",
   "name": "Crew Locker Door 1",
@@ -189,6 +194,11 @@
   "kind": "keypad",
   "name": "Side Door Keypad",
   "collection": "Fixtures"
+ },
+ "sink-cup": {
+  "kind": "sink-cup",
+  "name": "Mug Empty",
+  "collection": "Scene Collection"
  },
  "top-hatch-lower": {
   "kind": "hatch",

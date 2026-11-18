@@ -32,6 +32,7 @@ await until(() => character.model?.seated === false, 3000);
 const line = await until(() => dialogue.line, 3000);
 report(line && /stretch my legs/.test(dialogue.line.text), 'chapter 1: her line as she gets up', dialogue.line?.text);
 await endLines();
+w.__coffee()?.pour(); // her seat wants a coffee first (coffee-probe.js checks that)
 const offered = await until(() => /Sit down/.test(prompt()), 3000);
 report(offered, 'her seat offers Sit down once she is up', prompt());
 key('KeyE');

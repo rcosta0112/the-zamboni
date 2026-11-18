@@ -75,6 +75,8 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [Gadgets, starting with the binoculars (the toggle, the upper-body layer, first person and zoom)](features/gadgets-binoculars.md) | 0.0.2 | Passes 1–2 built 2026-11-16 (in her hands, to her eyes, first person and zoom); pass 3 next |
 | [Gadgets: the scanner (held, scanning with R1 held, the ray, the sound)](features/gadgets-scanner.md) | 0.0.2 | Passes 1–2 built 2026-11-16 (in her hands, the scan's turn, the ray, the sound) |
 | [Optimisation: smaller files, fewer draw calls (SC-180)](features/optimization.md) | 0.0.2 | Steps 1 (WebP) and 2 (the [palette](features/palette-material.md)) done 2026-11-18; step 3 [merged per room](features/merge-per-room.md) built 2026-11-18; step 4 (the crew in the palette) built 2026-11-18; the rest provisional |
+| [The ice and the water from the penguin scene (stand-in for subsurface scattering, animated Voronoi water, white border)](features/ice-and-water.md) | 0.0.2 | Water and ice built 2026-11-18 on a test page; not in a scene |
+| [The coffee: pour at the pot, carry, sip, the cup in the sink (replaces the flying scene's pass 3)](features/coffee.md) | 0.0.2 | Built 2026-11-18 (both passes); the owner's look pending |
 
 ## Plan format
 

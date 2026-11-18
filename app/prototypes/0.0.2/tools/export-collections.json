@@ -27,6 +27,7 @@
  "Cockpit": true,
  "Crew.001": true,
  "Archive": false,
+ "Crew (do not export)": false,
  "Ground": false,
  "Rubble": false,
  "Temple": false,

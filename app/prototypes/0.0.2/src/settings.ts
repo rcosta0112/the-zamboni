@@ -36,6 +36,9 @@ export const settings = {
   hangerSwing: 5,
   hangerSwingRate: 0.8,
   hangerSwingTime: 1.5,
+  // The coffee (2026-11-18, owner): a sip at random every coffeeSipMin to coffeeSipMax seconds while she holds the mug.
+  coffeeSipMin: 5,
+  coffeeSipMax: 10,
   // The jetpack (held: R2, Space), with momentum (owner, 2026-10-14: "similar to the ship in
   // Asteroids"; plan: doc/plans/features/jetpack-hover-and-flight.md). No gravity while it's on.
   // Hover, while she's slow: R2 sets her height (below), and the stick's first hoverStickShare of

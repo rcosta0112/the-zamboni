@@ -64,6 +64,8 @@ The same on every flight scene, so they belong to **the ship flying**, not to ea
 
 ## The coffee (its own pass)
 
+> **[Agent note]** **Superseded 2026-11-18 by [the coffee's plan](coffee.md)** (built the same day; the owner's design differs: no pouring animation, no running, one coffee, the sink). Kept as history.
+
 The owner will add details before the pass. *(SC-24, the four questions on the ladder, the mug, its model and talking with it, closed by the owner 2026-10-28, unanswered: to settle before pass 3.)* **The basics (owner, 2026-10-22):** pour a coffee at the galley; walk round holding the mug; sips at random; **a comment after the first sip**. *Make coffee* (brewing it) is a nice-to-have, later.
 
 - **The coffee maker** is in the galley; **its pot** is the owner's, ready ([Blender tasks](flying-scene-blender.md#the-coffee)). The maker gets an id and a kind (`coffee-maker`).

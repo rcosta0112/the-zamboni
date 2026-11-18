@@ -13,6 +13,8 @@
 | Zoom in / out (first person) | **L1** / **L2** (held) | **mouse wheel** (a step a notch) |
 | Look (first person) | right stick | mouse |
 
+**While she holds her coffee, no gadgets** (owner, 2026-11-18; [the coffee](interaction.md#the-coffee)): the buttons do nothing.
+
 The default for every gadget (owner, 2026-11-16): the D-pad brings one out (a direction each), R1 uses it (a toggle or a hold, the gadget's own); interact stays interact. Choosing one while another is out puts that one away at once.
 
 ## The binoculars

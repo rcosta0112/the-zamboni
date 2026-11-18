@@ -1,10 +1,11 @@
 # Tasks
 
-> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-181**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
+> **[Agent note]** The owner's list: what to work on next, at a glance (owner, 2026-10-28; replaces Linear). **Kept current by the agent at the end of every session.** Tick a box or say "done" in chat; the agent removes done items at the next session (history is in git). Details stay in the linked docs. Numbers: `SC-n` are the old Linear issues (and `77 ·` the backlog item numbers); **new tasks continue from SC-183**. **No "try this" list** (owner, 2026-10-28): something built is listed only when checking it blocks another task, and then the agent says so in chat.
 
-*Updated 2026-11-18 (optimisation: steps 1–4 done, every view within the draw-call budget; the file's images relinked); earlier 2026-11-10, end of session (the landing cutscene's pass 4, the clouds, switched off for now; committed); earlier 2026-11-10 (passes 1–3).*
+*Updated 2026-11-18 (the pond water's shader on a test page; optimisation: steps 1–4 done, every view within the draw-call budget; the file's images relinked); earlier 2026-11-10, end of session (the landing cutscene's pass 4, the clouds, switched off for now; committed); earlier 2026-11-10 (passes 1–3).*
 
 ## Next up
+0. **SC-184** · The coffee, built ([what exists](features/interaction.md#the-coffee)): try it at http://localhost:5202/?scene=chapter-1 (get up, *Sit down* refuses, *Pour coffee* at the galley's pot, walk, wait for a sip, the ladder, *Put cup in sink*, the pot again, *Sit down*). Confirm: dropping through the floor hatch keeps the mug in her hand (a fall, not the climb). Your three lines are in the Ink; should they go into the 0300 scene file too (yours to edit)?
 
 0. **SC-180** · Optimisation ([plan](plans/features/optimization.md)): **steps 1–4 done** (WebP; the palette; merged per room; [the crew in the palette](plans/features/optimization.md#as-built-step-4-2026-11-18): outside 895 → 257 draw calls, rooms 122–228, **every view within the 300 budget**; pipelines 87; compile ≈ 12 s cold). Nothing should look different. **Next session (owner, 2026-11-18): SC-180 goes on. Pick the step:** Static entities merged too (about −20 draws); a step on the first load's ~12 s compile (now the largest load cost); KTX2 textures (step 5, only if GPU memory matters on the MacBook); or stop (agent's pick: the compile). If you want the `Scanner Array` name, redo the rename in 1.22 (the agent's relinked version) and say so before the next export.
 0. **SC-164** · The landing (0600): pass 4, the clouds, built from your `Cloud.blend` and **switched off for now** (your word; the panel's *Landing: clouds › shown* brings them back). Still to look at: the heavier rocking (http://localhost:5202/?scene=0600, ~9.5–11 s). Still open: shot 1 now or later. The other session's 0400 waits on this cutscene. [plan](plans/features/landing-cutscene.md)
@@ -12,6 +13,7 @@
 0. **SC-177** · Scanner, [passes 1–2](plans/features/gadgets-scanner.md) built: D-pad left / 2 (in her hands), hold R1 / right button (she scans: the turn, the ray, the sound). Two answers taken as recommended, change them if you like: her body turns only while she stands (the head always); she can still interact with it out. Turn size, speed and the ray's brightness on the panel's *Scanner* folder. **Pass 3 built:** while scanning it turns onto the closest interaction point in reach (try by a keypad or a locker, standing and walking); *aim: …* on the same folder.
 0. **SC-178** · Listen to the scanner's synth in the game (your *Scanner* patch in place of the recorded loop; hold R1 with the scanner out). Further tuning: http://localhost:5202/scanner-synth.html, *Save as default* (the game picks it up). [plan](plans/features/scanner-synth.md)
 0. **SC-173** · Review the [plan](plans/features/scene-0500-split.md) for 0500 as its own scene after the flyby (0400). Built once 0400 is done.
+0. **SC-181** · The pond water and the ice ([plan](plans/features/ice-and-water.md)), both on the test page, **not in a scene yet**: http://localhost:5202/water-test.html. Your water look is the default. **Tune the ice** on the panel's *Ice* folder (the icebergs), then *Copy ice look* and paste it to me. When your pond scene exists, say so and they go in.
 2. **SC-151** · Decision: in the landed scene, should the crew's lockers open too? (below, *Decision*)
 3. **SC-15** · Dr. Kaufman's book: the Blender task that blocks the flying scene's pass 1, second half.
 
@@ -23,6 +25,7 @@
 - [ ] **SC-169** · 0300's script now says *[Y Get up]* (was *O*). *Get up* is on the interact button today (the pad's right face button, E). Is Y a change of button, and which position: top (Xbox Y) or left (SNES Y)? Not built until answered.
 - [ ] **SC-170** · Script to write (0300): Dr. Kaufman's one-liner after her exchange, and Adam's after their second interaction (a third talk). Placeholders in the game until then. Also Dr. Ogawa's, as before.
 - [ ] **SC-174** · *(when the clouds come back)* The landing's clouds are lit from the camera's upper left, as in your `Cloud.blend`, not by the scene's sun (behind them from this camera: flat teal). Keep the cheat, or move the shot's sun (it would light the ship and belly too)?
+- [ ] **SC-182** · The ice ([plan](plans/features/ice-and-water.md)): built with wrapped light tinted blue and blue at glancing angles. Do you also want it to glow when the sun is behind it (three's `MeshSSSNodeMaterial`, a thickness per vertex baked in Blender)?
 - [ ] **SC-40** · 70 · Objects clipping into the hull's wall: fix by hand, or a Blender script (Shrinkwrap)? `npm run probe -- tools/hull-clipping.js` lists them. *(low priority)*
 
 ## Blender
@@ -36,9 +39,6 @@ The flying scene's tasks: [flying-scene-blender.md](plans/features/flying-scene-
 - [x] **SC-17** · Done in 1.22 (owner, 2026-11-10): Adam Red navigating (`Adam - Navigation`).
 - [ ] **SC-18** · Animation: Dr. Kaufman reading on the couch (loop).
 - [ ] **SC-19** · Animation: Dr. Ogawa working on the sensor array (loop).
-- [ ] **SC-25** · Animation: Dr. Green pouring the coffee.
-- [ ] **SC-26** · Animation: holding the mug (arm pose) and a sip.
-- [ ] **SC-27** · The mug and where it sits in her hand.
 - [ ] **SC-146** · Animation: Adam Red talking (a nod on their loop). *(low priority)*
 - [ ] **SC-147** · Animation: Adam Blue talking (a nod on their loop). *(low priority)*
 - [ ] **SC-148** · Animation: Dr. Kaufman talking (a nod on her loop). *(low priority)*
@@ -50,8 +50,8 @@ The flying scene's tasks: [flying-scene-blender.md](plans/features/flying-scene-
 In `doc/story/scenes/`; until written, the game shows `[Placeholder]`. Spec: [flying-scene-script.md](plans/features/flying-scene-script.md).
 
 - [ ] **SC-31** · Chapter 1: the crew's conversations (Adam Red and Blue, Kaufman, the rest of Ogawa's), topics, one-liners.
-- [ ] **SC-32** · Chapter 1: her refusal at the seat without coffee; the coffee remark entering the crew quarters; a line at the seat (optional).
-- [ ] **SC-33** · Chapter 1: the coffee's lines (pouring, after the first sip, pouring again).
+- [ ] **SC-32** · Chapter 1: the coffee remark entering the crew quarters; a line at the seat (optional). (The refusal without coffee: given 2026-11-18.)
+- [ ] **SC-33** · Chapter 1: a line when she pours, and her comment after the first sip: still wanted? (*Pouring again* given 2026-11-18.)
 - [x] **SC-34** · Described by the owner 2026-11-07 (two shots; a reference render for the second). Plan: [landing cutscene](plans/features/landing-cutscene.md).
 - [ ] **SC-165** · Scene file name (2026-11-08): `0400 - Cutscene exterior- Flyby.md` lacks a space before its second hyphen. [scenes README](story/scenes/README.md)
 - *Later:* **SC-35** cutscene 1's description; **SC-36** her remarks on things in flight (optional).
@@ -81,7 +81,7 @@ Nothing open.
 |---|---|---|
 | 1 · the ship in flight (SC-7) | half built | SC-15 |
 | 2 · the loop and its end (SC-8) | partly built (piloting, SC-129) | SC-31, SC-32 |
-| 3 · the coffee (SC-9) | not started | SC-25…27, SC-33 |
+| 3 · the coffee (SC-9) | built 2026-11-18 ([coffee plan](plans/features/coffee.md)) | SC-33 |
 | 4 · the scenery (SC-10) | 4a, 4b, 4c built (4c: cutscene 2's exterior shot, 2026-10-28) | the owner watches 4c |
 | 5 · the kit from Blender (SC-11) | dropped (owner, 2026-10-28) | |
 | 6 · the landing cutscene (SC-12) | the landed scene and a placeholder shot built 2026-11-06 ([plan](plans/features/landed-scene.md)); sitting down goes there without the requirements | SC-34 |

@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-18 | The coffee: one cup, walking only, no gadgets, the sink | design | Pour at the pot (no animation), sip at random every 5–10 s (talking too), no gadgets while holding (running allowed since the same day's update); the sink ends it; one coffee; her seat wants one first; replaces the flying scene's pass 3 where it differs |
 | 2026-11-18 | Optimisation never changes the game; the old see-through rules mode may go | tech | Optimisation (SC-180) must not change how the game looks or works; the unused per-object see-through rules mode doesn't count, so merging static meshes per room may break it |
 | 2026-11-18 | The ship's flat colours as palette materials, at export | pipeline | Opaque untextured single-sided colours fold into `Palette` / `Palette Metal` after Blender's export (`palette.mjs`), exact values in small images; 60 → 32 materials; the `.blend` keeps its named colour materials |
 | 2026-11-16 | Shoulders L1 / R1, triggers L2 / R2 | input | The pad's shoulders and triggers named as on a PlayStation controller (L / R, ZL / ZR before); the face buttons keep the Nintendo positions; the prompts show them as icons |
@@ -72,6 +73,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-18] — The coffee: one cup, walking only, no gadgets, the sink (design)
+
+**Context:** The flying scene's plan (approved 2026-10-22, pass 3) had a pouring animation at a coffee maker, sips every 8–20 s, running allowed, and open questions on how it ends and which mug. The owner's brief of 2026-11-18 came with the animation, the mug, the pot and the sink cup in the `.blend`.
+
+**Decision (owner, 2026-11-18):** *Pour coffee* at the pot puts the mug in her hand (no pouring animation; SC-25 dropped). While she holds it: her drinking loop blended over the walk, a sip at random every 5–10 s, **no running, no gadgets**; the mug hidden during the ladder's climbing animation. *Put cup in sink* ends it (the cup shows in the sink). **One coffee:** the pot then says *"That's enough coffee for now. Better get back to work."*; after the landing *"No time for that now."* Her seat wants a coffee first (*"I want some coffee first."*); sitting with the mug, it's gone. [Plan](plans/features/coffee.md).
+
+**Alternatives considered:** The flying scene's version (a pouring animation, longer gaps, running with the mug); the mug kept until a cup holder at the seat.
+
+**Rationale:** The owner's design; simpler (no pouring animation) and it ends the coffee in the world (the sink).
+
+**Update 2026-11-18 (owner):** the running restriction removed; she still sips while talking to someone.
+
+**Status:** Active. Supersedes pass 3 of the [flying scene](plans/features/flying-scene.md#the-coffee-its-own-pass) where it differs.
 
 ## [2026-11-18] — Optimisation never changes the game; the old see-through rules mode may go (tech)
 

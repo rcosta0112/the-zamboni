@@ -55,7 +55,7 @@ const JOBS = {
     runs: (raw) => [
       [
         '--armature', 'Dr. Green Parka',
-        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack,Binoculars.001,Scanner,Scanner Ray',
+        '--objects', 'Dr. Green Mesh.004,Gadget.004,Gadget.005,Backpack.002,Jetpack,Binoculars.001,Scanner,Scanner Ray,Mug',
         '--force-double-sided',
         // The ladder clip, made on her jump suit's armature standing at the ladder's foot.
         '--clip', 'Dr. Green - Ladder x1.25',
@@ -73,6 +73,9 @@ const JOBS = {
         // child. Its Noise (Body and Head turning) is muted: the game turns her itself.
         '--action', 'Dr. Green - Scanner',
         '--still', 'Dr. Green - Scanner',
+        // The coffee (2026-11-18; plan doc/plans/features/coffee.md): her drinking loop, the mug
+        // moved from the IK target it hangs on in the file onto her right hand's bone.
+        '--action', 'Dr. Green - Coffee=Mug::Hand_r',
         '--out', join(raw, 'green-parka.glb'),
       ],
       [

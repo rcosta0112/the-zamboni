@@ -218,6 +218,14 @@
    "group": "Galley"
   },
   {
+   "name": "Coffee Pot",
+   "group": "Galley"
+  },
+  {
+   "name": "Mug Empty",
+   "group": "Galley"
+  },
+  {
    "name": "Grinder",
    "group": "Galley"
   },

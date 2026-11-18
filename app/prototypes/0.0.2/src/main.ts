@@ -30,6 +30,7 @@ import { crewInteractables, Interaction, respectLocks, shipInteractables, storyI
 import { JetpackRack } from './jetpack';
 import { Joystick } from './joystick';
 import { LockerClothes } from './clothes';
+import { Coffee, COFFEE_STATES, type CoffeeState } from './coffee';
 import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
@@ -132,9 +133,12 @@ const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED
 /** What a new game plays before its first scene: the whole animatic (from the planet), from cutscene 1, cutscene 2 only, or nothing. */
 const animaticFrom: 'planet' | 'cutscene-1' | 'opening' | null =
   ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : ASKED === 'planet' ? 'planet' : TESTING || ASKED ? null : 'planet';
+/** Her coffee (coffee.ts), once the ship is loaded. */
+let coffee: Coffee | null = null;
 const KEPT: { ink: string; get: () => boolean | string; set: (value: unknown) => void }[] = [
   { ink: 'green_outfit', get: () => settings.outfit, set: (v) => (v === 'jumpsuit' || v === 'parka') && (settings.outfit = v) },
   { ink: 'green_jetpack', get: () => settings.wearingJetpack, set: (v) => typeof v === 'boolean' && (settings.wearingJetpack = v) },
+  { ink: 'green_coffee', get: () => coffee?.state ?? 'none', set: (v) => coffee !== null && COFFEE_STATES.includes(v as CoffeeState) && (coffee.state = v as CoffeeState) },
 ];
 
 async function start(): Promise<void> {
@@ -349,6 +353,12 @@ async function start(): Promise<void> {
           verb: () => 'Sit down',
           available: () => !seated.has('green') && (director?.data?.sitDown?.length ?? 0) > 0,
           act: () => {
+            // A coffee first (owner, 2026-11-18): her line until she has poured one.
+            if (coffee && !coffee.poured) {
+              run({ do: 'story', knot: 'seat_without_coffee' }, target);
+              return;
+            }
+            coffee?.sitDown(); // the mug in her hand is gone
             seated.add('green');
             sitHer();
             for (const command of director?.data?.sitDown ?? []) run(command, target);
@@ -426,7 +436,8 @@ async function start(): Promise<void> {
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
       ladders = new LadderClimb(shipLadders(s.entities, physics, s.ladderColliders), character, () => character.model?.climb ?? null, climbStart(s.object, climbTag), (margin) => awayFromDoors(s.doors, margin));
       clothes = new LockerClothes(s.entities, (id, at) => audio.play(id, at));
-      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...ladders.interactables, ...(landmarks ? [landmarks.hologramToggle] : [])];
+      coffee = new Coffee(s.entities, (knot) => run({ do: 'story', knot }, target), () => target.story?.get('ship_flying') === true);
+      const others = [...(boombox ? [boombox.interactable] : []), ...rack.interactables, ...clothes.interactables, ...coffee.interactables, ...ladders.interactables, ...(landmarks ? [landmarks.hologramToggle] : [])];
       const crewTargets = crewInteractables(s.entities, () => target.story, (knot, id) => {
         look?.set(['green', id]);
         run({ do: 'story', knot }, target);
@@ -472,7 +483,7 @@ async function start(): Promise<void> {
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -859,7 +870,19 @@ async function start(): Promise<void> {
     if (sitting) input.consumeJump();
     if (character.model) character.model.seated = sitting;
     // Her gadget (the binoculars, the scanner): out into her hands by its button, used by R1 (the binoculars raised to her eyes, a toggle; the scanner on while it's held); put away at once while her hands are taken.
-    gadgets.update(dt, input.consumeGadget(), input.consumeGadgetUse(), input.gadgetUseHeld, !sitting && !(ladders?.climbing ?? false) && !watching && !dialogue.active, character.model?.gadgetSeconds ?? 0);
+    // No gadgets while she holds her coffee (owner, 2026-11-18): their buttons do nothing.
+    const climbing = ladders?.climbing ?? false;
+    gadgets.update(dt, input.consumeGadget(), input.consumeGadgetUse(), input.gadgetUseHeld, !sitting && !climbing && !watching && !dialogue.active && !(coffee?.holding ?? false), character.model?.gadgetSeconds ?? 0);
+    // Her coffee: a sip only on the ground, not climbing, seated or in a cutscene (talking is fine: owner, 2026-11-18).
+    if (coffee) {
+      const canSip = character.grounded && !character.flying && !character.parachuting && !sitting && !climbing && !watching;
+      coffee.update(dt, canSip, character.model?.coffeeSeconds ?? 0);
+      if (character.model) {
+        character.model.coffeeHeld = coffee.held;
+        character.model.coffeeSip = coffee.sip;
+        character.model.coffeeSipShare = coffee.sipShare;
+      }
+    }
     if (character.model) {
       character.model.gadgetHeld = gadgets.held;
       character.model.gadgetRaised = gadgets.raised;

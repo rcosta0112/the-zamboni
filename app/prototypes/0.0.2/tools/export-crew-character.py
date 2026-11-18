@@ -17,7 +17,7 @@ nothing is saved back.
   between); ``--loop-at`` tags where it's played in the ship as ``--loop-tag``), and each
   ``--action`` (since 2026-11-16: the binoculars), baked like ``--clip``, untagged. An action can
   carry a held object: ``--action "<action>=<object>:<its action>:<bone>"`` plays the object's own
-  action with hers, then moves the object onto ``<bone>`` (a bone the game has: the file's may hang
+  action with hers (``<its action>`` may be empty: the mug, 2026-11-18, only follows its bone), then moves the object onto ``<bone>`` (a bone the game has: the file's may hang
   on an IK target, which isn't exported) with its place on that bone keyed every frame, on an NLA
   track of the same name, so the exporter writes both into one animation. ``--still <action>``
   bakes that action with its curves' modifiers muted (the scanner, 2026-11-16: its Noise is
@@ -214,10 +214,13 @@ def bake_held(clip, first, last, ob, own, bone):
     ad = armature.animation_data
     ad.action, ad.action_slot = clip, clip.slots[0]
     oad = ob.animation_data or ob.animation_data_create()
-    slot = oad.action_slot if oad.action == own else None
-    oad.action = own
-    if slot is None:
-        oad.action_slot = own.slots[0]
+    if own is not None:  # an object with no action of its own (the mug) just follows its parent bone
+        slot = oad.action_slot if oad.action == own else None
+        oad.action = own
+        if slot is None:
+            oad.action_slot = own.slots[0]
+    else:
+        oad.action = None
     hand = lambda: armature.matrix_world @ armature.pose.bones[bone].matrix
     on_bone = []
     for f in range(first, last + 1):
@@ -265,12 +268,12 @@ for spec in args.action:
     note = ''
     if held:
         obj, own, bone = held.split(':')
-        missing = [n for n, pool in ((obj, bpy.data.objects), (own, bpy.data.actions)) if n not in pool] + ([] if bone in armature.data.bones else [bone])
+        missing = [n for n, pool in ((obj, bpy.data.objects), (own, bpy.data.actions)) if n and n not in pool] + ([] if bone in armature.data.bones else [bone])
         if missing:
             print(f'STOP: --action {name!r}: {", ".join(map(repr, missing))} not in the file: exported without the held object\'s movement')
         else:
-            bake_held(action, first, last, bpy.data.objects[obj], bpy.data.actions[own], bone)
-            note = f'; {obj!r} with its {own!r}, on {bone!r}'
+            bake_held(action, first, last, bpy.data.objects[obj], bpy.data.actions[own] if own else None, bone)
+            note = f'; {obj!r}' + (f' with its {own!r}' if own else '') + f', on {bone!r}'
     print(f'ACTION: {name!r}: frames {first}-{last} at {bpy.context.scene.render.fps} fps, baked{note}')
 # Each clip an NLA track of its own: the exporter writes one animation per track, named after it.
 if tracks:

@@ -24,6 +24,8 @@ VAR ship_flying = false
 VAR green_outfit = "jumpsuit"
 // She wears a jetpack (the cargo hold's rack): kept with her the same way.
 VAR green_jetpack = false
+// Her coffee (coffee.ts), as the game's story.
+VAR green_coffee = "none"
 
 -> DONE
 
@@ -112,6 +114,19 @@ Green: [Test] A second line, from her: Next, then End.
 
 // The same for its `getUp`.
 === got_up ===
+-> DONE
+
+// The coffee's knots, as the game's story (the owner's lines, 2026-11-18).
+=== seat_without_coffee ===
+Green: I want some coffee first.
+-> DONE
+
+=== coffee_pot_again ===
+Green: That's enough coffee for now. Better get back to work.
+-> DONE
+
+=== coffee_pot_landed ===
+Green: No time for that now.
 -> DONE
 
 === function command(name, id, value) ===
