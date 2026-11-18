@@ -345,6 +345,10 @@ async function start(): Promise<void> {
         TESTING,
       );
       if (seat) {
+        let seatCentre: THREE.Vector3 | null = null;
+        const chestBox = new THREE.Box3();
+        const seatForward = new THREE.Vector3();
+        const toSeat = new THREE.Vector3();
         getUp = {
           name: 'Get up',
           objects: [seat],
@@ -363,6 +367,23 @@ async function start(): Promise<void> {
           objects: [seat],
           verb: () => 'Sit down',
           available: () => !seated.has('green') && (director?.data?.sitDown?.length ?? 0) > 0,
+          // Offered whenever she's in the cockpit behind the seat and she or the camera looks forward
+          // (owner, 2026-11-18): from all the aisle, before *Talk to Adam* beside it.
+          claims: (chest, facing, cameraForward) => {
+            if (!seatCentre) {
+              // Once: the seat doesn't move in the ship, nor the ship turn.
+              seatCentre = new THREE.Box3().setFromObject(seat).getCenter(new THREE.Vector3());
+              const yaw = tagPlace(s.object, pilotTag?.at, pilotTag?.facing)?.facing ?? 0;
+              seatForward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
+            }
+            if (!s.roomsOf(chestBox.set(chest, chest)).includes('cockpit')) return false;
+            if (toSeat.subVectors(chest, seatCentre).dot(seatForward) >= 0) return false; // beside it or in front
+            const cone = Math.cos(THREE.MathUtils.degToRad(SEAT_LOOK_DEG));
+            const camera = Math.hypot(cameraForward.x, cameraForward.z);
+            const byCamera = camera > 1e-3 && (cameraForward.x * seatForward.x + cameraForward.z * seatForward.z) / camera >= cone;
+            const byFacing = -Math.sin(facing) * seatForward.x - Math.cos(facing) * seatForward.z >= cone;
+            return byCamera || byFacing;
+          },
           act: () => {
             // A coffee first (owner, 2026-11-18): her line until she has poured one.
             if (coffee && !coffee.poured) {
@@ -1123,6 +1144,9 @@ function easeTo(value: number, target: number, step: number): number {
 function climbStart(ship: THREE.Object3D, tag: ClimbTag | null): ClimbStart | null {
   return tag ? tagPlace(ship, tag.start, tag.facing) : null;
 }
+
+/** *Sit down* is offered from the aisle behind her seat while she or the camera looks within this of the seat's forward (deg). */
+const SEAT_LOOK_DEG = 45;
 
 /** A tag's place on her model (ship space: her feet and facing) in the world: the climb's start, her seat. */
 function tagPlace(ship: THREE.Object3D, at: [number, number, number] | undefined, facing: [number, number, number] | undefined): ClimbStart | null {

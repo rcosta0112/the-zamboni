@@ -65,6 +65,11 @@ export interface Interactable {
   sightMargin?: number;
   /** Only in the room on its own side of a bulkhead (a panel on it), not both as a door is. */
   oneSide?: boolean;
+  /**
+   * The target outright while this says so, whatever else is aimed at and however far (her seat from
+   * the aisle behind it, looking forward). Gets her chest, her facing and the camera's direction (world).
+   */
+  claims?: (chest: THREE.Vector3, facing: number, cameraForward: THREE.Vector3) => boolean;
 }
 
 /** A hinged door's handle is this far in from the edge away from its hinge (m). */
@@ -448,9 +453,15 @@ export class Interaction {
       const b = best[by];
       if (score < b.score - 1e-3 || (Math.abs(score - b.score) <= 1e-3 && distance < b.distance)) Object.assign(b, { item, score, distance });
     };
+    let claimed: Interactable | null = null;
     for (const item of this.only ? [] : this.items) {
       if (item.available && !item.available()) continue;
       if (this.disabled.size && item.objects.some((o) => this.disabled.has(o.userData.id as string))) continue;
+      if (!claimed && item.claims?.(chest, facing, this.forward)) {
+        claimed = item;
+        nearby.push(item);
+        continue;
+      }
       this.bounds(item);
       const distance = this.box.distanceToPoint(chest);
       // Within reach it can be used; a dot shows further (owner, 2026-10-22: everything close to her).
@@ -484,7 +495,7 @@ export class Interaction {
       if (side <= maxFacing) consider('facing', item, side + up * VERTICAL_SHARE - hold, distance);
     }
     // The one moved last; nothing in its cone: the other's.
-    this.target = this.only ?? best[this.aimBy].item ?? best[this.aimBy === 'camera' ? 'facing' : 'camera'].item;
+    this.target = this.only ?? claimed ?? best[this.aimBy].item ?? best[this.aimBy === 'camera' ? 'facing' : 'camera'].item;
     this.targetBy = this.aimBy;
     if (pressed && this.target && !this.pending) {
       const target = this.target;
