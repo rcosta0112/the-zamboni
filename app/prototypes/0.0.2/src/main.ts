@@ -260,6 +260,7 @@ async function start(): Promise<void> {
       await renderer.compileAsync(scene, view.camera, null, (e) => loading.set('shaders', e.loaded / e.total));
       for (const o of culled) o.frustumCulled = true;
       console.info(`[0.0.2] ship shaders compiled in ${Math.round(performance.now() - start)} ms`);
+      if (import.meta.env.DEV) Object.assign(window, { __shipCompiledIn: Math.round(performance.now() - start) });
       // The first scene (or `?scene=<id>` in dev builds), before the doors' sounds start listening.
       const disabled = new Set<string>();
       const target: CommandTarget = {

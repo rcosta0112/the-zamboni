@@ -220,8 +220,8 @@ function cuttableCopy(source: THREE.MeshStandardMaterial, label: string): THREE.
  * colour*), cut like the mesh: through the cut, whatever is seen from behind reads as one solid
  * edge. (Each material's own colour was tried first: the outer skin and the lining then showed in
  * two colours at two depths, which still read as a hollow wall.) Unlit, as no light reaches inside
- * the gap (lit back faces came out black there). Call after makeCuttable; the fill shares the mesh's
- * userData (its see-through values).
+ * the gap (lit back faces came out black there). Call after makeCuttable; the fill reads the mesh's
+ * see-through values (its userData's cut values only).
  */
 export function fillBackFaces(mesh: THREE.Mesh): void {
   const copy = mesh.material as THREE.MeshStandardNodeMaterial;
@@ -243,7 +243,15 @@ export function fillBackFaces(mesh: THREE.Mesh): void {
   }
   const fillMesh = new THREE.Mesh(mesh.geometry, fill);
   fillMesh.name = `${mesh.name} (hull gap)`;
-  fillMesh.userData = mesh.userData;
+  // The mesh's cut values, read through (visibility.ts sets them on the mesh), and nothing else: a
+  // copy of its tags made the fill of a one-material door a second door (seen 2026-11-18, the palette).
+  const of = mesh.userData;
+  fillMesh.userData = {
+    get cutStructure() { return of.cutStructure; },
+    get cutFade() { return of.cutFade; },
+    get cutWhole() { return of.cutWhole; },
+    get cutSolid() { return of.cutSolid; },
+  };
   fillMesh.castShadow = false;
   fillMesh.receiveShadow = false;
   fillMesh.raycast = () => undefined;

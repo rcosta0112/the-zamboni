@@ -24,7 +24,10 @@ import { isDrawn, isHullPart, newCutUnit, prepareRaycasts, type CutUnit } from '
 import type { MovingCollider, Physics } from './physics';
 import { settings } from './settings';
 
-const SHIP_URL = '/test/zamboni-ship.glb';
+// Dev builds: `?ship=<name>` loads `.export/<name>.glb` instead (an older export, for measuring
+// before / after; the optimisation plan, SC-180).
+const shipOverride = import.meta.env.DEV ? new URLSearchParams(location.search).get('ship') : null;
+const SHIP_URL = shipOverride ? `/.export/${shipOverride}.glb` : '/test/zamboni-ship.glb';
 const COLLIDER_URL = '/test/zamboni-ship-col.glb';
 /** The ship's collider in its file; every other mesh there is a collision box. */
 const DEG = Math.PI / 180;

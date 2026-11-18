@@ -38,8 +38,8 @@ const JOBS = {
   ship: {
     script: 'export-ship.py',
     args: (raw) => ['--out', join(raw, 'zamboni-ship.glb'), '--collider-out', join(raw, 'zamboni-ship-col.glb')],
-    // uvs: the UV sets no texture reads, dropped (drop-uvs.mjs).
-    files: { 'zamboni-ship.glb': ['resize', 'dedup', 'uvs', 'meshopt'], 'zamboni-ship-col.glb': ['meshopt'] },
+    // palette: the flat colours as one material (palette.mjs); uvs: the UV sets no texture reads, dropped (drop-uvs.mjs).
+    files: { 'zamboni-ship.glb': ['resize', 'palette', 'dedup', 'uvs', 'webp', 'meshopt'], 'zamboni-ship-col.glb': ['meshopt'] },
   },
   crew: {
     script: 'export-ship-crew.py',
@@ -213,16 +213,19 @@ for (const [name, steps] of Object.entries(job.files)) {
     }
     const [kind, ...params] = step.split(':');
     const to = step === 'meshopt' ? join(waiting, name) : join(raw, name.replace('.glb', `-${kind}.glb`));
-    const done = kind === 'uvs'
-      ? run(process.execPath, [join(PROTO, 'tools', 'drop-uvs.mjs'), from, to])
-      : kind === 'thin'
-        ? run(process.execPath, [join(PROTO, 'tools', 'thin-clip.mjs'), from, to, ...params])
-        : run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
+    const script = { uvs: 'drop-uvs.mjs', palette: 'palette.mjs' }[kind];
+    const done = script
+      ? run(process.execPath, [join(PROTO, 'tools', script), from, to])
+      : kind === 'webp'
+        ? run(process.execPath, [join(PROTO, 'tools', 'webp.mjs'), from, to])
+        : kind === 'thin'
+          ? run(process.execPath, [join(PROTO, 'tools', 'thin-clip.mjs'), from, to, ...params])
+          : run(process.execPath, [GLTF_TRANSFORM, step, from, to, ...(step === 'resize' ? ['--width', '512', '--height', '512'] : [])]);
     if (done.status !== 0) {
-      console.error(`export: ${kind === 'uvs' ? 'drop-uvs' : kind === 'thin' ? 'thin-clip' : `gltf-transform ${step}`} failed on ${name}\n${done.stdout}\n${done.stderr}`);
+      console.error(`export: ${script ? script.replace('.mjs', '') : kind === 'webp' ? 'webp' : kind === 'thin' ? 'thin-clip' : `gltf-transform ${step}`} failed on ${name}\n${done.stdout}\n${done.stderr}`);
       process.exit(1);
     }
-    stepLines.push(...(done.stdout ?? '').split(/\r?\n/).filter((l) => /^(UVS|THIN):/.test(l)).map((l) => `${name}: ${l.slice(l.indexOf(':') + 2)}`));
+    stepLines.push(...(done.stdout ?? '').split(/\r?\n/).filter((l) => /^(UVS|THIN|WEBP|PALETTE):/.test(l)).map((l) => `${name}: ${l.slice(l.indexOf(':') + 2)}`));
     from = to;
   }
 }

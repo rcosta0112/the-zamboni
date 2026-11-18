@@ -20,7 +20,7 @@ const rooms = [
   ['cargo', 'Pallet', 0],
   ['engineering', 'Contraption', 0],
   ['crew-quarters', 'Table', 1],
-  ['cockpit', 'Seat', 1],
+  ['cockpit', 'Seat001', 1],
 ];
 const views = [
   ['a', 0.8, 0.7],
@@ -29,12 +29,13 @@ const views = [
 ];
 const found = [];
 for (const [room, object, deck] of rooms) {
-  const unit = unitNamed(object);
-  if (!unit) {
+  // A unit, or the node (since the palette, 2026-11-18, a node's one-material mesh can be a child of its own).
+  const target = unitNamed(object)?.object ?? ship.object.getObjectByName(object);
+  if (!target) {
     found.push(`${room}: no "${object}"`);
     continue;
   }
-  const at = new T.Box3().setFromObject(unit.object).getCenter(new T.Vector3());
+  const at = new T.Box3().setFromObject(target).getCenter(new T.Vector3());
   // Just above the deck's floor, so the ray finds the floor, not furniture (the cargo floor is
   // 0.3 m above the interior's bottom).
   // Off the centre line if furniture stands there: the lowest floor found.

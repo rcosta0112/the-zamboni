@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-18 | The ship's flat colours as palette materials, at export | pipeline | Opaque untextured single-sided colours fold into `Palette` / `Palette Metal` after Blender's export (`palette.mjs`), exact values in small images; 60 → 32 materials; the `.blend` keeps its named colour materials |
 | 2026-11-16 | Shoulders L1 / R1, triggers L2 / R2 | input | The pad's shoulders and triggers named as on a PlayStation controller (L / R, ZL / ZR before); the face buttons keep the Nintendo positions; the prompts show them as icons |
 | 2026-11-16 | Gadgets: out with the D-pad, used with R1 | input | Each gadget brought out and put away by its own D-pad direction (binoculars: up; keyboard B), the gadget that's out used with R (keyboard and mouse: the right button), so interact (A, E) stays interact while she holds one; first person zooms on L / ZL and the wheel |
 | 2026-11-09 | The planet shot procedural, tuned on its own page | look | The owner's `planet.blend` planet and stars rebuilt as TSL shaders (not baked), with Three's noise instead of Blender's: the look is re-tuned on `planet.html` and saved as presets, so any scene can show the same planet; the octaves follow screen size |
@@ -70,6 +71,18 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-18] — The ship's flat colours as palette materials, at export (pipeline)
+
+**Context:** The ship had 60 materials and 613 primitives in its meshes, over the budgets (≤ 30 materials, ≤ 300 draw calls), and one material per colour (2026-10-21) made each colour a draw call per object. Step 2 of the [optimisation plan](plans/features/optimization.md) (SC-180).
+
+**Decision (owner, 2026-11-18: at export, option B):** Every ship material that is opaque, single-sided, untextured, with no extension but specular, IOR and emissive strength, and not found by name in the code, is folded at export into **`Palette`** (metalness below 0.5) or **`Palette Metal`** (0.5 and above), by [`palette.mjs`](../app/prototypes/0.0.2/tools/palette.mjs) after Blender's export: each colour a 16 px square in small lossless images (base, emission, roughness / metalness / specular, specular colour), sampled nearest, its faces' UVs on the square. The `.blend` keeps its named colour materials (*One material per colour* still holds there). [Plan and as built](plans/features/palette-material.md).
+
+**Alternatives considered:** In the `.blend` (the owner would edit one palette image instead of named materials). In `export-ship.py` (the plan's first text; same result, less control over the glTF's specular). One palette material, or `Palette` + `Palette Emission` (the plan's option B as written): the game decides reflections per material (`cutaway.ts`, metalness ≥ 0.5), so the split follows metalness; emission fits in either. Main colours only (option A).
+
+**Rationale:** Fewer materials and primitives at no cost to the look (three.js shades each colour with its own values), the owner's way of working in Blender unchanged, and it makes merging static objects per room possible later (step 3).
+
+**Status:** Built 2026-11-18 (pass 1): 30 colours, 60 → 32 materials. **Measured the same day (pass 2):** draw calls about halved in every view (outside 895 → 458); pipelines 100 → 98, the compile about the same. The two changes from the plan OK'd by the owner (2026-11-18).
 
 ## [2026-11-16] — Shoulders L1 / R1, triggers L2 / R2 (input)
 

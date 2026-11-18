@@ -4,6 +4,8 @@ Part of the [game architecture plan](README.md). All numbers are *proposed* unti
 
 ## Measured so far
 
+- **The ship, 1.22 with the palette** (2026-11-18): 1.90 MB, 32 materials (was 60), 284 primitives in its meshes (was 613). **Drawn** (landed, its shadows included): 458 draw calls with everything in view (was 895), 161–415 per room view (was 290–782); pipelines 98 (was 100); compile ≈ 14.4 s cold, 2.1 s on a reload (`draw-calls-probe.js`). Materials 2 over budget (30), draw calls over it from outside and in the wider room views (step 3).
+- **The ship, 1.22 with its textures as WebP** (2026-11-18): 2.07 MB (was 3.90; images 2.42 → 0.59 MB), 94.7k triangles, 60 materials, 660 primitives drawn (meshes × materials, per copy). Over the draw-call and material budgets until the palette material (step 2 of the [optimisation plan](../../features/optimization.md)).
 - **The ship:** `The Zamboni 1.18.blend` (2026-10-08): 375 mesh objects, about **107k triangles** (85k unique), 79 materials, 15 images, almost all tiny.
 - **The ship in prototype 01, with its props** (2026-10-09): 2.58 MB compressed (+ 171 KB collider), 98k triangles, **547 primitives** (small props merged per room; ≈ 780 without), 54 materials after deduplication. Rendered: 743–941 draw calls per view including the sun's shadow pass; 60 fps on the owner's PC (GTX 1070). Shader build at load ~8 s. Over the draw-call and material budgets until the palette material exists.
 - **The characters:** `The Crew 1.09 Dr. Green.blend` (2026-10-08): 400–722 triangles per character, mostly flat colours, one 1024² or 2048² texture each. About 0.1–0.5 MB per outfit after compression *(estimate)*.
