@@ -24,6 +24,8 @@
 // on the camera itself (free drift). The wide shot orbits a point ahead of it instead.
 // main.ts treats it as a cutscene while it plays (she stands still, nothing can be used, the
 // see-through is off, the crew drawn, the black bars) and renders through its camera.
+// Also chapter 1's first two lines (owner, 2026-11-18): the scene's `begin` command `watch`, on cutscene 2's
+// cameras (`shotsFrom`), then a hard cut back to the game's camera. Plan: doc/plans/features/chapter-1-start-cameras.md
 // Plan: doc/plans/features/flying-scene.md (pass 1, the animatic)
 
 import * as THREE from 'three/webgpu';
@@ -64,6 +66,8 @@ export interface WatchedData {
   wait: number;
   /** The shot per speaker (character id), in the ship file's Blender coordinates. */
   shots: Record<string, Shot>;
+  /** Another conversation whose shots it uses (its own `shots`, if any, win): chapter 1's start uses cutscene 2's cameras (owner, 2026-11-18). */
+  shotsFrom?: string;
   /** A shot held alone before the first line: `shot` names one of `shots`. */
   opening?: { shot: string; hold: number; until?: string };
   /** The column of light on the horizon while it plays (light-column.ts; cutscene 3). */
@@ -142,6 +146,7 @@ export class WatchedConversation {
     const response = await fetch(`/conversations/${id}.json`);
     if (!response.ok || !response.headers.get('content-type')?.includes('json')) throw new Error(`no conversation "${id}"`);
     const data = (await response.json()) as WatchedData;
+    if (data.shotsFrom) data.shots = { ...(await this.load(data.shotsFrom)).shots, ...data.shots };
     this.loaded.set(id, data);
     return data;
   }

@@ -32,21 +32,31 @@ if (await until(() => w.__watched()?.speaker === 'green', 30000)) {
 }
 // Skipped by holding the left mouse button for 3 s.
 window.dispatchEvent(new MouseEvent('mousedown', { button: 0 }));
-await until(() => !w.__watched()?.playing, 6000);
+// Over when chapter 1's own conversation starts (it plays on the next frame) or nothing plays.
+await until(() => !w.__watched()?.playing || /keep an eye/.test(dialogue.line?.text ?? ''), 6000);
 window.dispatchEvent(new MouseEvent('mouseup', { button: 0 }));
-await wait(800);
+await until(() => character.model?.seated === true && dialogue.line, 3000);
 report(character.model?.seated === true, 'chapter 1 starts her seated');
+// Adam Blue's line, then hers, before Get up (owner, 2026-10-27; 2026-11-18): watched on cutscene 2's cameras.
+const watchedNow = w.__watched();
+const adam = await until(() => dialogue.line?.id === 'adam-blue', 3000);
+report(adam && /keep an eye on things/.test(dialogue.line.text) && document.querySelector('#prompt').hidden, "Adam Blue's line first, no prompt yet", dialogue.line?.text);
+report(watchedNow?.playing && watchedNow.speaker === 'adam-blue' && document.querySelector('#bars').classList.contains('on'), 'watched: the camera on Adam Blue, the black bars on', `${watchedNow?.playing} ${watchedNow?.speaker}`);
+await shot('chapter-1-adam-blue');
+// The lines move on by themselves (cutscene 2's wait).
+report(await until(() => dialogue.line?.id === 'green' && /stretch my legs/.test(dialogue.line.text) && document.querySelector('#prompt').hidden, 10000), 'then her answer by itself, still no prompt', dialogue.line?.text);
+await wait(300);
+report(watchedNow?.speaker === 'green', 'watched: the camera on her', watchedNow?.speaker);
+await shot('chapter-1-green');
+await until(() => !watchedNow?.playing, 10000);
+report(!watchedNow?.playing && w.__director()?.current === 'chapter-1', 'it ends by itself: back to the game camera', `${watchedNow?.playing}`);
+await until(() => !dialogue.cooling, 3000);
+await until(() => !document.querySelector('#prompt').hidden, 3000);
 const seatedAt = character.position.clone();
 key('KeyW', true);
 await wait(1000);
 key('KeyW', false);
 report(character.position.distanceTo(seatedAt) < 0.01, "seated, she doesn't walk", `${character.position.distanceTo(seatedAt).toFixed(3)} m`);
-// Adam's line before Get up (owner, 2026-10-27): the prompt hidden while it shows.
-const adam = await until(() => dialogue.line?.id === 'adam-red', 3000);
-report(adam && /keep an eye on things/.test(dialogue.line.text) && document.querySelector('#prompt').hidden, "Adam's line first, no prompt yet", dialogue.line?.text);
-dialogue.end();
-await until(() => !dialogue.cooling, 3000);
-await until(() => !document.querySelector('#prompt').hidden, 3000);
 const verb = document.querySelector('#prompt')?.textContent ?? '';
 report(/Get up/.test(verb), 'the prompt reads Get up', verb.trim());
 await shot('chapter-1-seated');
@@ -59,7 +69,7 @@ const there = w.__ship().object.localToWorld(aisle.clone());
 report(character.model?.seated === false && character.position.distanceTo(there) < 0.05, 'Get up: she is in the aisle', `${character.position.distanceTo(there).toFixed(3)} m from the start`);
 report(angle() < 0.01, 'the joystick upright', `${angle().toFixed(2)}°`);
 // Her line once up (owner, 2026-10-27).
-report(await until(() => dialogue.line?.id === 'green' && /stretch my legs/.test(dialogue.line.text), 3000), 'then her line', dialogue.line?.text);
+report(await until(() => dialogue.line?.id === 'green' && /make coffee/.test(dialogue.line.text), 3000), 'then her line', dialogue.line?.text);
 dialogue.end();
 await until(() => !dialogue.cooling, 3000);
 // Her head bone against the old guess (feet + height − 0.12), standing.

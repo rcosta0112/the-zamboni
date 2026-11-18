@@ -275,6 +275,16 @@ async function start(): Promise<void> {
         play: (id, at) => audio.play(id, at),
         story: null,
         cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
+        // A watched conversation from a scene's commands (chapter 1's first lines): nothing after it (not cutscene 2's
+        // exterior shot, even with `animatic` still 'opening' after cutscene 2 was skipped).
+        watch: (id) => {
+          if (!watched) return console.warn(`[0.0.2] conversation ${id} not played: no story`);
+          afterWatched = () => {};
+          void watched.play(id, view.camera.aspect).catch((err: unknown) => {
+            console.warn(`[0.0.2] conversation ${id} not played:`, err);
+            afterWatched = null;
+          });
+        },
         scene: (id) => void goTo(id).catch((err: unknown) => console.warn(`[0.0.2] scene ${id} not started:`, err)),
       };
       cutscene = new CutscenePlayer(s.object, (command) => run(command, target), [s.shadowCaster, s.interiorShadowCaster, s.glassShadowCaster]);
@@ -309,6 +319,7 @@ async function start(): Promise<void> {
       if (planetShot) await renderer.compileAsync(planetShot.scene, planetShot.camera).catch((err: unknown) => console.warn('[0.0.2] the planet shot not compiled:', err));
       if (animaticFrom === 'planet' || animaticFrom === 'cutscene-1') await cutscene.load('cutscene-1').catch((err: unknown) => console.warn('[0.0.2] cutscene 1 not loaded:', err));
       if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
+      await watched?.load('chapter-1-start').catch((err: unknown) => console.warn('[0.0.2] chapter 1 start not loaded:', err)); // so it starts on its frame
       if (ASKED === LANDING) await cutscene.load(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not loaded:', err));
       if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).

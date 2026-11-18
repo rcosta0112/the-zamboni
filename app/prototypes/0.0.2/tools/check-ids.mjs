@@ -78,6 +78,14 @@ function command(where, c) {
       checked++;
       if (!tracks.has(c.id)) problems.push(`${where}: no cutscene "${c.id}" (public/test/cutscenes/)`);
       return;
+    case 'watch': {
+      // A watched conversation (chapter 1's first lines): its file, and its knot in the game's story.
+      checked++;
+      const file = path.join(root, 'public/conversations', `${c.id}.json`);
+      if (!fs.existsSync(file)) problems.push(`${where}: no conversation "${c.id}" (public/conversations/)`);
+      else if (!named(KNOT, [inks[0]]).has(json(`public/conversations/${c.id}.json`).knot)) problems.push(`${where}: conversation "${c.id}" has no story knot`);
+      return;
+    }
     case 'outfit':
       checked++;
       if (c.set !== 'jumpsuit' && c.set !== 'parka') problems.push(`${where}: no outfit "${c.set}" (jumpsuit, parka)`);

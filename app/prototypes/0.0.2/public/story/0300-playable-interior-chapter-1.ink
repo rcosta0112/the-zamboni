@@ -3,14 +3,15 @@
 // start).
 
 // Chapter 1 (doc/story/scenes/0300 - Playable interior - Chapter 1.md, word for word). She starts in the copilot's seat:
-// Adam's line once the player has her (the scene's `begin`, after cutscene 2), then *Get up*; her
+// Adam Blue's line and her answer once the player has her (the scene's `begin`, after cutscene 2),
+// watched on cutscene 2's cameras (public/conversations/chapter-1-start.json), then *Get up*; her
 // line once she's up (main.ts runs `got_up` when she gets up).
 === chapter_1_start ===
-Adam: I can keep an eye on things if you need a break.
+Adam Blue: I can keep an eye on things if you need a break.
+Green: Thank you. I think I'll stretch my legs for a bit.
 -> DONE
 
 === got_up ===
-Green: Thank you. I think I'll stretch my legs for a bit.
 Green: Did anyone make coffee?
 -> DONE
 

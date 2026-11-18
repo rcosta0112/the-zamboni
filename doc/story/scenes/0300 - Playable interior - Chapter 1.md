@@ -1,14 +1,15 @@
 ## Chapter 1
 
-*The player starts sitting on the copilot's chair.*
+*The player starts the scene on the copilot's chair.*
 
-**Adam**\
+**Adam Blue**\
 I can keep an eye on things if you need a break.
-
-> **[Y Get up]**
 
 **Green**\
 Thank you. I think I'll stretch my legs for a bit.
+
+> **[Y Get up]**
+
 Did anyone make coffee?
 
 
@@ -18,7 +19,7 @@ Did anyone make coffee?
 
 *Dr. Kaufman is in the crew quarters reading a book.*
 
-**Kaufman**\
+**Kaufman**
 Hey Green Bean. What's up?
 
 Green

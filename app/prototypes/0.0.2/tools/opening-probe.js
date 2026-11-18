@@ -85,7 +85,8 @@ report(lastAt.x > 1 || lastAt.y > 0.74, 'the ship out of the picture (above the 
 report(!w.__cutscene().playing && length > 6.5 && length < 9, 'it ends by itself after about 7.5 s', `${length.toFixed(1)} s`);
 report(character.position.distanceTo(feet) < 0.05, "she didn't move", `${character.position.distanceTo(feet).toFixed(3)} m`);
 report(barsOn, 'the black bars were on while it played');
-report(!document.querySelector('#bars').classList.contains('on'), 'the bars are gone after it');
+// Chapter 1's first two lines follow at once, watched in the bars (owner, 2026-11-18).
+report(await until(() => w.__watched()?.playing && /keep an eye/.test(w.__dialogue.line?.text ?? ''), 2000) && document.querySelector('#bars').classList.contains('on'), "then chapter 1's first lines, watched (the bars kept)", w.__dialogue.line?.text);
 await wait(1500);
 const save = await w.__save.read();
 report(save?.checkpoint === 'chapter-1' && Date.now() - Date.parse(save.savedAt) < 3000, 'saved at its end', `checkpoint ${save?.checkpoint}`);

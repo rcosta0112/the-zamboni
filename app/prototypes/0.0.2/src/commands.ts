@@ -32,6 +32,8 @@ export type Command = (
   | { do: 'story'; knot: string }
   /** Play a cutscene (cutscene.ts), by its track's id. */
   | { do: 'cutscene'; id: string }
+  /** Play a watched conversation (watched.ts), by its id in `public/conversations/`: chapter 1's first lines. */
+  | { do: 'watch'; id: string }
   /** Dress her: the jumpsuit or the parka. */
   | { do: 'outfit'; set: Outfit }
   /** Start a scene (scenes.ts), by its id: its `intro` cutscene plays from its first frame. */
@@ -62,6 +64,8 @@ export interface CommandTarget {
   story: GameStory | null;
   /** Plays a cutscene by id. */
   cutscene: (id: string) => void;
+  /** Plays a watched conversation by id. */
+  watch: (id: string) => void;
   /** Starts a scene by id (main.ts: with its intro). */
   scene: (id: string) => void;
 }
@@ -74,7 +78,7 @@ export function run(command: Command, target: CommandTarget): void {
   const truth = (name: string) => Boolean(target.story?.get(name));
   if (command.if !== undefined && !truth(command.if)) return;
   if (command.unless !== undefined && truth(command.unless)) return;
-  const entity = 'id' in command && command.do !== 'cutscene' && command.do !== 'seat' && command.do !== 'scene' ? target.entities.get(command.id) : null;
+  const entity = 'id' in command && command.do !== 'cutscene' && command.do !== 'watch' && command.do !== 'seat' && command.do !== 'scene' ? target.entities.get(command.id) : null;
   const missing = () => console.warn(`[0.0.2] ${command.do}: no "${'id' in command ? command.id : ''}" that can do it`);
   switch (command.do) {
     case 'set': {
@@ -116,6 +120,9 @@ export function run(command: Command, target: CommandTarget): void {
     }
     case 'cutscene':
       target.cutscene(command.id);
+      return;
+    case 'watch':
+      target.watch(command.id);
       return;
     case 'scene':
       target.scene(command.id);
