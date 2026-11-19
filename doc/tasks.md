@@ -53,7 +53,6 @@ In `doc/story/scenes/`; until written, the game shows `[Placeholder]`. Spec: [fl
 - [ ] **SC-32** · Chapter 1: the coffee remark entering the crew quarters; a line at the seat (optional). (The refusal without coffee: given 2026-11-18.)
 - [ ] **SC-33** · Chapter 1: a line when she pours, and her comment after the first sip: still wanted? (*Pouring again* given 2026-11-18.)
 - [x] **SC-34** · Described by the owner 2026-11-07 (two shots; a reference render for the second). Plan: [landing cutscene](plans/features/landing-cutscene.md).
-- [ ] **SC-165** · Scene file name (2026-11-08): `0400 - Cutscene exterior- Flyby.md` lacks a space before its second hyphen. [scenes README](story/scenes/README.md)
 - *Later:* **SC-35** cutscene 1's description; **SC-36** her remarks on things in flight (optional).
 
 ## Figma
