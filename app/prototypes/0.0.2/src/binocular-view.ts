@@ -10,7 +10,7 @@
 import * as THREE from 'three/webgpu';
 import type { GadgetId } from './gadgets';
 import type { Device } from './input';
-import { shoulderGlyph } from './pad-glyph';
+import { mouseGlyph, shoulderGlyph } from './pad-glyph';
 import { settings } from './settings';
 
 /** One wheel notch: this factor on the magnification. */
@@ -19,11 +19,7 @@ const WHEEL_STEP = 1.25;
 const WHEEL_SOUND = 0.18;
 
 /** A mouse, the right button filled (use) or the wheel (zoom). */
-const mouse = (part: 'right' | 'wheel') =>
-  '<svg viewBox="0 0 14 20" width="14" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="' + (part === 'right' ? 'right mouse button' : 'mouse wheel') + '">' +
-  '<rect x="0.75" y="0.75" width="12.5" height="18.5" rx="6.25"/><path d="M7 0.75V8.5M0.75 8.5H13.25"/>' +
-  (part === 'right' ? '<path d="M7 0.75A6.25 6.25 0 0 1 13.25 7V8.5H7Z" fill="currentColor"/>' : '<rect x="5.5" y="3" width="3" height="5" rx="1.5" fill="currentColor" stroke="none"/>') +
-  '</svg>';
+const mouse = mouseGlyph;
 
 /** What the corner shows: 'use' while they're out, 'zoom' while looking through them (with 'close' over it); 'scan' while the scanner is out. */
 type Prompt = 'use' | 'zoom' | 'scan' | null;

@@ -17,6 +17,28 @@ export function padGlyph(button: PadButton): string {
   return `<svg viewBox="8 8 48 48" fill="currentColor" aria-label="${button} face button"><path fill-rule="evenodd" d="${PATHS[button]}"/></svg>`;
 }
 
+export type MousePart = 'left' | 'right' | 'wheel';
+
+/**
+ * A mouse as an icon, 14 x 20: the button meant filled, or the wheel (owner, 2026-11-18: left interacts
+ * and moves the dialogue on, right uses a gadget and, held, skips a cutscene; the wheel zooms the binoculars).
+ */
+export function mouseGlyph(part: MousePart): string {
+  const marked =
+    part === 'left'
+      ? '<path d="M7 0.75A6.25 6.25 0 0 0 0.75 7V8.5H7Z" fill="currentColor"/>'
+      : part === 'right'
+        ? '<path d="M7 0.75A6.25 6.25 0 0 1 13.25 7V8.5H7Z" fill="currentColor"/>'
+        : '<rect x="5.5" y="3" width="3" height="5" rx="1.5" fill="currentColor" stroke="none"/>';
+  const label = part === 'wheel' ? 'mouse wheel' : `${part} mouse button`;
+  return (
+    `<svg viewBox="0 0 14 20" width="14" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="${label}">` +
+    '<rect x="0.75" y="0.75" width="12.5" height="18.5" rx="6.25"/><path d="M7 0.75V8.5M0.75 8.5H13.25"/>' +
+    marked +
+    '</svg>'
+  );
+}
+
 /** The shoulder buttons and triggers, named L1 / R1 (shoulders) and L2 / R2 (triggers) (owner, 2026-11-16). */
 export type ShoulderButton = 'L1' | 'R1' | 'L2' | 'R2';
 

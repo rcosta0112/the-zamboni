@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-18 | Mouse: the left button interacts, the right held skips | input | Left click interacts and moves the dialogue on (only with the mouse captured); holding the right button skips a cutscene (the left before); E gone (dev builds keep it for the scripts); mouse icons in the prompts |
 | 2026-11-18 | The coffee: one cup, walking only, no gadgets, the sink | design | Pour at the pot (no animation), sip at random every 5–10 s (talking too), no gadgets while holding (running allowed since the same day's update); the sink ends it; one coffee; her seat wants one first; replaces the flying scene's pass 3 where it differs |
 | 2026-11-18 | Optimisation never changes the game; the old see-through rules mode may go | tech | Optimisation (SC-180) must not change how the game looks or works; the unused per-object see-through rules mode doesn't count, so merging static meshes per room may break it |
 | 2026-11-18 | The ship's flat colours as palette materials, at export | pipeline | Opaque untextured single-sided colours fold into `Palette` / `Palette Metal` after Blender's export (`palette.mjs`), exact values in small images; 60 → 32 materials; the `.blend` keeps its named colour materials |
@@ -73,6 +74,23 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-18] — Mouse: the left button interacts, the right held skips (input)
+
+**Context:** on mouse and keyboard E interacted, the left button moved the dialogue on and, held, skipped a cutscene. The owner wanted interact on the mouse. Plan: [`mouse-buttons.md`](plans/features/mouse-buttons.md).
+
+**Decision (owner):**
+- **The left mouse button interacts** (and moves the dialogue on), only with the mouse captured: the click that captures it does neither.
+- **Holding the right button 2 s skips** a cutscene, those with dialogue included. It still uses the gadgets, which are put away in cutscenes.
+- **E is gone**, kept in dev builds only for the scripted checks (never shown).
+- The prompts show a mouse icon, the button meant filled.
+- Ordinary conversations are not skippable (unchanged).
+
+**Alternatives considered:** keep E beside the click (owner: no); the scripted checks sending clicks instead of E (about 20 files).
+
+**Rationale:** the mouse as the pad: interact and skip on separate buttons (the pad's A and X, 2026-10-28).
+
+**Status:** built 2026-11-18.
 
 ## [2026-11-18] — The coffee: one cup, walking only, no gadgets, the sink (design)
 

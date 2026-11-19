@@ -32,7 +32,7 @@ import type { Command } from './commands';
 import type { Door } from './doors';
 import type { Entities, Openable } from './entities';
 import type { Device } from './input';
-import { padGlyph } from './pad-glyph';
+import { mouseGlyph, padGlyph } from './pad-glyph';
 import { isDeviceKind, isStoryKind } from './kinds';
 import { labelOf } from './labels';
 import type { Physics } from './physics';
@@ -347,7 +347,7 @@ export function respectLocks(items: Interactable[], story: () => GameStory | nul
 }
 
 /** The pad's A (right; owner, 2026-11-07: an icon, the letter before), the keyboard's E. */
-const GLYPH: Record<Device, string> = { gamepad: padGlyph('right'), keyboard: 'E' };
+const GLYPH: Record<Device, string> = { gamepad: padGlyph('right'), keyboard: mouseGlyph('left') }; // E before 2026-11-18
 
 /** The prompt stays this far inside the screen's edges (px). */
 const EDGE = 8;

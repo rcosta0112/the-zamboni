@@ -8,13 +8,15 @@ Point at something and press a button to use it, as in the UE prototype. In this
 
 | Action | Gamepad | Keyboard |
 |---|---|---|
-| Use the target | **A** | **E** |
+| Use the target | **A** | **left mouse button** (with the mouse captured; E before 2026-11-18) |
 | Climb a ladder | Walk into its foot; push toward it to climb, away from it to climb down | Same (W A S D) |
 | Leave a ladder at the top | Push any way but toward it: she floats for a moment, and walks | Same |
 | Jump off a ladder | B (jump): a jump as anywhere else | Space |
 | Go down | Walk into the open trapdoor: she falls through | Same |
 
-The prompt shows the button of the last device used (A or E). The pad's buttons are named as on a Nintendo controller, by position (owner, 2026-10-28): A right, B bottom, Y left, X top; the shoulders L1 / R1, the triggers L2 / R2 (owner, 2026-11-16: named as on a PlayStation controller; L / R and ZL / ZR before).
+The prompt shows the button of the last device used (A, or the mouse with its left button filled).
+
+> **Update, 2026-11-18 (owner):** on mouse and keyboard **the left button interacts**; **E is gone** (kept in dev builds only, for the scripted checks; never shown). The click that captures the mouse (the start, after Esc, after another window) doesn't interact. The right button holds to skip a cutscene ([decision log](../decision-log.md)); it still uses the gadgets. The mouse icons: `mouseGlyph` in `pad-glyph.ts`. The pad's buttons are named as on a Nintendo controller, by position (owner, 2026-10-28): A right, B bottom, Y left, X top; the shoulders L1 / R1, the triggers L2 / R2 (owner, 2026-11-16: named as on a PlayStation controller; L / R and ZL / ZR before).
 
 > **Update, 2026-10-21 (owner):** **every prompt names its thing**: *Open fridge*, *Open Dr. Kaufman's locker*, *Open cockpit door*, *Climb ladder*, *Turn on boombox*, *Put jetpack back*, *Talk to Dr. Ogawa*. The names are in `src/labels.ts` (by id, then by kind, "door" otherwise); a story knot's `# verb:` is the whole prompt (*Unlock side door*). Not named yet: *Locked*, *Next track*. **Anything she can use can be locked** (2026-10-22, the flying scene's pass 1: the `lock` command; before, doors only): locked, its `use_<id>` knot runs instead (its `# verb:` the prompt), or *Locked*. **The flight rules** lock the outer doors and hatches (their keypads with them), the jetpacks and her parka while the ship flies, each with her line ([what exists](../plans/features/flying-scene.md#the-flight-rules); `FLIGHT_LOCKED` in `scenes.ts`). **Every use clicks** (`ui_interact`) and the thing acts once the click has finished (about 0.17 s). **A door still locked after she tries it** (itself, its keypad or panel; her line, if the story has one, as well) **plays a "wrong" sound** (`ui_wrong`, Eigodojo's wrong answer; owner, 2026-10-24); a knot that unlocks it doesn't. Dr. Kaufman's locker (`crew-locker-door-2`) and Dr. Ogawa's (`cargo-locker-door`) don't open: her remark in the dialogue box (a `use_<id>` knot tagged `# instead`). The crew: *Talk to <name>* ([dialogue](dialogue.md)). **A thing with no action of its own** (kind `seat`: the pilot's seat) is a target only while the story has its `use_<id>` knot: *Look at pilot's seat*, her remark. The prompts named below are from before this.
 

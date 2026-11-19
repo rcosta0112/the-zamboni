@@ -1162,8 +1162,8 @@ function showHelp(): void {
   const el = document.querySelector<HTMLElement>('#help')!;
   el.textContent =
     'Gamepad: left stick move · right stick camera · B jump · R2 fly (half-way hovers; push the stick to fly, let go to glide) · A interact · D-pad up binoculars, R1 look through them, L1 / L2 zoom · D-pad left scanner, hold R1 to scan · hold X skip a cutscene · Start/Options pause · View: tuning\n' +
-    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · E interact · 1 binoculars, right click look through them, wheel zoom · 2 scanner, hold the right button to scan · Y invert · P quality · ` tuning\n' +
-    'Ladder: at its foot, E / A to climb; from the floor above, drop through the opening\n' +
+    'Keyboard: click to capture mouse · WASD move · Shift walk · C jump · hold Space fly · left click interact · 1 binoculars, right click look through them, wheel zoom · 2 scanner, hold the right button to scan · hold the right button skip a cutscene · Y invert · P quality · ` tuning\n' +
+    'Ladder: at its foot, left click / A to climb; from the floor above, drop through the opening\n' +
     'Jetpack: take one from the rack in the cargo hold to fly; put it back there';
 }
 

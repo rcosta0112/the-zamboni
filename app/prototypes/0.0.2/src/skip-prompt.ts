@@ -1,5 +1,5 @@
 // Skipping a cutscene (owner, 2026-10-23, SC-126): any press (or a click, 2026-10-24) while one plays shows "Hold X to skip" (owner, 2026-10-28: the pad's X, ◯ before)
-// at the bottom right (on mouse and keyboard the left mouse button, an icon: owner, 2026-10-28, E before;
+// at the bottom right (on mouse and keyboard the right mouse button, an icon: owner, 2026-11-18; the left 2026-10-28, E before;
 // the prompt shows the last device used); holding the button
 // that long skips it. A bar along the prompt's bottom fills while it's held (owner, 2026-10-28; none
 // before). Both cutscenes: cutscene 1 (the
@@ -8,15 +8,11 @@
 // cockpit conversation; owner, 2026-11-07) only the skip button shows the prompt, not any press.
 
 import type { Device } from './input';
-import { padGlyph } from './pad-glyph';
+import { mouseGlyph, padGlyph } from './pad-glyph';
 
 const GLYPH: Record<Device, string> = {
   gamepad: padGlyph('top'), // the pad's X (owner, 2026-11-07: an icon, the letter before)
-  // A mouse, its left button filled.
-  keyboard:
-    '<svg viewBox="0 0 14 20" width="14" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-label="left mouse button">' +
-    '<rect x="0.75" y="0.75" width="12.5" height="18.5" rx="6.25"/><path d="M7 0.75V8.5M0.75 8.5H13.25"/>' +
-    '<path d="M7 0.75A6.25 6.25 0 0 0 0.75 7V8.5H7Z" fill="currentColor"/></svg>',
+  keyboard: mouseGlyph('right'), // the right mouse button (owner, 2026-11-18: the left before; left now interacts)
 };
 /** How long the button is held to skip (s; owner, 2026-10-28: 3 before). */
 const HOLD = 2;

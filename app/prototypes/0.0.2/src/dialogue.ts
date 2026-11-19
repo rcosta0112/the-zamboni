@@ -19,12 +19,12 @@
 
 import type { DialogueView } from '@zamboni/ui';
 import type { Device } from './input';
-import { padGlyph } from './pad-glyph';
+import { mouseGlyph, padGlyph } from './pad-glyph';
 import { settings } from './settings';
 import { displayName, type Line } from './story';
 
 /** The pad's A (right; owner, 2026-11-07: an icon, the letter before), the keyboard's E. */
-const GLYPH: Record<Device, string> = { gamepad: padGlyph('right'), keyboard: 'E' };
+const GLYPH: Record<Device, string> = { gamepad: padGlyph('right'), keyboard: mouseGlyph('left') }; // E before 2026-11-18
 
 /** The speaker's name colour by character id (owner, 2026-11-07); contrast on white in brackets. */
 const NAME_COLOR: Record<string, string> = {

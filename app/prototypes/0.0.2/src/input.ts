@@ -47,8 +47,6 @@ export class Input {
   menuStep = 0;
 
   private keys = new Set<string>();
-  /** The left mouse button is down (the window's: the cutscene's black and bars lie over the canvas). */
-  private leftHeld = false;
   private mouseDX = 0;
   private mouseDY = 0;
   private jumpLatched = false;
@@ -65,7 +63,7 @@ export class Input {
   private wheelSteps = 0;
   private interactLatched = false;
   private skipLatched = false;
-  /** Enter, Space or a mouse click: advances the dialogue box (as interact does). */
+  /** Enter or Space: advances the dialogue box (as interact, the left click, does). */
   private confirmLatched = false;
   /** W / S or the arrows, for a conversation's topics: -1 up, 1 down (the start screen reads its own keys). */
   private keyStep = 0;
@@ -90,7 +88,9 @@ export class Input {
       this.lastDevice = 'keyboard';
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
       if (e.code === 'KeyC') this.jumpLatched = true;
-      if (e.code === 'KeyE') this.interactLatched = true;
+      // E interacted until 2026-11-18 (owner: the left mouse button now); kept in dev builds only, for
+      // the scripted checks (never shown in a prompt).
+      if (import.meta.env.DEV && e.code === 'KeyE') this.interactLatched = true;
       // Gadgets (owner, 2026-11-16): 1 the binoculars (B before), 2 the scanner.
       if (e.code === 'Digit1') this.gadgetLatched = 'binoculars';
       if (e.code === 'Digit2') this.gadgetLatched = 'scanner';
@@ -112,14 +112,16 @@ export class Input {
     canvas.addEventListener('click', () => {
       if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
     });
+    // The left button interacts and moves the dialogue box on (owner, 2026-11-18), only with the mouse
+    // captured: the click that captures it (the start, after Esc, after another window) does neither.
     canvas.addEventListener('mousedown', (e) => {
-      if (e.button === 0) this.confirmLatched = true;
+      if (e.button !== 0 || document.pointerLockElement !== canvas) return;
+      this.interactLatched = true;
     });
     // A click anywhere also shows a cutscene's skip prompt (owner, 2026-10-24): the window's, since
     // the cutscene's black and bars lie over the canvas.
     window.addEventListener('mousedown', (e) => {
       this.skipLatched = true;
-      if (e.button === 0) this.leftHeld = true;
       if (e.button === 2) {
         this.gadgetUseLatched = true;
         this.rightHeld = true;
@@ -134,10 +136,9 @@ export class Input {
     // The right button uses a gadget: no browser menu over the game.
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
-      if (e.button === 0) this.leftHeld = false;
       if (e.button === 2) this.rightHeld = false;
     });
-    window.addEventListener('blur', () => (this.leftHeld = this.rightHeld = false));
+    window.addEventListener('blur', () => (this.rightHeld = false));
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
       this.mouseDX += e.movementX;
@@ -243,7 +244,7 @@ export class Input {
     return this.analogPad !== null;
   }
 
-  /** True once per interact press (E, gamepad A). An Enter or a click since is dropped. */
+  /** True once per interact press (the left mouse button, gamepad A). An Enter or Space since is dropped. */
   consumeInteract(): boolean {
     const i = this.interactLatched;
     this.interactLatched = false;
@@ -258,7 +259,7 @@ export class Input {
     return step;
   }
 
-  /** True once per press that advances the dialogue box: interact, Enter, Space or a click. */
+  /** True once per press that advances the dialogue box: interact (a left click, A), Enter or Space. */
   consumeAdvance(): boolean {
     const a = this.interactLatched || this.confirmLatched;
     this.interactLatched = false;
@@ -276,9 +277,9 @@ export class Input {
     this.jumpLatched = false;
   }
 
-  /** The button held to skip a cutscene is down: the left mouse button (owner, 2026-10-28; E before), the pad's X (owner, 2026-10-28: A, interact, before; A also moves the dialogue on). */
+  /** The button held to skip a cutscene is down: the right mouse button (owner, 2026-11-18; the left 2026-10-28, E before; the window's: the cutscene's black and bars lie over the canvas), the pad's X (owner, 2026-10-28: A, interact, before; A also moves the dialogue on). */
   get skipHeld(): boolean {
-    return this.leftHeld || this.padButtons[PAD_X] === true;
+    return this.rightHeld || this.padButtons[PAD_X] === true;
   }
 
   /** True once per press that shows a cutscene's skip prompt (any pad button but Start and View; any key but the panel's; a click). */

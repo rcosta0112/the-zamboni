@@ -47,7 +47,7 @@ The default for every gadget (owner, 2026-11-16): the D-pad brings one out (a di
 ## What the binoculars block
 
 - **Out** (in her hands or raised, third person): nothing.
-- **Looking through them:** interacting (A / E: doors, keypads, lockers, talking, the ladder's *Climb*), with its prompts and dots; the help text; the see-through. Everything else works.
+- **Looking through them:** interacting (A / the left mouse button: doors, keypads, lockers, talking, the ladder's *Climb*), with its prompts and dots; the help text; the see-through. Everything else works.
 - **They're put away at once** when she sits, climbs, talks or a cutscene plays, and their button does nothing then.
 
 ## Files

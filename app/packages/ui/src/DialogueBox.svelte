@@ -160,6 +160,11 @@
     height: calc(24 * var(--ui-unit));
   }
 
+  /* A mouse icon (14 x 20): as tall as the others, its own width. */
+  .glyph.icon :global(svg[viewBox='0 0 14 20']) {
+    width: auto;
+  }
+
   /* Her lines, as the text's size; three fit the box's height, a fourth a little tighter. */
   .topics {
     align-self: stretch;
