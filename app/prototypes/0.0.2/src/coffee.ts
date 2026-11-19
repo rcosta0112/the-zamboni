@@ -5,7 +5,9 @@
 // frame between sips. The sink: *Put cup in sink* while she holds it; her mug goes and the cup in the
 // sink (kind `sink-cup`, hidden till then) shows. One coffee only: after that, and once the ship has
 // landed, the pot gets her line instead (Ink). Her seat wants a coffee first (main.ts). Sitting with
-// the mug, it's gone (`done`). Kept with her in Ink's `green_coffee` (main.ts, KEPT).
+// the mug, it's gone (`done`). Kept with her in Ink's `green_coffee` (main.ts, KEPT). A sip on demand
+// (owner, 2026-11-19): the pad's A (when nothing's there to interact with) or the right mouse button,
+// "A to Drink" in the bottom-right corner (binocular-view.ts); the random sips go on.
 
 import * as THREE from 'three/webgpu';
 import type { Entities } from './entities';
@@ -91,6 +93,18 @@ export class Coffee {
     this.stopSip(true);
   }
 
+  /** A sip now, asked for by the player (main.ts): only while she may sip, the mug fully in her hand and no sip going. True if one started. */
+  drink(canSip: boolean): boolean {
+    if (!this.canDrink(canSip)) return false;
+    this.startSip();
+    return true;
+  }
+
+  /** A drink press would start a sip now (the prompt shows while she holds the mug and may sip). */
+  canDrink(canSip: boolean): boolean {
+    return this.holding && canSip && this.held >= 1 && !this.sipping;
+  }
+
   /** Has poured a coffee (her seat's rule). */
   get poured(): boolean {
     return this.state !== 'none';
@@ -126,14 +140,16 @@ export class Coffee {
       if (this.sipShare === 0) this.sip = 0;
       if (canSip && this.held >= 1) {
         this.untilSip -= t;
-        if (this.untilSip <= 0) {
-          this.sipping = true;
-          this.sip = 0;
-          this.sipShare = 1;
-          this.sips++;
-        }
+        if (this.untilSip <= 0) this.startSip();
       }
     }
+  }
+
+  private startSip(): void {
+    this.sipping = true;
+    this.sip = 0;
+    this.sipShare = 1;
+    this.sips++;
   }
 
   /** Stops a sip: blended back to the hold (or at once). */

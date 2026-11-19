@@ -4,7 +4,7 @@
 //
 // About 60 s. She gets up; the cup in the sink hidden; *Sit down* gives her line (no coffee yet); at
 // the pot, *Pour coffee* (aimed, the prompt): the mug in her hand, no gadgets (1 does nothing), no
-// sink cup yet; sips at random (the gap set to 1–1.5 s here); she can run with it (W held); she still
+// sink cup yet; "to Drink" in the corner, the right mouse button sips (owner, 2026-11-19); sips at random (the gap set to 1–1.5 s here); she can run with it (W held); she still
 // sips while talking; the ladder hides the mug through the climb; *Put cup in sink*: the mug gone, the cup in the sink, Ink
 // `green_coffee` "sink"; the pot again: her line; *Sit down*: on to the landed scene, where the pot
 // gives "No time for that now." and the cup is still in the sink. Runs in the page (probe-01.mjs).
@@ -85,6 +85,27 @@ key('Digit1');
 await wait(400);
 report(w.__gadgets.out === null && w.__gadgets.held === 0, 'holding: 1 (the binoculars) does nothing', `out ${w.__gadgets.out}`);
 
+// A sip on demand (owner, 2026-11-19): the corner's "to Drink", the right mouse button sips (random sips held off).
+const corner = () => { const el = document.querySelector('#gadget-prompt'); return !el || el.hidden ? '' : el.textContent.trim(); };
+w.__settings.coffeeSipMin = 100; w.__settings.coffeeSipMax = 100;
+await until(() => !coffee.sipping, 6000);
+coffee.stopSip(true); // a fresh wait (private in TS, reachable here)
+await wait(300);
+report(/to Drink/.test(corner()), 'holding: "to Drink" in the corner', corner());
+{
+  const before = coffee.sips;
+  window.dispatchEvent(new MouseEvent('mousedown', { button: 2 }));
+  window.dispatchEvent(new MouseEvent('mouseup', { button: 2 }));
+  await wait(150);
+  report(coffee.sips === before + 1 && coffee.sipping, 'the right mouse button: a sip', `${coffee.sips - before} sip(s), sipping ${coffee.sipping}`);
+  await wait(300);
+  report(corner() === '', 'sipping: the prompt gone', corner());
+  await until(() => !coffee.sipping, 6000);
+  await wait(300);
+}
+w.__settings.coffeeSipMin = 1; w.__settings.coffeeSipMax = 1.5;
+coffee.stopSip(true);
+
 // Sips (1–1.5 s apart here).
 const sips0 = coffee.sips;
 let sawSip = false;
@@ -101,6 +122,23 @@ for (let i = 0; i < 20; i++) { await wait(100); fastest = Math.max(fastest, char
 window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' }));
 report(fastest > character.walkSpeed() + 0.5, 'holding: she can run', `fastest ${fastest.toFixed(2)} m/s, walk ${character.walkSpeed()}, run ${character.runSpeed()}`);
 await wait(500);
+
+// The interact button with nothing to use: a sip (owner, 2026-11-19). Random sips held off.
+{
+  w.__settings.coffeeSipMin = 100; w.__settings.coffeeSipMax = 100;
+  await until(() => !coffee.sipping, 6000);
+  coffee.stopSip(true);
+  for (let i = 0; i < 12 && w.__interaction().target; i++) { view.yaw += Math.PI / 6; character.facing = view.yaw; await wait(250); } // away from anything to use
+  await wait(300);
+  const target = w.__interaction().target?.name ?? null;
+  const before = coffee.sips;
+  key('KeyE');
+  await wait(150);
+  report(target === null && coffee.sips === before + 1 && coffee.state === 'holding', 'interact with nothing aimed: a sip', `target ${target}, ${coffee.sips - before} sip(s), ${coffee.state}`);
+  await until(() => !coffee.sipping, 6000);
+  w.__settings.coffeeSipMin = 1; w.__settings.coffeeSipMax = 1.5;
+  coffee.stopSip(true);
+}
 
 // Talking (owner, 2026-11-18): she still sips. Dr. Kaufman's conversation, the line left open.
 const kaufman = interactionItem('kaufman');

@@ -104,6 +104,8 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 **Update 2026-11-18 (owner):** the running restriction removed; she still sips while talking to someone.
 
+**Update 2026-11-19 (owner):** a sip on demand too: the pad's A (when there's nothing to interact with) or the right mouse button, with a *"A to Drink"* prompt; the random sips kept.
+
 **Status:** Active. Supersedes pass 3 of the [flying scene](plans/features/flying-scene.md#the-coffee-its-own-pass) where it differs.
 
 ## [2026-11-18] — Optimisation never changes the game; the old see-through rules mode may go (tech)

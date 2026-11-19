@@ -135,6 +135,8 @@ const animaticFrom: 'planet' | 'cutscene-1' | 'opening' | null =
   ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : ASKED === 'planet' ? 'planet' : TESTING || ASKED ? null : 'planet';
 /** Her coffee (coffee.ts), once the ship is loaded. */
 let coffee: Coffee | null = null;
+/** She may sip now (main loop: on the ground, not climbing, seated or in a cutscene), for the drink press and its prompt. */
+let coffeeCanSip = false;
 const KEPT: { ink: string; get: () => boolean | string; set: (value: unknown) => void }[] = [
   { ink: 'green_outfit', get: () => settings.outfit, set: (v) => (v === 'jumpsuit' || v === 'parka') && (settings.outfit = v) },
   { ink: 'green_jetpack', get: () => settings.wearingJetpack, set: (v) => typeof v === 'boolean' && (settings.wearingJetpack = v) },
@@ -918,10 +920,14 @@ async function start(): Promise<void> {
     // Her gadget (the binoculars, the scanner): out into her hands by its button, used by R1 (the binoculars raised to her eyes, a toggle; the scanner on while it's held); put away at once while her hands are taken.
     // No gadgets while she holds her coffee (owner, 2026-11-18): their buttons do nothing.
     const climbing = ladders?.climbing ?? false;
-    gadgets.update(dt, input.consumeGadget(), input.consumeGadgetUse(), input.gadgetUseHeld, !sitting && !climbing && !watching && !dialogue.active && !(coffee?.holding ?? false), character.model?.gadgetSeconds ?? 0);
+    const gadgetUse = input.consumeGadgetUse();
+    gadgets.update(dt, input.consumeGadget(), gadgetUse, input.gadgetUseHeld, !sitting && !climbing && !watching && !dialogue.active && !(coffee?.holding ?? false), character.model?.gadgetSeconds ?? 0);
     // Her coffee: a sip only on the ground, not climbing, seated or in a cutscene (talking is fine: owner, 2026-11-18).
     if (coffee) {
       const canSip = character.grounded && !character.flying && !character.parachuting && !sitting && !climbing && !watching;
+      // A sip on demand (owner, 2026-11-19): the right mouse button (R1's latch; no gadgets while she holds it). The pad's A: below, after the interaction.
+      if (gadgetUse) coffee.drink(canSip);
+      coffeeCanSip = canSip;
       coffee.update(dt, canSip, character.model?.coffeeSeconds ?? 0);
       if (character.model) {
         character.model.coffeeHeld = coffee.held;
@@ -992,7 +998,9 @@ async function start(): Promise<void> {
     const gadgetObject = character.model?.gadgetObject ?? null;
     const firstPerson = gadgets.firstPerson && !watching && gadgetObject !== null;
     const zoom = input.consumeZoom();
-    const lens = binocularView.update(dt, !watching && !dialogue.active ? gadgets.out : null, firstPerson, zoom.hold, zoom.steps, view.baseFov, input.lastDevice);
+    // Her coffee's "A to Drink" (owner, 2026-11-19): not while talking; on the pad not while A has a target to use (its prompt shows instead).
+    const drinkPrompt = (coffee?.canDrink(coffeeCanSip) ?? false) && !watching && !dialogue.active && !(input.lastDevice === 'gamepad' && (interaction?.target ?? null) !== null);
+    const lens = binocularView.update(dt, !watching && !dialogue.active ? gadgets.out : null, firstPerson, zoom.hold, zoom.steps, view.baseFov, input.lastDevice, drinkPrompt);
     // The zoom's motor: heard while the magnification moves, from its start each time; cut short when it stops.
     if (binocularView.moving !== zoomSound) {
       if (zoomSound !== 0) audio.stop(zoomSound > 0 ? 'sfx_binoculars_zoom_in' : 'sfx_binoculars_zoom_out', undefined, ZOOM_SOUND_FADE);
@@ -1067,6 +1075,8 @@ async function start(): Promise<void> {
     // while she talks, nor for a moment after.
     if (interaction) interaction.only = sitting ? getUp : null;
     interaction?.update(chest, character.facing, view.camera, input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling || firstPerson);
+    // The interact button with nothing to use: a sip of her coffee (owner, 2026-11-19).
+    if (pressed && coffee && (interaction?.target ?? null) === null && !talking && !dialogue.active && !dialogue.cooling) coffee.drink(coffeeCanSip);
     // The scanner aims at the closest of these (scanner pass 3): next frame's, from this frame's.
     if (character.model) character.model.scanTargets = interaction?.inReach ?? [];
     indoorLight = easeTo(indoorLight, inside ? 1 : 0, dt / 0.5);

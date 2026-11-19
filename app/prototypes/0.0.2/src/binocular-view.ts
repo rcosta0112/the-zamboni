@@ -5,12 +5,13 @@
 // sfx_binoculars_zoom_in while it moves in, the same reversed while it moves out; owner, 2026-11-16). The lens it gives the camera (`fov`). No overlay
 // (owner, 2026-11-16: removed). The prompt at the bottom right (owner, 2026-11-16): "R1 to Use" while
 // they're out; looking through them "R1 to Close" over "L1 / L2 to Zoom" (owner, 2026-11-16); the
-// last device's buttons, as icons. The scanner's (2026-11-16): "Hold R1 to Scan" while it's out.
+// last device's buttons, as icons. The scanner's (2026-11-16): "Hold R1 to Scan" while it's out. Her
+// coffee's (owner, 2026-11-19; coffee.ts): "A to Drink" (the right mouse button) while she holds it.
 
 import * as THREE from 'three/webgpu';
 import type { GadgetId } from './gadgets';
 import type { Device } from './input';
-import { mouseGlyph, shoulderGlyph } from './pad-glyph';
+import { mouseGlyph, padGlyph, shoulderGlyph } from './pad-glyph';
 import { settings } from './settings';
 
 /** One wheel notch: this factor on the magnification. */
@@ -21,15 +22,16 @@ const WHEEL_SOUND = 0.18;
 /** A mouse, the right button filled (use) or the wheel (zoom). */
 const mouse = mouseGlyph;
 
-/** What the corner shows: 'use' while they're out, 'zoom' while looking through them (with 'close' over it); 'scan' while the scanner is out. */
-type Prompt = 'use' | 'zoom' | 'scan' | null;
-type PromptRow = 'use' | 'close' | 'zoom' | 'scan';
+/** What the corner shows: 'use' while they're out, 'zoom' while looking through them (with 'close' over it); 'scan' while the scanner is out; 'drink' while she holds her coffee. */
+type Prompt = 'use' | 'zoom' | 'scan' | 'drink' | null;
+type PromptRow = 'use' | 'close' | 'zoom' | 'scan' | 'drink';
 /** Each prompt's glyphs (key boxes, or the mouse icon) and words (`before` them, if any), by device. */
 const PROMPTS: Record<PromptRow, Record<Device, { glyphs: string[]; words: string; before?: string }>> = {
   scan: { gamepad: { before: 'Hold', glyphs: [shoulderGlyph('R1')], words: 'to Scan' }, keyboard: { before: 'Hold', glyphs: [mouse('right')], words: 'to Scan' } },
   use: { gamepad: { glyphs: [shoulderGlyph('R1')], words: 'to Use' }, keyboard: { glyphs: [mouse('right')], words: 'to Use' } },
   close: { gamepad: { glyphs: [shoulderGlyph('R1')], words: 'to Close' }, keyboard: { glyphs: [mouse('right')], words: 'to Close' } },
   zoom: { gamepad: { glyphs: [shoulderGlyph('L1'), shoulderGlyph('L2')], words: 'to Zoom' }, keyboard: { glyphs: [mouse('wheel')], words: 'to Zoom' } },
+  drink: { gamepad: { glyphs: [padGlyph('right')], words: 'to Drink' }, keyboard: { glyphs: [mouse('right')], words: 'to Drink' } },
 };
 
 /** One prompt as a pill: its glyphs (two with a slash between: "L1 / L2 to Zoom"), then its words. */
@@ -69,9 +71,9 @@ export class BinocularView {
   /**
    * Called every rendered frame. `out`: the gadget out (the binoculars in her hands or up); `on`: looking
    * through them. `hold`: L1 minus L2 (-1..1); `steps`: the wheel's notches (up positive). Returns the
-   * lens for the camera (vertical degrees, from `baseFov`).
+   * lens for the camera (vertical degrees, from `baseFov`). `drink`: her coffee's prompt (no gadget out).
    */
-  update(dt: number, out: GadgetId | null, on: boolean, hold: number, steps: number, baseFov: number, device: Device): number {
+  update(dt: number, out: GadgetId | null, on: boolean, hold: number, steps: number, baseFov: number, device: Device, drink = false): number {
     const min = Math.max(1, settings.binocularZoomMin);
     const max = Math.max(min, settings.binocularZoomMax);
     if (on && !this.on) this.zoom = min; // each look starts at the widest
@@ -88,7 +90,7 @@ export class BinocularView {
       this.wheelWay = change > 1 ? 1 : -1;
     } else this.wheelLeft = on ? Math.max(0, this.wheelLeft - Math.max(0, dt)) : 0;
     this.moving = hold !== 0 && Math.abs(change - 1) > 1e-6 ? (change > 1 ? 1 : -1) : this.wheelLeft > 0 ? this.wheelWay : 0;
-    this.showPrompt(on ? 'zoom' : out === 'binoculars' ? 'use' : out === 'scanner' ? 'scan' : null, device);
+    this.showPrompt(on ? 'zoom' : out === 'binoculars' ? 'use' : out === 'scanner' ? 'scan' : drink ? 'drink' : null, device);
     const half = THREE.MathUtils.degToRad(baseFov / 2);
     return THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(half) / this.zoom));
   }
