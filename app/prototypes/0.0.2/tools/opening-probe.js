@@ -1,8 +1,8 @@
 // Cutscene 2, watched (the opening in the cockpit; owner, 2026-10-22). The game's own mode:
 //
-//     node tools/probe-01.mjs tools/opening-probe.js --game --query scene=0100 --shots .export/opening
+//     node tools/probe-01.mjs tools/opening-probe.js --game --query scene=0200 --shots .export/opening
 //
-// About 60 s. A new game: cutscene 1, skipped; then cutscene 2 plays by itself, nothing
+// About 60 s. A new game from 0200 (a skip in cutscene 1 now skips cutscene 2 too: skip-through-probe.js); cutscene 2 plays by itself, nothing
 // pressed: the wide shot of the cockpit first, alone for about 4 s (owner, 2026-10-26; 2 s longer, 2026-10-27), then each
 // line's speaker gets their camera, where the ship file has it (a screenshot per line), each line moves on by itself,
 // she doesn't move, the black bars are on; then its exterior shot (the ship leaves the picture); at its end the bars go, the save is written, and she gets
@@ -13,13 +13,7 @@ const results = [];
 const report = (ok, what, detail) => results.push(`${ok ? 'PASS' : 'FAIL'}  ${what}${detail ? `  (${detail})` : ''}`);
 const dialogue = w.__dialogue, character = w.__character;
 
-await until(() => w.__cutscene().playing, 5000);
-report(w.__cutscene().track?.id === 'cutscene-1', 'cutscene 1 after a new game');
-// Skipped by holding the left mouse button for 3 s (skip-prompt.ts).
-window.dispatchEvent(new MouseEvent('mousedown', { button: 0 }));
-await until(() => !w.__cutscene().playing, 5000);
-window.dispatchEvent(new MouseEvent('mouseup', { button: 0 }));
-await until(() => w.__watched()?.playing, 3000);
+await until(() => w.__watched()?.playing, 8000);
 const data = await (await fetch('/conversations/opening.json')).json();
 const THREE = w.__THREE;
 // Where the file's camera is, in the world (Blender (x, y, z) is the ship's (x, z, -y)).
@@ -40,7 +34,7 @@ const most = Math.max(...drifts), moved = most - Math.min(...drifts);
 report(moved > 0.01 && most < 1, 'the camera drifts as if held by hand, a little', `${moved.toFixed(3)}° over 2 s, at most ${most.toFixed(2)}° from the shot`);
 const started = await until(() => w.__watched()?.playing && dialogue.line, 4000);
 const held = (performance.now() - openedAt) / 1000;
-report(started && held > 3.7 && held < 4.6, 'cutscene 2 starts after cutscene 1, its first line after the wide shot', `held ${held.toFixed(1)} s`);
+report(started && held > 3.7 && held < 4.6, 'its first line after the wide shot', `held ${held.toFixed(1)} s`);
 const placed = [];
 const feet = character.position.clone();
 const seen = [];

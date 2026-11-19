@@ -158,9 +158,15 @@ async function start(): Promise<void> {
   const skipPrompt = new SkipPrompt(document.querySelector<HTMLElement>('#skip')!);
   let animatic: 'planet' | 'cutscene-1' | 'opening' | typeof OPENING_EXTERIOR | null = null; // the part last started
   const planetShot = animaticFrom === 'planet' ? new PlanetShot(document.querySelector<HTMLElement>('#title-card')!) : null;
+  // A skip anywhere in the animatic skips the rest of it too, on to chapter 1 (0300; owner, 2026-11-18): each later part
+  // started and skipped on the same frame (its end state, none of it drawn). A skip in cutscene 2 already did (no exterior shot).
+  let skipAll = false;
   const playOpening = () => {
     animatic = 'opening';
     void watched?.play('opening', view.camera.aspect).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not played:', err));
+    if (!skipAll || !watched?.playing) return;
+    watched.skip();
+    watched.update(view.camera.aspect, 0); // ended now: its onEnded (skipped: no exterior shot)
   };
 
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
@@ -711,6 +717,13 @@ async function start(): Promise<void> {
     animatic = 'cutscene-1';
     from.style.opacity = ''; // scene 0050's fade, set each frame, gives way to the class
     from.style.transition = '';
+    if (skipAll) {
+      const played = cutscene?.play('cutscene-1');
+      cutscene?.skip(); // loaded: started above, ended now (its onEnded: cutscene 2, skipped too)
+      void played?.then(() => cutscene?.track?.id === 'cutscene-1' && cutscene.skip()).catch(() => playOpening());
+      if (!cutscene) playOpening();
+      return;
+    }
     from.classList.add('on');
     black = { time: 0, smooth: 0, el: from };
     void cutscene?.play('cutscene-1').catch((err: unknown) => {
@@ -784,6 +797,7 @@ async function start(): Promise<void> {
     barsEl.classList.toggle('on', watching || black !== null); // kept through the cut from scene 0050's white
     // Any press shows "Hold X to skip" (with dialogue, only X itself); held long enough, it skips (skip-prompt.ts). What's pressed in play isn't a skip later.
     const skipping = skipPrompt.update(dt, watching, input.consumeSkip(), input.skipHeld, input.lastDevice, !(cutscene?.playing ?? false) && (watched?.playing ?? false));
+    if (skipping && (animatic === 'planet' || animatic === 'cutscene-1')) skipAll = true;
     if (inSpace) {
       if (skipping) planetShot!.skip();
       else planetShot!.update(dt, view.camera.aspect);
