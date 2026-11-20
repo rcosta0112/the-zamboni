@@ -23,7 +23,7 @@ const TOOLS: Record<string, Tool[]> = {
     { name: 'Synth', href: '/synth.html', about: 'Sounds made in code: the temple light’s patch.' },
     { name: 'Scanner synth', href: '/scanner-synth.html', about: 'The scanner’s sound: hold to play, as R1 in the game.' },
   ],
-  Cutscenes: [{ name: 'Shot editor', href: null, about: 'Flybys, landings, take-offs: pick seeds, save named shots (flight shots, pass 2).' }],
+  Cutscenes: [{ name: 'Shot editor', href: '/shot-editor.html', about: 'Flybys (landings and take-offs later): pick seeds, nudge, play in the game, save named shots.' }],
   'The game': [
     { name: 'New game', href: '/', about: 'From the start: the animatic, then chapter 1.' },
     { name: '0050 · Planet', href: '/?scene=0050', about: 'The animatic from the planet shot.' },

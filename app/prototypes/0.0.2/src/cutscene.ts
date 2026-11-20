@@ -231,6 +231,13 @@ export class CutscenePlayer {
     return track;
   }
 
+  /** Dev: plays a track handed over whole (the shot editor, flight-shots.md pass 2), kept under its id. */
+  playTrack(track: Track): Promise<void> {
+    track.events.sort((a, b) => a.t - b.t);
+    this.loaded.set(track.id, track);
+    return this.play(track.id);
+  }
+
   /** Starts it; on this frame if it was loaded (no frame of the game's camera before it). */
   async play(id: string): Promise<void> {
     const track = this.loaded.get(id) ?? (await this.load(id));

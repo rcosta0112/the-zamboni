@@ -10,9 +10,10 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
  * one ({ name, <item>: {...} }) under `<key>.<name>` and makes it the default. The pages fetch instead of
  * importing the file, so a save doesn't reload them. synth.html: /__synth/patches (src/synth/patches.json);
  * scanner-synth.html: /__synth/scanner (src/synth/scanner-patches.json);
- * planet.html: /__planet/presets (src/planet/presets.json).
+ * planet.html: /__planet/presets (src/planet/presets.json). shot-editor.html: /__shots (public/cutscenes/shots.json,
+ * the saved flight shots, read by the game too: flight-shots.md; no default).
  */
-function savedPresets(route: string, path: string, key: string, item: string): Plugin {
+function savedPresets(route: string, path: string, key: string, item: string, makeDefault = true): Plugin {
   const file = new URL(path, import.meta.url);
   return {
     name: `zamboni-presets${route.replaceAll('/', '-')}`,
@@ -34,7 +35,7 @@ function savedPresets(route: string, path: string, key: string, item: string): P
             if (typeof name !== 'string' || !name.trim() || name.length > 60 || typeof value !== 'object' || !value) throw new Error(`bad ${item}`);
             const data = JSON.parse(readFileSync(file, 'utf8'));
             data[key][name.trim()] = value;
-            data.default = name.trim();
+            if (makeDefault) data.default = name.trim();
             writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
             reply(200, JSON.stringify(data));
           } catch (err) {
@@ -53,6 +54,7 @@ export default defineConfig({
     savedPresets('/__synth/patches', './src/synth/patches.json', 'patches', 'patch'),
     savedPresets('/__synth/scanner', './src/synth/scanner-patches.json', 'patches', 'patch'),
     savedPresets('/__planet/presets', './src/planet/presets.json', 'presets', 'preset'),
+    savedPresets('/__shots', './public/cutscenes/shots.json', 'shots', 'shot', false),
   ],
   // Game files, fonts and UI images: this version's own, in public/ (Vite's default), served at the root.
   define: { __VERSION__: JSON.stringify(version) },

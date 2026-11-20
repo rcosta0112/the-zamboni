@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shot editor · 0.0.2</title>
+    <link rel="icon" href="data:," />
+    <!-- Dev only, as tools.html: not a build input; src/flight-shots/editor-page.ts refuses outside the dev server. -->
+    <style>
+      body { margin: 0; background: #14161a; color: #d8dbe0; font: 13px/1.45 system-ui, sans-serif; }
+      a.back { position: fixed; left: 12px; top: 8px; z-index: 10; color: #9aa0a8; font-size: 12px; text-decoration: none; }
+      .page { display: grid; grid-template-columns: 22rem 1fr; gap: 1.2rem; padding: 2rem 1.2rem 1rem; }
+      h1 { font-size: 1.15rem; margin: 0 0 0.2rem; }
+      h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9aa0a8; margin: 1.1rem 0 0.35rem; }
+      p, small { color: #9aa0a8; }
+      p { margin: 0 0 0.6rem; }
+      button { font: inherit; padding: 0.3rem 0.8rem; border: 0; border-radius: 4px; background: #2a2e35; color: #d8dbe0; cursor: pointer; }
+      button.main { background: #e0a040; color: #14161a; }
+      button:disabled { opacity: 0.4; cursor: default; }
+      input, select { font: inherit; background: #1e2127; color: #d8dbe0; border: 1px solid #343941; border-radius: 3px; padding: 0.15rem 0.3rem; }
+      input[type='number'] { width: 5.2rem; }
+      .seed { display: flex; gap: 0.4rem; align-items: center; }
+      .seed input { width: 7rem; }
+      table { border-collapse: collapse; width: 100%; }
+      td { padding: 0.1rem 0.3rem 0.1rem 0; vertical-align: middle; }
+      td:first-child { color: #9aa0a8; width: 7.5rem; }
+      td.now { color: #6b717a; font-size: 12px; }
+      .nudged td:first-child { color: #e0a040; }
+      .problems { color: #ff8a6b; }
+      .ok { color: #7fc27f; }
+      .warn { color: #e0c040; }
+      .buckets span { display: inline-block; background: #22262d; border-radius: 3px; padding: 0 0.35rem; margin: 0 0.25rem 0.25rem 0; }
+      .row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+      .saved div { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.15rem 0.3rem; border-radius: 3px; cursor: pointer; }
+      .saved div:hover, .saved div.on { background: #22262d; }
+      .view { display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+      .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 4px; overflow: hidden; }
+      .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+      .below { display: flex; gap: 0.8rem; align-items: flex-start; }
+      .strip { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+      .thumb { flex: 0 0 auto; background: #1b1e23; border: 2px solid transparent; border-radius: 4px; cursor: pointer; text-align: center; padding: 0.15rem; }
+      .thumb.on { border-color: #e0a040; }
+      .thumb small { display: block; }
+      .plan { background: #1b1e23; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <a class="back" href="/tools.html">← Tools</a>
+    <div class="page">
+      <section id="side">
+        <h1>Shot editor</h1>
+        <p>Flybys: the ship flies straight on, the camera orbits it. Pick a seed, nudge its values, play it in the game on the right, save it under a name. Plan: flight-shots.md, pass 2.</p>
+      </section>
+      <section class="view" id="view"></section>
+    </div>
+    <script type="module" src="/src/flight-shots/editor-page.ts"></script>
+  </body>
+</html>
