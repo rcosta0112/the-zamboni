@@ -166,7 +166,7 @@ Kaufman: [Placeholder] Dr. Kaufman's one-liner.
 === talk_ogawa ===
 { talk_ogawa > 1: -> again }
 Green: Can you tell what that signal is?
-Ogawa: It’s not a beacon or a communication signal as far as I can tell.
+Ogawa: It’s not a communication signal as far as I can tell.
 Ogawa: It’s pretty similar to the signature of a portal, but it’s a lot fainter.
 Ogawa: There are some gaps in the spectrum I can’t account for.
 Green: Care to speculate?
@@ -178,4 +178,13 @@ Ogawa: Dr. Kaufman would love that for sure.
 -> DONE
 = again
 Ogawa: [Placeholder] Dr. Ogawa's one-liner.
+-> DONE
+
+// The viewport closed (the script's "If Dr. Green closes the viewport"; owner, 2026-11-20): every
+// time she closes it in chapter 1, once it's shut; it opens again when the lines are over (the
+// scene's `whenClosed`, public/scenes/chapter-1.json). "Sorry" as written (no full stop).
+=== viewport_closed ===
+Ogawa: Dr. Green, can you please open the viewport?
+Ogawa: I'm running the signal array at the moment.
+Green: Sorry
 -> DONE

@@ -13,6 +13,8 @@
 // `sitDown` (offered as *Sit down* while she stands) as she sits back down: chapter 1's goes to
 // `whats-that` (the `scene` command), whose `intro` cutscene (the flyby, 0400) plays from its first frame,
 // then its `begin` the conversation (0500), then the landed scene with its intro (the landing, 0600).
+// `whenClosed` (when-closed.ts): each time a door is closed, commands, then more once the conversation
+// ends (chapter 1: the viewport closed, Dr. Ogawa asks for it open, it opens again).
 // Dev builds: `?scene=<id>` in the address starts a new game from another point (main.ts `ASKED`);
 // `__director().start('<id>')`. With `?test` the checks' scenes are read first (their `landed` is the
 // ship as the checks were written for: her outside, the ramp open, the flat ground).
@@ -22,6 +24,7 @@
 import * as THREE from 'three/webgpu';
 import { run, fromBlender, type Command, type CommandTarget } from './commands';
 import { Placement } from './crew';
+import type { WhenClosed } from './when-closed';
 import { Door } from './doors';
 import type { LandmarkPlace } from './landmarks';
 import { settings } from './settings';
@@ -45,6 +48,8 @@ export interface SceneData {
   getUp?: Command[];
   /** Offered as *Sit down* at her seat while she stands, run as she sits (she's seated first). Without it, the seat's own knot. */
   sitDown?: Command[];
+  /** Each time a door is closed, what to do, then what once the conversation it starts ends (when-closed.ts; chapter 1: the viewport, Dr. Ogawa). */
+  whenClosed?: WhenClosed[];
   /** A cutscene played from the scene's first frame when the `scene` command starts it (not under the start screen, from a save or `?scene=`). */
   intro?: string;
 }

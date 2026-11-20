@@ -15,5 +15,16 @@
   ],
   "begin": [{ "do": "watch", "id": "chapter-1-start" }],
   "getUp": [{ "do": "story", "knot": "got_up" }],
-  "sitDown": [{ "do": "scene", "id": "whats-that" }]
+  "sitDown": [{ "do": "scene", "id": "whats-that" }],
+  "whenClosed": [
+    {
+      "id": "engineering-window-left",
+      "do": [{ "do": "story", "knot": "viewport_closed" }],
+      "then": [
+        { "do": "set", "id": "engineering-window-left", "state": "open" },
+        { "do": "set", "id": "engineering-window-right", "state": "open" },
+        { "do": "set", "id": "engineering-window-lever-handle", "state": "open" }
+      ]
+    }
+  ]
 }

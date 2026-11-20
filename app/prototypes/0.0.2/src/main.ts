@@ -38,6 +38,7 @@ import { readSave, clearSave, writeSave, type SaveData } from './save';
 import { FIRST_SCENE, SceneDirector, TEST_SCENE } from './scenes';
 import { GameStory } from './story';
 import { WatchedConversation } from './watched';
+import { ClosedWatch } from './when-closed';
 import { SkipPrompt } from './skip-prompt';
 import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, placeGear, SHADOW_LAYER, updateShip, type Ship } from './ship';
 import { settings } from './settings';
@@ -215,6 +216,8 @@ async function start(): Promise<void> {
   const inkSeen: Record<string, unknown> = {}; // KEPT's Ink variables as last seen
   let doorSounds: (() => void) | null = null;
   let director: SceneDirector | null = null;
+  /** The scene's `whenClosed` (chapter 1: the viewport closed, Dr. Ogawa). */
+  let closedWatch: ClosedWatch | null = null;
   let story: GameStory | null = null;
   let cutscene: CutscenePlayer | null = null;
   let treadmill: Treadmill | null = null; // the scenery going by while the ship flies
@@ -354,6 +357,7 @@ async function start(): Promise<void> {
         },
         TESTING,
       );
+      closedWatch = new ClosedWatch(s.entities, (command) => run(command, target));
       if (seat) {
         let seatCentre: THREE.Vector3 | null = null;
         const chestBox = new THREE.Box3();
@@ -1062,6 +1066,8 @@ async function start(): Promise<void> {
     const step = input.consumeChoiceStep();
     dialogue.update(dt, talking && input.consumeAdvance(), talking ? step : 0, input.lastDevice);
     helpEl.hidden = dialogue.active || watching || firstPerson; // it sits where the box and the skip prompt go
+    // A door closed that the scene minds (chapter 1: the viewport; Dr. Ogawa asks for it open, then it opens).
+    closedWatch?.update(director?.data?.whenClosed, dialogue.active);
     // Interaction: the target nearest the screen centre within her reach; E / A uses it.
     const pressed = input.consumeInteract();
     // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor

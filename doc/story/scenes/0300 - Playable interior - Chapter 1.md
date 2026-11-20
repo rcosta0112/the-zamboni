@@ -42,27 +42,28 @@ Oh boy.
 
 *Dr. Ogawa is sitting on the signal processing station.*
 
-**Green**\
+**Green**
 Can you tell what that signal is?
 
-**Ogawa**\
-It’s not a beacon or a communication signal as far as I can tell.\
+**Ogawa**
+It’s not a communication signal as far as I can tell.
 It’s pretty similar to the signature of a portal, but it’s a lot fainter.
 There are some gaps in the spectrum I can’t account for.
 
-**Green**\
+**Green**
 Care to speculate?
 
-**Ogawa**\
+**Ogawa**
 ...
 We don't have enough information.
 It could be another portal. It could be something else entirely.  
 
-**Green**\
+**Green**
 It could be a giant penguin.
 
 **Ogawa**\
 Dr. Kaufman would love that for sure.
+
 
 If Dr. Green closes the viewport:
 
@@ -102,10 +103,10 @@ Do you think we'll find another portal?
 
 Adam
 Ask Dr. Ogawa.
-He's the one that has memorized all the frequencies and patterns.
+He knows all the frequencies and patterns.
 
 Green
-I thought you knew all that stuff too.
+I thought you knew that stuff too.
 
 Adam
 Not enough room on these shells for all that data.
