@@ -10,8 +10,9 @@
 // `ship_flying` set and the ship's noise on; the scenery going by (`onTravel`: terrain.ts).
 // **Landed on a terrain** (`ground`, 2026-11-06): the travel terrain shown stopped at a spot, the ship
 // on it (terrain.ts `park`). **Her seat** (chapter 1, owner 2026-11-06): `getUp` runs as she gets up,
-// `sitDown` (offered as *Sit down* while she stands) as she sits back down: chapter 1's goes to the
-// landed scene (the `scene` command), whose `intro` cutscene plays from its first frame.
+// `sitDown` (offered as *Sit down* while she stands) as she sits back down: chapter 1's goes to
+// `whats-that` (the `scene` command), whose `intro` cutscene (the flyby, 0400) plays from its first frame,
+// then its `begin` the conversation (0500), then the landed scene with its intro (the landing, 0600).
 // Dev builds: `?scene=<id>` in the address starts a new game from another point (main.ts `ASKED`);
 // `__director().start('<id>')`. With `?test` the checks' scenes are read first (their `landed` is the
 // ship as the checks were written for: her outside, the ramp open, the flat ground).
@@ -46,13 +47,6 @@ export interface SceneData {
   sitDown?: Command[];
   /** A cutscene played from the scene's first frame when the `scene` command starts it (not under the start screen, from a save or `?scene=`). */
   intro?: string;
-  /**
-   * A watched conversation (`public/conversations/<id>.json`, watched.ts) played when the `scene` command
-   * starts this scene, before it: still in the scene that's ending (its terrain going by), the scene and its
-   * `intro` after it (owner, 2026-11-07: the landed scene's, before the landing shot). Skipped, the scene
-   * starts without its intro (as cutscene 2's skip skips its exterior shot).
-   */
-  before?: string;
 }
 
 /** A new game's first scene. */
@@ -142,11 +136,6 @@ export class SceneDirector {
     this.data = scene;
     console.info(`[0.0.2] scene: ${id}`);
     this.onStarted?.(id);
-  }
-
-  /** The scene's `begin` dropped, never run (main.ts: `?scene=0500` goes on from chapter 1 at once). */
-  dropBegin(): void {
-    this.begin = [];
   }
 
   /** The scene's `begin`, once (main.ts: each frame the player has control). */

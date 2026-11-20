@@ -1,6 +1,6 @@
 # Scene 0500 (*What's that?*) as a scene of its own, after the flyby (0400)
 
-**Status:** draft 2026-11-10, for review. **Waiting on 0400** (the flyby, being built in another session, owner 2026-11-10): built once it's done.
+**Status:** built 2026-11-20 with the flyby ([its plan](flyby-0400.md), *As built*). Skipping the conversation still skips the landing (as before, not step 6's wording).
 
 ## Goal
 

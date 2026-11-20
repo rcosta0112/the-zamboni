@@ -198,9 +198,10 @@ const again = await lineOf();
 report(again === "That's enough coffee for now. Better get back to work." && coffee.state === 'sink', 'the pot again: her line', again);
 await endLines();
 
-// Sit down: on to the landed scene.
+// Sit down: on to the landed scene (the flyby skipped, then the conversation, then the landing).
 item('Sit down')?.act();
 for (let i = 0; i < 600 && !(w.__director().current === 'landed' && !w.__cutscene().playing && !w.__watched()?.playing); i++) {
+  if (w.__cutscene().playing && w.__cutscene().track?.id === 'flyby') w.__cutscene().skip();
   if (dialogue.line) dialogue.end();
   await wait(100);
 }

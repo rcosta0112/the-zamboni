@@ -32,8 +32,9 @@ export type Command = (
   | { do: 'story'; knot: string }
   /** Play a cutscene (cutscene.ts), by its track's id. */
   | { do: 'cutscene'; id: string }
-  /** Play a watched conversation (watched.ts), by its id in `public/conversations/`: chapter 1's first lines. */
-  | { do: 'watch'; id: string }
+  /** Play a watched conversation (watched.ts), by its id in `public/conversations/`: chapter 1's first lines.
+   *  `then`: a scene started at its end, as the `scene` command does (skipped: without its intro; 0500 → the landed scene). */
+  | { do: 'watch'; id: string; then?: string }
   /** Dress her: the jumpsuit or the parka. */
   | { do: 'outfit'; set: Outfit }
   /** Start a scene (scenes.ts), by its id: its `intro` cutscene plays from its first frame. */
@@ -65,7 +66,7 @@ export interface CommandTarget {
   /** Plays a cutscene by id. */
   cutscene: (id: string) => void;
   /** Plays a watched conversation by id. */
-  watch: (id: string) => void;
+  watch: (id: string, then?: string) => void;
   /** Starts a scene by id (main.ts: with its intro). */
   scene: (id: string) => void;
 }
@@ -122,7 +123,7 @@ export function run(command: Command, target: CommandTarget): void {
       target.cutscene(command.id);
       return;
     case 'watch':
-      target.watch(command.id);
+      target.watch(command.id, command.then);
       return;
     case 'scene':
       target.scene(command.id);

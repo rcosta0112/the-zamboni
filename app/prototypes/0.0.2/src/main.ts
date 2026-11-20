@@ -113,15 +113,15 @@ const TESTING = import.meta.env.DEV && new URLSearchParams(location.search).has(
 const ASKED_RAW = import.meta.env.DEV ? new URLSearchParams(location.search).get('scene') : null;
 /**
  * The script's scene numbers (doc/story/scenes, `NNNN - Type - Description.md`) → the point they start.
- * 0400 (the flyby) isn't in the game. 0500 (`whats-that`): chapter 1, then at once its way to the landed
- * scene (cutscene 3, the landing, the landed scene). 0600 (`landing`): the landed scene, its intro (the
+ * 0400 (`flyby`): the `whats-that` scene, its intro (the flyby) played from the start. 0500: the
+ * `whats-that` scene, the conversation at once. 0600 (`landing`): the landed scene, its intro (the
  * landing cutscene) played from the start (owner, 2026-11-10: every number goes to its scene).
  */
-const SCENE_NUMBERS: Record<string, string> = { '0050': 'planet', '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0500': 'whats-that', '0600': 'landing', '0700': 'landed' };
+const SCENE_NUMBERS: Record<string, string> = { '0050': 'planet', '0100': 'cutscene-1', '0200': 'opening', '0300': 'chapter-1', '0400': 'flyby', '0500': 'whats-that', '0600': 'landing', '0700': 'landed' };
 /** `?scene=landing` (0600): the landed scene, its landing cutscene played as a new game begins. */
 const LANDING = 'landing';
-/** `?scene=whats-that` (0500): chapter 1, then the landed scene started as *Sit down* does (cutscene 3 first). */
-const WHATS_THAT = 'whats-that';
+/** `?scene=flyby` (0400): the `whats-that` scene, its flyby played as a new game begins. */
+const FLYBY = 'flyby';
 const ASKED = ASKED_RAW ? (SCENE_NUMBERS[ASKED_RAW] ?? ASKED_RAW) : null;
 /** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
 const SAVING = TESTING;
@@ -129,7 +129,7 @@ const SAVING = TESTING;
 const ANIMATIC_STEPS = ['planet', 'cutscene-1', 'opening'];
 /** Cutscene 2's last shot, outside: the ship changing course (a track, as cutscene 1; owner, 2026-10-28). */
 const OPENING_EXTERIOR = 'cutscene-2-exterior';
-const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED === LANDING ? 'landed' : ASKED === WHATS_THAT ? 'chapter-1' : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
+const firstScene = ASKED ? (ANIMATIC_STEPS.includes(ASKED) ? FIRST_SCENE : ASKED === LANDING ? 'landed' : ASKED === FLYBY ? 'whats-that' : ASKED) : TESTING ? TEST_SCENE : FIRST_SCENE;
 /** What a new game plays before its first scene: the whole animatic (from the planet), from cutscene 1, cutscene 2 only, or nothing. */
 const animaticFrom: 'planet' | 'cutscene-1' | 'opening' | null =
   ASKED === 'opening' ? 'opening' : ASKED === 'cutscene-1' ? 'cutscene-1' : ASKED === 'planet' ? 'planet' : TESTING || ASKED ? null : 'planet';
@@ -226,7 +226,7 @@ async function start(): Promise<void> {
   const clouds = new Clouds(scene); // on the ground in the landing cutscene
   let exterior: ExteriorLook | null = null; // the hull's outside lit by the outside, in exterior cutscenes
   let watched: WatchedConversation | null = null; // cutscene 2: a conversation the player watches
-  let afterWatched: ((skipped: boolean) => void) | null = null; // what a scene's `before` conversation starts at its end (goTo)
+  let afterWatched: ((skipped: boolean) => void) | null = null; // what a watched conversation starts at its end (a `watch` command's `then` scene)
   let saved: SaveData | null = null; // the checkpoint save read at load: *Continue*
   let shown: StartChoice = 'new'; // what the scene under the start screen is: a new game's, or the save's
   let loaded = false; // the models, the ship and its shaders (or they failed: the game starts anyway)
@@ -285,9 +285,9 @@ async function start(): Promise<void> {
         cutscene: (id) => void cutscene?.play(id).catch((err: unknown) => console.warn('[0.0.2] cutscene not played:', err)),
         // A watched conversation from a scene's commands (chapter 1's first lines): nothing after it (not cutscene 2's
         // exterior shot, even with `animatic` still 'opening' after cutscene 2 was skipped).
-        watch: (id) => {
+        watch: (id, then) => {
           if (!watched) return console.warn(`[0.0.2] conversation ${id} not played: no story`);
-          afterWatched = () => {};
+          afterWatched = then ? (skipped) => void goTo(then, !skipped).catch((err: unknown) => console.warn(`[0.0.2] scene ${then} not started:`, err)) : () => {};
           void watched.play(id, view.camera.aspect).catch((err: unknown) => {
             console.warn(`[0.0.2] conversation ${id} not played:`, err);
             afterWatched = null;
@@ -329,6 +329,8 @@ async function start(): Promise<void> {
       if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
       await watched?.load('chapter-1-start').catch((err: unknown) => console.warn('[0.0.2] chapter 1 start not loaded:', err)); // so it starts on its frame
       if (ASKED === LANDING) await cutscene.load(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not loaded:', err));
+      if (ASKED === FLYBY) await cutscene.load(FLYBY).catch((err: unknown) => console.warn('[0.0.2] flyby not loaded:', err));
+      if (firstScene === 'whats-that') await watched?.load('whats-that').catch((err: unknown) => console.warn('[0.0.2] whats-that not loaded:', err));
       if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
       const seat = s.entities.get('cockpit-seat-pilot')?.object ?? null;
@@ -566,26 +568,18 @@ async function start(): Promise<void> {
   const stepChest = new THREE.Vector3();
 
   /**
-   * A scene started by the `scene` command (chapter 1's *Sit down*): it and its `intro` cutscene
-   * fetched first, then both on the same frame, so the old scene's state is never drawn under it.
+   * A scene started by the `scene` command (chapter 1's *Sit down*; a `watch` command's `then`): it, its
+   * `intro` cutscene and the conversations its `begin` watches fetched first, then the scene and its intro
+   * on the same frame, so the old scene's state is never drawn under it. `withIntro` false: no intro (the
+   * conversation before it was skipped, as cutscene 2's skip skips its exterior shot).
    */
-  async function goTo(id: string): Promise<void> {
+  async function goTo(id: string, withIntro = true): Promise<void> {
     if (!director) return;
     const data = await director.load(id);
-    if (data.intro) await cutscene?.load(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not loaded:`, err));
-    const start = (withIntro: boolean) => {
-      director?.apply(id, data);
-      if (data.intro && withIntro) void cutscene?.play(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not played:`, err));
-    };
-    // Its `before` conversation first, in the scene that's ending; the scene at its end (without the intro if skipped).
-    const before = data.before && watched ? await watched.load(data.before).then(() => data.before, (err: unknown) => console.warn(`[0.0.2] conversation ${data.before} not loaded:`, err)) : undefined;
-    if (!before || !watched) return start(true);
-    afterWatched = (skipped) => start(!skipped);
-    void watched.play(before, view.camera.aspect).catch((err: unknown) => {
-      console.warn(`[0.0.2] conversation ${before} not played:`, err);
-      afterWatched = null;
-      start(true);
-    });
+    if (data.intro && withIntro) await cutscene?.load(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not loaded:`, err));
+    for (const command of data.begin ?? []) if (command.do === 'watch') await watched?.load(command.id).catch((err: unknown) => console.warn(`[0.0.2] conversation ${command.id} not loaded:`, err));
+    director.apply(id, data);
+    if (data.intro && withIntro) void cutscene?.play(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not played:`, err));
   }
 
   /** Her feet there (world), facing `yaw`, the camera behind her: a scene's start, her seat, getting up. */
@@ -698,10 +692,9 @@ async function start(): Promise<void> {
     } else if (choice === 'new' && ASKED === LANDING) {
       input.consumeSkip();
       void cutscene?.play(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not played:', err));
-    } else if (choice === 'new' && ASKED === WHATS_THAT) {
+    } else if (choice === 'new' && ASKED === FLYBY) {
       input.consumeSkip();
-      director?.dropBegin(); // not chapter 1's first line: its end at once
-      void goTo('landed').catch((err: unknown) => console.warn('[0.0.2] landed scene not started:', err));
+      void cutscene?.play(FLYBY).catch((err: unknown) => console.warn('[0.0.2] flyby not played:', err));
     }
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));

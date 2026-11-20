@@ -15,5 +15,5 @@
   ],
   "begin": [{ "do": "watch", "id": "chapter-1-start" }],
   "getUp": [{ "do": "story", "knot": "got_up" }],
-  "sitDown": [{ "do": "scene", "id": "landed" }]
+  "sitDown": [{ "do": "scene", "id": "whats-that" }]
 }

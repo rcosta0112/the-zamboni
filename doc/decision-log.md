@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-20 | 0500 its own scene; the flyby (0400) an orbit | story structure | *Sit down* plays the flyby (the `whats-that` scene's intro: 0100's middle frame orbited 90° left to right), then the conversation, then the landed scene (a `watch` command's `then`); the landed scene's `before` gone |
 | 2026-11-18 | Mouse: the left button interacts, the right held skips | input | Left click interacts and moves the dialogue on (only with the mouse captured); holding the right button skips a cutscene (the left before); E gone (dev builds keep it for the scripts); mouse icons in the prompts |
 | 2026-11-18 | The coffee: one cup, walking only, no gadgets, the sink | design | Pour at the pot (no animation), sip at random every 5–10 s (talking too), no gadgets while holding (running allowed since the same day's update); the sink ends it; one coffee; her seat wants one first; replaces the flying scene's pass 3 where it differs |
 | 2026-11-18 | Optimisation never changes the game; the old see-through rules mode may go | tech | Optimisation (SC-180) must not change how the game looks or works; the unused per-object see-through rules mode doesn't count, so merging static meshes per room may break it |
@@ -74,6 +75,14 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
 
 ---
+
+## [2026-11-20] — 0500 its own scene; the flyby (0400) an orbit (story structure)
+
+**Context:** the script's order puts the flyby (0400, an exterior cutscene) between chapter 1 and *What's that?* (0500), but 0500 was the landed scene's `before`, played on chapter 1's state, so nothing could go between. 0400 had no shots (its file: a duplicate of cutscene 1 for now).
+**Decision:** a `whats-that` scene (in flight, all seated): its `intro` the flyby, its `begin` the conversation, whose end starts the landed scene (the `watch` command's `then`; skipped, without the landing). Chapter 1's *Sit down* goes to it; the landed scene's `before` and the `?scene=0500` workaround go. **The flyby's camera** (owner, 2026-11-20): 0100's middle frame as its middle frame, orbiting the ship left to right, 90° in all, written by script from cutscene 1's data.
+**Alternatives:** keep `before` and chain a second conversation hook (two ways to do one thing); cutscene 1 replayed as is (the scene file's placeholder; the owner chose the orbit); a new animation in Blender (later, the owner's).
+**Rationale:** one route (scene → intro → begin → next scene) for every scene; the orbit reuses 0100's look, height and sway, so it costs one small script.
+**Status:** built 2026-11-20 ([plan](plans/features/flyby-0400.md)); the owner's look pending.
 
 ## [2026-11-18] — Mouse: the left button interacts, the right held skips (input)
 
