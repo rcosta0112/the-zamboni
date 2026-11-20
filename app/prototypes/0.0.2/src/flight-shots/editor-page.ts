@@ -134,9 +134,21 @@ const playBtn = el('button', playRow, 'Play', 'main');
 const stopBtn = el('button', playRow, 'Pause');
 const restartBtn = el('button', playRow, 'From the start');
 const timeNote = el('small', playRow, '');
+// The rule-of-thirds grid over the picture (owner, 2026-11-20: subtle), on or off, remembered.
+const gridLabel = el('label', playRow);
+const gridBox = el('input', gridLabel);
+gridBox.type = 'checkbox';
+el('span', gridLabel, 'Thirds');
 const gameNote = el('small', playRow, 'Loading the preview…');
 const frameBox = el('div', view, undefined, 'frame');
 const canvas = el('canvas', frameBox);
+el('div', frameBox, undefined, 'thirds');
+gridBox.checked = localStorage.getItem('shot-editor.thirds') === '1';
+frameBox.classList.toggle('grid', gridBox.checked);
+gridBox.addEventListener('change', () => {
+  frameBox.classList.toggle('grid', gridBox.checked);
+  localStorage.setItem('shot-editor.thirds', gridBox.checked ? '1' : '0');
+});
 // The shot's progress, under it.
 const bar = el('div', view, undefined, 'progress');
 const barFill = el('div', bar);

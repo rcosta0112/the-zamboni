@@ -2,7 +2,8 @@
  * The shot editor's preview (flight-shots.md, pass 2; owner, 2026-11-20: "no need to load the game in the
  * editor, just the assets needed for the shot; the shot plays in a loop"). For framing and the camera's
  * movement only: the ship (its outside lit as the exterior shots light it: exterior.ts), the sky, haze and
- * sun (world.ts), the flight's scenery (terrain.ts's treadmill), the thrusters' flames, the gear raised.
+ * sun (world.ts), the flight's scenery (terrain.ts's treadmill), the thrusters' flames, the gear raised,
+ * the cargo ramp closed.
  * No crew, her, story, sound, start screen or skip: the track loops (its time wrapped, never ended).
  */
 
@@ -50,6 +51,7 @@ export class ShotPreview {
     const physics = await Physics.create({ radius: 0.28, halfHeight: 0.5 }, new THREE.Vector3(0, -100, 0));
     const ship = await loadShip(scene, physics);
     world.sun.shadow.camera.layers.enable(SHADOW_LAYER);
+    settings.cargoRampOpen = false; // in flight: the ramp closed (owner, 2026-11-20)
     updateShip(ship, 0, true);
     placeGear(ship);
     setSingleSided(settings.singleSided);
