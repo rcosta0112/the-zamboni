@@ -4,7 +4,7 @@
 // Run from the prototype folder: `node --experimental-strip-types tools/flight-shots-check.mjs`.
 
 import { readFileSync } from 'node:fs';
-import { checkFlyby, flybyBuckets, flybyTrack, flybyValues, generateFlyby } from '../src/flight-shots/flyby.ts';
+import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, flybyValues, generateFlyby, inPicture, sizeClass, sizeOnScreen, SHIP_CENTRE } from '../src/flight-shots/flyby.ts';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const c1 = read('../public/cutscenes/cutscene-1.json');
@@ -69,6 +69,27 @@ for (let seed = 1; seed <= N; seed++) {
   rerolls += g.rerolls;
 }
 report(usable === N, `${N} seeds: ${atOnce} pass at once, ${usable} after re-rolls (${(rerolls / N).toFixed(2)} re-rolls each on average); failures: ${JSON.stringify(reasons)}`);
+
+// 4. Pass 2b's framing, over the usable shots: the lead room (the ship behind its travel on screen, at the
+// start and the end, where it isn't centred), the sizes drawn, the size on screen against its target.
+const nose = [0, -1, 0];
+let leads = 0, against = 0, centred = 0, worstSize = 0;
+const sizes = { wide: 0, medium: 0, close: 0 };
+for (let seed = 1; seed <= N; seed++) {
+  const { values } = generateFlyby(seed);
+  sizes[sizeClass(values.size)]++;
+  worstSize = Math.max(worstSize, Math.abs(sizeOnScreen(flybyCamera(values, 0.5), 16 / 9) / values.size - 1));
+  for (const s of [0, 1]) {
+    const c = flybyCamera(values, s);
+    const p = inPicture(c, SHIP_CENTRE, 16 / 9);
+    const q = inPicture(c, [SHIP_CENTRE[0] + nose[0] * 5, SHIP_CENTRE[1] + nose[1] * 5, SHIP_CENTRE[2]], 16 / 9);
+    if (Math.abs(p[0]) < 0.1) centred++;
+    else if (Math.sign(q[0] - p[0]) === -Math.sign(p[0])) leads++;
+    else against++;
+  }
+}
+report(against <= N * 0.02, `lead room at the ends (${2 * N}): ${leads} behind the travel, ${centred} centred, ${against} against it`);
+report(worstSize < 0.15, `the size on screen at the middle within ${(worstSize * 100).toFixed(1)}% of its target; sizes drawn (usable): ${JSON.stringify(sizes)}`);
 const sample = generateFlyby(7);
 console.log(`seed 7: ${JSON.stringify(sample.values)} ${JSON.stringify(flybyBuckets(sample.values, 0))}`);
 

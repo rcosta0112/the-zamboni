@@ -17,6 +17,12 @@ import type { CameraKey, ShipKey, Track } from '../cutscene';
 
 /** The ship's centre (its bounding box, measured in the game), ship space: what the camera aims at. */
 export const SHIP_CENTRE: readonly [number, number, number] = [0.03, 2.66, 3.24];
+/** The ship's box (its meshes, the gear raised; measured in the shot editor's preview, `ShotPreview.shipBox`),
+ *  ship space, min and max: the size on screen and the in-frame check. The nose at -Y. */
+export const SHIP_BOX: readonly [readonly [number, number, number], readonly [number, number, number]] = [
+  [-5.68, -5.15, 0.69],
+  [5.68, 10.48, 6.49],
+];
 /** The ship's nose, as a bearing in ship space (degrees from +X toward +Y): -Y. */
 export const NOSE_BEARING = -90;
 
@@ -31,10 +37,11 @@ export interface FlybyValues {
   distance: [number, number];
   /** Its height, ship space (the belly at 0, the ground about -14 in flight: `settings.flightHeight`). */
   height: number;
-  /** The view turned off the line to the ship's origin (degrees; negative: the ship sits right of the
-   *  middle, positive: left). Held all through, as the camera turns with its bearing. */
-  yaw: number;
-  /** The view tipped off the ship's centre (degrees; positive: the ship sits lower in the frame). */
+  /** The view turned off the line to the ship's origin (degrees; positive: the ship sits right of the
+   *  middle, negative: left), at the start and the end (eased between, with the bearing); a single number:
+   *  held all through (0400). The generator works it out from a screen position (pass 2b: lead room). */
+  yaw: number | [number, number];
+  /** The view tipped off the ship's centre (degrees; positive: the ship sits higher in the frame). */
   pitch: number;
   /** Vertical field of view. */
   fov: number;
@@ -44,7 +51,13 @@ export interface FlybyValues {
   pace: 'even' | 'eased';
   /** Seconds into the sway's keys (cutscene 1's) where this shot's sway starts. */
   swayStart: number;
+  /** The ship's width on screen the generator aimed at, a share of the frame's width at the shot's middle
+   *  (pass 2b; information only: the distance makes it). */
+  size?: number;
 }
+
+/** How big the ship is on screen: its width as a share of the frame's width. */
+export type SizeClass = 'wide' | 'medium' | 'close';
 
 /** A [min, max] range. */
 export type Range = [number, number];
@@ -54,14 +67,19 @@ export interface FlybyRanges {
   duration: Range;
   /** The size of the turn (either way, drawn at random). */
   sweep: Range;
-  /** The horizontal distance at the middle. */
-  distance: Range;
+  /** The ship's width on screen, a share of the frame's width, per size (the distance follows from it and
+   *  the lens), and how likely each size is. */
+  size: Record<SizeClass, Range>;
+  sizeOdds: Record<SizeClass, number>;
   /** The push (negative) or pull (positive): the distance's change over the shot, as a share of it. */
   push: Range;
   /** The camera's angle above (or below) the ship's centre, seen from the ship. */
   elevation: Range;
-  yaw: Range;
-  pitch: Range;
+  /** Lead room: the ship's centre off the middle, a share of the half-width, on the side behind its travel
+   *  as seen on screen (0.33: on a third line). */
+  lead: Range;
+  /** The ship's centre above (+) or below the middle, a share of the half-height. */
+  vertical: Range;
   fov: Range;
   roll: Range;
   /** The share of eased shots (0..1). */
@@ -71,11 +89,12 @@ export interface FlybyRanges {
 export const FLYBY_RANGES: FlybyRanges = {
   duration: [6, 10],
   sweep: [30, 180],
-  distance: [60, 200],
+  size: { wide: [0.05, 0.12], medium: [0.15, 0.3], close: [0.35, 0.6] },
+  sizeOdds: { wide: 0.25, medium: 0.5, close: 0.25 },
   push: [-0.25, 0.25],
   elevation: [-6, 42],
-  yaw: [-14, 14],
-  pitch: [-4, 4],
+  lead: [0.2, 0.45],
+  vertical: [-0.15, 0.15],
   fov: [22, 50],
   roll: [-4, 4],
   eased: 0.5,
@@ -109,36 +128,121 @@ export function random(seed: number): () => number {
   };
 }
 
-/** A seed's values (unchecked: `generateFlyby` re-rolls the failing ones). */
-export function flybyValues(seed: number, ranges: FlybyRanges = FLYBY_RANGES, swayLength = 17.875): FlybyValues {
+/** Lead room (pass 2b): within this angle of the nose or the tail pointing at (or away from) the camera, the
+ *  ship is centred; full lead room past `LEAD_FULL`, eased between. */
+const LEAD_NONE = 30;
+const LEAD_FULL = 45;
+/** The box kept this far (share of the half-width) inside the frame's edge when the lead room moves it. */
+const EDGE_MARGIN = 0.05;
+
+/** Where the ship's centre should sit across the frame (-1..1, right +) for the camera at `bearing`: behind its
+ *  travel on screen, `lead` off the middle, less for a ship as wide as `size` (kept in frame). */
+export function leadAt(bearing: number, lead: number, size: number): number {
+  const h = (bearing + 180) * DEG; // facing the ship
+  const nose = [Math.cos(NOSE_BEARING * DEG), Math.sin(NOSE_BEARING * DEG)] as const;
+  const across = Math.sin(h) * nose[0] - Math.cos(h) * nose[1]; // the travel on screen: + to the right
+  const along = Math.cos(h) * nose[0] + Math.sin(h) * nose[1];
+  const off = Math.acos(Math.min(1, Math.abs(along))) / DEG; // the nose line against the view line
+  const k = Math.min(1, Math.max(0, (off - LEAD_NONE) / (LEAD_FULL - LEAD_NONE)));
+  const room = Math.min(lead, Math.max(0, 1 - EDGE_MARGIN - size));
+  return -Math.sign(across) * room * k * k * (3 - 2 * k);
+}
+
+/** The ship's box on screen: [left, bottom, right, top] (-1..1 each way), or null if a corner is behind the camera. */
+export function screenBox(c: Omit<CameraKey, 't'>, aspect: number): [number, number, number, number] | null {
+  const out: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < 8; i++) {
+    const p = inPicture(c, [SHIP_BOX[i & 1]![0], SHIP_BOX[(i >> 1) & 1]![1], SHIP_BOX[(i >> 2) & 1]![2]], aspect);
+    if (!p) return null;
+    out[0] = Math.min(out[0], p[0]);
+    out[1] = Math.min(out[1], p[1]);
+    out[2] = Math.max(out[2], p[0]);
+    out[3] = Math.max(out[3], p[1]);
+  }
+  return out;
+}
+
+/** The ship's width on screen (share of the frame's width) for a camera; Infinity if part of it is behind. */
+export function sizeOnScreen(c: Omit<CameraKey, 't'>, aspect: number): number {
+  const b = screenBox(c, aspect);
+  return b ? (b[2] - b[0]) / 2 : Infinity;
+}
+
+/** A seed's values (unchecked: `generateFlyby` re-rolls the failing ones). Pass 2b: the ship's place in the
+ *  frame and its size on screen are drawn, and the view's turn and the distance worked out from them. */
+export function flybyValues(seed: number, ranges: FlybyRanges = FLYBY_RANGES, swayLength = 17.875, aspect = 16 / 9): FlybyValues {
   const r = random(seed);
   const pick = ([lo, hi]: Range) => lerp(lo, hi, r());
   const duration = pick(ranges.duration);
   const sweep = pick(ranges.sweep) * (r() < 0.5 ? -1 : 1);
   const middle = r() * 360 - 180;
-  const distance = pick(ranges.distance);
   const push = pick(ranges.push);
   const elevation = pick(ranges.elevation);
-  const yaw = pick(ranges.yaw);
-  const pitch = pick(ranges.pitch);
   const fov = pick(ranges.fov);
+  let odds = r();
+  const classes = Object.keys(ranges.sizeOdds) as SizeClass[];
+  const sizeClass = classes.find((k, i) => (odds -= ranges.sizeOdds[k]) < 0 || i === classes.length - 1)!;
+  const size = pick(ranges.size[sizeClass]);
+  const lead = pick(ranges.lead);
+  const vertical = pick(ranges.vertical);
   const roll = pick(ranges.roll);
   const pace = r() < ranges.eased ? 'eased' : 'even';
   const swayStart = r() * Math.max(0, swayLength - duration);
-  return {
+  const bearing: [number, number] = [round(middle - sweep / 2, 2), round(middle + sweep / 2, 2)];
+  const values: FlybyValues = {
     kind: 'flyby',
     duration: round(duration, 2),
-    bearing: [round(middle - sweep / 2, 2), round(middle + sweep / 2, 2)],
-    distance: [round(distance * (1 - push / 2), 1), round(distance * (1 + push / 2), 1)],
-    height: round(SHIP_CENTRE[2] + distance * Math.tan(elevation * DEG), 1),
-    yaw: round(yaw, 2),
-    pitch: round(pitch, 2),
-    fov: round(fov, 1),
+    bearing,
+    distance: [0, 0],
+    height: 0,
+    yaw: 0,
+    pitch: 0,
+    fov: 0,
     roll: round(roll, 2),
     pace,
     swayStart: round(swayStart, 2),
+    size: round(size, 3),
   };
+  let distance = frame(values, fov, { push, elevation, lead, vertical, aspect });
+  // Too near for the lens (a close shot on a wide lens): the lens narrowed until the camera is far enough.
+  if (distance < MIN_DISTANCE && fov > ranges.fov[0]) {
+    const narrower = (2 * Math.atan((Math.tan((fov * DEG) / 2) * distance) / MIN_DISTANCE)) / DEG;
+    distance = frame(values, Math.max(ranges.fov[0], narrower), { push, elevation, lead, vertical, aspect });
+  }
+  return values;
 }
+
+/** The camera's distance (m) from the ship's origin the generator aims for at least (the checks' `nearest`
+ *  is measured from the centre). */
+const MIN_DISTANCE = 40;
+
+/** Fills in the values' lens, view and distance from where the ship should sit and its size (pass 2b): the
+ *  screen position as angles (across with the horizontal field of view, up with the vertical), the distance
+ *  measured at the shot's middle and scaled until the size is right (it goes about as 1 / distance). */
+function frame(v: FlybyValues, fov: number, o: { push: number; elevation: number; lead: number; vertical: number; aspect: number }): number {
+  const tanV = Math.tan((fov * DEG) / 2);
+  const size = v.size!;
+  v.fov = round(fov, 1);
+  v.yaw = v.bearing.map((b) => round(Math.atan(leadAt(b, o.lead, size) * tanV * o.aspect) / DEG, 2)) as [number, number];
+  v.pitch = round(Math.atan(o.vertical * tanV) / DEG, 2);
+  let distance = 100;
+  for (let i = 0; i < 6; i++) {
+    v.distance = [distance * (1 - o.push / 2), distance * (1 + o.push / 2)];
+    v.height = SHIP_CENTRE[2] + distance * Math.tan(o.elevation * DEG);
+    const now = sizeOnScreen(cameraAt(v, 0.5), o.aspect);
+    if (!Number.isFinite(now)) break;
+    distance *= now / size;
+  }
+  v.distance = [round(distance * (1 - o.push / 2), 1), round(distance * (1 + o.push / 2), 1)];
+  v.height = round(SHIP_CENTRE[2] + distance * Math.tan(o.elevation * DEG), 1);
+  return distance;
+}
+
+/** The view's turn off the ship at `e` (0..1, eased). */
+const yawAt = (v: FlybyValues, e: number) => (typeof v.yaw === 'number' ? v.yaw : lerp(v.yaw[0], v.yaw[1], e));
+
+/** The camera at `s` (0..1 through the shot): the editor's guides. */
+export const flybyCamera = (v: FlybyValues, s: number) => cameraAt(v, s);
 
 /** The camera at `s` (0..1 through the shot). */
 function cameraAt(v: FlybyValues, s: number): Omit<CameraKey, 't'> {
@@ -148,7 +252,7 @@ function cameraAt(v: FlybyValues, s: number): Omit<CameraKey, 't'> {
   const x = distance * Math.cos(bearing);
   const y = distance * Math.sin(bearing);
   // Facing the ship's origin (the bearing turned half a turn), then turned off it by `yaw`.
-  const heading = bearing / DEG + 180 + v.yaw;
+  const heading = bearing / DEG + 180 + yawAt(v, e);
   // The pitch that puts the ship's centre on the picture's middle line (as flyby-orbit.mjs), then `pitch` off it.
   const ahead = (SHIP_CENTRE[0] - x) * Math.cos(heading * DEG) + (SHIP_CENTRE[1] - y) * Math.sin(heading * DEG);
   const pitch = Math.atan2(SHIP_CENTRE[2] - v.height, ahead) / DEG - v.pitch;
@@ -240,6 +344,8 @@ export const FLYBY_LIMITS = {
   nearest: 30,
   /** The ship's centre within this share of the picture's half-width and half-height. */
   inFrame: 0.75,
+  /** Its whole box within this share (pass 2b: the nose not cut). */
+  boxInFrame: 0.98,
 };
 
 /** What's wrong with a shot (empty: usable). Every key is checked; the line of sight at a few points along it. */
@@ -258,6 +364,11 @@ export function checkFlyby(v: FlybyValues, place: FlybyPlace = {}): string[] {
     if (d < FLYBY_LIMITS.nearest) problems.add('camera too close to the ship');
     const p = inPicture(c, SHIP_CENTRE, aspect);
     if (!p || Math.abs(p[0]) > FLYBY_LIMITS.inFrame || Math.abs(p[1]) > FLYBY_LIMITS.inFrame) problems.add('ship out of frame');
+    else {
+      const b = screenBox(c, aspect);
+      const m = FLYBY_LIMITS.boxInFrame;
+      if (!b || b[0] < -m || b[1] < -m || b[2] > m || b[3] > m) problems.add('ship cut by the frame’s edge');
+    }
     // The line of sight to the ship's centre above the ground (hills).
     for (let j = 1; j < 10; j++) {
       const f = j / 10;
@@ -274,12 +385,12 @@ export function checkFlyby(v: FlybyValues, place: FlybyPlace = {}): string[] {
 /** The first usable shot from a seed: the seed itself, else re-rolled (seed, then the next numbers from it). */
 export function generateFlyby(seed: number, ranges: FlybyRanges = FLYBY_RANGES, place: FlybyPlace = {}, tries = 40): { values: FlybyValues; problems: string[]; rerolls: number } {
   const next = random(seed ^ 0x9e3779b9);
-  let values = flybyValues(seed, ranges, place.swayLength);
+  let values = flybyValues(seed, ranges, place.swayLength, place.aspect);
   let problems = checkFlyby(values, place);
   let rerolls = 0;
   while (problems.length && rerolls < tries) {
     rerolls++;
-    values = flybyValues(Math.floor(next() * 2 ** 32), ranges, place.swayLength);
+    values = flybyValues(Math.floor(next() * 2 ** 32), ranges, place.swayLength, place.aspect);
     problems = checkFlyby(values, place);
   }
   return { values, problems, rerolls };
@@ -293,8 +404,11 @@ export interface Buckets {
   turn: 'left to right' | 'right to left';
   sweep: 'small' | 'medium' | 'large';
   height: 'below' | 'level' | 'above';
+  /** The perspective (the field of view); the size on screen is `size`. */
   lens: 'wide' | 'normal' | 'long';
-  /** Where the ship sits in the frame. */
+  /** The ship's width on screen at the middle (pass 2b). */
+  size: SizeClass;
+  /** Where the ship sits in the frame at the middle. */
   framing: 'left' | 'middle' | 'right';
   /** The camera's view against the sun (none: the sun's bearing wasn't given). */
   sun?: 'into' | 'across' | 'with';
@@ -304,7 +418,7 @@ export interface Buckets {
 const apart = (a: number, b: number) => Math.abs(normalise(a - b));
 
 /** `sunBearing`: where the sun is, a bearing in ship space (the shot's place and heading turn it). */
-export function flybyBuckets(v: FlybyValues, sunBearing?: number): Buckets {
+export function flybyBuckets(v: FlybyValues, sunBearing?: number, aspect = 16 / 9): Buckets {
   const middle = cameraAt(v, 0.5);
   const bearing = Math.atan2(middle.at[1], middle.at[0]) / DEG;
   const fromNose = normalise(bearing - NOSE_BEARING);
@@ -317,7 +431,8 @@ export function flybyBuckets(v: FlybyValues, sunBearing?: number): Buckets {
     sweep: sweep < 60 ? 'small' : sweep < 120 ? 'medium' : 'large',
     height: elevation < 0 ? 'below' : elevation < 15 ? 'level' : 'above',
     lens: v.fov > 45 ? 'wide' : v.fov < 28 ? 'long' : 'normal',
-    framing: v.yaw < -4 ? 'right' : v.yaw > 4 ? 'left' : 'middle',
+    size: sizeClass(sizeOnScreen(middle, aspect)),
+    framing: framingOf(inPicture(middle, SHIP_CENTRE, aspect)?.[0] ?? 0),
   };
   if (sunBearing !== undefined) {
     const off = apart(middle.heading, sunBearing);
@@ -325,6 +440,10 @@ export function flybyBuckets(v: FlybyValues, sunBearing?: number): Buckets {
   }
   return buckets;
 }
+
+/** A size on screen as a class (the ranges' gaps split in the middle). */
+export const sizeClass = (share: number): SizeClass => (share < 0.135 ? 'wide' : share < 0.325 ? 'medium' : 'close');
+const framingOf = (x: number): Buckets['framing'] => (x < -0.15 ? 'left' : x > 0.15 ? 'right' : 'middle');
 
 /** The buckets two shots share (the more, the more alike). */
 export function shared(a: Buckets, b: Buckets): (keyof Buckets)[] {

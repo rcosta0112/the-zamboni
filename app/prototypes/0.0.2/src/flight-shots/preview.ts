@@ -114,6 +114,21 @@ export class ShotPreview {
     this.looping = false;
   }
 
+  /** The ship's box in its own space, Blender's coordinates (min, max): for the generator's SHIP_BOX. */
+  shipBox(): [number[], number[]] {
+    const o = this.ship.object;
+    const inverse = o.matrixWorld.clone().invert();
+    const box = new THREE.Box3();
+    o.traverse((m) => {
+      const g = (m as THREE.Mesh).geometry;
+      if (!(m as THREE.Mesh).isMesh || !g || !m.visible) return;
+      if (!g.boundingBox) g.computeBoundingBox();
+      box.union(g.boundingBox!.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, m.matrixWorld)));
+    });
+    // three's (x, y, z) → Blender's (x, -z, y).
+    return [[box.min.x, -box.max.z, box.min.y], [box.max.x, -box.min.z, box.max.y]];
+  }
+
   /** The sun as a bearing in ship space (Blender's, degrees from +X toward +Y). */
   sunBearing(): number {
     const sun = this.world.sun;

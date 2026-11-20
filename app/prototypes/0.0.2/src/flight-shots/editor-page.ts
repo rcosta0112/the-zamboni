@@ -12,7 +12,7 @@
 
 import type { ShipKey } from '../cutscene';
 import { ShotPreview } from './preview';
-import { checkFlyby, flybyBuckets, flybyTrack, generateFlyby, shared, NOSE_BEARING, type Buckets, type FlybyValues } from './flyby';
+import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, generateFlyby, inPicture, screenBox, shared, sizeClass, NOSE_BEARING, SHIP_CENTRE, type Buckets, type FlybyValues } from './flyby';
 
 interface SavedShot {
   kind: 'flyby';
@@ -29,13 +29,16 @@ const FIELDS: { label: string; get: (v: FlybyValues) => number; set: (v: FlybyVa
   { label: 'distance from (m)', get: (v) => v.distance[0], set: (v, n) => (v.distance[0] = n), step: 1 },
   { label: 'distance to (m)', get: (v) => v.distance[1], set: (v, n) => (v.distance[1] = n), step: 1 },
   { label: 'height (m)', get: (v) => v.height, set: (v, n) => (v.height = n), step: 1 },
-  { label: 'yaw off (°)', get: (v) => v.yaw, set: (v, n) => (v.yaw = n), step: 0.5 },
+  { label: 'yaw off from (°)', get: (v) => yawPair(v)[0], set: (v, n) => (v.yaw = [n, yawPair(v)[1]]), step: 0.5 },
+  { label: 'yaw off to (°)', get: (v) => yawPair(v)[1], set: (v, n) => (v.yaw = [yawPair(v)[0], n]), step: 0.5 },
   { label: 'pitch off (°)', get: (v) => v.pitch, set: (v, n) => (v.pitch = n), step: 0.5 },
   { label: 'lens fov (°)', get: (v) => v.fov, set: (v, n) => (v.fov = n), step: 0.5 },
   { label: 'roll (°)', get: (v) => v.roll, set: (v, n) => (v.roll = n), step: 0.5 },
   { label: 'sway from (s)', get: (v) => v.swayStart, set: (v, n) => (v.swayStart = n), step: 0.1 },
 ];
 const THUMBS = 8;
+/** The view's turn at the start and the end (a single number: the same at both). */
+const yawPair = (v: FlybyValues): [number, number] => (typeof v.yaw === 'number' ? [v.yaw, v.yaw] : v.yaw);
 const DEG = Math.PI / 180;
 
 const side = document.getElementById('side')!;
@@ -71,7 +74,8 @@ function plan(v: FlybyValues, size: number, marker?: number): string {
     const e = v.pace === 'eased' ? (1 - Math.cos(Math.PI * s)) / 2 : s;
     const b = (v.bearing[0] + (v.bearing[1] - v.bearing[0]) * e) * DEG;
     const d = v.distance[0] + (v.distance[1] - v.distance[0]) * e;
-    return [d * Math.cos(b), d * Math.sin(b), b / DEG + 180 + v.yaw] as const;
+    const [y0, y1] = yawPair(v);
+    return [d * Math.cos(b), d * Math.sin(b), b / DEG + 180 + y0 + (y1 - y0) * e] as const;
   };
   for (let i = 0; i <= 40; i++) {
     const [x, y] = at(i / 40);
@@ -139,12 +143,25 @@ const gridLabel = el('label', playRow);
 const gridBox = el('input', gridLabel);
 gridBox.type = 'checkbox';
 el('span', gridLabel, 'Thirds');
+// The framing guides (pass 2b): the ship's box on screen, its travel, the lead room ahead of it, its size.
+const guideLabel = el('label', playRow);
+const guideBox = el('input', guideLabel);
+guideBox.type = 'checkbox';
+el('span', guideLabel, 'Guides');
 const gameNote = el('small', playRow, 'Loading the preview…');
 const frameBox = el('div', view, undefined, 'frame');
 const canvas = el('canvas', frameBox);
 el('div', frameBox, undefined, 'thirds');
+const guides = frameBox.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
+guides.classList.add('guides');
 gridBox.checked = localStorage.getItem('shot-editor.thirds') === '1';
 frameBox.classList.toggle('grid', gridBox.checked);
+guideBox.checked = localStorage.getItem('shot-editor.guides') === '1';
+frameBox.classList.toggle('guided', guideBox.checked);
+guideBox.addEventListener('change', () => {
+  frameBox.classList.toggle('guided', guideBox.checked);
+  localStorage.setItem('shot-editor.guides', guideBox.checked ? '1' : '0');
+});
 gridBox.addEventListener('change', () => {
   frameBox.classList.toggle('grid', gridBox.checked);
   localStorage.setItem('shot-editor.thirds', gridBox.checked ? '1' : '0');
@@ -225,10 +242,12 @@ function show(all: boolean): void {
   currentBuckets = flybyBuckets(values, sunBearing());
   bucketsEl.innerHTML = Object.entries(currentBuckets).map(([k, v]) => `<span>${k}: ${v}</span>`).join('');
   if (currentBuckets.sun === undefined) bucketsEl.insertAdjacentHTML('beforeend', '<small>(the sun once the game has loaded)</small>');
+  // Close: all but two of the buckets the same (5 of 7 without the sun, 6 of 8 with it).
+  const most = Object.values(currentBuckets).filter((b) => b !== undefined).length - 2;
   const close = Object.entries(saved)
     .filter(([name]) => name !== loadedName)
     .map(([name, s]) => [name, shared(currentBuckets, flybyBuckets(s.values, sunBearing()))] as const)
-    .filter(([, same]) => same.length >= 5);
+    .filter(([, same]) => same.length >= most);
   warnings.innerHTML = close.map(([name, same]) => `<div class="warn">⚠ close to “${name}”: the same ${same.join(', ')}</div>`).join('');
   planBox.innerHTML = plan(values, 260);
   // The preview follows: a new seed or shot from its start, a nudge where it is.
@@ -290,9 +309,47 @@ playBtn.addEventListener('click', () => preview?.play(track()));
 stopBtn.addEventListener('click', () => preview?.pause());
 restartBtn.addEventListener('click', () => preview?.show(track(), true));
 
+/** The framing guides at `s` (0..1 through the shot), drawn over the picture in its pixels. */
+function drawGuides(s: number): void {
+  const w = frameBox.clientWidth, h = frameBox.clientHeight;
+  if (!w || !h) return;
+  guides.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const c = flybyCamera(values, s);
+  const aspect = w / h;
+  const px = (x: number) => ((x + 1) / 2) * w;
+  const py = (y: number) => ((1 - y) / 2) * h;
+  const box = screenBox(c, aspect);
+  const centre = inPicture(c, SHIP_CENTRE, aspect);
+  const ahead = inPicture(c, [SHIP_CENTRE[0], SHIP_CENTRE[1] - 5, SHIP_CENTRE[2]], aspect); // 5 m ahead of the nose (-Y)
+  if (!box || !centre || !ahead) return void (guides.innerHTML = `<text x="12" y="22" class="label">the ship behind the camera</text>`);
+  let out = '';
+  // The lead room: from the box's leading edge to the frame's edge, on the side it travels to.
+  const dx = (ahead[0] - centre[0]) * aspect, dy = ahead[1] - centre[1];
+  const across = dx / Math.hypot(dx, dy || 1e-9);
+  if (Math.abs(across) > 0.5) {
+    const [x0, x1] = across > 0 ? [px(box[2]), w] : [0, px(box[0])];
+    out += `<rect x="${x0.toFixed(1)}" y="0" width="${Math.max(0, x1 - x0).toFixed(1)}" height="${h}" class="room"/>`;
+  }
+  out += `<rect x="${px(box[0]).toFixed(1)}" y="${py(box[3]).toFixed(1)}" width="${(px(box[2]) - px(box[0])).toFixed(1)}" height="${(py(box[1]) - py(box[3])).toFixed(1)}" class="box"/>`;
+  // The travel on screen: an arrow from the ship's centre.
+  const len = Math.min(w, h) * 0.12;
+  const n = Math.hypot(dx, dy) || 1;
+  const [cx, cy] = [px(centre[0]), py(centre[1])];
+  const [ux, uy] = [dx / n, -dy / n];
+  const [tx, ty] = [cx + ux * len, cy + uy * len];
+  out += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" class="arrow"/>`;
+  out += `<polygon points="${tx + ux * 8},${ty + uy * 8} ${tx - uy * 6},${ty + ux * 6} ${tx + uy * 6},${ty - ux * 6}" class="head"/>`;
+  out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" class="head"/>`;
+  const now = (box[2] - box[0]) / 2;
+  const target = values.size !== undefined ? ` · target ${(values.size * 100).toFixed(0)}% (${sizeClass(values.size)})` : '';
+  out += `<text x="12" y="22" class="label">size ${(now * 100).toFixed(0)}% of the width (${sizeClass(now)})${target}</text>`;
+  guides.innerHTML = out;
+}
+
 // Where the camera is, on the plan, and the time.
 function watchPlay(): void {
   if (preview) {
+    if (guideBox.checked) drawGuides(Math.min(1, preview.time / values.duration));
     planBox.innerHTML = plan(values, 260, Math.min(1, preview.time / values.duration));
     timeNote.textContent = `${preview.time.toFixed(1)} / ${values.duration.toFixed(1)} s`;
     barFill.style.width = `${Math.min(100, (preview.time / values.duration) * 100)}%`;
@@ -312,6 +369,7 @@ async function main(): Promise<void> {
     return null;
   });
   if (!preview) return;
+  (window as unknown as { __shotPreview: ShotPreview }).__shotPreview = preview; // dev hook, for the scratch checks
   gameNote.textContent = '';
   preview.play(track());
   show(false); // the sun's bucket, now known

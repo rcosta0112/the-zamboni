@@ -88,6 +88,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 *Update 2026-11-20 (agent, passes 1–2 built):* the shot editor previews **in the game itself**, in a frame on its page (a test scene, everyone seated in flight; a dev hook plays the track handed over), not a second renderer: the real ship, scenery, light and sound, and nothing to keep in step; its thumbnails are plans from above. The generator is plain maths shared by the editor, the game and the node check.
 
 *Update 2026-11-20 (owner):* **not the game in the editor**: only what the shot needs (the ship, sky, sun, flight scenery, flames; no crew, story, sound, start screen or skip), the shot **looping**. The tool is for the framing and the camera's movement. `src/flight-shots/preview.ts` (its own renderer, the game's modules reused); the frame and its test scene gone.
+*Update 2026-11-20 (agent, pass 2b built):* framing rules: the ship's place and size on screen are drawn, with lead room behind its travel on screen; the view's turn and the distance are worked out from them. Pass 3 next on the owner's go.
 
 ---
 
