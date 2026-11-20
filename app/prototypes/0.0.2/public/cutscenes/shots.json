@@ -1,3 +1,64 @@
 {
-  "shots": {}
+  "shots": {
+    "82523": {
+      "kind": "flyby",
+      "seed": 82523,
+      "values": {
+        "kind": "flyby",
+        "duration": 7.64,
+        "bearing": [
+          78.55,
+          31.55
+        ],
+        "distance": [
+          57.1,
+          64
+        ],
+        "height": 23.1,
+        "yaw": [
+          0,
+          13.18
+        ],
+        "pitch": -1.1,
+        "fov": 45.4,
+        "roll": -1.52,
+        "pace": "even",
+        "swayStart": 3.16,
+        "size": 0.209
+      },
+      "saved": "2026-11-20"
+    },
+    "82523-trimmed": {
+      "kind": "flyby",
+      "seed": 82523,
+      "values": {
+        "kind": "flyby",
+        "duration": 7.64,
+        "bearing": [
+          78.55,
+          31.55
+        ],
+        "distance": [
+          57.1,
+          64
+        ],
+        "height": 23.1,
+        "yaw": [
+          0,
+          13.18
+        ],
+        "pitch": -1.1,
+        "fov": 45.4,
+        "roll": -1.52,
+        "pace": "even",
+        "swayStart": 3.16,
+        "size": 0.209,
+        "trim": [
+          0,
+          4.82
+        ]
+      },
+      "saved": "2026-11-20"
+    }
+  }
 }

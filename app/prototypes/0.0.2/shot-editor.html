@@ -52,8 +52,11 @@
       .guides .head { fill: #e0a040; }
       .guides .label { fill: #fff; font: 13px system-ui, sans-serif; paint-order: stroke; stroke: rgb(0 0 0 / 0.6); stroke-width: 3px; }
       .row label { display: flex; gap: 0.3rem; align-items: center; }
-      .progress { height: 4px; margin-top: -0.35rem; background: #2a2e35; border-radius: 2px; overflow: hidden; }
-      .progress div { height: 100%; width: 0; background: #e0a040; }
+      /* The bar: the whole movement; the trimmed-off parts shaded; the playhead; the trim's two handles. */
+      .progress { position: relative; height: 14px; margin-top: -0.35rem; background: #3a3f48; border-radius: 3px; cursor: pointer; touch-action: none; user-select: none; }
+      .progress .cut { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, #1b1e23 0 4px, #24282e 4px 8px); pointer-events: none; }
+      .progress .head { position: absolute; top: -2px; bottom: -2px; width: 2px; margin-left: -1px; background: #fff; pointer-events: none; }
+      .progress .handle { position: absolute; top: -3px; bottom: -3px; width: 8px; margin-left: -4px; background: #e0a040; border-radius: 2px; cursor: ew-resize; }
       .below { display: flex; gap: 0.8rem; align-items: flex-start; }
       .strip { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
       .thumb { flex: 0 0 auto; background: #1b1e23; border: 2px solid transparent; border-radius: 4px; cursor: pointer; text-align: center; padding: 0.15rem; }

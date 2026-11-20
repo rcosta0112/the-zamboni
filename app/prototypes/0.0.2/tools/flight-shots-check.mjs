@@ -53,6 +53,20 @@ const { camera: _b, ...shotToday } = today.shots[0];
 report(JSON.stringify(shotMade) === JSON.stringify(shotToday), `0400 from values: the shot's settings ${JSON.stringify(shotMade)}`);
 report(checkFlyby(values0400).length === 0, `0400 passes the checks (${checkFlyby(values0400).join(', ') || 'none failed'}); buckets ${JSON.stringify(flybyBuckets(values0400))}`);
 
+// 1b. Trimmed (owner, 2026-11-20): 0400 trimmed to 1.5–6 s plays 4.5 s, its first and last frames the whole
+// movement's at 1.5 and 6 s (both on a key at 24 a second), the sway from 1.5 s further in.
+{
+  const trimmed = flybyTrack({ ...values0400, trim: [1.5, 6] }, { id: 'flyby', sway: c1.ship });
+  const k = keys(trimmed), w = keys(made);
+  const same = (a, b) => Math.max(...a.at.map((n, j) => Math.abs(n - b.at[j])), Math.abs(a.heading - b.heading), Math.abs(a.pitch - b.pitch)) <= 0.0011;
+  const sway = flybyTrack({ ...values0400, swayStart: values0400.swayStart + 1.5, duration: 4.5 }, { id: 'flyby', sway: c1.ship }).ship;
+  report(
+    trimmed.duration === 4.5 && k.length === 109 && k[0].t === 0 && same(k[0], w[36]) && same(k[k.length - 1], w[144]) && JSON.stringify(trimmed.ship) === JSON.stringify(sway),
+    `trimmed 1.5–6 s: ${trimmed.duration} s, ${k.length} keys, the ends the whole's at 1.5 and 6 s, the sway shifted`,
+  );
+  report(JSON.stringify(flybyTrack({ ...values0400, trim: [0, values0400.duration] }, { id: 'flyby', sway: c1.ship })) === JSON.stringify(made), 'trimmed to the whole: the same track');
+}
+
 // 2. The same seed, the same values.
 report(JSON.stringify(flybyValues(1234)) === JSON.stringify(flybyValues(1234)) && JSON.stringify(flybyValues(1234)) !== JSON.stringify(flybyValues(1235)), 'a seed gives the same values each time, another seed others');
 

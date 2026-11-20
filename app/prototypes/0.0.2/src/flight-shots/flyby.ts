@@ -54,6 +54,29 @@ export interface FlybyValues {
   /** The ship's width on screen the generator aimed at, a share of the frame's width at the shot's middle
    *  (pass 2b; information only: the distance makes it). */
   size?: number;
+  /** The part of the movement kept (owner, 2026-11-20): seconds into the `duration` the values describe, start
+   *  and end; the shot plays only that part, from 0, and is checked and described on it. Left out: the whole. */
+  trim?: [number, number];
+}
+
+/** The part of a shot's movement played, seconds into its `duration` (the whole if not trimmed). */
+export function trimOf(v: FlybyValues): [number, number] {
+  if (!v.trim) return [0, v.duration];
+  const a = Math.min(Math.max(0, v.trim[0]), v.duration);
+  const b = Math.min(Math.max(a, v.trim[1]), v.duration);
+  return [a, b];
+}
+
+/** The shot's length as played (trimmed). */
+export const playedLength = (v: FlybyValues): number => {
+  const [a, b] = trimOf(v);
+  return b - a;
+};
+
+/** The trimmed part as shares (0..1) of the whole movement. */
+function trimShares(v: FlybyValues): [number, number] {
+  const [a, b] = trimOf(v);
+  return v.duration > 0 ? [a / v.duration, b / v.duration] : [0, 1];
 }
 
 /** How big the ship is on screen: its width as a share of the frame's width. */
@@ -238,6 +261,12 @@ function frame(v: FlybyValues, fov: number, o: { push: number; elevation: number
   return distance;
 }
 
+/** The camera's bearing (unwrapped) at `s` (0..1 through the whole movement). */
+function bearingAt(v: FlybyValues, s: number): number {
+  const e = v.pace === 'eased' ? (1 - Math.cos(Math.PI * s)) / 2 : s;
+  return lerp(v.bearing[0], v.bearing[1], e);
+}
+
 /** The view's turn off the ship at `e` (0..1, eased). */
 const yawAt = (v: FlybyValues, e: number) => (typeof v.yaw === 'number' ? v.yaw : lerp(v.yaw[0], v.yaw[1], e));
 
@@ -287,16 +316,22 @@ export interface TrackOptions {
   sway: ShipKey[];
   /** Camera keys per second (a `smooth` shot: a curve through them). */
   rate?: number;
+  /** The whole movement, the trim ignored (the editor's preview, to show what's cut). */
+  whole?: boolean;
 }
 
-/** The values as a cutscene track: one smooth shot, the ship swaying, her hidden. */
-export function flybyTrack(v: FlybyValues, { id, sway, rate = 24 }: TrackOptions): Track {
-  const steps = Math.max(1, Math.round(v.duration * rate));
+/** The values as a cutscene track: one smooth shot, the ship swaying, her hidden. Trimmed: only the part kept,
+ *  from 0 (the sway from the same moment). */
+export function flybyTrack(v: FlybyValues, { id, sway, rate = 24, whole = false }: TrackOptions): Track {
+  const [a, b] = whole ? [0, v.duration] : trimOf(v);
+  const [s0, s1] = whole ? [0, 1] : trimShares(v);
+  const length = b - a;
+  const steps = Math.max(1, Math.round(length * rate));
   const camera: CameraKey[] = [];
   for (let i = 0; i <= steps; i++) {
-    const c = cameraAt(v, i / steps);
+    const c = cameraAt(v, s0 + (s1 - s0) * (i / steps));
     camera.push({
-      t: round((i / steps) * v.duration, 4),
+      t: round((i / steps) * length, 4),
       at: c.at.map((n) => round(n)) as [number, number, number],
       heading: round(c.heading),
       pitch: round(c.pitch),
@@ -304,10 +339,10 @@ export function flybyTrack(v: FlybyValues, { id, sway, rate = 24 }: TrackOptions
       fov: round(c.fov, 2),
     });
   }
-  const ship = swayFor(sway, v.swayStart, v.duration);
+  const ship = swayFor(sway, v.swayStart + a, length);
   return {
     id,
-    duration: round(v.duration, 4),
+    duration: round(length, 4),
     ...(ship.length ? { ship } : {}),
     hide: ['her'],
     events: [],
@@ -353,10 +388,11 @@ export function checkFlyby(v: FlybyValues, place: FlybyPlace = {}): string[] {
   const ground = place.ground ?? (() => FLAT_GROUND);
   const aspect = place.aspect ?? 16 / 9;
   const problems = new Set<string>();
-  const steps = Math.max(8, Math.round(v.duration * 8));
+  const [s0, s1] = trimShares(v);
+  const steps = Math.max(8, Math.round(playedLength(v) * 8));
   for (let i = 0; i <= steps; i++) {
-    const s = i / steps;
-    const t = s * v.duration;
+    const s = s0 + (s1 - s0) * (i / steps);
+    const t = (i / steps) * playedLength(v);
     const c = cameraAt(v, s);
     const [x, y, z] = c.at;
     if (z - ground(x, y, t) < FLYBY_LIMITS.clearance) problems.add('camera too close to the ground');
@@ -419,15 +455,18 @@ const apart = (a: number, b: number) => Math.abs(normalise(a - b));
 
 /** `sunBearing`: where the sun is, a bearing in ship space (the shot's place and heading turn it). */
 export function flybyBuckets(v: FlybyValues, sunBearing?: number, aspect = 16 / 9): Buckets {
-  const middle = cameraAt(v, 0.5);
+  // On the part played (trimmed: its middle, its own turn).
+  const [s0, s1] = trimShares(v);
+  const middle = cameraAt(v, (s0 + s1) / 2);
   const bearing = Math.atan2(middle.at[1], middle.at[0]) / DEG;
   const fromNose = normalise(bearing - NOSE_BEARING);
   const side = Math.abs(fromNose) <= 45 ? 'front' : Math.abs(fromNose) >= 135 ? 'back' : fromNose < 0 ? 'right' : 'left';
-  const sweep = Math.abs(v.bearing[1] - v.bearing[0]);
+  const [from, to] = [bearingAt(v, s0), bearingAt(v, s1)];
+  const sweep = Math.abs(to - from);
   const elevation = Math.atan2(v.height - SHIP_CENTRE[2], (v.distance[0] + v.distance[1]) / 2) / DEG;
   const buckets: Buckets = {
     side,
-    turn: v.bearing[1] >= v.bearing[0] ? 'left to right' : 'right to left',
+    turn: to >= from ? 'left to right' : 'right to left',
     sweep: sweep < 60 ? 'small' : sweep < 120 ? 'medium' : 'large',
     height: elevation < 0 ? 'below' : elevation < 15 ? 'level' : 'above',
     lens: v.fov > 45 ? 'wide' : v.fov < 28 ? 'long' : 'normal',

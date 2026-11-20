@@ -26,6 +26,8 @@ export class ShotPreview {
   private track: Track | null = null;
   private looping = false;
   private last = 0;
+  /** The part looped, seconds into the track (the editor's trim), or null: the whole. */
+  private window: [number, number] | null = null;
 
   private constructor(
     private readonly renderer: THREE.WebGPURenderer,
@@ -94,9 +96,14 @@ export class ShotPreview {
     return this.player.time;
   }
 
-  /** Shows a track: looping from the start (`restart`), or from where it was (a value nudged while it plays). */
+  /** The part to loop (the trim), seconds into the track; null: the whole. */
+  setWindow(window: [number, number] | null): void {
+    this.window = window && window[1] - window[0] > 1e-3 ? window : null;
+  }
+
+  /** Shows a track: looping from the start of the window (`restart`), or from where it was (a value nudged while it plays). */
   show(track: Track, restart: boolean): void {
-    const time = restart ? 0 : Math.min(this.player.time, track.duration);
+    const time = restart ? (this.window?.[0] ?? 0) : Math.min(this.player.time, track.duration);
     this.track = track;
     void this.player.playTrack(track).then(() => {
       this.player.time = time;
@@ -112,6 +119,19 @@ export class ShotPreview {
   /** Held where it is. */
   pause(): void {
     this.looping = false;
+  }
+
+  /** Goes on looping from where it is (the window's start if outside it). */
+  resume(): void {
+    this.looping = true;
+  }
+
+  /** Held at `time` (s into the track): the editor's scrubbing. */
+  seek(time: number): void {
+    if (!this.track) return;
+    this.looping = false;
+    this.player.time = Math.min(Math.max(0, time), this.track.duration);
+    this.player.update(0, this.player.camera.aspect);
   }
 
   /** The ship's box in its own space, Blender's coordinates (min, max): for the generator's SHIP_BOX. */
@@ -152,7 +172,11 @@ export class ShotPreview {
     const track = this.track;
     if (track && this.player.playing) {
       // Looped: the time wrapped, so the track never ends (no end state, nothing put back).
-      if (this.looping) this.player.time = (this.player.time + dt) % track.duration;
+      if (this.looping) {
+        const [a, b] = this.window ?? [0, track.duration];
+        const t = this.player.time + dt;
+        this.player.time = t < a || t >= b ? a + (t >= b ? (t - b) % (b - a) : 0) : t;
+      }
       this.player.update(0, w / h);
     }
     const flight = this.player.flight;
