@@ -2,6 +2,49 @@
 
 
 
+
+Green
+I'll scout ahead. Please stay in the ship.
+I want to keep the site clean.
+
+Adam Blue
+I could take a scanner and have a look.
+I do have a spare body.
+
+Green
+I don't think that will be necessary.
+Just keep the engines running.
+
+
+
+
+*Dr. Kaufman is in the cargo hold taking something out of a box*
+
+
+Green
+Dr. Kaufman, please wait until I finish the preliminary survey.
+
+Kaufman
+No worries, Green Bean. I won't go near that thing.
+I just need to get out of this can for a bit.
+Can we go to the equator next?
+I would love to see anything larger than moss.
+
+Green
+That would be nice.
+
+
+At the start of the scene Dr. Ogawa and Adam Red are at the same place as in 0200
+After the player moves away from the ship (1/3 of the distance between the ship and the temple) they will change positions, animation and dialogue
+- Dr. Ogawa moves to engineering, he will working on the scanner array 
+- Adam Red will be on top of the ship working on the engine. (there will be an open panel)
+- Adam Blue will be still on the pilot seat.
+
+There will be different dialogue options if the player tries to talk to them over comms.
+
+
+
+
 Green
 Is it safe to approach?
 

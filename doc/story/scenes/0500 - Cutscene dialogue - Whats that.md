@@ -12,7 +12,7 @@ Green
 Yes.
 
 Adam Red
-I have no idea
+I have no idea.
 
 Green
 Dr. Ogawa?

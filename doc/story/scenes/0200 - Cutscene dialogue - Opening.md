@@ -1,6 +1,6 @@
 ## Opening
 
-*Aerial view of a frozen desert landscape. The Zamboni flies through the plain.*
+*Interior: the cockpit*
 
 ### Cockpit
 
