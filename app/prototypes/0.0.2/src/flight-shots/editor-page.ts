@@ -1,9 +1,9 @@
 /**
  * shot-editor.html: the flight shots' editor (plan doc/plans/features/flight-shots.md, pass 2), flybys for now.
  * A seed's shot (`generateFlyby`: re-rolled if it fails the checks), shown as its values (nudged here), a plan
- * from above and the buckets; the next seeds as small plans; **played in the game** in a frame on the right
- * (`/?scene=shot-editor`, a test scene: everyone seated in flight, nothing begins; the dev hook
- * `__cutscene().playTrack`), so the shot is seen with the real ship, scenery and sound. Saved under a name in
+ * from above and the buckets; the next seeds as small plans; **played in a loop** on the right in the
+ * preview (preview.ts: the ship, sky, sun, scenery and flames only, not the game; owner, 2026-11-20), for
+ * the framing and the camera's movement; a value nudged while it plays changes it at once. Saved under a name in
  * `public/cutscenes/shots.json` (POST /__shots, vite.config.ts) with its seed **and every value**; a saved shot
  * loaded shows "this seed now" beside each value. Warnings: saved shots sharing most of its buckets (in script
  * order once the `# shot:` tag exists, pass 3; against every saved shot for now).
@@ -11,6 +11,7 @@
  */
 
 import type { ShipKey } from '../cutscene';
+import { ShotPreview } from './preview';
 import { checkFlyby, flybyBuckets, flybyTrack, generateFlyby, shared, NOSE_BEARING, type Buckets, type FlybyValues } from './flyby';
 
 interface SavedShot {
@@ -18,14 +19,6 @@ interface SavedShot {
   seed: number;
   values: FlybyValues;
   saved: string;
-}
-
-/** The game in the frame (same origin): its dev hooks. */
-interface GameWindow extends Window {
-  __cutscene?: () => { playTrack(track: unknown): Promise<void>; skip(): void; playing: boolean; time: number } | null;
-  __start?: () => { begun: boolean };
-  __world?: { sun: { position: { x: number; y: number; z: number }; target: { position: { x: number; y: number; z: number } } } };
-  __ship?: () => { object: { quaternion: { x: number; y: number; z: number; w: number } } } | null;
 }
 
 /** The fields shown, in order: label, the value's path, step. */
@@ -98,19 +91,12 @@ function plan(v: FlybyValues, size: number, marker?: number): string {
   return `<svg class="plan" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><defs><marker id="n${size}" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="#d8dbe0"/></marker></defs>${look(0, '#7fc27f')}${look(1, '#e0a040')}<polyline points="${points.join(' ')}" fill="none" stroke="#9aa0a8" stroke-width="1.5"/>${ship}${mark}</svg>`;
 }
 
-/** Where the sun is, as a bearing in ship space, from the game in the frame (null: not loaded). */
+/** The preview, once built (null: loading, or it failed). */
+let preview: ShotPreview | null = null;
+
+/** Where the sun is, as a bearing in ship space (undefined until the preview has loaded). */
 function sunBearing(): number | undefined {
-  const w = frame.contentWindow as GameWindow | null;
-  const sun = w?.__world?.sun;
-  const ship = w?.__ship?.();
-  if (!sun || !ship) return undefined;
-  const d = [sun.position.x - sun.target.position.x, sun.position.y - sun.target.position.y, sun.position.z - sun.target.position.z];
-  // Into the ship's own space (its rotation undone), then three's (x, y, z) → Blender's (x, -z, y).
-  const { x, y, z, w: qw } = ship.object.quaternion;
-  const [ix, iy, iz] = [-x, -y, -z];
-  const tx = 2 * (iy * d[2]! - iz * d[1]!), ty = 2 * (iz * d[0]! - ix * d[2]!), tz = 2 * (ix * d[1]! - iy * d[0]!);
-  const local = [d[0]! + qw * tx + (iy * tz - iz * ty), d[1]! + qw * ty + (iz * tx - ix * tz), d[2]! + qw * tz + (ix * ty - iy * tx)];
-  return Math.atan2(-local[2]!, local[0]!) / DEG;
+  return preview?.sunBearing();
 }
 
 // The page's parts.
@@ -144,13 +130,20 @@ el('h2', side, 'Saved shots');
 const savedList = el('div', side, undefined, 'saved');
 
 const playRow = el('div', view, undefined, 'row');
-const playBtn = el('button', playRow, 'Play in the game', 'main');
-const stopBtn = el('button', playRow, 'Stop');
-const gameNote = el('small', playRow, 'The game loads in the frame below: press its start button once.');
+const playBtn = el('button', playRow, 'Play', 'main');
+const stopBtn = el('button', playRow, 'Pause');
+const restartBtn = el('button', playRow, 'From the start');
+const timeNote = el('small', playRow, '');
+const gameNote = el('small', playRow, 'Loading the preview…');
 const frameBox = el('div', view, undefined, 'frame');
-const frame = el('iframe', frameBox);
-frame.src = '/?scene=shot-editor';
-frame.allow = 'autoplay; gamepad; fullscreen';
+const canvas = el('canvas', frameBox);
+// The shot's progress, under it.
+const bar = el('div', view, undefined, 'progress');
+const barFill = el('div', bar);
+// The mouse is never captured here (owner, 2026-11-20): released at once if anything asks for it.
+document.addEventListener('pointerlockchange', () => {
+  if (document.pointerLockElement) document.exitPointerLock();
+});
 const planRow = el('div', view, undefined, 'below');
 const planBox = el('div', planRow);
 const nextSeeds = el('div', planRow);
@@ -226,6 +219,8 @@ function show(all: boolean): void {
     .filter(([, same]) => same.length >= 5);
   warnings.innerHTML = close.map(([name, same]) => `<div class="warn">⚠ close to “${name}”: the same ${same.join(', ')}</div>`).join('');
   planBox.innerHTML = plan(values, 260);
+  // The preview follows: a new seed or shot from its start, a nudge where it is.
+  preview?.show(track(), all);
   if (all) drawStrip();
   drawSaved();
 }
@@ -275,28 +270,21 @@ saveBtn.addEventListener('click', async () => {
   show(true);
 });
 
-function game(): GameWindow | null {
-  return frame.contentWindow as GameWindow | null;
+function track() {
+  return flybyTrack(values, { id: 'shot-editor', sway });
 }
 
-playBtn.addEventListener('click', () => {
-  const w = game();
-  const player = w?.__cutscene?.();
-  if (!player || !w?.__start?.().begun) return void (gameNote.textContent = 'Not ready: press the game’s start button in the frame first.');
-  gameNote.textContent = '';
-  void player.playTrack(flybyTrack(values, { id: 'shot-editor', sway }));
-  frame.focus();
-});
-stopBtn.addEventListener('click', () => game()?.__cutscene?.()?.skip());
+playBtn.addEventListener('click', () => preview?.play(track()));
+stopBtn.addEventListener('click', () => preview?.pause());
+restartBtn.addEventListener('click', () => preview?.show(track(), true));
 
-// While a shot plays: where the camera is, on the plan.
-let wasPlaying = false;
+// Where the camera is, on the plan, and the time.
 function watchPlay(): void {
-  const player = game()?.__cutscene?.();
-  const playing = !!player?.playing;
-  if (playing) planBox.innerHTML = plan(values, 260, Math.min(1, player!.time / values.duration));
-  else if (wasPlaying) show(false); // the sun's bucket now known, the marker gone
-  wasPlaying = playing;
+  if (preview) {
+    planBox.innerHTML = plan(values, 260, Math.min(1, preview.time / values.duration));
+    timeNote.textContent = `${preview.time.toFixed(1)} / ${values.duration.toFixed(1)} s`;
+    barFill.style.width = `${Math.min(100, (preview.time / values.duration) * 100)}%`;
+  }
   requestAnimationFrame(watchPlay);
 }
 
@@ -306,6 +294,15 @@ async function main(): Promise<void> {
   saved = (await (await fetch('/__shots')).json()).shots ?? {};
   pickSeed(1);
   requestAnimationFrame(watchPlay);
+  preview = await ShotPreview.create(canvas, 'ice-plain', (what) => (gameNote.textContent = `Loading the preview: ${what}…`)).catch((err: unknown) => {
+    console.warn('[shot editor] preview not built:', err);
+    gameNote.textContent = 'The preview failed to load (console).';
+    return null;
+  });
+  if (!preview) return;
+  gameNote.textContent = '';
+  preview.play(track());
+  show(false); // the sun's bucket, now known
 }
 
 if (!import.meta.env.DEV) side.textContent = 'The shot editor runs on the dev server only.';
