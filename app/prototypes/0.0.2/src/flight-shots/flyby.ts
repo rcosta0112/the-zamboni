@@ -87,7 +87,8 @@ export type Range = [number, number];
 
 /** What the generator draws from. */
 export interface FlybyRanges {
-  duration: Range;
+  /** The length (s): fixed, not drawn (owner, 2026-11-20); changed per shot in the editor. */
+  duration: number;
   /** The size of the turn (either way, drawn at random). */
   sweep: Range;
   /** The ship's width on screen, a share of the frame's width, per size (the distance follows from it and
@@ -110,7 +111,7 @@ export interface FlybyRanges {
 }
 
 export const FLYBY_RANGES: FlybyRanges = {
-  duration: [6, 10],
+  duration: 5,
   sweep: [30, 180],
   size: { wide: [0.05, 0.12], medium: [0.15, 0.3], close: [0.35, 0.6] },
   sizeOdds: { wide: 0.25, medium: 0.5, close: 0.25 },
@@ -196,7 +197,8 @@ export function sizeOnScreen(c: Omit<CameraKey, 't'>, aspect: number): number {
 export function flybyValues(seed: number, ranges: FlybyRanges = FLYBY_RANGES, swayLength = 17.875, aspect = 16 / 9): FlybyValues {
   const r = random(seed);
   const pick = ([lo, hi]: Range) => lerp(lo, hi, r());
-  const duration = pick(ranges.duration);
+  const duration = ranges.duration;
+  r(); // the draw the length once took: kept so every seed's other values stay as they were
   const sweep = pick(ranges.sweep) * (r() < 0.5 ? -1 : 1);
   const middle = r() * 360 - 180;
   const push = pick(ranges.push);
@@ -328,12 +330,16 @@ export function flybyTrack(v: FlybyValues, { id, sway, rate = 24, whole = false 
   const length = b - a;
   const steps = Math.max(1, Math.round(length * rate));
   const camera: CameraKey[] = [];
+  let heading = 0;
   for (let i = 0; i <= steps; i++) {
     const c = cameraAt(v, s0 + (s1 - s0) * (i / steps));
+    // Unwrapped: the keys are blended as plain numbers, so 179.8 then -179.7 would spin the camera the long way
+    // round (seed 21200 at 6.8 s); each heading kept within half a turn of the one before.
+    heading = i === 0 ? c.heading : heading + normalise(c.heading - heading);
     camera.push({
       t: round((i / steps) * length, 4),
       at: c.at.map((n) => round(n)) as [number, number, number],
-      heading: round(c.heading),
+      heading: round(heading),
       pitch: round(c.pitch),
       ...(c.roll ? { roll: round(c.roll) } : {}),
       fov: round(c.fov, 2),
