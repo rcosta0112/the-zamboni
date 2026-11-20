@@ -69,6 +69,7 @@ const DEG = Math.PI / 180;
 
 const side = document.getElementById('side')!;
 const view = document.getElementById('view')!;
+const status = document.getElementById('status')!;
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, parent: HTMLElement, text?: string, cls?: string) => {
   const e = parent.appendChild(document.createElement(tag));
   if (text !== undefined) e.textContent = text;
@@ -146,27 +147,36 @@ const seedInput = el('input', seedRow);
 seedInput.type = 'number';
 const next = el('button', seedRow, '▶');
 const dice = el('button', seedRow, 'Random');
-const seedNote = el('small', side);
-el('h2', side, 'Values');
-const table = el('table', side);
-const paceRow = el('div', side, undefined, 'row');
+/** A sidebar section, folded or open (remembered). */
+function section(title: string): HTMLElement {
+  const d = el('details', side);
+  const key = `shot-editor.open.${title}`;
+  d.open = localStorage.getItem(key) !== '0';
+  el('summary', d, title);
+  d.addEventListener('toggle', () => localStorage.setItem(key, d.open ? '1' : '0'));
+  return el('div', d);
+}
+const valuesSec = section('Values');
+const table = el('div', valuesSec, undefined, 'values');
+const paceRow = el('div', valuesSec, undefined, 'row');
 el('span', paceRow, 'pace');
 const pace = el('select', paceRow);
 for (const p of ['even', 'eased']) el('option', pace, p).value = p;
 const resetBtn = el('button', paceRow, 'Back to the seed’s');
-el('h2', side, 'Checks');
-const checks = el('div', side);
-el('h2', side, 'Buckets');
-const bucketsEl = el('div', side, undefined, 'buckets');
-const warnings = el('div', side);
-el('h2', side, 'Save');
-const saveRow = el('div', side, undefined, 'row');
+const bucketsEl = el('div', section('Buckets'), undefined, 'buckets');
+const saveSec = section('Save');
+const saveRow = el('div', saveSec, undefined, 'row');
 const nameInput = el('input', saveRow);
 nameInput.placeholder = 'flyby-1';
 const saveBtn = el('button', saveRow, 'Save', 'main');
-const saveNote = el('small', side);
-el('h2', side, 'Saved shots');
-const savedList = el('div', side, undefined, 'saved');
+const savedList = el('div', section('Saved shots'), undefined, 'saved');
+// The status bar (owner, 2026-11-20): the checks, then the warnings (re-rolls, close shots, saving), the shot loaded.
+const checks = el('span', status);
+const warnings = el('span', status);
+const saveNote = el('span', status);
+const seedNote = el('small', status);
+/** The save's message, cleared by the next edit. */
+let saveMessage = '';
 
 const playRow = el('div', view, undefined, 'row');
 const playBtn = el('button', playRow, 'Play', 'main');
@@ -184,7 +194,8 @@ const guideBox = el('input', guideLabel);
 guideBox.type = 'checkbox';
 el('span', guideLabel, 'Guides');
 const gameNote = el('small', playRow, 'Loading the preview…');
-const frameBox = el('div', view, undefined, 'frame');
+const player = el('div', el('div', view, undefined, 'stage'), undefined, 'player');
+const frameBox = el('div', player, undefined, 'frame');
 const canvas = el('canvas', frameBox);
 el('div', frameBox, undefined, 'thirds');
 const guides = frameBox.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
@@ -202,7 +213,7 @@ gridBox.addEventListener('change', () => {
   localStorage.setItem('shot-editor.thirds', gridBox.checked ? '1' : '0');
 });
 // The shot's progress, under it: the whole movement, the trimmed-off parts shaded, the trim's two handles.
-const bar = el('div', view, undefined, 'progress');
+const bar = el('div', player, undefined, 'progress');
 const cutBefore = el('div', bar, undefined, 'cut');
 const cutAfter = el('div', bar, undefined, 'cut');
 const barFill = el('div', bar, undefined, 'head');
@@ -222,16 +233,15 @@ document.addEventListener('pointerlockchange', () => {
 const planRow = el('div', view, undefined, 'below');
 const planBox = el('div', planRow);
 const nextSeeds = el('div', planRow);
-el('small', nextSeeds, 'From above: the ship (its nose down), the camera’s path from green to orange, its view at each end. The seeds round this one:');
 const strip = el('div', nextSeeds, undefined, 'strip');
 
 const inputs = FIELDS.map((f) => {
-  const tr = el('tr', table);
-  el('td', tr, f.label);
-  const input = el('input', el('td', tr));
+  const tr = el('label', table, undefined, 'field');
+  el('span', tr, f.label);
+  const input = el('input', tr);
   input.type = 'number';
   input.step = String(f.step);
-  const now = el('td', tr, '', 'now');
+  const now = el('div', tr, '', 'now');
   input.addEventListener('input', () => {
     const n = Number(input.value);
     if (!Number.isFinite(n)) return;
@@ -283,7 +293,7 @@ let currentBuckets: Buckets;
 
 function show(all: boolean): void {
   seedInput.value = String(seed);
-  seedNote.textContent = (loadedName ? `Saved shot “${loadedName}”. ` : '') + (rerolls ? `This seed failed the checks; re-rolled ${rerolls}× from it.` : '');
+  seedNote.textContent = loadedName ? `Saved shot “${loadedName}”` : `Seed ${seed}`;
   FIELDS.forEach((f, i) => {
     const { tr, input, now } = inputs[i]!;
     if (all || document.activeElement !== input) input.value = String(f.get(values));
@@ -305,8 +315,9 @@ function show(all: boolean): void {
   handleOut.style.left = pc(tb);
   wholeBtn.disabled = !values.trim;
   const problems = checkFlyby(values);
-  checks.innerHTML = problems.length ? problems.map((p) => `<div class="problems">✗ ${p}</div>`).join('') : '<div class="ok">✓ camera clear of the ground and the ship, the ship in frame, in sight</div>';
-  checks.insertAdjacentHTML('beforeend', '<small>The ground is taken as flat (14 m under the belly) for now: hills not counted.</small>');
+  checks.className = problems.length ? 'problems' : 'ok';
+  checks.textContent = problems.length ? problems.map((p) => `✗ ${p}`).join('   ') : '✓ checks passed';
+  checks.title = (problems.length ? problems.join('\n') : 'Camera clear of the ground and the ship, the ship in frame, in sight.') + '\nThe ground is taken as flat (14 m under the belly) for now: hills not counted.';
   currentBuckets = flybyBuckets(values, sunBearing());
   bucketsEl.innerHTML = Object.entries(currentBuckets).map(([k, v]) => `<span>${k}: ${v}</span>`).join('');
   if (currentBuckets.sun === undefined) bucketsEl.insertAdjacentHTML('beforeend', '<small>(the sun once the game has loaded)</small>');
@@ -316,7 +327,16 @@ function show(all: boolean): void {
     .filter(([name]) => name !== loadedName)
     .map(([name, s]) => [name, shared(currentBuckets, flybyBuckets(s.values, sunBearing()))] as const)
     .filter(([, same]) => same.length >= most);
-  warnings.innerHTML = close.map(([name, same]) => `<div class="warn">⚠ close to “${name}”: the same ${same.join(', ')}</div>`).join('');
+  const warns = [
+    ...(rerolls && !loadedName ? [`seed ${seed} failed the checks; re-rolled ${rerolls}× from it`] : []),
+    ...close.map(([name, same]) => `close to “${name}”: the same ${same.join(', ')}`),
+  ];
+  warnings.className = 'warn';
+  warnings.textContent = warns.map((w) => `⚠ ${w}`).join('   ');
+  warnings.title = warns.join('\n');
+  saveNote.textContent = saveMessage;
+  saveNote.className = saveMessage.startsWith('Saved') ? 'ok' : 'problems';
+  saveMessage = '';
   planBox.innerHTML = plan(values, 260);
   // The preview follows: a new seed or shot from its start (the trim's), a nudge where it is.
   preview?.setWindow(trimOf(values));
@@ -358,16 +378,16 @@ resetBtn.addEventListener('click', () => (loadedName ? load(loadedName) : pickSe
 
 saveBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return void (saveNote.textContent = 'A name in lower case, digits and dashes (it goes in the script: # shot: <name>).');
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return void ((saveNote.className = 'problems'), (saveNote.textContent = 'A name in lower case, digits and dashes (it goes in the script: # shot: <name>).'));
   if (saved[name] && name !== loadedName && !confirm(`Replace the saved shot “${name}”?`)) return;
   const shot: SavedShot = { kind: 'flyby', seed, values: structuredClone(values), saved: new Date().toISOString().slice(0, 10) };
   const r = await fetch('/__shots', { method: 'POST', body: JSON.stringify({ name, shot }) });
   const data = await r.json();
-  if (!r.ok) return void (saveNote.textContent = `Not saved: ${data.error}`);
+  if (!r.ok) return void ((saveNote.className = 'problems'), (saveNote.textContent = `Not saved: ${data.error}`));
   saved = data.shots;
   loadedName = name;
   nudged = new Set();
-  saveNote.textContent = `Saved as “${name}” in public/cutscenes/shots.json.`;
+  saveMessage = `Saved as “${name}” in public/cutscenes/shots.json.`;
   show(true);
 });
 
