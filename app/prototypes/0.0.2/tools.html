@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tools · 0.0.2</title>
+    <link rel="icon" href="data:," />
+    <!-- Dev only: not a build input (the build takes index.html only); src/tools-page.ts refuses outside the dev server. -->
+    <style>
+      body { margin: 0; background: #14161a; color: #d8dbe0; font: 14px/1.5 system-ui, sans-serif; }
+      main { max-width: 40rem; padding: 2rem 1.5rem; }
+      h1 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+      p { margin: 0 0 1.5rem; color: #9aa0a8; }
+      h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: #9aa0a8; margin: 1.5rem 0 0.4rem; }
+      .row { display: flex; align-items: baseline; gap: 1rem; padding: 0.15rem 0; }
+      .row a, .row .later { flex: 0 0 11rem; padding: 0.2rem 0.5rem; border-radius: 4px; color: #e0a040; text-decoration: none; outline: none; }
+      .row a:hover { background: #22262d; }
+      .row a.selected { background: #e0a040; color: #14161a; }
+      .row .later { color: #5c626b; }
+      .row small { color: #9aa0a8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Tools</h1>
+      <p>Every editor and test page of 0.0.2 (dev server only). D-pad and A, or arrows and Enter.</p>
+      <div id="tools"></div>
+    </main>
+    <script type="module" src="/src/tools-page.ts"></script>
+  </body>
+</html>

@@ -65,6 +65,7 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [The temple's hologram: hidden, shown by a prompt, fading in](features/temple-hologram.md) | 0.0.2 | Built 2026-11-08; the owner's to look at |
 | [The landing cutscene (0600): flying in over the plain, the temple on the horizon, the vertical landing](features/landing-cutscene.md) | The flying scene (pass 6) | Draft 2026-11-07, for review (three passes, the third optional) |
 | [Scene 0500 (*What's that?*) as a scene of its own, after the flyby (0400)](features/scene-0500-split.md) | The flying scene | Built 2026-11-20 with the flyby |
+| [Reusable flight shots (flyby, landing, take-off), the shot editor, the tools page](features/flight-shots.md) | The flying scene | Draft 2026-11-20, reviewed once (answers in); waiting on go for pass 0 (SC-187) |
 | [The flyby (0400), and 0500 as its own scene](features/flyby-0400.md) | The flying scene | Built 2026-11-20 (an orbit from 0100's middle frame); the owner's look pending |
 | [Dr. Green piloting: cutscene 2 and the start of chapter 1](features/piloting-loop.md) | The flying scene | Approved 2026-10-24; in progress |
 | [Black after NEW GAME, until cutscene 1 runs smoothly (SC-132)](features/black-before-cutscene-1.md) | The flying scene | Built 2026-10-24 (owner: "go for 132") |
