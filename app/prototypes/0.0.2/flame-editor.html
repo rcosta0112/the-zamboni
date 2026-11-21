@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flame editor · 0.0.2</title>
+    <link rel="icon" href="data:," />
+    <!-- Dev only, as tools.html: not a build input; src/flight-shots/flame-page.ts refuses outside the dev server. -->
+    <link rel="stylesheet" href="/src/flight-shots/tools.css" />
+  </head>
+  <body class="flames">
+    <div class="page">
+      <section id="side">
+        <div class="title"><h1>Flame editor</h1><a class="back" href="/tools.html">← Tools</a></div>
+      </section>
+      <section class="view" id="view"></section>
+    </div>
+    <footer class="status" id="status"></footer>
+    <script type="module" src="/src/flight-shots/flame-page.ts"></script>
+  </body>
+</html>

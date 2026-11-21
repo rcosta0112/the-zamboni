@@ -1,6 +1,7 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
+import { ALL_FLAME_KEYS } from './src/flight-shots/flame-keys';
 
 // This version's number, shown in the tuning panel's title.
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
@@ -47,6 +48,59 @@ function savedPresets(route: string, path: string, key: string, item: string, ma
   };
 }
 
+/**
+ * flame-editor.html's save (plan doc/plans/features/flame-editor.md): POST /__flames { values: { key: value } }
+ * rewrites those keys' defaults in src/settings.ts in place (the value only; the line's comment kept), only keys of
+ * flame-keys.ts and values of their kind. The write doesn't hot-reload the open pages (the editor keeps its state;
+ * the game shows the values once reloaded).
+ */
+function savedFlames(): Plugin {
+  const file = new URL('./src/settings.ts', import.meta.url);
+  let wroteAt = 0;
+  return {
+    name: 'zamboni-flames',
+    apply: 'serve',
+    handleHotUpdate(ctx) {
+      if (ctx.file.endsWith('/src/settings.ts') && Date.now() - wroteAt < 3000) return [];
+    },
+    configureServer(server) {
+      server.middlewares.use('/__flames', (req, res) => {
+        const reply = (status: number, body: string) => {
+          res.statusCode = status;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(body);
+        };
+        if (req.method !== 'POST') return reply(405, '{}');
+        let body = '';
+        req.on('data', (chunk) => (body += chunk));
+        req.on('end', () => {
+          try {
+            const { values } = JSON.parse(body) as { values: Record<string, unknown> };
+            let text = readFileSync(file, 'utf8');
+            for (const [key, value] of Object.entries(values)) {
+              const k = ALL_FLAME_KEYS.find((f) => f.key === key);
+              if (!k) throw new Error(`not a flame value: ${key}`);
+              let written: string;
+              if (k.kind === 'number' && typeof value === 'number' && Number.isFinite(value)) written = String(value);
+              else if (k.kind === 'colour' && typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) written = `'${value.toLowerCase()}'`;
+              else if (k.kind === 'on' && typeof value === 'boolean') written = String(value);
+              else throw new Error(`bad value for ${key}`);
+              const line = new RegExp(`^(  ${key}: )[^,\n]+,`, 'm');
+              if (!line.test(text)) throw new Error(`${key} not found in settings.ts`);
+              text = text.replace(line, `$1${written},`);
+            }
+            wroteAt = Date.now();
+            writeFileSync(file, text);
+            reply(200, JSON.stringify({ saved: Object.keys(values).length }));
+          } catch (err) {
+            reply(400, JSON.stringify({ error: String(err) }));
+          }
+        });
+      });
+    },
+  };
+}
+
 export default defineConfig({
   // The interface (the start screen, with @zamboni/ui's components) is Svelte.
   plugins: [
@@ -55,6 +109,7 @@ export default defineConfig({
     savedPresets('/__synth/scanner', './src/synth/scanner-patches.json', 'patches', 'patch'),
     savedPresets('/__planet/presets', './src/planet/presets.json', 'presets', 'preset'),
     savedPresets('/__shots', './public/cutscenes/shots.json', 'shots', 'shot', false),
+    savedFlames(),
   ],
   // Game files, fonts and UI images: this version's own, in public/ (Vite's default), served at the root.
   define: { __VERSION__: JSON.stringify(version) },

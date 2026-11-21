@@ -1084,7 +1084,7 @@ async function start(): Promise<void> {
     updateWorld(world, scene, character.root.position, indoorLight, landed ? LANDED_SUN_BACK : 30, landed ? settings.shadowRangeLanded : settings.shadowRangeOutdoors);
     // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
     const flight = cutscene?.flight ?? null;
-    flames?.update(dt, cutscene?.playing ?? false, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, cutscene?.playing ? cutscene.camera : view.camera);
+    flames?.update(dt, cutscene?.playing ?? false, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, cutscene?.playing ? cutscene.camera : view.camera, size.y);
     audio.noiseKeyed = flight?.noise ?? null;
     clouds.update(cutscene?.track?.clouds ?? null, cutscene?.time ?? 0, cutscene ? cutscene.restFrame : scene, world.sun, cutscene?.playing ? cutscene.camera : view.camera);
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any

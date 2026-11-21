@@ -36,8 +36,12 @@ export class ShotPreview {
     private readonly ship: Ship,
     private readonly player: CutscenePlayer,
     private readonly treadmill: Treadmill,
-    private readonly flames: ThrusterFlames | null,
+    /** The flames (the flame editor tunes them, and holds their flicker). */
+    readonly flames: ThrusterFlames | null,
   ) {}
+
+  /** The landing's bloom forced on, whatever the track keys (the flame editor: flybys don't key it). */
+  glowOn = false;
 
   /** Builds it in `canvas` (the ship's file, the scenery's, the shaders: a few seconds). */
   static async create(canvas: HTMLCanvasElement, terrain = 'ice-plain', onStep: (what: string) => void = () => {}): Promise<ShotPreview> {
@@ -183,7 +187,9 @@ export class ShotPreview {
     this.ship.gearRaised = flight?.gear ?? null;
     placeGear(this.ship);
     updateWorld(this.world, this.scene, this.ship.object.position, 0);
-    this.flames?.update(dt, true, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, camera);
+    const glow = this.glowOn ? 1 : 0;
+    const keyed = flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: Math.max(flight.glow ?? 0, glow) } : glow ? { strength: 1, front: 1, reach: 1, glow } : null;
+    this.flames?.update(dt, true, keyed, camera, canvas.height);
     // The scenery runs on while paused too: the ship is flying.
     this.treadmill.update(dt, camera, track?.speed ?? 1);
     this.renderer.toneMappingExposure = settings.exposure;

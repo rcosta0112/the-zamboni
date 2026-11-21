@@ -373,24 +373,37 @@ export const settings = {
   thrusterFlames: true,
   thrusterFlameColor: '#f2e4a2',
   thrusterFlameStrength: 2, // its brightness, before tone mapping
-  thrusterFlameFade: 0.6, // share of the cone where it's nearly gone (the fly-by's ramp: 0.595)
+  thrusterFlameFade: 0.6, // share of the cone where it's nearly gone (the fly-by's ramp: 0.595); the strip: where it starts fading to its tip
   thrusterFlameGrain: 0.5, // how much the grain dims it (0 = none)
   thrusterFlameGrainSize: 0.08, // m
   thrusterFlameSpeed: 20, // m/s the grain runs back along the flame
   thrusterFlameFlicker: 0.72, // how much each flame dims as it flickers, each on its own (0 = none; owner, 2026-10-24; tripled then -20%, 2026-11-21)
   thrusterFlameFlickerLength: 0.36, // share of its length it loses at the flicker's dimmest (tripled then -20%, owner, 2026-11-21)
   thrusterFlameFlickerRate: 12, // how fast it flickers (noise cells per second)
+  // The flames' shape (SC-190, owner, 2026-11-21; plan doc/plans/features/thruster-flame-shape.md): a strip per nozzle
+  // facing the camera, drawn as a round base joined to a long thin flame, a solid white core down its middle.
+  thrusterFlameCones: false, // the fly-by file's cones instead (to compare)
+  thrusterFlameBase: 1.25, // the round base's radius, times the nozzle's
+  thrusterFlameBaseOut: 0.9, // its middle out of the nozzle, times the nozzle's radius
+  thrusterFlameLength: 1.2, // the flame's length, times the file's cone
+  thrusterFlameWidth: 0.45, // the thin flame's half-width where it leaves the base, times the nozzle's radius
+  thrusterFlameTaper: 1.2, // how it narrows to its tip (1: straight; more: thin sooner)
+  thrusterFlameEdge: 0.45, // share of the half-width that's a soft edge (1: soft from the middle)
+  thrusterFlameCoreWidth: 0.4, // the white core's share of the flame's width
+  thrusterFlameCorePx: 2, // never narrower than this (pixels), as the temple's shaft
+  thrusterFlameCoreLength: 0.35, // share of the thin flame the core reaches
+  thrusterFlameCoreBrightness: 6, // brighter than white: the frame is tone-mapped at the end
   // The landing's painted bloom per nozzle (owner, 2026-11-10: the reference's white-hot core in a warm orange-pink halo).
   thrusterGlow: true,
   thrusterGlowCoreColor: '#fff6ec',
   thrusterGlowHaloColor: '#ff8a6a',
-  thrusterGlowSize: 0.3, // share of the screen's height (a back nozzle, at the flames' full strength)
-  thrusterGlowFront: 0.7, // the front pair's size, times the back's
+  thrusterGlowRadii: 8, // its width in its nozzle's radii, so it shrinks with distance (owner, 2026-11-21; was 0.3 of the screen's height at any distance); at the flames' full strength
+  thrusterGlowFront: 1, // the front pair's size, times the back's (their nozzles are already 0.64 the back's; 0.7 when the size was a share of the screen)
   thrusterGlowCore: 0.16, // the core's share of the sprite
   thrusterGlowHalo: 1.1, // the halo's brightness
-  thrusterGlowOut: 1.2, // m out of the nozzle, along the flame (a back nozzle)
+  thrusterGlowOut: 1.5, // m out of the nozzle, along the flame (a back nozzle)
   thrusterGlowOutFront: 0.1, // the same for the front pair: at the nozzle (owner, 2026-11-10: further down, its core floated on the flame)
-  thrusterGlowTowardCamera: 1.5, // m toward the camera (so the turbine doesn't cut it)
+  thrusterGlowTowardRadii: 1, // toward the camera, in its nozzle's radii (so its own turbine doesn't cut it; owner, 2026-11-21: 1.5 m put it in front of the engine)
   thrusterGlowFlicker: 0.288, // how much its size jumps (0 = none; tripled then -20%, owner, 2026-11-21)
   thrusterGlowFlickerRate: 14, // new sizes per second
   // The landing's clouds (clouds.ts; owner, 2026-11-10: as the owner's Cloud.blend draws them). Its ramp's
