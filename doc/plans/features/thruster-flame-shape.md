@@ -1,6 +1,6 @@
 # The thrusters' flames: a round base, a long thin flame, a white core, bloom always on (SC-190)
 
-**Status:** approved 2026-11-21 (owner: "continue"; the starburst dropped); pass 1 built 2026-11-21. The flame editor's update (SC-189) comes after it.
+**Status:** **parked 2026-11-21 after pass 1** (owner: good enough for now; open items under *Parked*); approved 2026-11-21 (owner: "continue"; the starburst dropped); pass 1 built 2026-11-21. The flame editor's update (SC-189) comes after it.
 
 ## Goal
 
@@ -33,3 +33,14 @@ The flames read as the reference in 0100 (flyby) and 0600 (landing) on probe scr
 - **Changed from the design: the flame's colour is laid over, not added.** Added, the pale yellow vanished against the bright sky (the temple's lesson again); the glow round it (pass 2) will be the added part.
 - Values (settings.ts, panel): `thrusterFlameCones` (old cones), `Base` 1.25, `BaseOut` 0.9, `Length` 1.2, `Width` 0.45, `Taper` 1.2, `Edge` 0.45, `CoreWidth` 0.4, `CorePx` 2, `CoreLength` 0.35, `CoreBrightness` 6. `thrusterFlameFade` now where the flame starts fading to its tip.
 - Seen down the axis (from behind, below) the strip fades out: nothing round shows there until pass 2's glow.
+
+## Parked (owner, 2026-11-21)
+
+> **[Agent note]** Closed for now: *"the current versions of the flame and the editor are good enough for now. Keep the notes."* What's still open, for when this comes back:
+>
+> - **The editor doesn't list SC-190's shape values** (`flame-keys.ts`): old cones, base, base out, length, width, taper, edge, core width, core px, core length, core brightness. Only on the panel's *Flight: thruster flames*.
+> - **Stale labels:** *fades by (share)* now means where the strip starts fading to its tip; the grain's labels still read as the cones'.
+> - **SC-190 pass 2 not built:** bloom always on (flybys, 0100), the glow round the whole flame, the `flames` key as intensity. Until then nothing round shows when the strip is seen down its axis.
+> - **Docs behind:** `features/scenery.md` still describes the flames as the fly-by's cones and the bloom as only where a track keys `glow`; no decision-log entry for the strip replacing the cones.
+> - **Smoke not run** since the strip.
+> - **The owner's call later:** drop the old cones (`thrusterFlameCones`).

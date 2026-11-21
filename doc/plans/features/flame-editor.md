@@ -1,6 +1,6 @@
 # The flame editor (SC-189)
 
-**Status:** draft 2026-11-21; **built the same day** on the owner's "do it" (as below; the settings.ts save chosen, no presets).
+**Status:** **parked 2026-11-21** (owner: good enough for now; open items under *Parked*); draft 2026-11-21; **built the same day** on the owner's "do it" (as below; the settings.ts save chosen, no presets).
 
 > **[Agent note]** As built: a flyby keys no flame values, so *bloom on* passes the flames a keyed strength of 1 with the bloom (preview.ts). The save doesn't hot-reload open pages (vite.config.ts skips settings.ts's update for 3 s): reload the game to see saved values. Step buttons move one frame at 24 fps. Scratch check `.export/scratch/flame-editor.mjs`: loads in ~11 s, nudge, hold, bloom, save (settings.ts restored after), a second shot; no console errors.
 
@@ -28,3 +28,14 @@ A presets file as the planet page's (`/__planet/presets`: named looks, a default
 ## Done when
 
 The page loads with no console errors; picking a shot plays it; a nudge shows at once; save writes `settings.ts` (checked with a scratch probe, then reverted); check and build pass. One pass, no smoke (no game code changes).
+
+## Parked (owner, 2026-11-21)
+
+> **[Agent note]** Closed for now: *"the current versions of the flame and the editor are good enough for now. Keep the notes."* What's still open, for when this comes back:
+>
+> - **The editor doesn't list SC-190's shape values** (`flame-keys.ts`): old cones, base, base out, length, width, taper, edge, core width, core px, core length, core brightness. Only on the panel's *Flight: thruster flames*.
+> - **Stale labels:** *fades by (share)* now means where the strip starts fading to its tip; the grain's labels still read as the cones'.
+> - **SC-190 pass 2 not built:** bloom always on (flybys, 0100), the glow round the whole flame, the `flames` key as intensity. Until then nothing round shows when the strip is seen down its axis.
+> - **Docs behind:** `features/scenery.md` still describes the flames as the fly-by's cones and the bloom as only where a track keys `glow`; no decision-log entry for the strip replacing the cones.
+> - **Smoke not run** since the strip.
+> - **The owner's call later:** drop the old cones (`thrusterFlameCones`).
