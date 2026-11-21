@@ -377,8 +377,8 @@ export const settings = {
   thrusterFlameGrain: 0.5, // how much the grain dims it (0 = none)
   thrusterFlameGrainSize: 0.08, // m
   thrusterFlameSpeed: 20, // m/s the grain runs back along the flame
-  thrusterFlameFlicker: 0.3, // how much each flame dims as it flickers, each on its own (0 = none; owner, 2026-10-24)
-  thrusterFlameFlickerLength: 0.15, // share of its length it loses at the flicker's dimmest
+  thrusterFlameFlicker: 0.72, // how much each flame dims as it flickers, each on its own (0 = none; owner, 2026-10-24; tripled then -20%, 2026-11-21)
+  thrusterFlameFlickerLength: 0.36, // share of its length it loses at the flicker's dimmest (tripled then -20%, owner, 2026-11-21)
   thrusterFlameFlickerRate: 12, // how fast it flickers (noise cells per second)
   // The landing's painted bloom per nozzle (owner, 2026-11-10: the reference's white-hot core in a warm orange-pink halo).
   thrusterGlow: true,
@@ -391,7 +391,7 @@ export const settings = {
   thrusterGlowOut: 1.2, // m out of the nozzle, along the flame (a back nozzle)
   thrusterGlowOutFront: 0.1, // the same for the front pair: at the nozzle (owner, 2026-11-10: further down, its core floated on the flame)
   thrusterGlowTowardCamera: 1.5, // m toward the camera (so the turbine doesn't cut it)
-  thrusterGlowFlicker: 0.12, // how much its size jumps (0 = none)
+  thrusterGlowFlicker: 0.288, // how much its size jumps (0 = none; tripled then -20%, owner, 2026-11-21)
   thrusterGlowFlickerRate: 14, // new sizes per second
   // The landing's clouds (clouds.ts; owner, 2026-11-10: as the owner's Cloud.blend draws them). Its ramp's
   // colours (linear there) as the picker shows them.
