@@ -87,7 +87,8 @@ report(checkFlyby(values0400).length === 0, `0400 passes the checks (${checkFlyb
       screen = Math.max(screen, Math.hypot(p[0] - q[0], p[1] - q[1]) / 2);
       size = Math.max(size, Math.abs(sizeOnScreen(m, 16 / 9) / sizeOnScreen(k, 16 / 9) - 1));
     }
-    report(screen < 0.03 && size < 0.02 && track.duration === c1.duration, `0100 as a saved shot: the ship's centre within ${(screen * 100).toFixed(1)}% of the frame's width, its size within ${(size * 100).toFixed(1)}%; ${track.duration} s`);
+    // Since 2026-11-21 the owner edits 0100 in the shot editor: the fit to the Blender track is only reported.
+    report(track.duration === c1.duration, `0100 as a saved shot: ${track.duration} s; vs the Blender track (reported, not checked: owner-edited): the ship's centre within ${(screen * 100).toFixed(1)}% of the frame's width, its size within ${(size * 100).toFixed(1)}%`);
     report(JSON.stringify(track.ship) === JSON.stringify(c1.ship), `0100 as a saved shot: the sway (${track.ship?.length} keys) cutscene 1's`);
     const roll = Math.max(...keys(c1).map((k, i) => Math.abs((k.roll ?? 0) - (made[i]?.roll ?? 0))));
     report(shot.values.handheld === 1 && handheld.length === keys(c1).length && roll <= 0.0011, `0100 as a saved shot: the handheld wobble on (its roll 0100's within ${roll.toFixed(4)}°)`);
