@@ -35,6 +35,7 @@ import { facingOf, LadderClimb, shipLadders, type ClimbStart } from './ladders';
 import { findLightMarkers, RoomLights } from './lights';
 import { LoadProgress } from './loading';
 import { readSave, clearSave, writeSave, type SaveData } from './save';
+import { recentShots, restoreRecentShots, RANDOM_FLYBY } from './flight-shots/shots';
 import { FIRST_SCENE, SceneDirector, TEST_SCENE } from './scenes';
 import { GameStory } from './story';
 import { WatchedConversation } from './watched';
@@ -123,6 +124,11 @@ const SCENE_NUMBERS: Record<string, string> = { '0050': 'planet', '0100': 'cutsc
 const LANDING = 'landing';
 /** `?scene=flyby` (0400): the `whats-that` scene, its flyby played as a new game begins. */
 const FLYBY = 'flyby';
+/**
+ * `&shot=random` (flight-shots.md pass 3): the flyby (0400, a scene's intro `flyby`) swapped for a random
+ * one, as `intro: "shot: random flyby"` plays it; to try random play, as nothing in the story is random yet.
+ */
+const FLYBY_PLAYED = import.meta.env.DEV && new URLSearchParams(location.search).get('shot') === 'random' ? `shot: ${RANDOM_FLYBY}` : FLYBY;
 const ASKED = ASKED_RAW ? (SCENE_NUMBERS[ASKED_RAW] ?? ASKED_RAW) : null;
 /** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
 const SAVING = TESTING;
@@ -299,6 +305,11 @@ async function start(): Promise<void> {
         scene: (id) => void goTo(id).catch((err: unknown) => console.warn(`[0.0.2] scene ${id} not started:`, err)),
       };
       cutscene = new CutscenePlayer(s.object, (command) => run(command, target), [s.shadowCaster, s.interiorShadowCaster, s.glassShadowCaster]);
+      // The sun as a bearing in the ship's space (Blender's, degrees from +X toward +Y): a flight shot's sun bucket.
+      cutscene.sunBearing = () => {
+        const local = world.sun.position.clone().sub(world.sun.target.position).applyQuaternion(s.object.quaternion.clone().invert());
+        return (Math.atan2(-local.z, local.x) * 180) / Math.PI; // three's (x, y, z) → Blender's (x, -z, y)
+      };
       // A checkpoint at a cutscene's end: the scene's, with the story as it is then.
       cutscene.onEnded = (id) => {
         if (begun && director?.current) checkpoint(director.current);
@@ -332,7 +343,7 @@ async function start(): Promise<void> {
       if (animaticFrom) await watched?.load('opening').catch((err: unknown) => console.warn('[0.0.2] cutscene 2 not loaded:', err));
       await watched?.load('chapter-1-start').catch((err: unknown) => console.warn('[0.0.2] chapter 1 start not loaded:', err)); // so it starts on its frame
       if (ASKED === LANDING) await cutscene.load(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not loaded:', err));
-      if (ASKED === FLYBY) await cutscene.load(FLYBY).catch((err: unknown) => console.warn('[0.0.2] flyby not loaded:', err));
+      if (ASKED === FLYBY) await cutscene.load(FLYBY_PLAYED).catch((err: unknown) => console.warn('[0.0.2] flyby not loaded:', err));
       if (firstScene === 'whats-that') await watched?.load('whats-that').catch((err: unknown) => console.warn('[0.0.2] whats-that not loaded:', err));
       if (animaticFrom) await cutscene.load(OPENING_EXTERIOR).catch((err: unknown) => console.warn('[0.0.2] cutscene 2 exterior not loaded:', err));
       // Her place at a scene's start: its start, or her seat if the setup seated her (the start kept for getting up).
@@ -529,7 +540,7 @@ async function start(): Promise<void> {
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave } });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots } });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -579,7 +590,8 @@ async function start(): Promise<void> {
    */
   async function goTo(id: string, withIntro = true): Promise<void> {
     if (!director) return;
-    const data = await director.load(id);
+    const loaded = await director.load(id);
+    const data = loaded.intro === FLYBY ? { ...loaded, intro: FLYBY_PLAYED } : loaded;
     if (data.intro && withIntro) await cutscene?.load(data.intro).catch((err: unknown) => console.warn(`[0.0.2] cutscene ${data.intro} not loaded:`, err));
     for (const command of data.begin ?? []) if (command.do === 'watch') await watched?.load(command.id).catch((err: unknown) => console.warn(`[0.0.2] conversation ${command.id} not loaded:`, err));
     director.apply(id, data);
@@ -622,6 +634,7 @@ async function start(): Promise<void> {
     if (!director || !story) return false;
     try {
       story.restore(save.story);
+      restoreRecentShots(save.recentShots);
       await director.start(save.checkpoint);
       return true;
     } catch (err: unknown) {
@@ -634,7 +647,7 @@ async function start(): Promise<void> {
   /** The checkpoint save: the scene just started and the story's state. */
   function checkpoint(id: string): void {
     if (!story || !SAVING) return;
-    void writeSave({ checkpoint: id, location: 'ship', story: story.state(), missionData: [], chat: [] }).catch((err: unknown) => console.warn('[0.0.2] not saved:', err));
+    void writeSave({ checkpoint: id, location: 'ship', story: story.state(), missionData: [], chat: [], recentShots: recentShots() }).catch((err: unknown) => console.warn('[0.0.2] not saved:', err));
   }
 
   /** The checkpoint written again with the story as it is now (after a conversation, or KEPT changed); not during a cutscene: its end saves. */
@@ -679,6 +692,7 @@ async function start(): Promise<void> {
       });
     } else if (choice === 'new' && shown !== 'new') {
       story?.reset();
+      restoreRecentShots(undefined);
       void director?.start(firstScene).catch((err: unknown) => console.warn('[0.0.2] scene not started:', err));
     } else if (director?.current) checkpoint(director.current);
     if (choice === 'new' && animaticFrom === 'planet' && planetShot) {
@@ -698,7 +712,7 @@ async function start(): Promise<void> {
       void cutscene?.play(LANDING).catch((err: unknown) => console.warn('[0.0.2] landing not played:', err));
     } else if (choice === 'new' && ASKED === FLYBY) {
       input.consumeSkip();
-      void cutscene?.play(FLYBY).catch((err: unknown) => console.warn('[0.0.2] flyby not played:', err));
+      void cutscene?.play(FLYBY_PLAYED).catch((err: unknown) => console.warn('[0.0.2] flyby not played:', err));
     }
     // The click waits for the sound to be on: this may be the first thing the player has done.
     void audio.unlock().then(() => audio.play('ui_click'));

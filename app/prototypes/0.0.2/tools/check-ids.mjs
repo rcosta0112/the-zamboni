@@ -29,7 +29,11 @@ const openable = new Set(['ramp', ...[...doorKinds.matchAll(/^\s*'?([\w-]+)'?: d
 const cues = new Set(Object.keys(json('src/cues.json')));
 const filesIn = (folder) => fs.readdirSync(path.join(root, folder)).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
 const tracks = new Set(filesIn('public/test/cutscenes'));
-const gameTracks = new Set([...filesIn('public/cutscenes'), ...tracks]);
+// Built from saved flight shots (flight-shots.md, passes 2e and 3): cutscene.ts `FROM_SHOTS`'s ids, and
+// `shot: <name>` for a shot in shots.json or `shot: random flyby`.
+const fromShots = [.../FROM_SHOTS[^=]*= \{([^}]*)\}/.exec(read('src/cutscene.ts'))?.[1].matchAll(/'?([\w-]+)'?\s*:/g) ?? []].map((m) => m[1]);
+const savedShots = ['random flyby', ...Object.keys(json('public/cutscenes/shots.json').shots ?? {})].map((n) => `shot: ${n}`);
+const gameTracks = new Set([...filesIn('public/cutscenes'), ...tracks, ...fromShots, ...savedShots]);
 const sceneIds = new Set([...filesIn('public/scenes'), ...filesIn('public/test/scenes')]);
 const STORIES = ['public/story/story.ink', 'public/test/story.ink'];
 // A story is its file and the files it INCLUDEs from its folder (the game's: one per scene file; one level).

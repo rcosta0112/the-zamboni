@@ -35,7 +35,8 @@ The page loads with no console errors; picking a shot plays it; a nudge shows at
 >
 > - **The editor doesn't list SC-190's shape values** (`flame-keys.ts`): old cones, base, base out, length, width, taper, edge, core width, core px, core length, core brightness. Only on the panel's *Flight: thruster flames*.
 > - **Stale labels:** *fades by (share)* now means where the strip starts fading to its tip; the grain's labels still read as the cones'.
-> - **SC-190 pass 2 not built:** bloom always on (flybys, 0100), the glow round the whole flame, the `flames` key as intensity. Until then nothing round shows when the strip is seen down its axis.
+> - **SC-190 pass 2, the bloom always on: built 2026-11-21** (owner: *"the bloom effect is not visible on the 0100"*; small fix): a flight shot no track keys (0100, the flybys) shows the nozzle bloom at full level (`flames.ts` `UNKEYED`); 0600's keyed `glow` still scales it.
+> - **SC-190 pass 2 not built:** the glow round the whole flame, the `flames` key as intensity. Until then nothing round shows when the strip is seen down its axis.
 > - **Docs behind:** `features/scenery.md` still describes the flames as the fly-by's cones and the bloom as only where a track keys `glow`; no decision-log entry for the strip replacing the cones.
 > - **Smoke not run** since the strip.
 > - **The owner's call later:** drop the old cones (`thrusterFlameCones`).

@@ -89,6 +89,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 *Update 2026-11-20 (owner):* **not the game in the editor**: only what the shot needs (the ship, sky, sun, flight scenery, flames; no crew, story, sound, start screen or skip), the shot **looping**. The tool is for the framing and the camera's movement. `src/flight-shots/preview.ts` (its own renderer, the game's modules reused); the frame and its test scene gone.
 *Update 2026-11-20 (agent, pass 2b built):* framing rules: the ship's place and size on screen are drawn, with lead room behind its travel on screen; the view's turn and the distance are worked out from them. Pass 3 next on the owner's go.
+*Update 2026-11-21 (owner, pass 3):* **a shot is named in the scene file** (`"intro": "shot: <name>"` / `"shot: random flyby"`), **not an Ink `# shot:` tag**: the exterior cutscenes have no Ink file (an Ink tag later, if a dialogue ever starts a shot). 0400 plays from the saved shot `0400`; `flyby-orbit.mjs` retired. Built the same day. **Status:** passes 0–3 built; 4–6 to come.
 
 ---
 

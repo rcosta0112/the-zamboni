@@ -33,6 +33,7 @@ const TOOLS: Record<string, Tool[]> = {
     { name: '0200 · Opening', href: '/?scene=0200', about: 'Cutscene 2, then chapter 1.' },
     { name: '0300 · Chapter 1', href: '/?scene=0300', about: 'In flight, playable.' },
     { name: '0400 · Flyby', href: '/?scene=0400', about: 'The flyby, then the conversation.' },
+    { name: '0400 · Random flyby', href: '/?scene=0400&shot=random', about: 'A random flyby instead (random play, its memory of recent shots).' },
     { name: '0500 · What’s that', href: '/?scene=0500', about: 'The conversation at once (all seated).' },
     { name: '0600 · Landing', href: '/?scene=0600', about: 'The landing cutscene, then the landed scene.' },
     { name: '0700 · Landed', href: '/?scene=0700', about: 'Parked on the plain, playable.' },

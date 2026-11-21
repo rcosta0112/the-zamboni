@@ -561,3 +561,31 @@ const framingOf = (x: number): Buckets['framing'] => (x < -0.15 ? 'left' : x > 0
 export function shared(a: Buckets, b: Buckets): (keyof Buckets)[] {
   return (Object.keys(a) as (keyof Buckets)[]).filter((k) => a[k] !== undefined && a[k] === b[k]);
 }
+
+// Random play (pass 3; the memory and the names in shots.ts).
+
+/** Seeds drawn for one random shot. */
+export const DRAWS = 12;
+
+/** How alike a shot is to the memory: the buckets shared with each, the newest weighing 1, then ½, ¼… */
+export function likeness(buckets: Buckets, memory: readonly Buckets[]): number {
+  return memory.reduce((sum, b, i) => sum + shared(buckets, b).length * 0.5 ** i, 0);
+}
+
+/**
+ * A random flyby: `DRAWS` seeds, each through the generator (its re-rolls), the least like the memory
+ * kept (the first drawn on a tie). `sunBearing`: the sun in ship space, for the sun's bucket.
+ */
+export function randomFlyby(sunBearing: number | undefined, memory: readonly Buckets[], rand: () => number = Math.random): { seed: number; values: FlybyValues; buckets: Buckets; likeness: number } {
+  let best: { seed: number; values: FlybyValues; buckets: Buckets; likeness: number } | null = null;
+  for (let i = 0; i < DRAWS; i++) {
+    const seed = Math.floor(rand() * 2 ** 31);
+    const { values, problems } = generateFlyby(seed);
+    if (problems.length) continue;
+    const buckets = flybyBuckets(values, sunBearing);
+    const score = likeness(buckets, memory);
+    if (!best || score < best.likeness) best = { seed, values, buckets, likeness: score };
+  }
+  if (!best) throw new Error('no usable random flyby');
+  return best;
+}

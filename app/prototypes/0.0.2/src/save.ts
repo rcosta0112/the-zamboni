@@ -5,6 +5,8 @@
 // (main.ts); read at load, for *Continue* on the start screen.
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (pass 4); doc/plans/architecture/game-architecture/saving.md
 
+import type { Buckets } from './flight-shots/flyby';
+
 /** Raised when what a save holds changes (an older one is then brought up to date in `readSave`); a newer one is ignored. */
 export const SAVE_FORMAT = 1;
 
@@ -21,6 +23,8 @@ export interface SaveData {
   /** Empty until the comm exists. */
   missionData: unknown[];
   chat: unknown[];
+  /** The flight shots played lately, their buckets, newest first (random play's memory; flight-shots.md pass 3). Left out by older saves: none. */
+  recentShots?: Buckets[];
   /** When it was written (ISO time). */
   savedAt: string;
 }

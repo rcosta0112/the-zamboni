@@ -6,31 +6,44 @@
 // can be used and the see-through is off (main.ts: the camera is authored). *Skip* jumps to the end
 // state: the events not yet run are left out, the end state covers them. The test one,
 // `test-ship-shots`, is written by `tools/test-cutscene.mjs`; cutscene 1 is built from its saved flight shot
-// (`FROM_SHOTS`: `shots.json`'s `0100`, made from the owner's fly-by file). Dev builds: `__cutscene().play('<id>')`, `skip()`.
+// (`FROM_SHOTS`: `shots.json`'s `0100`, made from the owner's fly-by file), the flyby (0400) from `0400`; an id
+// `shot: <name>` plays any saved shot, `shot: random flyby` a generated one (flight-shots.md pass 3). Dev builds: `__cutscene().play('<id>')`, `skip()`.
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (*Cutscenes*, pass 5)
 
 import * as THREE from 'three/webgpu';
 import type { CloudTrack } from './clouds';
 import { fromBlender, type Command } from './commands';
 import { SWAY_DEG, WAVES } from './watched';
-import { flybyTrack, type FlybyValues } from './flight-shots/flyby';
+import { flybyBuckets, flybyTrack, type Buckets, type FlybyValues } from './flight-shots/flyby';
+import { randomAgainstMemory, rememberShot, RANDOM_FLYBY, shotName, type SavedShot } from './flight-shots/shots';
 
 /**
  * Tracks built from a saved flight shot (`public/cutscenes/shots.json`, the shot editor's; flight-shots.md pass 2e)
  * instead of a file of their own: id → the shot's name. The ship's sway and the handheld wobble from their files.
  */
-const FROM_SHOTS: Record<string, string> = { 'cutscene-1': '0100' };
+const FROM_SHOTS: Record<string, string> = { 'cutscene-1': '0100', flyby: '0400' };
 
-async function trackFromShot(id: string, name: string): Promise<Track> {
+/** The track from a saved shot (or `random flyby`: generated), its buckets kept on it for the memory. */
+async function trackFromShot(id: string, name: string, sunBearing?: number): Promise<Track> {
   const json = async (file: string) => {
     const r = await fetch(`/cutscenes/${file}.json`);
     if (!r.ok) throw new Error(`no ${file}.json`);
     return r.json();
   };
   const [shots, sway, handheld] = await Promise.all([json('shots'), json('sway'), json('handheld')]);
-  const values = shots.shots?.[name]?.values as FlybyValues | undefined;
+  let values: FlybyValues | undefined;
+  let made = name;
+  if (name === RANDOM_FLYBY) {
+    const picked = randomAgainstMemory(sunBearing);
+    values = picked.values;
+    made = `${RANDOM_FLYBY} ${picked.seed}`;
+    console.info(`[0.0.2] cutscene ${id}: random flyby, seed ${picked.seed} (like the recent shots: ${picked.likeness.toFixed(2)})`);
+  } else values = (shots.shots as Record<string, SavedShot> | undefined)?.[name]?.values;
   if (!values) throw new Error(`no saved shot "${name}" for cutscene "${id}"`);
-  return flybyTrack(values, { id, sway: sway.keys ?? [], handheld: handheld.keys ?? [] });
+  const track = flybyTrack(values, { id, sway: sway.keys ?? [], handheld: handheld.keys ?? [] });
+  track.buckets = flybyBuckets(values, sunBearing);
+  track.shot = made;
+  return track;
 }
 
 /** A camera key: where it is and which way it looks, in the ship file's Blender coordinates. */
@@ -119,6 +132,10 @@ export interface Track {
   events: { t: number; command: Command }[];
   /** How it leaves the world: run at its end, and by *skip*. */
   end: Command[];
+  /** Built from a flight shot (not in files): its buckets, remembered when it plays (random play's memory). */
+  buckets?: Buckets;
+  /** Built from a flight shot: its name (`random flyby <seed>` for a random one). */
+  shot?: string;
 }
 
 /** Cutscene 1's camera from the ship at its start and its end (m): the distances `heardNear` maps to 0 and 1. */
@@ -157,6 +174,8 @@ export class CutscenePlayer {
   time = 0;
   /** Called once a cutscene has ended (played out or skipped): the checkpoint (main.ts). */
   onEnded: ((id: string) => void) | null = null;
+  /** The sun as a bearing in ship space (main.ts), for a flight shot's sun bucket. */
+  sunBearing: (() => number) | null = null;
   private nextEvent = 0;
   /** The tracks fetched so far, by id. */
   private readonly loaded = new Map<string, Track>();
@@ -232,11 +251,12 @@ export class CutscenePlayer {
 
   /** Fetches a track (once), so a later `play` starts it at once: main.ts loads the animatic's with the game. */
   async load(id: string): Promise<Track> {
-    const known = this.loaded.get(id);
+    const shot = FROM_SHOTS[id] ?? shotName(id);
+    // A random shot is drawn again at each load (goTo loads, then plays it).
+    const known = shot === RANDOM_FLYBY ? undefined : this.loaded.get(id);
     if (known) return known;
-    const shot = FROM_SHOTS[id];
     if (shot) {
-      const track = await trackFromShot(id, shot);
+      const track = await trackFromShot(id, shot, this.sunBearing?.());
       this.loaded.set(id, track);
       return track;
     }
@@ -275,6 +295,7 @@ export class CutscenePlayer {
     this.track = track;
     this.time = 0;
     this.nextEvent = 0;
+    if (track.buckets) rememberShot(track.buckets);
     console.info(`[0.0.2] cutscene: ${id}`);
     this.update(0, this.camera.aspect);
   }

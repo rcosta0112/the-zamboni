@@ -40,6 +40,9 @@ export interface KeyedFlames {
   glow: number;
 }
 
+/** The flames' values in a flight no track keys: as they are, the bloom on. */
+const UNKEYED: KeyedFlames = { strength: 1, front: 1, reach: 1, glow: 1 };
+
 type Cone = {
   /** The fly-by file's cone (`thrusterFlameCones`). */
   mesh: THREE.Mesh;
@@ -332,7 +335,10 @@ export class ThrusterFlames {
   update(dt: number, exterior: boolean, keyed: KeyedFlames | null, camera: THREE.PerspectiveCamera, drawingHeight = innerHeight * devicePixelRatio): void {
     dt = Math.max(0, dt);
     this.visible = exterior && (keyed !== null ? keyed.strength > 0 : settings.shipFlying) && settings.thrusterFlames;
-    const glowing = this.visible && keyed !== null && keyed.glow > 0 && settings.thrusterGlow;
+    // The bloom shows in every flight shot (SC-190 pass 2, owner 2026-11-21: missing on 0100): unkeyed
+    // (0100, the flybys) at its full level; a track keying `glow` (0600's landing) still scales it.
+    const glowKeys: KeyedFlames = keyed ?? UNKEYED;
+    const glowing = this.visible && glowKeys.glow > 0 && settings.thrusterGlow;
     const cones = settings.thrusterFlameCones;
     for (const c of this.cones) {
       c.mesh.visible = this.visible && cones;
@@ -366,7 +372,8 @@ export class ThrusterFlames {
     u.coreLength.value = Math.max(0.01, settings.thrusterFlameCoreLength);
     u.coreBright.value = settings.thrusterFlameCoreBrightness;
     u.pixel.value = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / Math.max(1, drawingHeight);
-    if (!glowing || !keyed) return;
+    if (!glowing) return;
+    keyed = glowKeys;
 
     // The bloom: at each nozzle, a little out along its flame and toward the camera by about its nozzle's
     // radius (so its own turbine doesn't cut through it, while an engine in front of the nozzle still

@@ -1,21 +1,24 @@
 // The flyby generator's checks (plan doc/plans/features/flight-shots.md, pass 1), no browser:
-// 1. today's 0400 (`tools/flyby-orbit.mjs`'s settings, as values) gives today's `public/cutscenes/flyby.json`;
-// 2. a seed gives the same values twice; 3. many seeds: how many pass the checks at once, after re-rolls.
+// 1. 0400 (the retired `flyby-orbit.mjs`'s settings, as values) gives its old track, `tools/sources/flyby.json`, and
+//    so does the saved shot `0400` the game plays (pass 3);
+// 2. a seed gives the same values twice; 3. many seeds: how many pass the checks at once, after re-rolls;
+// 5. random play (pass 3): a shot drawn against a memory shares fewer buckets with it than a shot drawn blind.
 // Run from the prototype folder: `node --experimental-strip-types tools/flight-shots-check.mjs`.
 
 import { readFileSync } from 'node:fs';
-import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, flybyValues, generateFlyby, inPicture, sizeClass, sizeOnScreen, SHIP_CENTRE } from '../src/flight-shots/flyby.ts';
+
+import { checkFlyby, likeness, randomFlyby, flybyBuckets, flybyCamera, flybyTrack, flybyValues, generateFlyby, inPicture, random, sizeClass, sizeOnScreen, SHIP_CENTRE } from '../src/flight-shots/flyby.ts';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const c1 = read('./sources/cutscene-1.json');
-const today = read('../public/cutscenes/flyby.json');
+const today = read('./sources/flyby.json');
 let failed = 0;
 const report = (ok, what) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${what}`);
   if (!ok) failed++;
 };
 
-// 1. Today's flyby as values: flyby-orbit.mjs's ORBIT 90, START 2, END 9.5 about cutscene 1's middle frame.
+// 1. Today's flyby as values: the retired flyby-orbit.mjs's ORBIT 90, START 2, END 9.5 about cutscene 1's middle frame.
 const ORBIT = 90, START = 2, END = 9.5;
 const middle = c1.duration / 2;
 const mid = c1.shots[0].camera.reduce((best, k) => (Math.abs(k.t - middle) < Math.abs(best.t - middle) ? k : best));
@@ -51,6 +54,15 @@ report(made.duration === today.duration && JSON.stringify(made.hide) === JSON.st
 const { camera: _a, ...shotMade } = made.shots[0];
 const { camera: _b, ...shotToday } = today.shots[0];
 report(JSON.stringify(shotMade) === JSON.stringify(shotToday), `0400 from values: the shot's settings ${JSON.stringify(shotMade)}`);
+{
+  // Pass 3: the game builds `flyby` from the saved shot `0400` (cutscene.ts `FROM_SHOTS`), with the handheld file
+  // (0400 has no `handheld`: none) and `sway.json`.
+  const saved = read('../public/cutscenes/shots.json').shots['0400'];
+  const sway = read('../public/cutscenes/sway.json').keys;
+  const handheld = read('../public/cutscenes/handheld.json').keys;
+  const game = saved && flybyTrack(saved.values, { id: 'flyby', sway, handheld });
+  report(!!game && JSON.stringify(game) === JSON.stringify(made), 'the saved shot 0400 (as the game builds it) = 0400 from values');
+}
 report(checkFlyby(values0400).length === 0, `0400 passes the checks (${checkFlyby(values0400).join(', ') || 'none failed'}); buckets ${JSON.stringify(flybyBuckets(values0400))}`);
 
 // 1b. Trimmed (owner, 2026-11-20): 0400 trimmed to 1.5–6 s plays 4.5 s, its first and last frames the whole
@@ -135,5 +147,18 @@ report(against <= N * 0.02, `lead room at the ends (${2 * N}): ${leads} behind t
 report(worstSize < 0.15, `the size on screen at the middle within ${(worstSize * 100).toFixed(1)}% of its target; sizes drawn (usable): ${JSON.stringify(sizes)}`);
 const sample = generateFlyby(7);
 console.log(`seed 7: ${JSON.stringify(sample.values)} ${JSON.stringify(flybyBuckets(sample.values, 0))}`);
+
+// 5. Random play: a memory of 4 shots (the first random ones); 40 shots drawn against it share fewer buckets with
+// it, on average, than 40 drawn against nothing. A fixed sequence of random numbers, so the run is the same each time.
+{
+  const rand = random(99);
+  const memory = Array.from({ length: 4 }, () => randomFlyby(0, [], rand).buckets);
+  let blind = 0, aware = 0;
+  for (let i = 0; i < 40; i++) {
+    blind += likeness(randomFlyby(0, [], rand).buckets, memory);
+    aware += likeness(randomFlyby(0, memory, rand).buckets, memory);
+  }
+  report(aware < blind * 0.85, `random play: alike to the memory ${(aware / 40).toFixed(2)} against it, ${(blind / 40).toFixed(2)} blind (40 shots, 12 seeds drawn each)`);
+}
 
 process.exit(failed ? 1 : 0);
