@@ -53,7 +53,8 @@ for (const [t, at] of expected) {
   const local = cutscene.rest.worldToLocal(cutscene.camera.position.clone());
   const blender = [local.x, -local.z, local.y];
   const off = Math.hypot(...blender.map((v, i) => v - at[i]));
-  report(off < 1.5, `the camera at ${t} s where the fly-by has it`, `${blender.map((v) => v.toFixed(1)).join(', ')}; ${off.toFixed(2)} m off`);
+  // 2.5 m: cutscene 1 is played from its saved shot (flight-shots.md pass 2e), an orbit within 2.2 m of the fly-by's line.
+  report(off < 2.5, `the camera at ${t} s where the fly-by has it`, `${blender.map((v) => v.toFixed(1)).join(', ')}; ${off.toFixed(2)} m off`);
   swayed = Math.max(swayed, (hull.quaternion.angleTo(cutscene.rest.quaternion) * 180) / Math.PI);
   castersOff = Math.max(castersOff, (caster.quaternion.angleTo(hull.quaternion.clone().multiply(cutscene.rest.quaternion.clone().invert())) * 180) / Math.PI);
   cutscene.time = Math.max(0, t - 1.6); // the screenshot at about t (it waits 1.5 s)

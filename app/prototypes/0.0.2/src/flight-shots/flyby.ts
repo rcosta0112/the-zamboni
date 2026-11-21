@@ -35,28 +35,69 @@ export interface FlybyValues {
   bearing: [number, number];
   /** Its horizontal distance from the ship's origin at the start and the end (a push in or a pull out). */
   distance: [number, number];
-  /** Its height, ship space (the belly at 0, the ground about -14 in flight: `settings.flightHeight`). */
-  height: number;
+  /** Its height, ship space (the belly at 0, the ground about -14 in flight: `settings.flightHeight`); a
+   *  start/end pair: it rises or sinks with the pace (pass 2d, 0100). */
+  height: number | [number, number];
   /** The view turned off the line to the ship's origin (degrees; positive: the ship sits right of the
    *  middle, negative: left), at the start and the end (eased between, with the bearing); a single number:
    *  held all through (0400). The generator works it out from a screen position (pass 2b: lead room). */
   yaw: number | [number, number];
-  /** The view tipped off the ship's centre (degrees; positive: the ship sits higher in the frame). */
-  pitch: number;
-  /** Vertical field of view. */
-  fov: number;
+  /** The view tipped off the ship's centre (degrees; positive: the ship sits higher in the frame); a pair:
+   *  start and end (pass 2d). */
+  pitch: number | [number, number];
+  /** Vertical field of view; a pair: a zoom from one to the other, even in focal length (pass 2d, 0100). */
+  fov: number | [number, number];
   /** Turned about the view (cutscene.ts's `roll`). */
   roll: number;
-  /** `even`: the same rate all through (0400); `eased`: it starts and ends slower. */
-  pace: 'even' | 'eased';
-  /** Seconds into the sway's keys (cutscene 1's) where this shot's sway starts. */
+  /** `even`: the same rate all through (0400); `eased`: it starts and ends slower; four numbers: a cubic-bezier
+   *  timing curve, `[x1, y1, x2, y2]` as in CSS (pass 2d: 0100's slow start). */
+  pace: Pace;
+  /** Seconds into the sway's keys (cutscene 1's) where this shot's sway starts; the handheld wobble too. */
   swayStart: number;
+  /** The handheld wobble (pass 2d; owner, 2026-11-20: "we need the wobble"): 0100's camera shake (`handheld.json`,
+   *  `tools/shot-from-track.mjs`) scaled by this (1: as 0100's; left out or 0: none). Not drawn: the generator
+   *  gives every seed 1 (owner, 2026-11-20: "make 1 the default"); saved shots keep what they were saved with. */
+  handheld?: number;
   /** The ship's width on screen the generator aimed at, a share of the frame's width at the shot's middle
    *  (pass 2b; information only: the distance makes it). */
   size?: number;
   /** The part of the movement kept (owner, 2026-11-20): seconds into the `duration` the values describe, start
    *  and end; the shot plays only that part, from 0, and is checked and described on it. Left out: the whole. */
   trim?: [number, number];
+}
+
+/** How a shot moves through its values over time. */
+export type Pace = 'even' | 'eased' | [number, number, number, number];
+
+/** A value held or moving from a start to an end. */
+export type Pair = number | [number, number];
+/** A pair's start and end (a single number: both). */
+export const pairOf = (p: Pair): [number, number] => (typeof p === 'number' ? [p, p] : p);
+/** A pair at `e` (0..1, paced). */
+const pairAt = (p: Pair, e: number) => (typeof p === 'number' ? p : p[0] + (p[1] - p[0]) * e);
+/** The lens at `e`: a zoom moves evenly in focal length (1 / tan of half the field of view), as a real one. */
+function fovAt(p: Pair, e: number): number {
+  if (typeof p === 'number') return p;
+  const f = (deg: number) => 1 / Math.tan((deg * Math.PI) / 360);
+  return (360 / Math.PI) * Math.atan(1 / (f(p[0]) + (f(p[1]) - f(p[0])) * e));
+}
+/** The middle of a pair (the buckets). */
+const pairMiddle = (p: Pair) => (typeof p === 'number' ? p : (p[0] + p[1]) / 2);
+
+/** How far through its values (0..1) a shot is at `s` (0..1 through its time). */
+export function paced(pace: Pace, s: number): number {
+  if (pace === 'even') return s;
+  if (pace === 'eased') return (1 - Math.cos(Math.PI * s)) / 2;
+  const [x1, y1, x2, y2] = pace;
+  // Solve the curve's x for s (it rises: bisection), then read its y.
+  const at = (a: number, b: number, u: number) => 3 * (1 - u) * (1 - u) * u * a + 3 * (1 - u) * u * u * b + u * u * u;
+  let lo = 0, hi = 1, u = s;
+  for (let i = 0; i < 40; i++) {
+    u = (lo + hi) / 2;
+    if (at(x1, x2, u) < s) lo = u;
+    else hi = u;
+  }
+  return at(y1, y2, u);
 }
 
 /** The part of a shot's movement played, seconds into its `duration` (the whole if not trimmed). */
@@ -226,6 +267,7 @@ export function flybyValues(seed: number, ranges: FlybyRanges = FLYBY_RANGES, sw
     roll: round(roll, 2),
     pace,
     swayStart: round(swayStart, 2),
+    handheld: 1,
     size: round(size, 3),
   };
   let distance = frame(values, fov, { push, elevation, lead, vertical, aspect });
@@ -265,19 +307,19 @@ function frame(v: FlybyValues, fov: number, o: { push: number; elevation: number
 
 /** The camera's bearing (unwrapped) at `s` (0..1 through the whole movement). */
 function bearingAt(v: FlybyValues, s: number): number {
-  const e = v.pace === 'eased' ? (1 - Math.cos(Math.PI * s)) / 2 : s;
-  return lerp(v.bearing[0], v.bearing[1], e);
+  return lerp(v.bearing[0], v.bearing[1], paced(v.pace, s));
 }
 
 /** The view's turn off the ship at `e` (0..1, eased). */
-const yawAt = (v: FlybyValues, e: number) => (typeof v.yaw === 'number' ? v.yaw : lerp(v.yaw[0], v.yaw[1], e));
+const yawAt = (v: FlybyValues, e: number) => pairAt(v.yaw, e);
 
 /** The camera at `s` (0..1 through the shot): the editor's guides. */
 export const flybyCamera = (v: FlybyValues, s: number) => cameraAt(v, s);
 
 /** The camera at `s` (0..1 through the shot). */
 function cameraAt(v: FlybyValues, s: number): Omit<CameraKey, 't'> {
-  const e = v.pace === 'eased' ? (1 - Math.cos(Math.PI * s)) / 2 : s;
+  const e = paced(v.pace, s);
+  const height = pairAt(v.height, e);
   const bearing = lerp(v.bearing[0], v.bearing[1], e) * DEG;
   const distance = lerp(v.distance[0], v.distance[1], e);
   const x = distance * Math.cos(bearing);
@@ -286,8 +328,8 @@ function cameraAt(v: FlybyValues, s: number): Omit<CameraKey, 't'> {
   const heading = bearing / DEG + 180 + yawAt(v, e);
   // The pitch that puts the ship's centre on the picture's middle line (as flyby-orbit.mjs), then `pitch` off it.
   const ahead = (SHIP_CENTRE[0] - x) * Math.cos(heading * DEG) + (SHIP_CENTRE[1] - y) * Math.sin(heading * DEG);
-  const pitch = Math.atan2(SHIP_CENTRE[2] - v.height, ahead) / DEG - v.pitch;
-  return { at: [x, y, v.height], heading: normalise(heading), pitch, ...(v.roll ? { roll: v.roll } : {}), fov: v.fov };
+  const pitch = Math.atan2(SHIP_CENTRE[2] - height, ahead) / DEG - pairAt(v.pitch, e);
+  return { at: [x, y, height], heading: normalise(heading), pitch, ...(v.roll ? { roll: v.roll } : {}), fov: fovAt(v.fov, e) };
 }
 
 /** An angle in (-180, 180]. */
@@ -312,10 +354,32 @@ function swayFor(sway: ShipKey[], start: number, duration: number): ShipKey[] {
   return out;
 }
 
+/** A handheld wobble key: degrees added to the camera's turn, tip and roll (`public/cutscenes/handheld.json`). */
+export interface HandheldKey {
+  t: number;
+  heading: number;
+  pitch: number;
+  roll: number;
+}
+
+/** The wobble at `t` seconds into its keys (round again past their end), blended between keys. */
+function wobbleAt(keys: HandheldKey[], t: number): [number, number, number] {
+  if (!keys.length) return [0, 0, 0];
+  const length = keys[keys.length - 1]!.t;
+  if (length > 0 && (t < 0 || t > length)) t = ((t % length) + length) % length;
+  let i = 0;
+  while (i < keys.length - 2 && keys[i + 1]!.t <= t) i++;
+  const a = keys[i]!, b = keys[Math.min(i + 1, keys.length - 1)]!;
+  const f = b.t > a.t ? Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))) : 0;
+  return [lerp(a.heading, b.heading, f), lerp(a.pitch, b.pitch, f), lerp(a.roll, b.roll, f)];
+}
+
 export interface TrackOptions {
   id: string;
   /** The ship's sway to cut from (cutscene 1's `ship` keys). */
   sway: ShipKey[];
+  /** The handheld wobble to cut from (`handheld.json`'s keys), scaled by the values' `handheld`. */
+  handheld?: HandheldKey[];
   /** Camera keys per second (a `smooth` shot: a curve through them). */
   rate?: number;
   /** The whole movement, the trim ignored (the editor's preview, to show what's cut). */
@@ -324,7 +388,7 @@ export interface TrackOptions {
 
 /** The values as a cutscene track: one smooth shot, the ship swaying, her hidden. Trimmed: only the part kept,
  *  from 0 (the sway from the same moment). */
-export function flybyTrack(v: FlybyValues, { id, sway, rate = 24, whole = false }: TrackOptions): Track {
+export function flybyTrack(v: FlybyValues, { id, sway, handheld = [], rate = 24, whole = false }: TrackOptions): Track {
   const [a, b] = whole ? [0, v.duration] : trimOf(v);
   const [s0, s1] = whole ? [0, 1] : trimShares(v);
   const length = b - a;
@@ -336,12 +400,15 @@ export function flybyTrack(v: FlybyValues, { id, sway, rate = 24, whole = false 
     // Unwrapped: the keys are blended as plain numbers, so 179.8 then -179.7 would spin the camera the long way
     // round (seed 21200 at 6.8 s); each heading kept within half a turn of the one before.
     heading = i === 0 ? c.heading : heading + normalise(c.heading - heading);
+    const t = (i / steps) * length;
+    const [wh, wp, wr] = v.handheld ? wobbleAt(handheld, v.swayStart + a + t).map((n) => n * v.handheld!) : [0, 0, 0];
+    const roll = (c.roll ?? 0) + wr!;
     camera.push({
-      t: round((i / steps) * length, 4),
+      t: round(t, 4),
       at: c.at.map((n) => round(n)) as [number, number, number],
-      heading: round(heading),
-      pitch: round(c.pitch),
-      ...(c.roll ? { roll: round(c.roll) } : {}),
+      heading: round(heading + wh!),
+      pitch: round(c.pitch + wp!),
+      ...(roll ? { roll: round(roll) } : {}),
       fov: round(c.fov, 2),
     });
   }
@@ -469,13 +536,13 @@ export function flybyBuckets(v: FlybyValues, sunBearing?: number, aspect = 16 / 
   const side = Math.abs(fromNose) <= 45 ? 'front' : Math.abs(fromNose) >= 135 ? 'back' : fromNose < 0 ? 'right' : 'left';
   const [from, to] = [bearingAt(v, s0), bearingAt(v, s1)];
   const sweep = Math.abs(to - from);
-  const elevation = Math.atan2(v.height - SHIP_CENTRE[2], (v.distance[0] + v.distance[1]) / 2) / DEG;
+  const elevation = Math.atan2(pairMiddle(v.height) - SHIP_CENTRE[2], (v.distance[0] + v.distance[1]) / 2) / DEG;
   const buckets: Buckets = {
     side,
     turn: to >= from ? 'left to right' : 'right to left',
     sweep: sweep < 60 ? 'small' : sweep < 120 ? 'medium' : 'large',
     height: elevation < 0 ? 'below' : elevation < 15 ? 'level' : 'above',
-    lens: v.fov > 45 ? 'wide' : v.fov < 28 ? 'long' : 'normal',
+    lens: middle.fov > 45 ? 'wide' : middle.fov < 28 ? 'long' : 'normal',
     size: sizeClass(sizeOnScreen(middle, aspect)),
     framing: framingOf(inPicture(middle, SHIP_CENTRE, aspect)?.[0] ?? 0),
   };

@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, flybyValues, generateFlyby, inPicture, sizeClass, sizeOnScreen, SHIP_CENTRE } from '../src/flight-shots/flyby.ts';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
-const c1 = read('../public/cutscenes/cutscene-1.json');
+const c1 = read('./sources/cutscene-1.json');
 const today = read('../public/cutscenes/flyby.json');
 let failed = 0;
 const report = (ok, what) => {
@@ -65,6 +65,34 @@ report(checkFlyby(values0400).length === 0, `0400 passes the checks (${checkFlyb
     `trimmed 1.5–6 s: ${trimmed.duration} s, ${k.length} keys, the ends the whole's at 1.5 and 6 s, the sway shifted`,
   );
   report(JSON.stringify(flybyTrack({ ...values0400, trim: [0, values0400.duration] }, { id: 'flyby', sway: c1.ship })) === JSON.stringify(made), 'trimmed to the whole: the same track');
+}
+
+// 1c. Pass 2d: the saved shot 0100 (`tools/shot-from-track.mjs`, start/end pairs and a curve pace) against
+// cutscene 1's camera: the ship's centre on screen within 3% of the frame's width, its size within 2%; its sway
+// cutscene 1's own.
+{
+  const shot = read('../public/cutscenes/shots.json').shots['0100'];
+  if (!shot) report(false, 'the saved shot 0100 exists (run tools/shot-from-track.mjs)');
+  else {
+    const handheld = read('../public/cutscenes/handheld.json').keys;
+    // Pass 2e: the game builds cutscene 1 this way (cutscene.ts `FROM_SHOTS`), the sway from `sway.json`.
+    const sway = read('../public/cutscenes/sway.json').keys;
+    report(JSON.stringify(sway) === JSON.stringify(c1.ship), `sway.json: cutscene 1's sway (${sway.length} keys)`);
+    const track = flybyTrack(shot.values, { id: '0100', sway, handheld });
+    const made = keys(track);
+    let screen = 0, size = 0;
+    for (const k of keys(c1)) {
+      const m = made.reduce((p, q) => (Math.abs(q.t - k.t) < Math.abs(p.t - k.t) ? q : p));
+      const p = inPicture(m, SHIP_CENTRE, 16 / 9), q = inPicture(k, SHIP_CENTRE, 16 / 9);
+      screen = Math.max(screen, Math.hypot(p[0] - q[0], p[1] - q[1]) / 2);
+      size = Math.max(size, Math.abs(sizeOnScreen(m, 16 / 9) / sizeOnScreen(k, 16 / 9) - 1));
+    }
+    report(screen < 0.03 && size < 0.02 && track.duration === c1.duration, `0100 as a saved shot: the ship's centre within ${(screen * 100).toFixed(1)}% of the frame's width, its size within ${(size * 100).toFixed(1)}%; ${track.duration} s`);
+    report(JSON.stringify(track.ship) === JSON.stringify(c1.ship), `0100 as a saved shot: the sway (${track.ship?.length} keys) cutscene 1's`);
+    const roll = Math.max(...keys(c1).map((k, i) => Math.abs((k.roll ?? 0) - (made[i]?.roll ?? 0))));
+    report(shot.values.handheld === 1 && handheld.length === keys(c1).length && roll <= 0.0011, `0100 as a saved shot: the handheld wobble on (its roll 0100's within ${roll.toFixed(4)}°)`);
+    report(checkFlyby(shot.values).length === 0, `0100 passes the checks (${checkFlyby(shot.values).join(', ') || 'none failed'}); buckets ${JSON.stringify(flybyBuckets(shot.values))}`);
+  }
 }
 
 // 2. The same seed, the same values.

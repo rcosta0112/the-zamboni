@@ -25,7 +25,9 @@ STEP = 1  # frames between keys: every frame, on a curve in the game (`smooth`; 
 END = 430  # the last frame used (owner, 2026-10-23; the file runs to 540)
 SWAY = 0.5  # the ship's noise, times the file's (owner, 2026-10-23): the camera tracks the calmer ship
 SHAKE = 0.5  # the camera's shake (Camera Shakify), times the file's (owner, 2026-10-23)
-OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', 'public', 'cutscenes', f'{ID}.json')
+# Cutscene 1 is no longer played from this file (flight-shots.md pass 2e): it's the source of the saved shot 0100,
+# its sway and wobble (`tools/shot-from-track.mjs`: re-run it after this), kept out of the game's files.
+OUT = os.path.join(os.getcwd(), 'app', 'prototypes', '0.0.2', *(['tools', 'sources'] if ID == 'cutscene-1' else ['public', 'cutscenes']), f'{ID}.json')
 FAR = 4000  # m: past the icy plain's haze (3,000)
 NEAR = 5  # m: nothing comes closer (the ship stays 30 m off or more); finer depth far off
 

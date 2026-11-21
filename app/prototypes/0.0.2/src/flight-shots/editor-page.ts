@@ -15,7 +15,7 @@
 
 import type { ShipKey } from '../cutscene';
 import { ShotPreview } from './preview';
-import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, generateFlyby, inPicture, playedLength, screenBox, shared, sizeClass, trimOf, NOSE_BEARING, SHIP_CENTRE, type Buckets, type FlybyValues } from './flyby';
+import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, generateFlyby, inPicture, pairOf, paced, playedLength, screenBox, shared, sizeClass, trimOf, NOSE_BEARING, SHIP_CENTRE, type Buckets, type FlybyValues, type HandheldKey, type Pace } from './flyby';
 
 interface SavedShot {
   kind: 'flyby';
@@ -31,13 +31,29 @@ const FIELDS: { label: string; get: (v: FlybyValues) => number; set: (v: FlybyVa
   { label: 'bearing to (°)', get: (v) => v.bearing[1], set: (v, n) => (v.bearing[1] = n), step: 1 },
   { label: 'distance from (m)', get: (v) => v.distance[0], set: (v, n) => (v.distance[0] = n), step: 1 },
   { label: 'distance to (m)', get: (v) => v.distance[1], set: (v, n) => (v.distance[1] = n), step: 1 },
-  { label: 'height (m)', get: (v) => v.height, set: (v, n) => (v.height = n), step: 1 },
+  { label: 'height from (m)', get: (v) => pairOf(v.height)[0], set: (v, n) => (v.height = [n, pairOf(v.height)[1]]), step: 1 },
+  { label: 'height to (m)', get: (v) => pairOf(v.height)[1], set: (v, n) => (v.height = [pairOf(v.height)[0], n]), step: 1 },
   { label: 'yaw off from (°)', get: (v) => yawPair(v)[0], set: (v, n) => (v.yaw = [n, yawPair(v)[1]]), step: 0.5 },
   { label: 'yaw off to (°)', get: (v) => yawPair(v)[1], set: (v, n) => (v.yaw = [yawPair(v)[0], n]), step: 0.5 },
-  { label: 'pitch off (°)', get: (v) => v.pitch, set: (v, n) => (v.pitch = n), step: 0.5 },
-  { label: 'lens fov (°)', get: (v) => v.fov, set: (v, n) => (v.fov = n), step: 0.5 },
+  { label: 'pitch off from (°)', get: (v) => pairOf(v.pitch)[0], set: (v, n) => (v.pitch = [n, pairOf(v.pitch)[1]]), step: 0.5 },
+  { label: 'pitch off to (°)', get: (v) => pairOf(v.pitch)[1], set: (v, n) => (v.pitch = [pairOf(v.pitch)[0], n]), step: 0.5 },
+  { label: 'lens fov from (°)', get: (v) => pairOf(v.fov)[0], set: (v, n) => (v.fov = [n, pairOf(v.fov)[1]]), step: 0.5 },
+  { label: 'lens fov to (°)', get: (v) => pairOf(v.fov)[1], set: (v, n) => (v.fov = [pairOf(v.fov)[0], n]), step: 0.5 },
   { label: 'roll (°)', get: (v) => v.roll, set: (v, n) => (v.roll = n), step: 0.5 },
   { label: 'sway from (s)', get: (v) => v.swayStart, set: (v, n) => (v.swayStart = n), step: 0.1 },
+  // The handheld wobble (pass 2d): 0100's camera shake, from the sway's moment, scaled (1: as 0100's; 0: none).
+  { label: 'handheld', get: (v) => v.handheld ?? 0, set: (v, n) => (n ? (v.handheld = n) : delete v.handheld), step: 0.1 },
+  // The pace as a cubic-bezier curve (pass 2d): even and eased shown as their curves; a nudge makes it a curve.
+  ...[0, 1, 2, 3].map((i) => ({
+    label: `pace curve ${['x1', 'y1', 'x2', 'y2'][i]}`,
+    get: (v: FlybyValues) => curveOf(v.pace)[i]!,
+    set: (v: FlybyValues, n: number) => {
+      const c = [...curveOf(v.pace)] as [number, number, number, number];
+      c[i] = i % 2 === 0 ? Math.min(1, Math.max(0, n)) : n; // x within 0..1, so time only runs forward
+      v.pace = c;
+    },
+    step: 0.02,
+  })),
   { label: 'trim start (s)', get: (v) => trimOf(v)[0], set: (v, n) => setTrim(v, n, trimOf(v)[1], 'start'), step: 0.1 },
   { label: 'trim end (s)', get: (v) => trimOf(v)[1], set: (v, n) => setTrim(v, trimOf(v)[0], n, 'end'), step: 0.1 },
 ];
@@ -63,6 +79,8 @@ function setTrim(v: FlybyValues, a: number, b: number, moving: 'start' | 'end'):
   else v.trim = [a, b];
 }
 const THUMBS = 8;
+/** A pace as a cubic-bezier curve: even exactly, eased (a half cosine) nearly. */
+const curveOf = (p: Pace): [number, number, number, number] => (p === 'even' ? [1 / 3, 1 / 3, 2 / 3, 2 / 3] : p === 'eased' ? [0.36, 0, 0.64, 1] : p);
 /** The view's turn at the start and the end (a single number: the same at both). */
 const yawPair = (v: FlybyValues): [number, number] => (typeof v.yaw === 'number' ? [v.yaw, v.yaw] : v.yaw);
 const DEG = Math.PI / 180;
@@ -78,6 +96,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, parent: HTMLElement, 
 };
 
 let sway: ShipKey[] = [];
+/** 0100's camera shake (`handheld.json`), for the values' `handheld`. */
+let handheld: HandheldKey[] = [];
 let saved: Record<string, SavedShot> = {};
 let seed = 1;
 /** The shot being edited (the seed's, or a saved one's, nudged or not). */
@@ -98,7 +118,7 @@ function plan(v: FlybyValues, size: number, marker?: number): string {
   const py = (y: number) => size / 2 - y * k;
   const points: string[] = [];
   const at = (s: number) => {
-    const e = v.pace === 'eased' ? (1 - Math.cos(Math.PI * s)) / 2 : s;
+    const e = paced(v.pace, s);
     const b = (v.bearing[0] + (v.bearing[1] - v.bearing[0]) * e) * DEG;
     const d = v.distance[0] + (v.distance[1] - v.distance[0]) * e;
     const [y0, y1] = yawPair(v);
@@ -119,7 +139,7 @@ function plan(v: FlybyValues, size: number, marker?: number): string {
   }
   const look = (s: number, colour: string) => {
     const [x, y, h] = at(s);
-    const half = (v.fov * 16) / 9 / 2;
+    const half = (flybyCamera(v, s).fov * 16) / 9 / 2;
     const len = Math.hypot(x, y) * 0.5;
     const tip = (a: number) => `${px(x + len * Math.cos((h + a) * DEG)).toFixed(1)},${py(y + len * Math.sin((h + a) * DEG)).toFixed(1)}`;
     return `<polygon points="${px(x).toFixed(1)},${py(y).toFixed(1)} ${tip(half)} ${tip(-half)}" fill="${colour}" opacity="0.18"/><circle cx="${px(x)}" cy="${py(y)}" r="${size > 120 ? 4 : 2.5}" fill="${colour}"/>`;
@@ -161,7 +181,7 @@ const table = el('div', valuesSec, undefined, 'values');
 const paceRow = el('div', valuesSec, undefined, 'row');
 el('span', paceRow, 'pace');
 const pace = el('select', paceRow);
-for (const p of ['even', 'eased']) el('option', pace, p).value = p;
+for (const p of ['even', 'eased', 'curve']) el('option', pace, p).value = p;
 const resetBtn = el('button', paceRow, 'Back to the seed’s');
 const bucketsEl = el('div', section('Buckets'), undefined, 'buckets');
 const saveSec = section('Save');
@@ -252,7 +272,7 @@ const inputs = FIELDS.map((f) => {
   return { tr, input, now };
 });
 pace.addEventListener('change', () => {
-  values.pace = pace.value as FlybyValues['pace'];
+  values.pace = pace.value === 'curve' ? curveOf(values.pace) : (pace.value as 'even' | 'eased');
   nudged.add('pace');
   show(false);
 });
@@ -281,8 +301,9 @@ function autoName(): string {
 function load(name: string): void {
   const shot = saved[name]!;
   seed = shot.seed;
-  seedNow = generateFlyby(seed, undefined, { swayLength: sway[sway.length - 1]?.t }).values;
   values = structuredClone(shot.values);
+  // Seed 0: a shot made from another camera, not drawn (0100, `tools/shot-from-track.mjs`): nothing to compare.
+  seedNow = seed === 0 ? structuredClone(values) : generateFlyby(seed, undefined, { swayLength: sway[sway.length - 1]?.t }).values;
   loadedName = name;
   nameInput.value = name;
   nudged = new Set();
@@ -296,12 +317,12 @@ function show(all: boolean): void {
   seedNote.textContent = loadedName ? `Saved shot “${loadedName}”` : `Seed ${seed}`;
   FIELDS.forEach((f, i) => {
     const { tr, input, now } = inputs[i]!;
-    if (all || document.activeElement !== input) input.value = String(f.get(values));
+    if (all || document.activeElement !== input) input.value = String(Math.round(f.get(values) * 1000) / 1000);
     tr.classList.toggle('nudged', nudged.has(f.label));
     const a = f.get(values), b = f.get(seedNow);
     now.textContent = loadedName ? (Math.abs(a - b) > 1e-6 ? `this seed now: ${b}` : '') : nudged.has(f.label) ? `seed: ${b}` : '';
   });
-  pace.value = values.pace;
+  pace.value = typeof values.pace === 'string' ? values.pace : 'curve';
   const [ta, tb] = trimOf(values);
   const pc = (t: number) => `${(t / values.duration) * 100}%`;
   trimNote.textContent = values.trim
@@ -393,7 +414,7 @@ saveBtn.addEventListener('click', async () => {
 
 /** The whole movement (the preview loops the trimmed part of it, and shows the rest when scrubbed). */
 function track() {
-  return flybyTrack(values, { id: 'shot-editor', sway, whole: true });
+  return flybyTrack(values, { id: 'shot-editor', sway, handheld, whole: true });
 }
 
 playBtn.addEventListener('click', () => preview?.play(track()));
@@ -513,8 +534,8 @@ function watchPlay(): void {
 }
 
 async function main(): Promise<void> {
-  const c1 = await (await fetch('/cutscenes/cutscene-1.json')).json();
-  sway = c1.ship ?? [];
+  sway = (await (await fetch('/cutscenes/sway.json')).json()).keys ?? [];
+  handheld = (await (await fetch('/cutscenes/handheld.json')).json()).keys ?? [];
   saved = (await (await fetch('/__shots')).json()).shots ?? {};
   pickSeed(1);
   requestAnimationFrame(watchPlay);

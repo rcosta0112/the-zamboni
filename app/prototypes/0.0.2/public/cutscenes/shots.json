@@ -59,6 +59,175 @@
         ]
       },
       "saved": "2026-11-20"
+    },
+    "0100": {
+      "kind": "flyby",
+      "seed": 0,
+      "values": {
+        "kind": "flyby",
+        "duration": 17.875,
+        "bearing": [
+          -128.9,
+          -138.47
+        ],
+        "distance": [
+          149.65,
+          98.69
+        ],
+        "height": [
+          128.78,
+          68.33
+        ],
+        "yaw": [
+          -21.45,
+          -4.34
+        ],
+        "pitch": [
+          6.05,
+          3.23
+        ],
+        "fov": [
+          58.72,
+          22.6
+        ],
+        "roll": 0,
+        "pace": [
+          0.404,
+          0.006,
+          0.64,
+          0.71
+        ],
+        "swayStart": 0,
+        "handheld": 1
+      },
+      "saved": "2026-11-21"
+    },
+    "flyby-19": {
+      "kind": "flyby",
+      "seed": 19,
+      "values": {
+        "kind": "flyby",
+        "duration": 5,
+        "bearing": [
+          132.01,
+          52.98
+        ],
+        "distance": [
+          42.4,
+          54.2
+        ],
+        "height": 11.3,
+        "yaw": [
+          -13.34,
+          6.82
+        ],
+        "pitch": [
+          0,
+          1
+        ],
+        "fov": 40.3,
+        "roll": -0.1,
+        "pace": "even",
+        "swayStart": 5.12,
+        "size": 0.229
+      },
+      "saved": "2026-11-20"
+    },
+    "flyby-49254": {
+      "kind": "flyby",
+      "seed": 49254,
+      "values": {
+        "kind": "flyby",
+        "duration": 5,
+        "bearing": [
+          -141.38,
+          -211.76
+        ],
+        "distance": [
+          75.9,
+          82.7
+        ],
+        "height": 11.8,
+        "yaw": [
+          -13.69,
+          -13.69
+        ],
+        "pitch": [
+          0,
+          3
+        ],
+        "fov": 46.8,
+        "roll": -2.5,
+        "pace": [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.6666666666666666,
+          0.6666666666666666
+        ],
+        "swayStart": 5.92,
+        "size": 0.152
+      },
+      "saved": "2026-11-20"
+    },
+    "flyby-81785": {
+      "kind": "flyby",
+      "seed": 81785,
+      "values": {
+        "kind": "flyby",
+        "duration": 5,
+        "bearing": [
+          96.3,
+          12.98
+        ],
+        "distance": [
+          38.1,
+          40.6
+        ],
+        "height": 9.2,
+        "yaw": [
+          0,
+          9.7
+        ],
+        "pitch": 0.67,
+        "fov": 33.4,
+        "roll": 2.32,
+        "pace": "eased",
+        "swayStart": 6.4,
+        "size": 0.486
+      },
+      "saved": "2026-11-20"
+    },
+    "flyby-81782": {
+      "kind": "flyby",
+      "seed": 81782,
+      "values": {
+        "kind": "flyby",
+        "duration": 5,
+        "bearing": [
+          51.41,
+          214.9
+        ],
+        "distance": [
+          240.5,
+          244.4
+        ],
+        "height": 141.7,
+        "yaw": [
+          3.53,
+          -5.78
+        ],
+        "pitch": -1.69,
+        "fov": 25.7,
+        "roll": 0.46,
+        "pace": "even",
+        "swayStart": 1.55,
+        "size": 0.085,
+        "trim": [
+          0.85,
+          3.01
+        ]
+      },
+      "saved": "2026-11-20"
     }
   }
 }

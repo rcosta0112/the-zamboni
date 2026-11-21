@@ -25,7 +25,7 @@ const SHIP_CENTRE = [0.03, 2.66, 3.24];
 /** Camera keys per second (a `smooth` shot: a curve through them). */
 const RATE = 24;
 
-const SOURCE = new URL('../public/cutscenes/cutscene-1.json', import.meta.url);
+const SOURCE = new URL('./sources/cutscene-1.json', import.meta.url);
 const OUT = new URL('../public/cutscenes/flyby.json', import.meta.url);
 
 const c1 = JSON.parse(readFileSync(SOURCE, 'utf8'));

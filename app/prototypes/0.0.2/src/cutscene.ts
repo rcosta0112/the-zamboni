@@ -5,14 +5,33 @@
 // its place behind her and the hand-back is that camera again. While it plays she stands still, nothing
 // can be used and the see-through is off (main.ts: the camera is authored). *Skip* jumps to the end
 // state: the events not yet run are left out, the end state covers them. The test one,
-// `test-ship-shots`, is written by `tools/test-cutscene.mjs`; cutscene 1 by `tools/flyby-cutscene.py`
-// from the owner's fly-by file. Dev builds: `__cutscene().play('<id>')`, `skip()`.
+// `test-ship-shots`, is written by `tools/test-cutscene.mjs`; cutscene 1 is built from its saved flight shot
+// (`FROM_SHOTS`: `shots.json`'s `0100`, made from the owner's fly-by file). Dev builds: `__cutscene().play('<id>')`, `skip()`.
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (*Cutscenes*, pass 5)
 
 import * as THREE from 'three/webgpu';
 import type { CloudTrack } from './clouds';
 import { fromBlender, type Command } from './commands';
 import { SWAY_DEG, WAVES } from './watched';
+import { flybyTrack, type FlybyValues } from './flight-shots/flyby';
+
+/**
+ * Tracks built from a saved flight shot (`public/cutscenes/shots.json`, the shot editor's; flight-shots.md pass 2e)
+ * instead of a file of their own: id → the shot's name. The ship's sway and the handheld wobble from their files.
+ */
+const FROM_SHOTS: Record<string, string> = { 'cutscene-1': '0100' };
+
+async function trackFromShot(id: string, name: string): Promise<Track> {
+  const json = async (file: string) => {
+    const r = await fetch(`/cutscenes/${file}.json`);
+    if (!r.ok) throw new Error(`no ${file}.json`);
+    return r.json();
+  };
+  const [shots, sway, handheld] = await Promise.all([json('shots'), json('sway'), json('handheld')]);
+  const values = shots.shots?.[name]?.values as FlybyValues | undefined;
+  if (!values) throw new Error(`no saved shot "${name}" for cutscene "${id}"`);
+  return flybyTrack(values, { id, sway: sway.keys ?? [], handheld: handheld.keys ?? [] });
+}
 
 /** A camera key: where it is and which way it looks, in the ship file's Blender coordinates. */
 export interface CameraKey {
@@ -215,6 +234,12 @@ export class CutscenePlayer {
   async load(id: string): Promise<Track> {
     const known = this.loaded.get(id);
     if (known) return known;
+    const shot = FROM_SHOTS[id];
+    if (shot) {
+      const track = await trackFromShot(id, shot);
+      this.loaded.set(id, track);
+      return track;
+    }
     // The game's first, then the checks' (a missing file comes back as the page: not JSON).
     let response: Response | null = null;
     for (const folder of ['/cutscenes', '/test/cutscenes']) {
