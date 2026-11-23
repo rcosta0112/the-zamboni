@@ -5,12 +5,15 @@
  * sun (world.ts), the flight's scenery (terrain.ts's treadmill), the thrusters' flames, the gear raised,
  * the cargo ramp closed.
  * No crew, her, story, sound, start screen or skip: the track loops (its time wrapped, never ended).
+ * **A landing** (landing-takeoff-shots.md, `setGround('landed')`): the plain stopped under the ship where the landed
+ * scene stands it (`LANDED_AT`), the landed sun, the gear, turbines and flames as the track keys them, the clouds.
  */
 
 import * as THREE from 'three/webgpu';
 import { CutscenePlayer, type Track } from '../cutscene';
 import { setReflections, setSingleSided } from '../cutaway';
 import { ExteriorLook } from '../exterior';
+import { Clouds } from '../clouds';
 import { ThrusterFlames } from '../flames';
 import { Physics } from '../physics';
 import { settings } from '../settings';
@@ -20,6 +23,8 @@ import { createWorld, updateWorld, type World } from '../world';
 
 const TONE_MAPPING = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
 const DEG = Math.PI / 180;
+/** Where the landed scene stands the ship on the plain (public/scenes/landed.json `ground`). */
+const LANDED = { terrain: 'ice-plain', at: 14697 };
 
 export class ShotPreview {
   /** The track looping, or null (a still: the shot's first frame once one was set). */
@@ -38,7 +43,21 @@ export class ShotPreview {
     private readonly treadmill: Treadmill,
     /** The flames (the flame editor tunes them, and holds their flicker). */
     readonly flames: ThrusterFlames | null,
+    private readonly clouds: Clouds,
+    private terrain: string,
   ) {}
+
+  /** In flight (the scenery going by) or landed (the plain stopped under the ship: landings, take-offs). */
+  private ground: 'flight' | 'landed' = 'flight';
+
+  /** The ground under the shot: flying (a flyby) or the landed plain (a landing or take-off). */
+  async setGround(ground: 'flight' | 'landed'): Promise<void> {
+    if (ground === this.ground) return;
+    this.ground = ground;
+    // The landed scene's sun (not flying), the flight's otherwise; the track keys the gear and flames either way.
+    settings.shipFlying = ground === 'flight';
+    await this.treadmill.set(ground === 'landed' ? LANDED.terrain : this.terrain, ground === 'landed' ? LANDED.at : undefined);
+  }
 
   /** The landing's bloom forced on, whatever the track keys (the flame editor: flybys don't key it). */
   glowOn = false;
@@ -86,7 +105,8 @@ export class ShotPreview {
     });
     await renderer.compileAsync(scene, player.camera);
     for (const o of culled) o.frustumCulled = true;
-    const preview = new ShotPreview(renderer, scene, world, ship, player, treadmill, flames);
+    const clouds = new Clouds(scene);
+    const preview = new ShotPreview(renderer, scene, world, ship, player, treadmill, flames, clouds, terrain);
     renderer.setAnimationLoop((now) => preview.frame(now));
     return preview;
   }
@@ -185,7 +205,10 @@ export class ShotPreview {
     }
     const flight = this.player.flight;
     this.ship.gearRaised = flight?.gear ?? null;
-    placeGear(this.ship);
+    this.ship.turbinesDown = flight?.turbines ?? null;
+    this.ship.gearHold = this.player.gearHold;
+    updateShip(this.ship, 0); // the turbines turned, the gear placed (held under a rocking hull)
+    this.clouds.update(track?.clouds ?? null, this.player.time, this.player.restFrame, this.world.sun, camera);
     updateWorld(this.world, this.scene, this.ship.object.position, 0);
     const glow = this.glowOn ? 1 : 0;
     const keyed = flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: Math.max(flight.glow ?? 0, glow) } : glow ? { strength: 1, front: 1, reach: 1, glow } : null;

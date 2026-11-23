@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flight test · 0.0.2</title>
+    <!-- Dev only: not a build input. The flight interfaces' test scene (main.ts FLIGHT_TEST; plan doc/plans/features/non-linear-travel/flight-test-scene.md). -->
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="stats"></div>
+    <div id="help"></div>
+    <div id="prompt" hidden></div>
+    <div id="title-card" hidden></div>
+    <div id="white"></div>
+    <div id="bars"><i></i><i></i></div>
+    <div id="black"></div>
+    <div id="skip" hidden></div>
+    <div id="dialogue"></div>
+    <div id="paused" hidden><span>Paused</span><small>click to resume, or press any gamepad button</small></div>
+    <div id="start"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

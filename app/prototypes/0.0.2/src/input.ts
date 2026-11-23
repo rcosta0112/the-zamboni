@@ -52,6 +52,8 @@ export class Input {
   private jumpLatched = false;
   /** A gadget's button (gadgets.ts; owner, 2026-11-16: the D-pad brings a gadget out, R uses it). */
   private gadgetLatched: GadgetId | null = null;
+  /** Tab +1, Shift+Tab -1 (flight-test.html's stations), until consumed. */
+  private stationLatched: 1 | -1 | 0 = 0;
   /** R1 or the right mouse button: use the gadget that's out (the binoculars: to her eyes). */
   private gadgetUseLatched = false;
   /** R1 or the right mouse button down now (the scanner is on while it is: owner, 2026-11-16). */
@@ -94,6 +96,11 @@ export class Input {
       // Gadgets (owner, 2026-11-16): 1 the binoculars (B before), 2 the scanner.
       if (e.code === 'Digit1') this.gadgetLatched = 'binoculars';
       if (e.code === 'Digit2') this.gadgetLatched = 'scanner';
+      // Tab / Shift+Tab: the flight test's stations (owner, 2026-11-23); the browser's focus move kept off, but not in a panel's field.
+      if (e.code === 'Tab' && !(e.target instanceof HTMLInputElement)) {
+        e.preventDefault();
+        this.stationLatched = e.shiftKey ? -1 : 1;
+      }
       if (e.code === 'Enter' || e.code === 'NumpadEnter' || e.code === 'Space') this.confirmLatched = true;
       if (e.code === 'KeyW' || e.code === 'ArrowUp') this.keyStep = -1;
       if (e.code === 'KeyS' || e.code === 'ArrowDown') this.keyStep = 1;
@@ -178,6 +185,9 @@ export class Input {
       if (justPressed(PAD_UP)) this.gadgetLatched = 'binoculars'; // also a menu's up (menuStep): gadgets go away while a dialogue is up
       if (justPressed(PAD_LEFT)) this.gadgetLatched = 'scanner';
       if (justPressed(PAD_R1)) this.gadgetUseLatched = true;
+      // The bumpers: the flight test's stations too (owner, 2026-11-23; read only there).
+      if (justPressed(PAD_R1)) this.stationLatched = 1;
+      if (justPressed(PAD_L1)) this.stationLatched = -1;
       padUse = pressed[PAD_R1] === true;
       if (justPressed(PAD_VIEW)) this.onTogglePanel();
       this.pausePressed = justPressed(PAD_START);
@@ -286,6 +296,13 @@ export class Input {
   consumeSkip(): boolean {
     const s = this.skipLatched;
     this.skipLatched = false;
+    return s;
+  }
+
+  /** Tab or R1 (+1), Shift+Tab or L1 (-1) since the last call, once per press; 0 if neither. */
+  consumeStation(): 1 | -1 | 0 {
+    const s = this.stationLatched;
+    this.stationLatched = 0;
     return s;
   }
 

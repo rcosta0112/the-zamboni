@@ -252,6 +252,52 @@
         "swayStart": 2
       },
       "saved": "2026-11-21"
+    },
+    "0600": {
+      "kind": "landing",
+      "seed": 0,
+      "values": {
+        "kind": "landing",
+        "duration": 16,
+        "cameras": [
+          {
+            "type": "tripod",
+            "start": 0,
+            "distance": 20,
+            "round": 50,
+            "height": 0.14,
+            "follow": 0,
+            "fov": 39,
+            "aimLeft": -7.6,
+            "aimUnder": -0.5,
+            "lag": 0.35,
+            "handheld": 2.1
+          }
+        ],
+        "power": [
+          [
+            0,
+            0.7
+          ],
+          [
+            3,
+            0.8
+          ],
+          [
+            6.5,
+            1.5
+          ],
+          [
+            9.2,
+            1.7
+          ],
+          [
+            9.9,
+            0
+          ]
+        ]
+      },
+      "saved": "2026-11-21"
     }
   }
 }

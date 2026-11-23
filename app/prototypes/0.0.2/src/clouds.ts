@@ -84,6 +84,8 @@ export interface CloudTrack {
   push: [number, number][];
   bank: BankCloud[];
   puffs: Puff[];
+  /** Seconds into the movement the track starts (a trimmed flight shot: landing.ts `cut`); none: 0. */
+  from?: number;
 }
 
 const ALPHA_URL = '/scenery/clouds/cloud-alpha.png';
@@ -231,6 +233,7 @@ export class Clouds {
     } else u.sun.value.set(...REFERENCE_LIGHT).normalize();
 
     frame.updateMatrixWorld();
+    t += track.from ?? 0;
     const order = this.order;
     order.length = 0;
     const wind: [number, number] = [track.wind[0] * t, track.wind[1] * t];

@@ -83,6 +83,10 @@ export class GameAudio {
   noiseHeld = true;
   /** The engine noise as a cutscene keys it (0..1), or null: on while `settings.shipFlying` (main.ts). */
   noiseKeyed: number | null = null;
+  /** The engines' power as a cutscene keys it (its `flames` key; landing-takeoff-shots.md), or null: 1. The noise's
+   *  pitch and level follow it (`shipNoisePower*`), eased so a cut sounds like the engines spinning down. */
+  noisePower: number | null = null;
+  private noisePowerEased = 1;
   /** The ship's noise times this: mixed in as an exterior cutscene's camera zooms in (main.ts). */
   noiseShare = 1;
   /** The ship's noise heard from outside, open (an exterior cutscene's camera: main.ts); otherwise
@@ -368,7 +372,11 @@ export class GameAudio {
     const muffled = this.noiseOpen ? 0 : indoors;
     this.noiseFilter.frequency.setTargetAtTime(settings.shipNoiseMuffle * (OPEN_HZ / settings.shipNoiseMuffle) ** (1 - muffled), now, 0.05);
     this.noise.start();
-    this.noise.update((cue.volume ?? 1) * this.noiseAmount * where * this.noiseShare);
+    const power = Math.min(2, Math.max(0, this.noisePower ?? 1));
+    this.noisePowerEased += (power - this.noisePowerEased) * (1 - Math.exp(-dt / settings.shipNoisePowerEase));
+    const p = this.noisePowerEased - 1;
+    this.noise.rate(Math.max(0.5, 1 + settings.shipNoisePowerPitch * p));
+    this.noise.update((cue.volume ?? 1) * this.noiseAmount * where * this.noiseShare * Math.max(0.2, 1 + settings.shipNoisePowerVolume * p));
   }
 
   private voice(id: CueId, cue: Cue, at?: THREE.Object3D): Voice {
@@ -466,6 +474,15 @@ class StreamLoop {
     if (!this.on) return;
     this.on = false;
     for (const element of this.elements) element.pause();
+  }
+
+  /** Its playback speed (and pitch: not kept): the engines' power. */
+  rate(r: number): void {
+    for (const e of this.elements) {
+      if (Math.abs(e.playbackRate - r) < 0.002) continue;
+      e.preservesPitch = false;
+      e.playbackRate = r;
+    }
   }
 
   /** Per frame, while it's on. */

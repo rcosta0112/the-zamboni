@@ -100,8 +100,14 @@ export function paced(pace: Pace, s: number): number {
   return at(y1, y2, u);
 }
 
+/** Anything trimmed: a flyby's values, a landing's (landing.ts). */
+export interface Trimmed {
+  duration: number;
+  trim?: [number, number];
+}
+
 /** The part of a shot's movement played, seconds into its `duration` (the whole if not trimmed). */
-export function trimOf(v: FlybyValues): [number, number] {
+export function trimOf(v: Trimmed): [number, number] {
   if (!v.trim) return [0, v.duration];
   const a = Math.min(Math.max(0, v.trim[0]), v.duration);
   const b = Math.min(Math.max(a, v.trim[1]), v.duration);
@@ -109,7 +115,7 @@ export function trimOf(v: FlybyValues): [number, number] {
 }
 
 /** The shot's length as played (trimmed). */
-export const playedLength = (v: FlybyValues): number => {
+export const playedLength = (v: Trimmed): number => {
   const [a, b] = trimOf(v);
   return b - a;
 };

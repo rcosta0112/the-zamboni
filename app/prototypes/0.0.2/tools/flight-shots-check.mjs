@@ -2,11 +2,14 @@
 // 1. 0400 (the retired `flyby-orbit.mjs`'s settings, as values) gives its old track, `tools/sources/flyby.json`, and
 //    so does the saved shot `0400` the game plays (pass 3);
 // 2. a seed gives the same values twice; 3. many seeds: how many pass the checks at once, after re-rolls;
-// 5. random play (pass 3): a shot drawn against a memory shares fewer buckets with it than a shot drawn blind.
+// 5. random play (pass 3): a shot drawn against a memory shares fewer buckets with it than a shot drawn blind;
+// 6. the landing (landing-takeoff-shots.md pass 1): the saved shot `0600` gives the old `tools/sources/landing.json` key
+//    for key; a trim cuts it; landing seeds pass pass 1's checks.
 // Run from the prototype folder: `node --experimental-strip-types tools/flight-shots-check.mjs`.
 
 import { readFileSync } from 'node:fs';
 
+import { checkLanding, landingTrack, landingValues } from '../src/flight-shots/landing.ts';
 import { checkFlyby, likeness, randomFlyby, flybyBuckets, flybyCamera, flybyTrack, flybyValues, generateFlyby, inPicture, random, sizeClass, sizeOnScreen, SHIP_CENTRE } from '../src/flight-shots/flyby.ts';
 
 const read = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
@@ -159,6 +162,20 @@ console.log(`seed 7: ${JSON.stringify(sample.values)} ${JSON.stringify(flybyBuck
     aware += likeness(randomFlyby(0, memory, rand).buckets, memory);
   }
   report(aware < blind * 0.85, `random play: alike to the memory ${(aware / 40).toFixed(2)} against it, ${(blind / 40).toFixed(2)} blind (40 shots, 12 seeds drawn each)`);
+}
+
+// 6. The landing: 0600 from its saved shot = the track tools/landing-cutscene.mjs wrote (retired 2026-11-21), key for key.
+{
+  const saved = read('../public/cutscenes/shots.json').shots['0600'];
+  const old = read('./sources/landing.json');
+  const made = JSON.parse(JSON.stringify(landingTrack(saved.values, { id: 'landing' })));
+  report(saved.kind === 'landing' && JSON.stringify(made) === JSON.stringify(old), 'landing: the saved shot 0600 gives the old landing.json key for key');
+  const cut = landingTrack({ ...saved.values, trim: [3, 12] }, { id: 'landing' });
+  const ends = [cut.shots[0].camera[0].t, cut.shots[0].camera.at(-1).t, cut.ship[0].t, cut.ship.at(-1).t, cut.flight.at(-1).t];
+  report(cut.duration === 9 && ends.join() === '0,9,0,9,9' && cut.clouds.from === 3, `landing: a trim of 3–12 s plays 9 s, every key from 0 (${ends.join(', ')}), the clouds from 3 s`);
+  let usable = 0;
+  for (let seed = 1; seed <= 500; seed++) if (!checkLanding(landingValues(seed)).length) usable++;
+  report(usable >= 400, `landing: ${usable} of 500 seeds pass pass 1's checks (ground, 6 m clear, the ship's middle in frame)`);
 }
 
 process.exit(failed ? 1 : 0);

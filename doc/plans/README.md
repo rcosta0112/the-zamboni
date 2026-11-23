@@ -84,6 +84,12 @@ Open items: **[`../tasks.md`](../tasks.md)** (the owner's list and the agent's q
 | [The coffee: pour at the pot, carry, sip, the cup in the sink (replaces the flying scene's pass 3)](features/coffee.md) | 0.0.2 | Built 2026-11-18 (both passes); the owner's look pending |
 | [Chapter 1's first two lines on 0200's cameras](features/chapter-1-start-cameras.md) | 0.0.2 | Built 2026-11-18; the owner's look pending |
 | [Interact on the left mouse button, skip on the right](features/mouse-buttons.md) | 0.0.2 | Built 2026-11-18; the owner's try pending |
+| [**Summary: non-linear travel** (the four discussion docs below in one page)](features/non-linear-travel/non-linear-travel-summary.md) | The game's structure | Discussion 2026-11-22 |
+| [A non-linear game: visiting locations, choosing where to go (Adam, or the navigation station and the scanner array)](features/non-linear-travel/non-linear-travel.md) | The game's structure | Discussion 2026-11-22; questions for the owner (SC-191) |
+| [The travelling interface: the cockpit's stations, the map, the signal dials, the quadrants](features/non-linear-travel/travel-interface.md) | The game's structure | Discussion 2026-11-22; questions for the owner (SC-192) |
+| [The planet's map and its quadrants (names in hex, from a random meridian)](features/non-linear-travel/planet-map.md) | The game's structure | Discussion 2026-11-22; the naming decided |
+| [Taking off and landing from the cockpit (the controls' order, no fail states, the displays, where the ship can land)](features/non-linear-travel/take-off-and-landing.md) | The game's structure | Discussion 2026-11-22 |
+| [A test scene for the flight interfaces (a separate `.blend`, placeholder controls, every flight action)](features/non-linear-travel/flight-test-scene.md) | The game's structure | Approved 2026-11-23, not started (SC-195); a prototype, not checked against the docs |
 
 ## Plan format
 

@@ -58,7 +58,7 @@ function flameMaterial(u: ThrusterFlames['u']) {
   const strength = uniform(1);
   // The flicker, 0 to 1: two octaves of noise over time, each cone at its own place in it.
   const cone = attribute<'float'>('cone', 'float').mul(7.31);
-  const t = time.mul(u.flickerRate);
+  const t = u.flickerTime;
   const n = saturate(mx_noise_float(vec2(t, cone.add(0.5))).add(mx_noise_float(vec2(t.mul(2.3), cone.add(3.7))).mul(0.5)).mul(0.4).add(0.5));
   // The fly-by's alpha ramp: 1 at the nozzle, 0.033 at `fade`, nothing at the cone's end (shortened by the flicker).
   const s = attribute<'float'>('along', 'float').div(float(1).sub(u.flickerLength.mul(n)));
@@ -108,16 +108,16 @@ function smax(a: THREE.Node<'float'>, b: THREE.Node<'float'>, k: THREE.Node<'flo
  * The strip's two materials, on the shared uniforms: the flame in its colour (added) and the white core
  * (laid over). In the nozzle's space the flame runs down -z from the nozzle's middle; `d` is metres along it.
  */
-function stripMaterials(u: ThrusterFlames['u'], strength: THREE.UniformNode<'float', number>) {
+function stripMaterials(u: ThrusterFlames['u'], strength: THREE.UniformNode<'float', number>, power: { length: THREE.UniformNode<'float', number>; core: THREE.UniformNode<'float', number> }) {
   const R = attribute<'float'>('radius', 'float');
   const cone = attribute<'float'>('cone', 'float').mul(7.31);
-  const t = time.mul(u.flickerRate);
+  const t = u.flickerTime;
   const n = saturate(mx_noise_float(vec2(t, cone.add(0.5))).add(mx_noise_float(vec2(t.mul(2.3), cone.add(3.7))).mul(0.5)).mul(0.4).add(0.5));
   // The parts, in metres: the base's radius and middle, the thin flame's half-width and its tip (shortened by the flicker and `reach`).
   const rb = R.mul(u.base);
   const d0 = R.mul(u.baseOut);
   const ws = R.mul(u.width);
-  const tip = max(d0.add(0.01), attribute<'float'>('coneLength', 'float').mul(u.length).mul(u.reach).mul(float(1).sub(u.flickerLength.mul(n))));
+  const tip = max(d0.add(0.01), attribute<'float'>('coneLength', 'float').mul(u.length).mul(power.length).mul(float(1).sub(u.flickerLength.mul(n))));
   // Vertex: the point on the axis, the strip turned about it to face the camera, wide enough for the base, the flame and the core's pixels.
   const d = mix(d0.sub(rb), tip, attribute<'float'>('along', 'float'));
   const axis = vec3(0, 0, d.negate());
@@ -157,7 +157,7 @@ function stripMaterials(u: ThrusterFlames['u'], strength: THREE.UniformNode<'flo
   // The core: the flame's shape narrowed, never under `corePx` pixels, solid to its edge (softened over its last tenth),
   // from the base to `coreLength` of the flame, faded at both ends.
   const fPx = length(cameraPosition.sub(positionWorld)).mul(u.pixel);
-  const coreHalf = max(h.mul(u.coreWidth), fPx.mul(u.corePx).mul(0.5));
+  const coreHalf = max(h.mul(u.coreWidth).mul(power.core), fPx.mul(u.corePx).mul(0.5));
   const coreShape = float(1).sub(smoothstep(0.9, 1, fS.div(coreHalf)));
   const coreAlong = float(1).sub(smoothstep(u.coreLength.mul(0.6), u.coreLength, share)).mul(smoothstep(d0.sub(rb.mul(0.7)), d0.sub(rb.mul(0.2)), fD));
   const coreMaterial = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false });
@@ -193,6 +193,8 @@ export class ThrusterFlames {
     flicker: uniform(0.3),
     flickerLength: uniform(0.15),
     flickerRate: uniform(12),
+    /** The flicker's place in its noise: advanced each frame at its rate, quicker with more power. */
+    flickerTime: uniform(0),
     // The strip's shape (settings' `thrusterFlame...`).
     base: uniform(1),
     baseOut: uniform(0.3),
@@ -210,8 +212,11 @@ export class ThrusterFlames {
   };
   private readonly back = flameMaterial(this.u);
   private readonly frontMaterial = flameMaterial(this.u);
-  private readonly backStrip = stripMaterials(this.u, this.back.strength);
-  private readonly frontStrip = stripMaterials(this.u, this.frontMaterial.strength);
+  /** The engines' power on each pair's strip (landing-takeoff-shots.md): its length (with the track's ground cap) and its core's width. */
+  private readonly backPower = { length: uniform(1), core: uniform(1) };
+  private readonly frontPower = { length: uniform(1), core: uniform(1) };
+  private readonly backStrip = stripMaterials(this.u, this.back.strength, this.backPower);
+  private readonly frontStrip = stripMaterials(this.u, this.frontMaterial.strength, this.frontPower);
   private readonly cones: Cone[] = [];
   private sinceFlicker = 0;
   private readonly at = new THREE.Vector3();
@@ -357,7 +362,21 @@ export class ThrusterFlames {
     this.u.flicker.value = settings.thrusterFlameFlicker;
     this.u.flickerLength.value = settings.thrusterFlameFlickerLength;
     this.u.flickerRate.value = this.held ? 0 : settings.thrusterFlameFlickerRate;
+    // The engines' power (owner, 2026-11-21; landing-takeoff-shots.md): the keyed strength, 1 in a flight no track keys.
+    // More power: a longer flame, a wider core, a quicker flicker (each a power of it: `thrusterPower*`; 0: unchanged).
+    const power = Math.max(0, keyed?.strength ?? 1);
+    const frontPower = power * (keyed?.front ?? 1);
+    this.u.flickerTime.value += dt * this.u.flickerRate.value * power ** settings.thrusterPowerFlicker;
     const reach = Math.max(0.01, keyed?.reach ?? 1);
+    // The length's ground cap (the track's `reach`, under 1 near the ground) holds over the power's lengthening.
+    const lengthOf = (p: number) => {
+      const longer = p ** settings.thrusterPowerLength;
+      return Math.max(0.01, reach < 1 ? Math.min(longer, reach) : longer);
+    };
+    this.backPower.length.value = lengthOf(power);
+    this.frontPower.length.value = lengthOf(frontPower);
+    this.backPower.core.value = power ** settings.thrusterPowerCore;
+    this.frontPower.core.value = frontPower ** settings.thrusterPowerCore;
     for (const c of this.cones) c.mesh.scale.set(1, 1, reach);
     const u = this.u;
     u.reach.value = reach;

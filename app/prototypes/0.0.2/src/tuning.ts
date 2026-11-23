@@ -235,6 +235,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   flames.add(settings, 'thrusterFlameCorePx', 0, 10, 0.5).name('core: least (px)');
   flames.add(settings, 'thrusterFlameCoreLength', 0.01, 1, 0.01).name('core: length (share)');
   flames.add(settings, 'thrusterFlameCoreBrightness', 1, 30, 0.5).name('core: brightness');
+  flames.add(settings, 'thrusterPowerLength', 0, 2, 0.05).name('power: length (exponent)');
+  flames.add(settings, 'thrusterPowerCore', 0, 2, 0.05).name('power: core (exponent)');
+  flames.add(settings, 'thrusterPowerFlicker', 0, 2, 0.05).name('power: flicker (exponent)');
   const glow = flames.addFolder('Landing: bloom per nozzle');
   glow.add(settings, 'thrusterGlow').name('shown');
   glow.addColor(settings, 'thrusterGlowCoreColor').name('core');
@@ -349,6 +352,9 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
   sound.add(settings, 'shipFlying').name('ship flying (its noise)').listen();
   sound.add(settings, 'shipNoiseOutdoors', 0, 1, 0.05).name('ship noise outside the ship');
   sound.add(settings, 'shipNoiseMuffle', 200, 20000, 50).name('ship noise inside: muffled below (Hz)');
+  sound.add(settings, 'shipNoisePowerPitch', 0, 1, 0.05).name('ship noise: pitch with power');
+  sound.add(settings, 'shipNoisePowerVolume', 0, 1, 0.05).name('ship noise: level with power');
+  sound.add(settings, 'shipNoisePowerEase', 0.05, 3, 0.05).name('ship noise: power ease (s)');
   sound.add(settings, 'windIndoors', 0, 1, 0.01).name('wind inside the ship');
   sound.add(settings, 'windCargoOpen', 0, 1, 0.01).name('wind in the cargo bay, ramp + door open');
   sound.add(settings, 'cutsceneShipNoiseEnd', 0, 3, 0.05).name('exterior cutscene: ship noise, zoomed in');

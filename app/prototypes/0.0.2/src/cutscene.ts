@@ -6,7 +6,8 @@
 // can be used and the see-through is off (main.ts: the camera is authored). *Skip* jumps to the end
 // state: the events not yet run are left out, the end state covers them. The test one,
 // `test-ship-shots`, is written by `tools/test-cutscene.mjs`; cutscene 1 is built from its saved flight shot
-// (`FROM_SHOTS`: `shots.json`'s `0100`, made from the owner's fly-by file), the flyby (0400) from `0400`; an id
+// (`FROM_SHOTS`: `shots.json`'s `0100`, made from the owner's fly-by file), the flyby (0400) from `0400`, the landing
+// (0600) from `0600` (landing-takeoff-shots.md); an id
 // `shot: <name>` plays any saved shot, `shot: random flyby` a generated one (flight-shots.md pass 3). Dev builds: `__cutscene().play('<id>')`, `skip()`.
 // Plan: doc/plans/architecture/game-architecture/game-structure.md (*Cutscenes*, pass 5)
 
@@ -15,13 +16,14 @@ import type { CloudTrack } from './clouds';
 import { fromBlender, type Command } from './commands';
 import { SWAY_DEG, WAVES } from './watched';
 import { flybyBuckets, flybyTrack, type Buckets, type FlybyValues } from './flight-shots/flyby';
+import { landingTrack } from './flight-shots/landing';
 import { randomAgainstMemory, rememberShot, RANDOM_FLYBY, shotName, type SavedShot } from './flight-shots/shots';
 
 /**
  * Tracks built from a saved flight shot (`public/cutscenes/shots.json`, the shot editor's; flight-shots.md pass 2e)
  * instead of a file of their own: id → the shot's name. The ship's sway and the handheld wobble from their files.
  */
-const FROM_SHOTS: Record<string, string> = { 'cutscene-1': '0100', flyby: '0400' };
+const FROM_SHOTS: Record<string, string> = { 'cutscene-1': '0100', flyby: '0400', landing: '0600' };
 
 /** The track from a saved shot (or `random flyby`: generated), its buckets kept on it for the memory. */
 async function trackFromShot(id: string, name: string, sunBearing?: number): Promise<Track> {
@@ -38,7 +40,16 @@ async function trackFromShot(id: string, name: string, sunBearing?: number): Pro
     values = picked.values;
     made = `${RANDOM_FLYBY} ${picked.seed}`;
     console.info(`[0.0.2] cutscene ${id}: random flyby, seed ${picked.seed} (like the recent shots: ${picked.likeness.toFixed(2)})`);
-  } else values = (shots.shots as Record<string, SavedShot> | undefined)?.[name]?.values;
+  } else {
+    const saved = (shots.shots as Record<string, SavedShot> | undefined)?.[name];
+    // A landing (landing-takeoff-shots.md): its motion fixed, its camera and power the values.
+    if (saved?.kind === 'landing') {
+      const track = landingTrack(saved.values, { id });
+      track.shot = name;
+      return track;
+    }
+    values = saved?.values;
+  }
   if (!values) throw new Error(`no saved shot "${name}" for cutscene "${id}"`);
   const track = flybyTrack(values, { id, sway: sway.keys ?? [], handheld: handheld.keys ?? [] });
   track.buckets = flybyBuckets(values, sunBearing);

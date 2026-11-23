@@ -24,6 +24,10 @@ export const FLAME_KEYS: FlameKey[] = [
   { key: 'thrusterFlameFlicker', label: 'flicker', kind: 'number', step: 0.01, min: 0, max: 1 },
   { key: 'thrusterFlameFlickerLength', label: 'flicker: length', kind: 'number', step: 0.01, min: 0, max: 0.9 },
   { key: 'thrusterFlameFlickerRate', label: 'flicker: speed', kind: 'number', step: 0.5, min: 0, max: 60 },
+  // The engines' power (landing-takeoff-shots.md): times the length, core and flicker speed by power^these.
+  { key: 'thrusterPowerLength', label: 'power: length', kind: 'number', step: 0.05, min: 0, max: 2 },
+  { key: 'thrusterPowerCore', label: 'power: core', kind: 'number', step: 0.05, min: 0, max: 2 },
+  { key: 'thrusterPowerFlicker', label: 'power: flicker', kind: 'number', step: 0.05, min: 0, max: 2 },
 ];
 
 export const GLOW_KEYS: FlameKey[] = [

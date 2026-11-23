@@ -4,14 +4,10 @@
 // the shots played lately (directed ones too); that memory is kept in the save (`SaveData.recentShots`).
 
 import { randomFlyby, type Buckets, type FlybyValues } from './flyby';
+import type { LandingValues } from './landing';
 
-/** What the shot editor saves under a name. */
-export interface SavedShot {
-  kind: 'flyby';
-  seed: number;
-  values: FlybyValues;
-  saved: string;
-}
+/** What the shot editor saves under a name: its type (`kind`; landing-takeoff-shots.md), seed and every value. */
+export type SavedShot = { kind: 'flyby'; seed: number; values: FlybyValues; saved: string } | { kind: 'landing'; seed: number; values: LandingValues; saved: string };
 
 /** `intro: "shot: random flyby"`. */
 export const RANDOM_FLYBY = 'random flyby';

@@ -10,22 +10,47 @@
  * **Trim** (owner, 2026-11-20): a start and an end within the generated movement (`values.trim`); the bar under the
  * preview shows the whole movement, the cut parts shaded, its two handles dragged (or I / O at the playhead);
  * the preview loops the kept part; the checks and buckets read it; the game plays it only.
+ * **Types** (landing-takeoff-shots.md): a dropdown under the title, *Flyby*, *Landing* (*Take-off* to come): each its own
+ * generator, values, plan from above, checks, buckets and saved shots (`kind`); remembered in the browser. A landing's
+ * motion is fixed (landing.ts), its camera and the **engines' power** are the values: the power's curve drawn under
+ * the trim bar, its points dragged. The preview stands a landing on the landed plain.
  * Dev only, as tools.html. The editor's controls are mouse-first, as the other tuning pages (plan).
  */
 
-import type { ShipKey } from '../cutscene';
+import type { ShipKey, Track } from '../cutscene';
 import { ShotPreview } from './preview';
-import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, generateFlyby, inPicture, pairOf, paced, playedLength, screenBox, shared, sizeClass, trimOf, NOSE_BEARING, SHIP_CENTRE, type Buckets, type FlybyValues, type HandheldKey, type Pace } from './flyby';
+import { checkFlyby, flybyBuckets, flybyCamera, flybyTrack, generateFlyby, inPicture, pairOf, paced, playedLength, screenBox, shared, sizeClass, trimOf, NOSE_BEARING, SHIP_CENTRE, type FlybyValues, type HandheldKey, type Pace, type Trimmed } from './flyby';
+import { checkLanding, landingBuckets, landingTrack, landingValues, tripodKey, GEAR, TOUCHDOWN, type LandingValues, type TripodCamera } from './landing';
+import type { SavedShot } from './shots';
 
-interface SavedShot {
-  kind: 'flyby';
-  seed: number;
-  values: FlybyValues;
-  saved: string;
-}
+/** The shot types (landing-takeoff-shots.md); take-off is pass 3. */
+type Kind = 'flyby' | 'landing';
+type ShotValues = FlybyValues | LandingValues;
+type Field<V> = { label: string; get: (v: V) => number; set: (v: V, n: number) => void; step: number };
+
+/** The trim's fields, every type's. */
+const TRIM_FIELDS: Field<Trimmed>[] = [
+  { label: 'trim start (s)', get: (v) => trimOf(v)[0], set: (v, n) => setTrim(v, n, trimOf(v)[1], 'start'), step: 0.1 },
+  { label: 'trim end (s)', get: (v) => trimOf(v)[1], set: (v, n) => setTrim(v, trimOf(v)[0], n, 'end'), step: 0.1 },
+];
+
+/** A landing's fields: its (first) camera's; the power is drawn under the trim bar. */
+const cam = (v: LandingValues): TripodCamera => v.cameras[0]!;
+const LANDING_FIELDS: Field<LandingValues>[] = [
+  { label: 'distance (m)', get: (v) => cam(v).distance, set: (v, n) => (cam(v).distance = Math.max(1, n)), step: 0.5 },
+  { label: 'round (°)', get: (v) => cam(v).round, set: (v, n) => (cam(v).round = n), step: 1 },
+  { label: 'height (m)', get: (v) => cam(v).height, set: (v, n) => (cam(v).height = n), step: 0.05 },
+  { label: 'follows ship', get: (v) => cam(v).follow, set: (v, n) => (cam(v).follow = n), step: 0.05 },
+  { label: 'lens fov (°)', get: (v) => cam(v).fov, set: (v, n) => (cam(v).fov = n), step: 0.5 },
+  { label: 'lag (s)', get: (v) => cam(v).lag, set: (v, n) => (cam(v).lag = Math.max(0, n)), step: 0.05 },
+  { label: 'aim left (°)', get: (v) => cam(v).aimLeft, set: (v, n) => (cam(v).aimLeft = n), step: 0.2 },
+  { label: 'aim under (°)', get: (v) => cam(v).aimUnder, set: (v, n) => (cam(v).aimUnder = n), step: 0.2 },
+  { label: 'handheld', get: (v) => cam(v).handheld, set: (v, n) => (cam(v).handheld = Math.max(0, n)), step: 0.1 },
+  ...(TRIM_FIELDS as Field<LandingValues>[]),
+];
 
 /** The fields shown, in order: label, the value's path, step. */
-const FIELDS: { label: string; get: (v: FlybyValues) => number; set: (v: FlybyValues, n: number) => void; step: number }[] = [
+const FIELDS: Field<FlybyValues>[] = [
   { label: 'length (s)', get: (v) => v.duration, set: (v, n) => (v.duration = n), step: 0.1 },
   { label: 'bearing from (°)', get: (v) => v.bearing[0], set: (v, n) => (v.bearing[0] = n), step: 1 },
   { label: 'bearing to (°)', get: (v) => v.bearing[1], set: (v, n) => (v.bearing[1] = n), step: 1 },
@@ -54,14 +79,13 @@ const FIELDS: { label: string; get: (v: FlybyValues) => number; set: (v: FlybyVa
     },
     step: 0.02,
   })),
-  { label: 'trim start (s)', get: (v) => trimOf(v)[0], set: (v, n) => setTrim(v, n, trimOf(v)[1], 'start'), step: 0.1 },
-  { label: 'trim end (s)', get: (v) => trimOf(v)[1], set: (v, n) => setTrim(v, trimOf(v)[0], n, 'end'), step: 0.1 },
+  ...(TRIM_FIELDS as Field<FlybyValues>[]),
 ];
 /** The shortest trimmed shot (s). */
 const MIN_TRIM = 0.5;
 /** Sets the trim, kept within the movement and at least `MIN_TRIM` long (the other end pushed if needed);
  *  the whole movement: no trim stored. */
-function setTrim(v: FlybyValues, a: number, b: number, moving: 'start' | 'end'): void {
+function setTrim(v: Trimmed, a: number, b: number, moving: 'start' | 'end'): void {
   const d = v.duration;
   const m = Math.min(MIN_TRIM, d);
   a = Math.min(Math.max(0, a), d);
@@ -100,17 +124,61 @@ let sway: ShipKey[] = [];
 let handheld: HandheldKey[] = [];
 let saved: Record<string, SavedShot> = {};
 let seed = 1;
+/** The type being edited (remembered). */
+let kind: Kind = localStorage.getItem('shot-editor.type') === 'landing' ? 'landing' : 'flyby';
 /** The shot being edited (the seed's, or a saved one's, nudged or not). */
-let values: FlybyValues;
+let values: ShotValues;
 /** What the seed gives now (the generator as it is today). */
-let seedNow: FlybyValues;
+let seedNow: ShotValues;
+const isLanding = (v: ShotValues): v is LandingValues => v.kind === 'landing';
+/** The saved shots of the type being edited (a shot saved before types: a flyby). */
+const savedOfKind = (): [string, SavedShot][] => Object.entries(saved).filter(([, s]) => (s.kind ?? 'flyby') === kind);
+/** A seed's values for the type being edited. */
+function generate(n: number): { values: ShotValues; rerolls: number } {
+  if (kind === 'landing') return { values: landingValues(n), rerolls: 0 };
+  const g = generateFlyby(n, undefined, { swayLength: sway[sway.length - 1]?.t });
+  return { values: g.values, rerolls: g.rerolls };
+}
+/** The fields of the values' type. */
+const fieldsOf = (v: ShotValues): Field<ShotValues>[] => (isLanding(v) ? LANDING_FIELDS : FIELDS) as Field<ShotValues>[];
 let rerolls = 0;
 /** The saved shot loaded, if any. */
 let loadedName: string | null = null;
 let nudged = new Set<string>();
 
 /** The plan from above: the ship at the middle (its nose down the picture), the camera's path, its view at both ends. */
-function plan(v: FlybyValues, size: number, marker?: number): string {
+function plan(v: ShotValues, size: number, marker?: number): string {
+  return isLanding(v) ? landingPlan(v, size, marker) : flybyPlan(v, size, marker);
+}
+
+/** A landing's plan from above: the ship at the middle (its nose down the picture; where it came in from, 4 m
+ *  behind, dashed), each camera where it stands, its view at the kept part's ends; `marker` (0..1) its aim now. */
+function landingPlan(v: LandingValues, size: number, marker?: number): string {
+  const reach = Math.max(24, ...v.cameras.map((c) => c.distance)) * 1.25;
+  const k = size / 2 / reach;
+  const px = (x: number) => size / 2 + x * k;
+  const py = (y: number) => size / 2 - y * k;
+  const [t0, t1] = trimOf(v);
+  const cameraAt = (t: number) => [...v.cameras].reverse().find((c) => c.start <= t + 1e-9) ?? v.cameras[0]!;
+  const look = (t: number, colour: string, line = false) => {
+    const c = cameraAt(t);
+    const key = tripodKey(c, t);
+    const [x, y] = key.at;
+    const half = (key.fov * 16) / 9 / 2;
+    const len = c.distance * 1.1;
+    const tip = (a: number): [number, number] => [px(x + len * Math.cos((key.heading + a) * DEG)), py(y + len * Math.sin((key.heading + a) * DEG))];
+    if (line) return `<line x1="${px(x)}" y1="${py(y)}" x2="${tip(0)[0].toFixed(1)}" y2="${tip(0)[1].toFixed(1)}" stroke="${colour}" stroke-width="1.5"/>`;
+    const pt = (p: [number, number]) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+    return `<polygon points="${px(x).toFixed(1)},${py(y).toFixed(1)} ${pt(tip(half))} ${pt(tip(-half))}" fill="${colour}" opacity="0.18"/><circle cx="${px(x)}" cy="${py(y)}" r="${size > 120 ? 4 : 2.5}" fill="${colour}"/>`;
+  };
+  const box = (x0: number, y0: number, x1: number, y1: number, extra: string) => `<rect x="${px(x0)}" y="${py(y1)}" width="${(x1 - x0) * k}" height="${(y1 - y0) * k}" ${extra}/>`;
+  const nose = py(-5.15);
+  const ship = box(-5.68, -1.15, 5.68, 14.48, 'fill="none" stroke="#9aa0a8" stroke-dasharray="2 3" opacity="0.6"') + box(-5.68, -5.15, 5.68, 10.48, 'fill="none" stroke="#d8dbe0" stroke-width="1.5"') + `<polygon points="${px(0)},${nose + 6} ${px(-2)},${nose - 1} ${px(2)},${nose - 1}" fill="#d8dbe0"/>`;
+  const mark = marker !== undefined ? look(marker * v.duration, '#fff', true) : '';
+  return `<svg class="plan" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${ship}${look(t0, '#7fc27f')}${look(t1, '#e0a040')}${mark}</svg>`;
+}
+
+function flybyPlan(v: FlybyValues, size: number, marker?: number): string {
   const reach = Math.max(80, ...v.distance) * 1.15;
   const k = size / 2 / reach;
   // Blender x → right, y → up the picture (the nose, -Y, points down).
@@ -159,7 +227,16 @@ function sunBearing(): number | undefined {
   return preview?.sunBearing();
 }
 
-// The page's parts.
+// The page's parts. The type first (landing-takeoff-shots.md), under the title.
+const typeRow = el('div', side, undefined, 'row');
+el('span', typeRow, 'Type');
+const typeSelect = el('select', typeRow);
+for (const [k, label] of [['flyby', 'Flyby'], ['landing', 'Landing'], ['takeoff', 'Take-off (to come)']] as const) {
+  const o = el('option', typeSelect, label);
+  o.value = k;
+  if (k === 'takeoff') o.disabled = true;
+}
+typeSelect.value = kind;
 const seedRow = el('div', side, undefined, 'seed');
 el('span', seedRow, 'Seed');
 const prev = el('button', seedRow, '◀');
@@ -241,6 +318,10 @@ const handleIn = el('div', bar, undefined, 'handle');
 const handleOut = el('div', bar, undefined, 'handle');
 handleIn.title = 'Trim: the start (drag; I at the playhead)';
 handleOut.title = 'Trim: the end (drag; O at the playhead)';
+// The engines' power (landing-takeoff-shots.md): its curve over the whole movement, its points dragged (a landing's).
+const powerBox = el('div', player, undefined, 'power');
+const powerSvg = powerBox.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
+powerSvg.style.cssText = 'display:block;width:100%;height:56px;background:#14171c;border-radius:3px;margin-top:4px;touch-action:none;cursor:default';
 const trimRow = el('div', view, undefined, 'row');
 const inBtn = el('button', trimRow, 'Start here (I)');
 const outBtn = el('button', trimRow, 'End here (O)');
@@ -255,7 +336,14 @@ const planBox = el('div', planRow);
 const nextSeeds = el('div', planRow);
 const strip = el('div', nextSeeds, undefined, 'strip');
 
-const inputs = FIELDS.map((f) => {
+let inputs: { tr: HTMLLabelElement; input: HTMLInputElement; now: HTMLDivElement }[] = [];
+/** The value fields of the type being edited (a new type: rebuilt). */
+function buildInputs(): void {
+  table.innerHTML = '';
+  inputs = fieldsOf(values).map((f) => field(f));
+  paceRow.style.display = isLanding(values) ? 'none' : '';
+}
+function field(f: Field<ShotValues>) {
   const tr = el('label', table, undefined, 'field');
   el('span', tr, f.label);
   const input = el('input', tr);
@@ -270,16 +358,24 @@ const inputs = FIELDS.map((f) => {
     show(false);
   });
   return { tr, input, now };
-});
+}
 pace.addEventListener('change', () => {
+  if (isLanding(values)) return;
   values.pace = pace.value === 'curve' ? curveOf(values.pace) : (pace.value as 'even' | 'eased');
   nudged.add('pace');
   show(false);
 });
 
+typeSelect.addEventListener('change', () => {
+  kind = typeSelect.value === 'landing' ? 'landing' : 'flyby';
+  localStorage.setItem('shot-editor.type', kind);
+  void preview?.setGround(kind === 'landing' ? 'landed' : 'flight');
+  pickSeed(1);
+});
+
 function pickSeed(n: number): void {
   seed = Math.max(1, Math.floor(n));
-  const g = generateFlyby(seed, undefined, { swayLength: sway[sway.length - 1]?.t });
+  const g = generate(seed);
   seedNow = g.values;
   rerolls = g.rerolls;
   values = structuredClone(seedNow);
@@ -292,7 +388,7 @@ function pickSeed(n: number): void {
 /** A new shot's name, from its seed (owner, 2026-11-20): `flyby-<seed>`, or `flyby-<seed>-2`, -3… if taken
  *  (another cut of the same seed). Editable before saving. */
 function autoName(): string {
-  const base = `flyby-${seed}`;
+  const base = `${kind}-${seed}`;
   let name = base;
   for (let n = 2; saved[name]; n++) name = `${base}-${n}`;
   return name;
@@ -303,26 +399,32 @@ function load(name: string): void {
   seed = shot.seed;
   values = structuredClone(shot.values);
   // Seed 0: a shot made from another camera, not drawn (0100, `tools/shot-from-track.mjs`): nothing to compare.
-  seedNow = seed === 0 ? structuredClone(values) : generateFlyby(seed, undefined, { swayLength: sway[sway.length - 1]?.t }).values;
+  seedNow = seed === 0 ? structuredClone(values) : generate(seed).values;
   loadedName = name;
   nameInput.value = name;
   nudged = new Set();
   show(true);
 }
 
-let currentBuckets: Buckets;
+let currentBuckets: Record<string, string | undefined>;
+
+let builtFor: Kind | null = null;
 
 function show(all: boolean): void {
+  if (builtFor !== values.kind) {
+    builtFor = values.kind;
+    buildInputs();
+  }
   seedInput.value = String(seed);
   seedNote.textContent = loadedName ? `Saved shot “${loadedName}”` : `Seed ${seed}`;
-  FIELDS.forEach((f, i) => {
+  fieldsOf(values).forEach((f, i) => {
     const { tr, input, now } = inputs[i]!;
     if (all || document.activeElement !== input) input.value = String(Math.round(f.get(values) * 1000) / 1000);
     tr.classList.toggle('nudged', nudged.has(f.label));
     const a = f.get(values), b = f.get(seedNow);
     now.textContent = loadedName ? (Math.abs(a - b) > 1e-6 ? `this seed now: ${b}` : '') : nudged.has(f.label) ? `seed: ${b}` : '';
   });
-  pace.value = typeof values.pace === 'string' ? values.pace : 'curve';
+  if (!isLanding(values)) pace.value = typeof values.pace === 'string' ? values.pace : 'curve';
   const [ta, tb] = trimOf(values);
   const pc = (t: number) => `${(t / values.duration) * 100}%`;
   trimNote.textContent = values.trim
@@ -335,19 +437,23 @@ function show(all: boolean): void {
   handleIn.style.left = pc(ta);
   handleOut.style.left = pc(tb);
   wholeBtn.disabled = !values.trim;
-  const problems = checkFlyby(values);
+  const problems = isLanding(values) ? checkLanding(values) : checkFlyby(values);
   checks.className = problems.length ? 'problems' : 'ok';
   checks.textContent = problems.length ? problems.map((p) => `✗ ${p}`).join('   ') : '✓ checks passed';
-  checks.title = (problems.length ? problems.join('\n') : 'Camera clear of the ground and the ship, the ship in frame, in sight.') + '\nThe ground is taken as flat (14 m under the belly) for now: hills not counted.';
-  currentBuckets = flybyBuckets(values, sunBearing());
+  checks.title = isLanding(values)
+    ? (problems.length ? problems.join('\n') : 'Camera above the ground, 6 m clear of the ship, the ship\'s middle in frame.') + '\nPass 1’s checks only; the ground taken as flat.'
+    : (problems.length ? problems.join('\n') : 'Camera clear of the ground and the ship, the ship in frame, in sight.') + '\nThe ground is taken as flat (14 m under the belly) for now: hills not counted.';
+  currentBuckets = bucketsOf(values);
   bucketsEl.innerHTML = Object.entries(currentBuckets).map(([k, v]) => `<span>${k}: ${v}</span>`).join('');
-  if (currentBuckets.sun === undefined) bucketsEl.insertAdjacentHTML('beforeend', '<small>(the sun once the game has loaded)</small>');
+  if (!isLanding(values) && currentBuckets.sun === undefined) bucketsEl.insertAdjacentHTML('beforeend', '<small>(the sun once the game has loaded)</small>');
   // Close: all but two of the buckets the same (5 of 7 without the sun, 6 of 8 with it).
   const most = Object.values(currentBuckets).filter((b) => b !== undefined).length - 2;
-  const close = Object.entries(saved)
+  // A landing has three buckets so far: all the same is close.
+  const least = isLanding(values) ? most + 2 : most;
+  const close = savedOfKind()
     .filter(([name]) => name !== loadedName)
-    .map(([name, s]) => [name, shared(currentBuckets, flybyBuckets(s.values, sunBearing()))] as const)
-    .filter(([, same]) => same.length >= most);
+    .map(([name, s]) => [name, sharedBuckets(currentBuckets, bucketsOf(s.values))] as const)
+    .filter(([, same]) => same.length >= least);
   const warns = [
     ...(rerolls && !loadedName ? [`seed ${seed} failed the checks; re-rolled ${rerolls}× from it`] : []),
     ...close.map(([name, same]) => `close to “${name}”: the same ${same.join(', ')}`),
@@ -359,6 +465,7 @@ function show(all: boolean): void {
   saveNote.className = saveMessage.startsWith('Saved') ? 'ok' : 'problems';
   saveMessage = '';
   planBox.innerHTML = plan(values, 260);
+  drawPower();
   // The preview follows: a new seed or shot from its start (the trim's), a nudge where it is.
   preview?.setWindow(trimOf(values));
   preview?.show(track(), all);
@@ -370,7 +477,7 @@ function drawStrip(): void {
   strip.innerHTML = '';
   const first = Math.max(1, seed - 2);
   for (let s = first; s < first + THUMBS; s++) {
-    const v = s === seed ? seedNow : generateFlyby(s, undefined, { swayLength: sway[sway.length - 1]?.t }).values;
+    const v = s === seed ? seedNow : generate(s).values;
     const box = el('div', strip, undefined, 'thumb' + (s === seed && !loadedName ? ' on' : ''));
     box.innerHTML = plan(v, 96);
     el('small', box, `${s} · ${v.duration.toFixed(1)} s`);
@@ -380,7 +487,7 @@ function drawStrip(): void {
 
 function drawSaved(): void {
   savedList.innerHTML = '';
-  const names = Object.keys(saved);
+  const names = savedOfKind().map(([name]) => name);
   if (!names.length) el('small', savedList, 'None yet.');
   for (const name of names) {
     const row = el('div', savedList, undefined, name === loadedName ? 'on' : '');
@@ -401,7 +508,8 @@ saveBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
   if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) return void ((saveNote.className = 'problems'), (saveNote.textContent = 'A name in lower case, digits and dashes (it goes in the script: # shot: <name>).'));
   if (saved[name] && name !== loadedName && !confirm(`Replace the saved shot “${name}”?`)) return;
-  const shot: SavedShot = { kind: 'flyby', seed, values: structuredClone(values), saved: new Date().toISOString().slice(0, 10) };
+  const date = new Date().toISOString().slice(0, 10);
+  const shot: SavedShot = isLanding(values) ? { kind: 'landing', seed, values: structuredClone(values), saved: date } : { kind: 'flyby', seed, values: structuredClone(values), saved: date };
   const r = await fetch('/__shots', { method: 'POST', body: JSON.stringify({ name, shot }) });
   const data = await r.json();
   if (!r.ok) return void ((saveNote.className = 'problems'), (saveNote.textContent = `Not saved: ${data.error}`));
@@ -413,9 +521,81 @@ saveBtn.addEventListener('click', async () => {
 });
 
 /** The whole movement (the preview loops the trimmed part of it, and shows the rest when scrubbed). */
-function track() {
-  return flybyTrack(values, { id: 'shot-editor', sway, handheld, whole: true });
+function track(): Track {
+  return isLanding(values) ? landingTrack(values, { id: 'shot-editor', whole: true }) : flybyTrack(values, { id: 'shot-editor', sway, handheld, whole: true });
 }
+
+/** The buckets, by type (as strings, for the list and the warnings). */
+function bucketsOf(v: ShotValues): Record<string, string | undefined> {
+  return { ...(isLanding(v) ? landingBuckets(v) : flybyBuckets(v, sunBearing())) };
+}
+const sharedBuckets = (a: Record<string, string | undefined>, b: Record<string, string | undefined>) => Object.keys(a).filter((k) => a[k] !== undefined && a[k] === b[k]);
+
+// The engines' power: the curve over the whole movement (0 at the bottom, POWER_TOP at the top), the gear and touchdown
+// marked; a point dragged moves its time (between its neighbours) and level; a double-click on the line adds one,
+// on a point removes it (two kept at least).
+const POWER_TOP = 2.5;
+let powerDrag: number | null = null;
+function drawPower(): void {
+  powerBox.style.display = isLanding(values) ? '' : 'none';
+  if (!isLanding(values)) return;
+  const w = powerSvg.clientWidth || 600, h = 56;
+  powerSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const d = values.duration;
+  const x = (t: number) => (t / d) * w;
+  const y = (p: number) => h - 4 - (p / POWER_TOP) * (h - 8);
+  const keys = values.power;
+  const line = [[0, keys[0]![1]], ...keys, [d, keys[keys.length - 1]![1]]].map(([t, p]) => `${x(t!).toFixed(1)},${y(p!).toFixed(1)}`).join(' ');
+  const mark = (t: number, label: string) => `<line x1="${x(t)}" y1="0" x2="${x(t)}" y2="${h}" stroke="#4a5058" stroke-dasharray="2 3"/><text x="${x(t) + 3}" y="11" fill="#7a808a" font-size="10">${label}</text>`;
+  const [ta, tb] = trimOf(values);
+  powerSvg.innerHTML =
+    `<rect x="0" y="0" width="${x(ta)}" height="${h}" fill="#000" opacity="0.35"/><rect x="${x(tb)}" y="0" width="${w - x(tb)}" height="${h}" fill="#000" opacity="0.35"/>` +
+    `<line x1="0" y1="${y(1)}" x2="${w}" y2="${y(1)}" stroke="#30353c"/><text x="3" y="${y(1) - 3}" fill="#5a606a" font-size="10">power 1</text>` +
+    mark(GEAR[0], 'gear') + mark(TOUCHDOWN, 'touchdown') +
+    `<polyline points="${line}" fill="none" stroke="#f2c060" stroke-width="2"/>` +
+    keys.map(([t, p], i) => `<circle data-i="${i}" cx="${x(t)}" cy="${y(p)}" r="5" fill="${powerDrag === i ? '#fff' : '#f2c060'}" style="cursor:grab"><title>${t.toFixed(2)} s · ${p.toFixed(2)}</title></circle>`).join('');
+}
+const powerAtPointer = (e: PointerEvent | MouseEvent): [number, number] => {
+  const r = powerSvg.getBoundingClientRect();
+  const v = values as LandingValues;
+  const t = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)) * v.duration;
+  const p = Math.min(POWER_TOP, Math.max(0, ((r.height - 4 - (e.clientY - r.top)) / (r.height - 8)) * POWER_TOP));
+  return [Math.round(t * 100) / 100, Math.round(p * 100) / 100];
+};
+powerSvg.addEventListener('pointerdown', (e) => {
+  const i = Number((e.target as Element).getAttribute?.('data-i'));
+  if (!isLanding(values) || !Number.isInteger(i) || (e.target as Element).tagName !== 'circle') return;
+  powerDrag = i;
+  powerSvg.setPointerCapture(e.pointerId);
+});
+powerSvg.addEventListener('pointermove', (e) => {
+  if (powerDrag === null || !isLanding(values)) return;
+  const keys = values.power;
+  const [t, p] = powerAtPointer(e);
+  const lo = powerDrag > 0 ? keys[powerDrag - 1]![0] + 0.05 : 0;
+  const hi = powerDrag < keys.length - 1 ? keys[powerDrag + 1]![0] - 0.05 : values.duration;
+  keys[powerDrag] = [Math.min(hi, Math.max(lo, t)), p];
+  nudged.add('power');
+  show(false);
+});
+powerSvg.addEventListener('pointerup', () => {
+  powerDrag = null;
+  drawPower();
+});
+powerSvg.addEventListener('dblclick', (e) => {
+  if (!isLanding(values)) return;
+  const keys = values.power;
+  const i = Number((e.target as Element).getAttribute?.('data-i'));
+  if ((e.target as Element).tagName === 'circle' && Number.isInteger(i)) {
+    if (keys.length > 2) keys.splice(i, 1);
+  } else {
+    const [t, p] = powerAtPointer(e);
+    keys.push([t, p]);
+    keys.sort((a, b) => a[0] - b[0]);
+  }
+  nudged.add('power');
+  show(false);
+});
 
 playBtn.addEventListener('click', () => preview?.play(track()));
 stopBtn.addEventListener('click', () => preview?.pause());
@@ -485,7 +665,7 @@ document.addEventListener('keydown', (e) => {
 /** The framing guides at `s` (0..1 through the shot), drawn over the picture in its pixels. */
 function drawGuides(s: number): void {
   const w = frameBox.clientWidth, h = frameBox.clientHeight;
-  if (!w || !h) return;
+  if (!w || !h || isLanding(values)) return;
   guides.setAttribute('viewBox', `0 0 ${w} ${h}`);
   const c = flybyCamera(values, s);
   const aspect = w / h;
@@ -514,7 +694,7 @@ function drawGuides(s: number): void {
   out += `<polygon points="${tx + ux * 8},${ty + uy * 8} ${tx - uy * 6},${ty + ux * 6} ${tx + uy * 6},${ty - ux * 6}" class="head"/>`;
   out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" class="head"/>`;
   const now = (box[2] - box[0]) / 2;
-  const target = values.size !== undefined ? ` · target ${(values.size * 100).toFixed(0)}% (${sizeClass(values.size)})` : '';
+  const target = !isLanding(values) && values.size !== undefined ? ` · target ${(values.size * 100).toFixed(0)}% (${sizeClass(values.size)})` : '';
   out += `<text x="12" y="22" class="label">size ${(now * 100).toFixed(0)}% of the width (${sizeClass(now)})${target}</text>`;
   guides.innerHTML = out;
 }
@@ -522,7 +702,8 @@ function drawGuides(s: number): void {
 // Where the camera is, on the plan, and the time.
 function watchPlay(): void {
   if (preview) {
-    if (guideBox.checked) drawGuides(Math.min(1, preview.time / values.duration));
+    if (guideBox.checked && !isLanding(values)) drawGuides(Math.min(1, preview.time / values.duration));
+    else if (isLanding(values)) guides.innerHTML = '';
     planBox.innerHTML = plan(values, 260, Math.min(1, preview.time / values.duration));
     const [a] = trimOf(values);
     timeNote.textContent = values.trim
@@ -546,6 +727,7 @@ async function main(): Promise<void> {
   });
   if (!preview) return;
   (window as unknown as { __shotPreview: ShotPreview }).__shotPreview = preview; // dev hook, for the scratch checks
+  await preview.setGround(kind === 'landing' ? 'landed' : 'flight');
   gameNote.textContent = '';
   preview.setWindow(trimOf(values));
   preview.play(track());

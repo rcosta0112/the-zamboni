@@ -31,7 +31,11 @@ const gameAt = args.indexOf('--game');
 if (gameAt >= 0) args.splice(gameAt, 1);
 const queryAt = args.indexOf('--query'); // more of the address: `--query scene=opening`
 const query = queryAt >= 0 ? args.splice(queryAt, 2)[1] : null;
-const URL_01 = (gameAt >= 0 ? 'http://localhost:5202/' : 'http://localhost:5202/?test') + (query ? (gameAt >= 0 ? '?' : '&') + query : '');
+const pageAt = args.indexOf('--page'); // another page of the game: `--page flight-test.html` (the game's own mode, as --game)
+const page = pageAt >= 0 ? args.splice(pageAt, 2)[1] : null;
+const URL_01 = page
+  ? `http://localhost:5202/${page}${query ? '?' + query : ''}`
+  : (gameAt >= 0 ? 'http://localhost:5202/' : 'http://localhost:5202/?test') + (query ? (gameAt >= 0 ? '?' : '&') + query : '');
 const shotAt = args.indexOf('--shot');
 const shot = shotAt >= 0 ? args.splice(shotAt, 2)[1] : null;
 const shotsAt = args.indexOf('--shots');

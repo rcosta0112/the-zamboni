@@ -8,18 +8,13 @@
  * Dev only, as tools.html. Mouse-first, as the other tuning pages.
  */
 
-import type { ShipKey } from '../cutscene';
+import type { ShipKey, Track } from '../cutscene';
 import { settings } from '../settings';
 import { ShotPreview } from './preview';
 import { FLAME_KEYS, GLOW_KEYS, ALL_FLAME_KEYS, type FlameKey } from './flame-keys';
-import { flybyTrack, playedLength, type FlybyValues, type HandheldKey } from './flyby';
-
-interface SavedShot {
-  kind: 'flyby';
-  seed: number;
-  values: FlybyValues;
-  saved: string;
-}
+import { flybyTrack, playedLength, type HandheldKey } from './flyby';
+import { landingTrack } from './landing';
+import type { SavedShot } from './shots';
 
 type Value = number | string | boolean;
 const values = settings as unknown as Record<string, Value>;
@@ -174,8 +169,11 @@ function drawShots(): void {
   }
 }
 
-function track() {
-  return flybyTrack(shots[shotName!]!.values, { id: 'flame-editor', sway, handheld });
+/** The shot's track; a landing on the landed plain (landing-takeoff-shots.md: watch the engines' power). */
+function track(): Track {
+  const shot = shots[shotName!]!;
+  void preview?.setGround(shot.kind === 'landing' ? 'landed' : 'flight');
+  return shot.kind === 'landing' ? landingTrack(shot.values, { id: 'flame-editor' }) : flybyTrack(shot.values, { id: 'flame-editor', sway, handheld });
 }
 
 function pick(name: string): void {

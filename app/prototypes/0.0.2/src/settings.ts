@@ -349,6 +349,10 @@ export const settings = {
   shipFlying: false, // the ship's noise (in prototype 01 it stands on the ground: off at the start)
   shipNoiseOutdoors: 0.4, // its level outside the ship, as a share of inside
   shipNoiseMuffle: 700, // Hz: heard inside the ship, muffled by the hull: a low-pass this low (owner, 2026-11-06)
+  // The engine noise follows the engines' power (owner, 2026-11-21; landing-takeoff-shots.md): a track's `flames` key, 1 elsewhere.
+  shipNoisePowerPitch: 0.25, // its speed and pitch: 1 + this × (power − 1); 1.7 → 1.18×, off → 0.75×
+  shipNoisePowerVolume: 0.4, // its level: 1 + this × (power − 1)
+  shipNoisePowerEase: 0.4, // s: how fast it follows (the engines spinning up and down)
   // The wind (owner, 2026-10-14): full outside; inside, as a share of that: faint, and louder in the
   // cargo bay with the ramp and the side door open (each by the size of its opening).
   windIndoors: 0.08,
@@ -393,6 +397,11 @@ export const settings = {
   thrusterFlameCorePx: 2, // never narrower than this (pixels), as the temple's shaft
   thrusterFlameCoreLength: 0.35, // share of the thin flame the core reaches
   thrusterFlameCoreBrightness: 6, // brighter than white: the frame is tone-mapped at the end
+  // The engines' power (owner, 2026-11-21; landing-takeoff-shots.md): a track's `flames` key (0600: 0.7 → 1.7) times the flame's
+  // length, core width and flicker speed by power^these (0: unchanged; 1 everywhere no track keys, so the flybys don't change).
+  thrusterPowerLength: 0.6, // 1.7 → 1.37× as long, 0.7 → 0.81×
+  thrusterPowerCore: 0.5, // 1.7 → 1.3× as wide
+  thrusterPowerFlicker: 0.7, // 1.7 → 1.45× as quick
   // The landing's painted bloom per nozzle (owner, 2026-11-10: the reference's white-hot core in a warm orange-pink halo).
   thrusterGlow: true,
   thrusterGlowCoreColor: '#fff6ec',
