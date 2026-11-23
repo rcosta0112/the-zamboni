@@ -179,6 +179,73 @@ body {
   display: none;
 }
 
+/* flight-test.html: each station's 2D overlay (flight-test/overlay.ts; owner, 2026-11-23: buttons and sliders, text in them, semi-transparent). */
+#flight-overlay {
+  --overlay-opacity: 0.55;
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 210px;
+  padding: 10px;
+  background: rgb(0 0 0 / calc(var(--overlay-opacity) * 0.6));
+  border-radius: 6px;
+  font-family: var(--font-text);
+  font-size: 13px;
+  color: var(--color-white);
+  user-select: none;
+  z-index: 5;
+}
+
+#flight-overlay[hidden] {
+  display: none;
+}
+
+#flight-overlay .title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+  padding: 0 2px 2px;
+}
+
+#flight-overlay .button,
+#flight-overlay .slider {
+  position: relative;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(255 255 255 / calc(var(--overlay-opacity) * 0.3));
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  cursor: pointer;
+}
+
+#flight-overlay .button.on {
+  background: rgb(120 200 255 / calc(var(--overlay-opacity) * 0.8));
+}
+
+#flight-overlay .slider > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgb(120 200 255 / calc(var(--overlay-opacity) * 0.8));
+}
+
+#flight-overlay span {
+  position: relative;
+  pointer-events: none;
+}
+
+#flight-overlay .selected {
+  outline-color: #ffc400;
+}
+
 /* A gadget's prompts (binocular-view.ts: "R1 to Use"; in first person "R1 to Close" over "L1 / L2 to Zoom"; owner, 2026-11-16): the skip prompt's place (never together). */
 #gadget-prompt {
   position: fixed;

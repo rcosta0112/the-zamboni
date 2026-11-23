@@ -360,6 +360,11 @@ export class Treadmill {
     this.nearRocks.length = 0;
   }
 
+  /** `settings.flightHeight` with the ship standing on the ground under its centre (the hills' height there), flying or parked (flight-test.html: taking off and landing on the travel terrain). */
+  standingHeight(): number {
+    return this.centre.belly + this.heightAt(0, -this.travelled);
+  }
+
   /** The group at the ship's centre, at the ground's height, turned by the heading. */
   private place(): void {
     const g = this.group;

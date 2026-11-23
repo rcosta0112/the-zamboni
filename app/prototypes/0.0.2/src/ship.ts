@@ -319,7 +319,12 @@ export async function loadShip(scene: THREE.Scene, physics: Physics, onProgress:
   });
 
   const roomsOf = roomsIn(object, interior, upperFloorY);
-  const moving = [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node), ...turbines.map((t) => t.node)];
+  // The joystick turns with her hand (joystick.ts): not merged, or a still copy is drawn.
+  const joystick: THREE.Object3D[] = [];
+  object.traverse((node) => {
+    if (named(node, 'Joystick')) joystick.push(node);
+  });
+  const moving = [rampNode, ...doors.map((d) => d.hinge), ...landingGear.map((g) => g.node), ...turbines.map((t) => t.node), ...joystick];
 
   const ship: Ship = {
     object,

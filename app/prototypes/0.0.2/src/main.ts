@@ -46,6 +46,8 @@ import { settings } from './settings';
 import StartScreen, { type StartChoice } from './StartScreen.svelte';
 import { Stations, stationsFolder } from './flight-test/stations';
 import { CONTROL_SOURCES, Controls, controlsFolder } from './flight-test/controls';
+import { ShipFlight } from './flight-test/flight';
+import { Overlay, overlayFolder, overlayLook } from './flight-test/overlay';
 import { keptApart } from './merge-rooms';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
@@ -230,7 +232,10 @@ async function start(): Promise<void> {
   /** flight-test.html's station cameras (Tab / Shift+Tab), once the ship and crew are in. */
   let stations: Stations | null = null;
   let controls: Controls | null = null;
+  /** flight-test.html's take-off and landing (pass 3): the controls on the panel for now, the ship's height and speed. */
+  const shipFlight = FLIGHT_TEST ? new ShipFlight(() => treadmill?.standingHeight() ?? settings.flightHeight, () => ship?.rampState ?? null) : null;
   /** The camera drawn: a station's, or the game's. */
+  const overlay = shipFlight ? new Overlay(shipFlight) : null; // flight-test.html: each station's 2D overlay
   const gameCamera = () => (stations?.current ? stations.camera : view.camera);
   const hand = new THREE.Vector3();
   const handAxis = new THREE.Vector3();
@@ -562,7 +567,7 @@ async function start(): Promise<void> {
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls, __flight: () => shipFlight, __overlay: () => overlay });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -575,7 +580,9 @@ async function start(): Promise<void> {
     wearingJetpack: settings.wearingJetpack,
   }));
   if (FLIGHT_TEST) {
-    controlsFolder(gui); // the controls' outline, on top
+    shipFlight!.folder(gui); // her seat's controls (take-off and landing), on top
+    overlayFolder(gui); // the 2D overlay's switch
+    controlsFolder(gui); // the controls' outline
     stationsFolder(gui); // the station cameras' nudges
   }
   gui.hide(); // until the start screen is gone: it would lie over it
@@ -901,8 +908,8 @@ async function start(): Promise<void> {
       // Doors and the ramp after her own move: a moving door pushes her out of its way.
       if (ship) {
         // A cutscene that keys the flight (the landing) moves the gear itself.
-        ship.gearRaised = cutscene?.flight?.gear ?? null;
-        ship.turbinesDown = cutscene?.flight?.turbines ?? null;
+        ship.gearRaised = cutscene?.flight?.gear ?? shipFlight?.keys.gear ?? null; // flight-test.html: its controls
+        ship.turbinesDown = cutscene?.flight?.turbines ?? shipFlight?.keys.turbines ?? null;
         ship.gearHold = cutscene?.gearHold ?? null;
         updateShip(ship, STEP, false, pusher);
       }
@@ -1069,9 +1076,19 @@ async function start(): Promise<void> {
       const look = stations.current && !watching ? input.consumeLook(dt) : null;
       const dragging = controls?.dragging ?? false;
       stations.update(view.camera.aspect, dragging ? null : look);
+      // The station's 2D overlay (flight-test/overlay.ts): while it's on, it takes the D-pad and A; B still gets her up.
+      const free = stations.current !== null && !watching && !dialogue.active && !dialogue.cooling;
+      const overlayOn = overlay !== null && overlayLook.on && stations.current !== null;
+      if (overlay) overlay.update(stations.current, free && overlayOn ? { step: selectStep, use: input.consumeUse() } : null);
+      if (overlayOn) {
+        controls?.update(null, stations.camera, size.y, dt, null); // the 3D controls' outline and label hidden
+        if (free && backPressed && stations.current === 'pilot' && getUp) {
+          audio.play('ui_interact');
+          getUp.act();
+        }
+      }
       // Its controls (flight-test/controls.ts): selected, highlighted, used; B with nothing grabbed gets her up from the pilot's station.
-      if (controls) {
-        const free = stations.current !== null && !watching && !dialogue.active && !dialogue.cooling;
+      else if (controls) {
         const input_ = free ? { step: selectStep, use: input.consumeUse(), back: backPressed, captured: input.captured, mouseMoved, held: input.leftHeld, drag: dragging && look ? look.yaw : 0 } : null;
         if (controls.update(stations.current, stations.camera, size.y, dt, input_) && stations.current === 'pilot' && getUp) {
           audio.play('ui_interact');
@@ -1150,7 +1167,9 @@ async function start(): Promise<void> {
     const landed = treadmill?.parkedAt != null;
     updateWorld(world, scene, character.root.position, indoorLight, landed ? LANDED_SUN_BACK : 30, landed ? settings.shadowRangeLanded : settings.shadowRangeOutdoors);
     // The cutscene player's are the exterior shots (cutscene 2's are watched.ts).
-    const flight = cutscene?.flight ?? null;
+    // flight-test.html: its take-off and landing, the ship's height and speed, its keys when no cutscene keys them.
+    if (shipFlight && ship && treadmill?.group.visible && !cutscene?.playing) shipFlight.update(dt);
+    const flight = cutscene?.flight ?? shipFlight?.keys ?? null;
     flames?.update(dt, cutscene?.playing ?? false, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, cutscene?.playing ? cutscene.camera : gameCamera(), size.y);
     audio.noiseKeyed = flight?.noise ?? null;
     audio.noisePower = flight?.flames ?? null;
@@ -1162,7 +1181,7 @@ async function start(): Promise<void> {
     const drawing = cutscene?.playing ? cutscene.camera : watched?.playing ? watched.camera : gameCamera(); // flight-test.html: a station's
     exterior?.set(ship !== null && !watched?.playing && !ship.interior.containsPoint(drawing.position));
     heardOutside = ship !== null && (cutscene?.playing ?? false) && !ship.interior.containsPoint(cutscene!.camera.position);
-    treadmill?.update(dt, drawing, cutscene?.track?.speed ?? 1);
+    treadmill?.update(dt, drawing, cutscene?.track?.speed ?? shipFlight?.pace ?? 1);
     lightColumn.update(dt, watched?.column ?? false, ship?.object ?? null, drawing);
     // While the ship flies, the cameras see as far as the scenery goes (a cutscene's shot sets its own).
     const far = treadmill?.group.visible ? Math.max(500, treadmill.far) : 500;
