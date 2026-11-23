@@ -11,6 +11,10 @@
 //   its speed. With the gear up it won't come lower than GEAR_CLEAR.
 // - **What it drives** (main.ts): the gear (`gear`, 1 up), the turbines turned down (`turbines`, the landing's
 //   angles), the flames (`flames`, seen only from outside) and the engine noise (`noise`, `noisePower`).
+// - **Owner, 2026-11-23:** the climb starts very slowly and curves up (the ship's weight: the acceleration itself
+//   grows, JERK, up to ACCEL); the noise follows the thrust (NOISE_IDLE at none) and is twice as loud while it
+//   moves up or down (NOISE_VERTICAL); her piloting loop, and the joystick with it, plays only while it moves
+//   forward (`stick`).
 
 import * as THREE from 'three/webgpu';
 import type GUI from 'three/addons/libs/lil-gui.module.min.js';
@@ -26,6 +30,19 @@ const CRUISE = 110;
 /** Fastest climb or descent (m/s); how quickly it gets there (s). */
 const CLIMB = 8;
 const CLIMB_EASE = 0.8;
+/** The climb's acceleration: at most ACCEL (m/s²), reached by growing JERK (m/s³) a second: a slow, heavy start. */
+const ACCEL = 2;
+const JERK = 0.7;
+/** Braking: the rate kept low enough to stop at this deceleration (m/s²) in the distance left, and the
+ *  acceleration eased off or reversed this much quicker than it grows (m/s³). */
+const BRAKE = 1;
+const BRAKE_JERK = 4;
+/** The noise: its level with the engines on and no thrust (1 at full thrust); times this much more while moving up or down (at VERTICAL_RATE m/s or more). */
+const NOISE_IDLE = 0.4;
+const NOISE_VERTICAL = 1;
+const VERTICAL_RATE = 1;
+/** Her piloting loop's speed follows the pace: full from this pace up. */
+const STICK_PACE = 0.15;
 /** Slowest climb or descent while it isn't there yet (m/s): a touchdown, not a creep. */
 const MIN_RATE = 1.2;
 /** Seconds: the engines spooling up or down; the gear; the turbines tilting; the speed changing. */
@@ -63,6 +80,8 @@ export class ShipFlight {
   /** Height over the ground under the ship (m) and its rate (m/s). */
   altitude = 0;
   private climb = 0;
+  /** The climb's acceleration now (m/s²): changes at most JERK a second. */
+  private accel = 0;
   /** The treadmill's pace, 0..1 (times the terrain's speed). */
   pace = 0;
   private lockLeft = 0;
@@ -106,8 +125,13 @@ export class ShipFlight {
       front: FRONT_FLAMES,
       reach: 1,
       glow: this.engines,
-      noise: this.engines,
+      noise: this.engines * (NOISE_IDLE + (1 - NOISE_IDLE) * push) * (1 + NOISE_VERTICAL * Math.min(1, Math.abs(this.climb) / VERTICAL_RATE)),
     };
+  }
+
+  /** Her piloting loop's speed, 0..1: it plays only while the ship moves forward. */
+  get stick(): number {
+    return Math.min(1, this.pace / STICK_PACE);
   }
 
   /** Per frame. */
@@ -127,15 +151,28 @@ export class ShipFlight {
     if (this.gear > 0 && target < ground + GEAR_CLEAR) target = Math.min(ground + GEAR_CLEAR, Math.max(target, ground + this.altitude)); // the gear up: not lower than this
     if (this.engines < 0.05 && this.altitude > 0) target = ground + this.altitude; // no lift, no fall: the engines can't go off in the air (a lock)
     const off = target - this.height;
-    const wanted = Math.abs(off) < 0.02 ? 0 : Math.sign(off) * THREE.MathUtils.clamp(Math.abs(off) * 0.5, MIN_RATE, CLIMB);
-    this.climb += (wanted - this.climb) * (1 - Math.exp(-dt / CLIMB_EASE));
+    // The rate it can still brake from in the distance left (BRAKE); at least MIN_RATE only going down to the
+    // ground (a touchdown, not a creep), never toward a height in the air (it would overshoot and slide back).
+    const touchdown = off < 0 && target <= ground + 0.01;
+    const rate = Math.min(CLIMB, Math.sqrt(2 * BRAKE * Math.abs(off)));
+    const wanted = Math.abs(off) < 0.02 ? 0 : Math.sign(off) * (touchdown ? Math.max(MIN_RATE, rate) : rate);
+    // The acceleration wanted (toward that rate): grown gradually from a standstill (the curve up, the weight),
+    // eased off and reversed quicker (braking on time).
+    const accelWanted = THREE.MathUtils.clamp((wanted - this.climb) / CLIMB_EASE, -ACCEL, ACCEL);
+    const easing = Math.abs(accelWanted) < Math.abs(this.accel) || accelWanted * this.climb < 0;
+    this.accel = approach(this.accel, accelWanted, (easing ? BRAKE_JERK : JERK) * dt);
+    this.climb += this.accel * dt;
     const next = this.height + this.climb * dt;
-    // Not past the target (the last centimetres), nor under the ground.
-    this.height = Math.max(ground, (off > 0 && next > target) || (off < 0 && next < target) ? target : next);
-    if (this.height === target) this.climb *= Math.exp(-dt / 0.2);
+    // Arrived (passing the target, or there and nearly still): held there, still; never under the ground.
+    const passing = (off > 0 && next >= target) || (off < 0 && next <= target);
+    const settled = Math.abs(target - next) < 0.05 && Math.abs(this.climb) < 0.3;
+    if (passing || settled) {
+      this.height = target;
+      this.climb = this.accel = 0;
+    } else this.height = Math.max(ground, next);
     settings.flightHeight = this.height;
     this.altitude = this.height - ground;
-    if (this.altitude === 0) this.climb = Math.max(0, this.climb);
+    if (this.altitude === 0 && this.climb < 0) this.climb = this.accel = 0; // touched down
     this.pace += ((cruising ? p.thrust : 0) - this.pace) * (1 - Math.exp(-dt / SPEED_EASE));
     if (this.pace < 1e-3 && !cruising) this.pace = 0;
     // The readouts.

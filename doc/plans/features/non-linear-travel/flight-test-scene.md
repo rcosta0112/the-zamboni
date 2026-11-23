@@ -44,6 +44,8 @@ A test scene to try every flight action from the cockpit: **taking off, landing,
 
 - > **[Agent note]** **A 2D overlay** (owner, 2026-11-23: "a quick 2d overlay for the controls: just buttons and sliders with text labels in them, semi-transparent, each station its own"; built the same day, `src/flight-test/overlay.ts`). Pilot: the six controls above, through the locks; navigation (nav points 1–3, map zoom) and signal (band, dial 1, dial 2): placeholders for passes 4–5, driving nothing yet. While it's on it takes the D-pad and A and the 3D controls step aside; the panel's *Flight test: overlay* turns it off (the 3D selection back). Probe 87/87.
 
+- > **[Agent note]** **Owner, 2026-11-23:** the joystick (her piloting loop) plays only while the ship moves forward; the climb starts very slowly and curves up (the ship's weight); the noise follows the thrust (40% with none) and is twice as loud while moving up or down. Built the same day (`flight.ts`, model.ts `pilotSpeed`). Then (owner): it slid down again after reaching the cruising height (the late braking overshot, the old 1.2 m/s floor pushed it back): it now brakes in time (1 m/s²) and holds the height; the floor only for a touchdown. Probe 92/92.
+
 **Pass 4: navigation** (≈ 1.5 h · 2 rounds)
 - The map on its screen: the globe from the intro planet's preset, the quadrant grid every 16°, test nav points; pan (left stick), zoom (triggers).
 - Selecting a point: the spoken order (test line) → the ship turns, banking → **the time-passing cutscene** (a flyby reused) → back to the cockpit; the ETA shown; arriving.

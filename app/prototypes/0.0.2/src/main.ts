@@ -966,6 +966,7 @@ async function start(): Promise<void> {
     const selectStep = input.consumeSelectStep();
     const mouseMoved = input.consumeMouseMoved();
     if (character.model) character.model.seated = sitting;
+    if (character.model && shipFlight) character.model.pilotSpeed = shipFlight.stick; // flight-test.html: her loop (and the joystick) only while moving forward (owner, 2026-11-23)
     // Her gadget (the binoculars, the scanner): out into her hands by its button, used by R1 (the binoculars raised to her eyes, a toggle; the scanner on while it's held); put away at once while her hands are taken.
     // No gadgets while she holds her coffee (owner, 2026-11-18): their buttons do nothing.
     const climbing = ladders?.climbing ?? false;
@@ -1171,7 +1172,7 @@ async function start(): Promise<void> {
     if (shipFlight && ship && treadmill?.group.visible && !cutscene?.playing) shipFlight.update(dt);
     const flight = cutscene?.flight ?? shipFlight?.keys ?? null;
     flames?.update(dt, cutscene?.playing ?? false, flight ? { strength: flight.flames, front: flight.front ?? 1, reach: flight.reach ?? 1, glow: flight.glow ?? 0 } : null, cutscene?.playing ? cutscene.camera : gameCamera(), size.y);
-    audio.noiseKeyed = flight?.noise ?? null;
+    audio.noiseKeyed = flight?.noise ?? null; // flight-test.html: the thrust's, twice while climbing or descending
     audio.noisePower = flight?.flames ?? null;
     clouds.update(cutscene?.track?.clouds ?? null, cutscene?.time ?? 0, cutscene ? cutscene.restFrame : scene, world.sun, cutscene?.playing ? cutscene.camera : gameCamera());
     // The hull's outside lit by the outside whenever the camera drawing is outside the ship, in any

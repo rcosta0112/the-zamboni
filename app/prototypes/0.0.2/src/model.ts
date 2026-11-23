@@ -360,6 +360,8 @@ export class AnimatedModel {
   private readonly piloting: THREE.AnimationAction | null = null;
   /** In her seat: the piloting loop alone (main.ts, while she's seated; at its tag's place). */
   seated = false;
+  /** Her piloting loop's speed, 0..1 (flight-test.html: it plays only while the ship moves forward, the joystick with it; main.ts). */
+  pilotSpeed = 1;
 
   /** The ladder's animation, for the climb; null without one. */
   get climb(): ClimbClip | null {
@@ -415,6 +417,7 @@ export class AnimatedModel {
     // Seated, the piloting loop is all that's shown (no blend: she's placed in the seat at once).
     const seated = this.seated && this.piloting !== null;
     this.piloting?.setEffectiveWeight(seated ? 1 : 0);
+    this.piloting?.setEffectiveTimeScale(this.pilotSpeed);
     if (climbing || seated) this.animSpeed = 0;
     const rest = (1 - this.flyWeight) * (climbing || seated ? 0 : 1);
     const wJump = grounded ? 0 : rest;

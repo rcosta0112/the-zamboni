@@ -38,7 +38,7 @@ report(character.model?.seated === true, 'she starts seated');
 const a1 = angle();
 await wait(1500);
 const a2 = angle();
-report(a1 > 1 && Math.abs(a2 - a1) > 0.05, 'the joystick leans and moves with her hand', `${f(a1)}° then ${f(a2)}°`);
+report(a1 > 1 && Math.abs(a2 - a1) < 0.01, 'landed: the joystick leans with her hand, still (it moves only while flying forward)', `${f(a1)}° then ${f(a2)}°`);
 // The turning stick is the one drawn (not merged into a still copy: owner, 2026-11-23, "the joystick does not move").
 const stickShown = (() => { const s = ship.object.getObjectByName('Joystick'); let o = s, v = !!s; while (o) { v = v && o.visible; o = o.parent; } return v && !s.userData.mergedInto; })();
 report(stickShown, 'the turning joystick is the one drawn (not merged)');
@@ -235,10 +235,16 @@ fl.use('rampOpen', false);
 await until(() => sh.rampState.amount === 0, 10000);
 report(fl.use('power', true) === null, 'engines on');
 await until(() => fl.engines >= 1, 5000);
-report(w.__audio.noiseKeyed > 0.99, 'engine noise on', w.__audio.noiseKeyed);
+report(Math.abs(w.__audio.noiseKeyed - 0.4) < 0.01, 'engine noise on, at its idle level (no thrust)', w.__audio.noiseKeyed);
 report(fl.use('rampOpen', true) !== null, 'ramp refused with the engines on', fl.readout.lock);
 // Take off.
+const quiet = fl.keys.noise;
 report(fl.use('thrust', 0.5) === null, 'thrust 0.5');
+await wait(1000);
+report(fl.altitude > 0 && fl.altitude < 0.5, 'a slow, heavy start: barely off the ground after 1 s', `${f(fl.altitude)} m`);
+await until(() => Math.abs(fl.climb) > 1.2, 8000);
+report(fl.keys.noise > 1.2 * quiet && fl.keys.noise > 1.3, 'louder with thrust, and doubled while climbing', `${f(quiet)} → ${f(fl.keys.noise)} at ${f(fl.climb)} m/s`);
+report(w.__character.model.pilotSpeed === 0, 'no joystick motion going straight up', w.__character.model.pilotSpeed);
 await until(() => fl.altitude > 12, 15000);
 report(fl.altitude > 12, 'rises', `${f(fl.altitude)} m, ${fl.readout.state}`);
 report(fl.use('power', false) !== null, 'power off refused in the air', fl.readout.lock);
@@ -251,8 +257,14 @@ await wait(2000);
 report(sh.turbinesDown[0] < 90, 'the turbines turning forward', `${f(sh.turbinesDown[0])}°`);
 await wait(4000);
 await shot('pass3-cruising');
+report(w.__character.model.pilotSpeed === 1, 'moving forward: her loop (and the joystick, when seated) at full speed', w.__character.model.pilotSpeed); // she's standing by now: the stick itself checked seated above
 report(fl.pace > 0.2 && tm.travelled - t0 > 50, 'moving forward', `pace ${f(fl.pace)}, ${f(tm.travelled - t0)} m travelled, ${fl.readout.state}, ${f(fl.altitude)} m`);
 report(fl.use('gearUp', false) !== null, 'gear down refused while tilted forward', fl.readout.lock);
+// Reaching the cruising height (110 m, flightHeight's terms): it stops there and stays (owner, 2026-11-23: it slid down again).
+await until(() => w.__settings.flightHeight > 109.9, 60000);
+let peak = 0, low = Infinity;
+for (let i = 0; i < 20; i++) { await wait(200); const h = w.__settings.flightHeight; peak = Math.max(peak, h); low = Math.min(low, h); }
+report(peak < 110.05 && low > 109.95 && fl.climb === 0, 'at the cruising height: held there, no overshoot, no sliding back', `${f(low)}–${f(peak)} m, climb ${f(fl.climb)}`);
 // Land.
 fl.use('tiltForward', false);
 await until(() => fl.pace === 0 && fl.tilt === 0, 30000);

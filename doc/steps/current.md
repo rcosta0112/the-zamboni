@@ -11,9 +11,9 @@
 ## Next session: start here
 - **Task: the flight test scene (SC-195, [plan](../plans/features/non-linear-travel/flight-test-scene.md)), pass 3b: the bottom view** (one small external view under the ship, drawn every 10th frame, its cost measured), then pass 4 (navigation). Passes 2 and 3a approved (owner, 2026-11-23); the owner said "continue" for the passes, but stop after each to assess. Pass 3a's controls are on the tuning panel (*Flight test: her seat*, owner's call) until the controls file (SC-196); their two poses wait on it; Adam's step-in line goes with pass 6's test Ink.
 - **The joystick fix (game too):** `ship.ts` puts the `Joystick` node with the moving parts; since SC-180 step 3 (2026-11-18) the per-room merge drew a still copy of it. The probe now checks the drawn stick.
-- **Uncommitted:** the joystick fix, pass 3a and **the 2D overlay** (owner, 2026-11-23: `src/flight-test/overlay.ts`, one per station, buttons and sliders; waits on the owner's look), the plan, the code map, `tasks.md`, this file.
+- **All committed** (owner, 2026-11-23): the joystick fix, pass 3a, the 2D overlay (`src/flight-test/overlay.ts`), the joystick only while flying forward, the heavy climb curve braking on time, the noise by thrust and doubled moving up/down (`flight.ts`, model.ts `pilotSpeed`); waits on the owner's look.
 - **Files:** `src/flight-test/flight.ts` (new; its `keys` give the flames for the bottom view: they show only for an exterior camera, `flames.update`'s `exterior`), `controls.ts`, `stations.ts`, `main.ts` (`FLIGHT_TEST`, `shipFlight`), `terrain.ts` (`standingHeight`), `ship.ts` (the joystick in `moving`). Code map: *flight-test*.
-- **Check first:** `node tools/probe-01.mjs tools/flight-test-probe.js --page flight-test.html --stay`: 87/87 (about 2 min).
+- **Check first:** `node tools/probe-01.mjs tools/flight-test-probe.js --page flight-test.html --stay`: 92/92 (about 2 min).
 - **Found out:** `piloting-probe.js` fails since chapter 1's opening changed (Ogawa's line first, the coffee before *Sit down*): stale, not in the smoke; its joystick checks pass. The mouse's capture, hover and drag (pass 2) still untested in headless Chrome.
 ## Other threads
 - **Landing and take-off shots** ([plan](../plans/features/landing-takeoff-shots.md)): pass 1 committed; pass 2 on the owner's go; pass 3 needs the take-off's motion (SC-187).
