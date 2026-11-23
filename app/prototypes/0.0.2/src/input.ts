@@ -23,6 +23,7 @@ const PAD_START = 9; // Options on a PlayStation controller
 const PAD_UP = 12; // the D-pad
 const PAD_DOWN = 13;
 const PAD_LEFT = 14; // the scanner (owner, 2026-11-16)
+const PAD_RIGHT = 15;
 /** How far the left stick goes before it moves a menu's choice. */
 const MENU_PUSH = 0.5;
 
@@ -52,6 +53,16 @@ export class Input {
   private jumpLatched = false;
   /** A gadget's button (gadgets.ts; owner, 2026-11-16: the D-pad brings a gadget out, R uses it). */
   private gadgetLatched: GadgetId | null = null;
+  /** The D-pad or the arrows (flight-test.html's controls: a step of the selection, x right, y up), until consumed. */
+  private selectLatched: [number, number] | null = null;
+  /** B, C or Backspace (flight-test.html: let go of a dial, get up), until consumed. */
+  private backLatched = false;
+  /** Enter (flight-test.html: use the selected control), until consumed. */
+  private enterLatched = false;
+  /** The left mouse button down now, with the mouse captured (flight-test.html: a dial dragged). */
+  leftHeld = false;
+  /** The captured mouse moved since the last `consumeMouseMoved`. */
+  private mouseMoved = false;
   /** Tab +1, Shift+Tab -1 (flight-test.html's stations), until consumed. */
   private stationLatched: 1 | -1 | 0 = 0;
   /** R1 or the right mouse button: use the gadget that's out (the binoculars: to her eyes). */
@@ -89,7 +100,12 @@ export class Input {
       this.keys.add(e.code);
       this.lastDevice = 'keyboard';
       // Space flies (held, read in poll); C jumps (owner, 2026-10-12).
-      if (e.code === 'KeyC') this.jumpLatched = true;
+      if (e.code === 'KeyC') this.jumpLatched = this.backLatched = true;
+      // The flight test's controls (owner, 2026-11-23): the arrows step, Enter uses, Backspace (or C) backs out.
+      const arrow = ({ ArrowUp: [0, 1], ArrowDown: [0, -1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] } as Record<string, [number, number]>)[e.code];
+      if (arrow) this.selectLatched = arrow;
+      if (e.code === 'Backspace') this.backLatched = true;
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') this.enterLatched = true;
       // E interacted until 2026-11-18 (owner: the left mouse button now); kept in dev builds only, for
       // the scripted checks (never shown in a prompt).
       if (import.meta.env.DEV && e.code === 'KeyE') this.interactLatched = true;
@@ -124,6 +140,7 @@ export class Input {
     canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0 || document.pointerLockElement !== canvas) return;
       this.interactLatched = true;
+      this.leftHeld = true;
     });
     // A click anywhere also shows a cutscene's skip prompt (owner, 2026-10-24): the window's, since
     // the cutscene's black and bars lie over the canvas.
@@ -144,12 +161,14 @@ export class Input {
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 2) this.rightHeld = false;
+      if (e.button === 0) this.leftHeld = false;
     });
-    window.addEventListener('blur', () => (this.rightHeld = false));
+    window.addEventListener('blur', () => (this.rightHeld = this.leftHeld = false));
     window.addEventListener('mousemove', (e) => {
       if (document.pointerLockElement !== canvas) return;
       this.mouseDX += e.movementX;
       this.mouseDY += e.movementY;
+      this.mouseMoved = true;
       this.lastDevice = 'keyboard';
     });
   }
@@ -180,7 +199,11 @@ export class Input {
       const pressed = pad.buttons.map((b) => b.pressed);
       const justPressed = (i: number) => pressed[i] === true && this.padButtons[i] !== true;
       this.padPressed = pressed.some((_, i) => justPressed(i));
-      if (justPressed(PAD_B)) this.jumpLatched = true;
+      if (justPressed(PAD_B)) this.jumpLatched = this.backLatched = true;
+      if (justPressed(PAD_UP)) this.selectLatched = [0, 1];
+      if (justPressed(PAD_DOWN)) this.selectLatched = [0, -1];
+      if (justPressed(PAD_LEFT)) this.selectLatched = [-1, 0];
+      if (justPressed(PAD_RIGHT)) this.selectLatched = [1, 0];
       if (justPressed(PAD_A)) this.interactLatched = true;
       if (justPressed(PAD_UP)) this.gadgetLatched = 'binoculars'; // also a menu's up (menuStep): gadgets go away while a dialogue is up
       if (justPressed(PAD_LEFT)) this.gadgetLatched = 'scanner';
@@ -258,7 +281,7 @@ export class Input {
   consumeInteract(): boolean {
     const i = this.interactLatched;
     this.interactLatched = false;
-    this.confirmLatched = false;
+    this.confirmLatched = this.enterLatched = false;
     return i;
   }
 
@@ -273,7 +296,7 @@ export class Input {
   consumeAdvance(): boolean {
     const a = this.interactLatched || this.confirmLatched;
     this.interactLatched = false;
-    this.confirmLatched = false;
+    this.confirmLatched = this.enterLatched = false;
     return a;
   }
 
@@ -297,6 +320,39 @@ export class Input {
     const s = this.skipLatched;
     this.skipLatched = false;
     return s;
+  }
+
+  /** The D-pad's or the arrows' step since the last call (x right, y up), once per press; null if none. */
+  consumeSelectStep(): [number, number] | null {
+    const s = this.selectLatched;
+    this.selectLatched = null;
+    return s;
+  }
+
+  /** True once per press of B, C or Backspace. */
+  consumeBack(): boolean {
+    const b = this.backLatched;
+    this.backLatched = false;
+    return b;
+  }
+
+  /** True once per use of a flight test control: interact (A, the left button) or Enter. Clears the dialogue's Enter / Space too. */
+  consumeUse(): boolean {
+    const u = this.interactLatched || this.enterLatched;
+    this.interactLatched = this.enterLatched = this.confirmLatched = false;
+    return u;
+  }
+
+  /** True if the captured mouse moved since the last call. */
+  consumeMouseMoved(): boolean {
+    const m = this.mouseMoved;
+    this.mouseMoved = false;
+    return m;
+  }
+
+  /** The mouse is captured (pointer lock on the canvas). */
+  get captured(): boolean {
+    return document.pointerLockElement === this.canvas;
   }
 
   /** Tab or R1 (+1), Shift+Tab or L1 (-1) since the last call, once per press; 0 if neither. */

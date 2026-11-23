@@ -45,6 +45,8 @@ import { addCollisionBoxes, furnitureAt, hullWallAt, loadShip, placeGear, SHADOW
 import { settings } from './settings';
 import StartScreen, { type StartChoice } from './StartScreen.svelte';
 import { Stations, stationsFolder } from './flight-test/stations';
+import { CONTROL_SOURCES, Controls, controlsFolder } from './flight-test/controls';
+import { keptApart } from './merge-rooms';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
 import { updateVisibility } from './visibility';
@@ -139,6 +141,8 @@ const ASKED = ASKED_RAW ? (SCENE_NUMBERS[ASKED_RAW] ?? ASKED_RAW) : null;
  */
 const FLIGHT_TEST = import.meta.env.DEV && location.pathname === '/flight-test.html';
 const FLIGHT_TEST_SCENE = 'flight-test';
+// Its consoles kept out of the per-room merge, to be split into controls (flight-test/controls.ts).
+if (FLIGHT_TEST) for (const name of Object.values(CONTROL_SOURCES).flat()) keptApart.add(name);
 /** The checkpoint save and *Continue*: off in the game for now (owner, 2026-10-24); kept in the checks' game, whose probes test it. */
 const SAVING = TESTING;
 /** The animatic's parts, before the first scene. */
@@ -187,7 +191,7 @@ async function start(): Promise<void> {
     watched.update(view.camera.aspect, 0); // ended now: its onEnded (skipped: no exterior shot)
   };
 
-  const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance' });
+  const renderer = new THREE.WebGPURenderer({ canvas, antialias: antialiasEnabled(), powerPreference: 'high-performance', stencil: FLIGHT_TEST }); // flight-test.html: the controls' outline uses the stencil
   renderer.shadowMap.enabled = true;
   await renderer.init();
 
@@ -225,6 +229,7 @@ async function start(): Promise<void> {
   let joystick: Joystick | null = null;
   /** flight-test.html's station cameras (Tab / Shift+Tab), once the ship and crew are in. */
   let stations: Stations | null = null;
+  let controls: Controls | null = null;
   /** The camera drawn: a station's, or the game's. */
   const gameCamera = () => (stations?.current ? stations.camera : view.camera);
   const hand = new THREE.Vector3();
@@ -436,7 +441,10 @@ async function start(): Promise<void> {
         };
       } else console.warn('[0.0.2] the ship has no cockpit-seat-pilot: she cannot get up from it');
       joystick = Joystick.find(s.object);
-      if (FLIGHT_TEST) stations = new Stations(s.object, (who) => (who === 'green' ? (character.model?.object ?? null) : (s.entities.get(who)?.object ?? null)));
+      if (FLIGHT_TEST) {
+        stations = new Stations(s.object, (who) => (who === 'green' ? (character.model?.object ?? null) : (s.entities.get(who)?.object ?? null)));
+        controls = new Controls(s.object, () => audio.play('ui_interact'));
+      }
       // The scenery round the ship's centre, under its belly (the hull's bottom).
       const shipBox = new THREE.Box3().setFromObject(s.object);
       const shipCentre = { x: (shipBox.min.x + shipBox.max.x) / 2, z: (shipBox.min.z + shipBox.max.z) / 2 };
@@ -554,7 +562,7 @@ async function start(): Promise<void> {
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -566,7 +574,10 @@ async function start(): Promise<void> {
     doorsOpen: ship?.doors.filter((d) => d.open).map((d) => d.name) ?? [],
     wearingJetpack: settings.wearingJetpack,
   }));
-  if (FLIGHT_TEST) stationsFolder(gui); // the station cameras' nudges, on top
+  if (FLIGHT_TEST) {
+    controlsFolder(gui); // the controls' outline, on top
+    stationsFolder(gui); // the station cameras' nudges
+  }
   gui.hide(); // until the start screen is gone: it would lie over it
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()), () => resize());
 
@@ -943,6 +954,10 @@ async function start(): Promise<void> {
     // Seated: her piloting loop in her seat (no move, no jump: the camera still turns); the joystick at her left hand.
     const sitting = seated.has('green');
     if (sitting) input.consumeJump();
+    // B, C, Backspace (flight-test.html: let go of a dial, get up); the D-pad's and the mouse's for its controls. Dropped elsewhere.
+    const backPressed = input.consumeBack();
+    const selectStep = input.consumeSelectStep();
+    const mouseMoved = input.consumeMouseMoved();
     if (character.model) character.model.seated = sitting;
     // Her gadget (the binoculars, the scanner): out into her hands by its button, used by R1 (the binoculars raised to her eyes, a toggle; the scanner on while it's held); put away at once while her hands are taken.
     // No gadgets while she holds her coffee (owner, 2026-11-18): their buttons do nothing.
@@ -1050,7 +1065,19 @@ async function start(): Promise<void> {
       else if (!seatedNow && stations.current) stations.leave();
       const step = input.consumeStation();
       if (step && !watching) stations.cycle(step);
-      stations.update(view.camera.aspect, stations.current && !watching ? input.consumeLook(dt) : null); // the look turns the station's camera instead
+      // The look turns the station's camera instead; a dial dragged by the mouse takes it.
+      const look = stations.current && !watching ? input.consumeLook(dt) : null;
+      const dragging = controls?.dragging ?? false;
+      stations.update(view.camera.aspect, dragging ? null : look);
+      // Its controls (flight-test/controls.ts): selected, highlighted, used; B with nothing grabbed gets her up from the pilot's station.
+      if (controls) {
+        const free = stations.current !== null && !watching && !dialogue.active && !dialogue.cooling;
+        const input_ = free ? { step: selectStep, use: input.consumeUse(), back: backPressed, captured: input.captured, mouseMoved, held: input.leftHeld, drag: dragging && look ? look.yaw : 0 } : null;
+        if (controls.update(stations.current, stations.camera, size.y, dt, input_) && stations.current === 'pilot' && getUp) {
+          audio.play('ui_interact');
+          getUp.act();
+        }
+      }
     }
     // She fades out when the camera comes close (not in a cutscene: its own camera), the glow with her.
     const shown = watching ? 1 : firstPerson || stations?.herHidden ? 0 : stations?.current ? 1 : view.shown; // another station's camera: all of her (the orbit's fade is stale)
@@ -1113,7 +1140,7 @@ async function start(): Promise<void> {
     // While she climbs nothing else can be used (owner: control is taken, but not the camera); nor
     // while she talks, nor for a moment after.
     if (interaction) interaction.only = sitting ? getUp : null;
-    interaction?.update(chest, character.facing, gameCamera(), input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling || firstPerson || (stations?.current ?? 'pilot') !== 'pilot'); // flight-test.html: *Get up* from the pilot's station only
+    interaction?.update(chest, character.facing, gameCamera(), input.lastDevice, pressed, (ladders?.climbing ?? false) || watching || talking || dialogue.active || dialogue.cooling || firstPerson || (stations?.current ?? null) !== null); // flight-test.html: nothing at a station (A uses its controls, B gets up)
     // The interact button with nothing to use: a sip of her coffee (owner, 2026-11-19).
     if (pressed && coffee && (interaction?.target ?? null) === null && !talking && !dialogue.active && !dialogue.cooling) coffee.drink(coffeeCanSip);
     // The scanner aims at the closest of these (scanner pass 3): next frame's, from this frame's.

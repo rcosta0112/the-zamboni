@@ -25,6 +25,9 @@ export interface MergeInput {
   moving: THREE.Object3D[];
 }
 
+/** Nodes kept apart by name, set before the ship loads (flight-test.html: the consoles, split into controls by flight-test/controls.ts). */
+export const keptApart = new Set<string>();
+
 /** Tags that make an object move (doors.ts): nothing under such a node is merged. */
 const MOVES = ['doorAxis', 'doorSlide', 'moving'];
 
@@ -43,6 +46,7 @@ function leftOut(mesh: THREE.Mesh, unit: CutUnit, input: MergeInput): string | n
     // Anything with an id (entities.ts): interactions, the jetpacks, clothes, the boombox, props,
     // ladders… shown, hidden, moved or looked up by the game.
     if (n.userData.id !== undefined) return 'entity';
+    if (keptApart.has(n.name)) return 'kept apart';
   }
   return null;
 }
