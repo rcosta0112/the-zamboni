@@ -24,4 +24,6 @@
 - **The pilot sits on the left** of the cockpit's two front seats (the standard); the copilot, Dr. Green, on the right. (2026-10-22)
 - **The ship flies over more than ice:** probably a rocky plain with distant mountains, green plains, and the ocean. (2026-10-22)
 - **The planet is large:** the crew can't travel all of it, and don't need to. (2026-11-23)
+- **The region the crew explore is the one seen at the end of the planet shot (0050).** (2026-11-24)
+> **[Agent comment]** Worked out from the shot's last frame: centred at north–south 74°, east–west 199.5° (meridian 111.4°), quadrant `04A-0C7`, about 16° north of the equator; the frame is about 117° of the globe wide.
 - **Adam is the co-pilot and the navigator** in most scenes (one person, two bodies): that's why Dr. Green asks them to set the course. Adam is also **the backup pilot** who flies the ship when she doesn't. (2026-11-23)

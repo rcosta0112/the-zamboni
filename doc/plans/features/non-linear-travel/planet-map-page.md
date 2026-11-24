@@ -1,6 +1,6 @@
 # Plan: the planet map's test page (flight test, pass 4)
 
-**Status:** *approved* (owner, 2026-11-24: "step 1 is next"); **step 1 built** (2026-11-24), for the owner's look. Open: whether the planet's code and preset count as "game assets" (assumed not). Pass 4 of the [flight test scene](flight-test-scene.md) (owner, 2026-11-24: a pass before navigation, its own page). A prototype: not checked against the other docs. Naming and quadrants: [planet-map.md](planet-map.md).
+**Status:** *approved* (owner, 2026-11-24: "step 1 is next"); **steps 1–2 built** (2026-11-24), for the owner's look. Open: whether the planet's code and preset count as "game assets" (assumed not). Pass 4 of the [flight test scene](flight-test-scene.md) (owner, 2026-11-24: a pass before navigation, its own page). A prototype: not checked against the other docs. Naming and quadrants: [planet-map.md](planet-map.md).
 
 ## What
 
@@ -41,7 +41,14 @@ The interface on the **navigation station's big screen**, built alone on a dev p
 
 > **[Agent note]** Step 1 as built (2026-11-24): `src/planet/map.ts` (the map's material) and `map-page.ts` (the page). The screen measured in the running game: *Topographical Map*'s face on `Navigation_Display`, 0.806 × 0.677 m, aspect 1.19 (`MAP_ASPECT`). The meridian picked: **111.4°** (`presets.json`, beside the seed). Until step 2, the sidebar sets the zoom step and the centre by number. One difference from 0050: the intro's planet is a low-poly sphere, so its coastlines sit very slightly off the map's (the map's are the true sphere's).
 
+> **[Agent note]** Step 2 as built (2026-11-24): zoom L2 / R2 (pad buttons 6, 7), Q / E, the wheel (up = in); pan with the left stick or WASD at half a screen's width per second (the whole globe as if 120° wide), along a great circle, north kept up; panning stops following, R3 / F toggles it. The simulated ship (sidebar: heading, speed in degrees of arc per second, moving, *Ship to the centre*) holds its compass heading; its triangle is drawn on a 2D canvas over the map, which step 3's grid and labels will share. The page draws every frame while the ship moves or the view pans (about 0.5 ms a frame). The speed is in degrees because the planet has no size yet: a radius would turn it into km/h.
+
+> **[Agent note]** 0050's region (owner, 2026-11-24: "rotate the globe so it matches the last frame on 0050; that's the region they will be exploring"): the page opens centred where 0050's last frame faces, **N–S 74.0°, E–W 199.5°** (`04A-0C7`), the ship starting there, turned **17.5°** as in that frame (north isn't straight up there; a new *roll* in the view, also in the sidebar). The button *0050's last frame* goes back to it. Worked out from shot.ts's pose (`.export/end-frame.mjs`) and checked against a capture of the shot's end. Panning follows the screen (the stick's up is the screen's up, rolled).
+
+> **[Agent note]** North up or heading up, the player's choice (owner, 2026-11-24), replacing 0050's roll: a sidebar choice, pad top face button / keyboard N (placeholders). Heading up turns the map by the ship's heading, so the ship points up when it's centred (following). The 0050 button now only centres the whole globe on the region. **Contours:** six levels (was four), each darker than the one before going inland; the deepest at 0.3 of the first (`deepest`, a slider). A look saved in the browser before this takes the six levels.
+
 ## Open (yours, can wait for the look)
 
 - The five zoom steps' widths.
+- Heading up turns the grid with the map: step 3 will put the edge labels on the grid lines where they cross the screen's edges (they won't stay in neat rows); say if heading up should drop them.
 - Which coastline and contour style matches the nav display (the page has sliders; I'll copy your values in).

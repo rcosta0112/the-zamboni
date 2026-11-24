@@ -3,15 +3,18 @@
  * flight test pass 4). The navigation station's big screen alone, at its shape (`MAP_ASPECT`), the shot
  * editor's layout (tools.css). **Loads no game files** (no `.glb`, textures or sounds): the planet's code and
  * preset (`presets.json`, imported) only, so the map has the 0050 planet's land and sea.
- * Step 1: the globe in green lines; the view (zoom step, centre) and the look set in the sidebar. The look is
- * kept in the browser. Steps 2–3 (pad zoom and pan, following the ship, the grid, labels and icons) to come.
+ * Step 1: the globe in green lines; the look set in the sidebar, kept in the browser.
+ * Step 2: zoom in fixed steps (L2 out / R2 in, Q / E, the wheel), pan (left stick, WASD; a share of the screen
+ * per second, so every step feels the same), follow the simulated ship (R3 / F; panning stops it). The ship is
+ * a heading and a speed in the sidebar, drawn as a triangle on a 2D overlay (step 3 adds the grid, labels and
+ * the other icons there).
  * Dev only, as tools.html.
  */
 
 import * as THREE from 'three/webgpu';
 import presets from './presets.json';
 import type { PlanetPreset } from './planet';
-import { createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, type MapLook, type MapView } from './map';
+import { createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, travel, type MapLook, type MapView } from './map';
 
 /** The zoom steps (plan): the screen's width in degrees; 360 = the whole globe. */
 const ZOOM_STEPS = [
@@ -22,15 +25,46 @@ const ZOOM_STEPS = [
   { name: 'Quadrants (2°)', width: 2 },
 ];
 
+/** Panning at full stick: this share of the screen's width per second. The whole globe pans as if 120° wide. */
+const PAN_SHARE = 0.5;
+const PAN_WIDTH_WHOLE = 120;
+const DEAD_ZONE = 0.15;
+/**
+ * 0050's last frame (shot.ts: the planet's end spin and tip, Blender's tilt, the camera on +Z): the point
+ * facing the camera, where the crew will explore (owner, 2026-11-24). Worked out once with the meridian at
+ * 111.4° (.export/end-frame.mjs). In that frame north is turned 17.5° from up; the map is north up or
+ * heading up instead (owner, 2026-11-24).
+ */
+const SHOT_END = { northSouth: 74.0, eastWest: 199.5 };
+/** Standard-mapping pad buttons (by position): L2, R2, R3, the top face button (placeholder). */
+const PAD = { out: 6, in: 7, follow: 11, orient: 3 };
+/** The map's orientation, the player's choice: north up, or the ship's heading up. */
+type Orientation = 'north' | 'heading';
+
+/** The simulated ship: where it is, its heading (degrees clockwise from north) and speed (degrees of arc per second). */
+interface Ship {
+  northSouth: number;
+  eastWest: number;
+  heading: number;
+  speed: number;
+  moving: boolean;
+}
+
 const STORE = 'zamboni-planet-map-look';
 const side = document.getElementById('side')!;
 const status = document.getElementById('status')!;
 const canvas = document.getElementById('map') as HTMLCanvasElement;
+const overlay = document.getElementById('overlay') as HTMLCanvasElement;
 
 function loadLook(): MapLook {
   try {
     const kept = localStorage.getItem(STORE);
-    if (kept) return { ...DEFAULT_LOOK, ...(JSON.parse(kept) as Partial<MapLook>) };
+    if (kept) {
+      const saved = JSON.parse(kept) as Partial<MapLook>;
+      // Saved before the levels darkened (owner, 2026-11-24: six levels): take the new count.
+      if (saved.deepest === undefined) delete saved.contours;
+      return { ...DEFAULT_LOOK, ...saved };
+    }
   } catch {
     /* none kept, or storage blocked */
   }
@@ -56,6 +90,13 @@ function numberInput(value: number, step: number, min?: number, max?: number): H
   return input;
 }
 
+function checkbox(on: boolean): HTMLInputElement {
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = on;
+  return input;
+}
+
 function section(title: string): HTMLElement {
   const details = side.appendChild(document.createElement('details'));
   details.open = true;
@@ -68,7 +109,11 @@ function section(title: string): HTMLElement {
 async function main(): Promise<void> {
   const preset = presets.presets[presets.default as keyof typeof presets.presets] as unknown as PlanetPreset;
   const look = loadLook();
-  const view: MapView = { northSouth: 90, eastWest: 0, width: ZOOM_STEPS[0]!.width };
+  const ship: Ship = { northSouth: SHOT_END.northSouth, eastWest: SHOT_END.eastWest, heading: 45, speed: 0.05, moving: true };
+  const view: MapView = { northSouth: ship.northSouth, eastWest: ship.eastWest, width: ZOOM_STEPS[0]!.width, roll: 0 }; // opens on 0050's region (owner, 2026-11-24)
+  let orientation: Orientation = 'north';
+  let zoomStep = 0;
+  let following = true;
 
   document.documentElement.style.setProperty('--aspect', String(MAP_ASPECT));
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: false });
@@ -81,13 +126,114 @@ async function main(): Promise<void> {
   let dirty = true;
   const redraw = () => (dirty = true);
 
-  // The view (step 2 replaces these with the pad's zoom and pan).
+  // The view: shown, and settable by number (the pad, keys and wheel are the real controls).
   const viewBox = section('View');
   const zoom = document.createElement('select');
   ZOOM_STEPS.forEach((z, i) => zoom.add(new Option(z.name, String(i))));
-  field(viewBox, 'zoom step', zoom, (v) => ((view.width = ZOOM_STEPS[Number(v)]!.width), redraw()));
-  field(viewBox, 'centre N–S (°)', numberInput(view.northSouth, 1, 0, 180), (v) => ((view.northSouth = Math.min(180, Math.max(0, Number(v)))), redraw()));
-  field(viewBox, 'centre E–W (°)', numberInput(view.eastWest, 1, 0, 360), (v) => ((view.eastWest = Number(v)), redraw()));
+  field(viewBox, 'zoom step', zoom, (v) => setZoom(Number(v)));
+  const ns = numberInput(view.northSouth, 1, 0, 180);
+  const ew = numberInput(view.eastWest, 1, 0, 360);
+  field(viewBox, 'centre N–S (°)', ns, (v) => ((view.northSouth = Math.min(179.9, Math.max(0.1, Number(v)))), setFollowing(false)));
+  field(viewBox, 'centre E–W (°)', ew, (v) => ((view.eastWest = Number(v)), setFollowing(false)));
+  const orient = document.createElement('select');
+  orient.add(new Option('North up', 'north'));
+  orient.add(new Option('Heading up', 'heading'));
+  field(viewBox, 'up (top button / N)', orient, (v) => setOrientation(v as Orientation));
+  const follow = checkbox(following);
+  field(viewBox, 'follow ship (R3 / F)', follow, () => setFollowing(follow.checked));
+  const shotView = side.appendChild(document.createElement('button'));
+  shotView.textContent = "0050's last frame";
+  shotView.title = 'The whole globe centred where scene 0050 ends: the region the crew explore';
+  shotView.addEventListener('click', () => {
+    setFollowing(false);
+    Object.assign(view, { northSouth: SHOT_END.northSouth, eastWest: SHOT_END.eastWest });
+    setZoom(0);
+  });
+  side.appendChild(document.createElement('small')).textContent = 'Zoom: L2 / R2, Q / E, the wheel. Pan: left stick, WASD (stops following).';
+
+  // The simulated ship.
+  const shipBox = section('Ship (simulated)');
+  field(shipBox, 'heading (°)', numberInput(ship.heading, 5, 0, 360), (v) => ((ship.heading = Number(v)), redraw()));
+  field(shipBox, 'speed (°/s)', numberInput(ship.speed, 0.01, 0), (v) => (ship.speed = Math.max(0, Number(v))));
+  const moving = checkbox(ship.moving);
+  field(shipBox, 'moving', moving, () => ((ship.moving = moving.checked), redraw()));
+  const toCentre = side.appendChild(document.createElement('button'));
+  toCentre.textContent = 'Ship to the centre';
+  toCentre.addEventListener('click', () => {
+    Object.assign(ship, { northSouth: view.northSouth, eastWest: view.eastWest });
+    redraw();
+  });
+
+  function setZoom(step: number): void {
+    zoomStep = Math.min(ZOOM_STEPS.length - 1, Math.max(0, step));
+    view.width = ZOOM_STEPS[zoomStep]!.width;
+    zoom.value = String(zoomStep);
+    redraw();
+  }
+  function setOrientation(next: Orientation): void {
+    orientation = next;
+    orient.value = next;
+    redraw();
+  }
+  function setFollowing(on: boolean): void {
+    following = on;
+    follow.checked = on;
+    redraw();
+  }
+
+  // Keys (not while typing in the sidebar) and the wheel.
+  const held = new Set<string>();
+  const typing = (e: Event) => e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
+  addEventListener('keydown', (e) => {
+    if (typing(e)) return;
+    const key = e.key.toLowerCase();
+    held.add(key);
+    if (e.repeat) return;
+    if (key === 'q') setZoom(zoomStep - 1);
+    else if (key === 'e') setZoom(zoomStep + 1);
+    else if (key === 'f') setFollowing(!following);
+    else if (key === 'n') setOrientation(orientation === 'north' ? 'heading' : 'north');
+  });
+  addEventListener('keyup', (e) => held.delete(e.key.toLowerCase()));
+  addEventListener('blur', () => held.clear());
+  canvas.parentElement!.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      if (e.deltaY !== 0) setZoom(zoomStep + (e.deltaY < 0 ? 1 : -1));
+    },
+    { passive: false },
+  );
+
+  const padHeld = { out: false, in: false, follow: false, orient: false };
+  /** This frame's pan (x right, y up, length ≤ 1) from the pad and the keys; acts on the pad's zoom and follow presses. */
+  function readControls(): [number, number] {
+    let x = 0, y = 0;
+    const now = { out: false, in: false, follow: false, orient: false };
+    for (const pad of navigator.getGamepads?.() ?? []) {
+      if (!pad?.connected) continue;
+      const ax = pad.axes[0] ?? 0, ay = pad.axes[1] ?? 0;
+      const len = Math.hypot(ax, ay);
+      if (len > DEAD_ZONE) {
+        const scaled = Math.min(1, (len - DEAD_ZONE) / (1 - DEAD_ZONE));
+        x += (ax / len) * scaled;
+        y -= (ay / len) * scaled;
+      }
+      now.out ||= !!pad.buttons[PAD.out]?.pressed;
+      now.in ||= !!pad.buttons[PAD.in]?.pressed;
+      now.follow ||= !!pad.buttons[PAD.follow]?.pressed;
+      now.orient ||= !!pad.buttons[PAD.orient]?.pressed;
+    }
+    if (now.out && !padHeld.out) setZoom(zoomStep - 1);
+    if (now.in && !padHeld.in) setZoom(zoomStep + 1);
+    if (now.follow && !padHeld.follow) setFollowing(!following);
+    if (now.orient && !padHeld.orient) setOrientation(orientation === 'north' ? 'heading' : 'north');
+    Object.assign(padHeld, now);
+    x += (held.has('d') ? 1 : 0) - (held.has('a') ? 1 : 0);
+    y += (held.has('w') ? 1 : 0) - (held.has('s') ? 1 : 0);
+    const len = Math.hypot(x, y);
+    return len > 1 ? [x / len, y / len] : [x, y];
+  }
 
   // The look, kept in the browser.
   const lookBox = section('Look');
@@ -110,6 +256,7 @@ async function main(): Promise<void> {
     ['contour count', 'contours', 1, 0],
     ['contour spacing', 'contourSpacing', 0.005, 0.001],
     ['contours, rim dim', 'dim', 0.05, 0],
+    ['deepest contour', 'deepest', 0.05, 0],
   ];
   const inputs: Partial<Record<keyof MapLook, HTMLInputElement>> = {};
   for (const [label, key, step, min] of numeric) {
@@ -129,29 +276,83 @@ async function main(): Promise<void> {
   const resize = () => {
     const box = canvas.getBoundingClientRect();
     renderer.setSize(Math.max(1, Math.round(box.width)), Math.max(1, Math.round(box.height)), false);
+    overlay.width = renderer.domElement.width;
+    overlay.height = renderer.domElement.height;
     redraw();
   };
   new ResizeObserver(resize).observe(canvas);
   resize();
 
-  // Drawn only when something changed (step 2's moving ship will draw every frame).
+  const ctx = overlay.getContext('2d')!;
+  /** The overlay: the ship as a triangle along its heading (step 3: the grid, labels, other icons). */
+  function drawOverlay(): void {
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    const at = map.project(ship.northSouth, ship.eastWest);
+    if (!at) return;
+    // The heading on screen: towards a point a little ahead (the globe's turn included).
+    const ahead = travel(ship.northSouth, ship.eastWest, ship.heading, Math.min(view.width, 180) / 200);
+    const to = map.project(ahead.northSouth, ahead.eastWest) ?? at;
+    const w = overlay.width, h = overlay.height;
+    const angle = to.x === at.x && to.y === at.y ? -Math.PI / 2 : Math.atan2((to.y - at.y) * h, (to.x - at.x) * w);
+    const size = Math.max(8, h * 0.025);
+    ctx.save();
+    ctx.translate(at.x * w, at.y * h);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(size, 0);
+    ctx.lineTo(-size * 0.7, size * 0.6);
+    ctx.lineTo(-size * 0.7, -size * 0.6);
+    ctx.closePath();
+    ctx.strokeStyle = look.colour;
+    ctx.lineWidth = Math.max(1, look.coastWidth * (window.devicePixelRatio || 1));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Drawn when something changed, and every frame while the ship moves or the view pans.
   let drawMs = 0;
+  let last = performance.now();
   renderer.setAnimationLoop(() => {
+    const now = performance.now();
+    const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
+    last = now;
+
+    // Heading up: the screen turned by the ship's heading, so it points up (at the centre, when following).
+    view.roll = orientation === 'heading' ? ship.heading : 0;
+    const [px, py] = readControls();
+    if (px !== 0 || py !== 0) {
+      if (following) setFollowing(false);
+      const width = view.width >= 180 ? PAN_WIDTH_WHOLE : view.width;
+      const bearing = (Math.atan2(px, py) * 180) / Math.PI + (view.roll ?? 0); // the stick's up is the screen's up
+      Object.assign(view, travel(view.northSouth, view.eastWest, bearing, Math.hypot(px, py) * PAN_SHARE * width * dt));
+      dirty = true;
+    }
+    if (ship.moving && ship.speed > 0) {
+      Object.assign(ship, travel(ship.northSouth, ship.eastWest, ship.heading, ship.speed * dt));
+      dirty = true;
+    }
+    if (following) Object.assign(view, { northSouth: ship.northSouth, eastWest: ship.eastWest });
+
     if (!dirty) return;
     dirty = false;
     map.setView(view);
     const t = performance.now();
     quad.render(renderer);
     drawMs = performance.now() - t;
+    drawOverlay();
+    if (document.activeElement !== ns) ns.value = view.northSouth.toFixed(2);
+    if (document.activeElement !== ew) ew.value = view.eastWest.toFixed(2);
     status.innerHTML = '';
-    const centre = status.appendChild(document.createElement('span'));
-    centre.textContent = `Centre ${quadrantName(view.northSouth, view.eastWest)}`;
+    status.appendChild(document.createElement('span')).textContent = `Centre ${quadrantName(view.northSouth, view.eastWest)} · ${ZOOM_STEPS[zoomStep]!.name}${following ? ' · following' : ''}`;
+    status.appendChild(document.createElement('span')).textContent = `Ship ${quadrantName(ship.northSouth, ship.eastWest)}`;
     status.appendChild(document.createElement('span')).textContent = `Meridian ${preset.meridian ?? 0}° · aspect ${MAP_ASPECT.toFixed(3)} · ${renderer.domElement.width} × ${renderer.domElement.height} px`;
     status.appendChild(document.createElement('small')).textContent = `${renderer.backend.constructor.name}, draw call ${drawMs.toFixed(1)} ms`;
   });
 
   // For the probe (step 4).
-  Object.assign(window, { __planetMap: { view, look, redraw, steps: ZOOM_STEPS, aspect: MAP_ASPECT } });
+  Object.assign(window, {
+    __planetMap: { SHOT_END, view, look, ship, redraw, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => following, zoomStep: () => zoomStep },
+  });
 }
 
 if (!import.meta.env.DEV) side.textContent = 'The planet map runs on the dev server only.';
