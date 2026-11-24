@@ -20,7 +20,7 @@ import { LookAt } from './look';
 import { CutscenePlayer } from './cutscene';
 import { Dialogue } from './dialogue';
 import type { Interactable } from './interaction';
-import { awayFromDoors, createDoorSounds, motorSound, type Pusher } from './doors';
+import { awayFromDoors, createDoorSounds, keyedMotorSound, motorSound, type Pusher } from './doors';
 import { Exhaust } from './exhaust';
 import { ThrusterFlames } from './flames';
 import { Clouds } from './clouds';
@@ -246,6 +246,8 @@ async function start(): Promise<void> {
   let clothes: LockerClothes | null = null;
   const inkSeen: Record<string, unknown> = {}; // KEPT's Ink variables as last seen
   let doorSounds: (() => void) | null = null;
+  /** The gear's and the turbines' motors, as a cutscene's flight or the flight test moves them. */
+  let flightPartSounds: ((dt: number) => void) | null = null;
   let director: SceneDirector | null = null;
   /** The scene's `whenClosed` (chapter 1: the viewport closed, Dr. Ogawa). */
   let closedWatch: ClosedWatch | null = null;
@@ -518,6 +520,15 @@ async function start(): Promise<void> {
       doorSounds = () => {
         doors();
         ramp();
+      };
+      // The gear and the turbines' tilt: the ramp's sounds, slower and lower for the gear, quicker for the tilt.
+      // Read from the keys' sources, not `ship.gearRaised` (set on the fixed steps: a frame without one isn't a stop).
+      const flightKeys = () => cutscene?.flight ?? shipFlight?.keys ?? null;
+      const gearSound = keyedMotorSound(audio, s.landingGear[0]?.node ?? s.object, () => flightKeys()?.gear ?? null, { move: 'sfx_gear_up_move', stop: 'sfx_gear_up_stop' }, { move: 'sfx_gear_down_move', stop: 'sfx_gear_down_stop' });
+      const tiltSound = keyedMotorSound(audio, s.turbines[0]?.node ?? s.object, () => flightKeys()?.turbines?.[0] ?? null, { move: 'sfx_tilt_down_move', stop: 'sfx_tilt_stop' }, { move: 'sfx_tilt_forward_move', stop: 'sfx_tilt_stop' });
+      flightPartSounds = (dt) => {
+        gearSound(dt);
+        tiltSound(dt);
       };
       rack = new JetpackRack(s.entities, s.interior.getCenter(new THREE.Vector3()).x, (id, at) => audio.play(id, at));
       if (rack.slots.length === 0) console.warn('[0.0.2] the ship has no jetpack rack');
@@ -922,6 +933,7 @@ async function start(): Promise<void> {
     }
     if (steps === MAX_STEPS) accumulator = 0;
     doorSounds?.();
+    flightPartSounds?.(dt);
     boombox?.update();
     rack?.update();
     // What the save keeps of her (KEPT: her clothes, the jetpack): when Ink changes it (*Continue*, a

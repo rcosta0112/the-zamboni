@@ -367,6 +367,53 @@ export function motorSound(audio: DoorAudio, at: THREE.Object3D, moving: () => b
   };
 }
 
+/** A keyed part's motor cues, one pair per direction. */
+export interface MotorCues {
+  move: CueId;
+  stop: CueId;
+}
+
+/** A keyed part counts as stopped after this long without moving (s): a frame with no change isn't a stop. */
+const KEYED_SETTLE = 0.1;
+
+/**
+ * A motor's sound for a part moved by a key from outside (the gear, the turbines' tilt: a cutscene's
+ * flight or the flight test's controls). The move cue runs while the key changes (the rising or the
+ * falling pair, by direction), the stop cue once it settles. No key (null): silent, nothing heard
+ * when it comes back. Returns what to call each frame.
+ * @param key the part's key now (read from its source, not from the ship: that's set on the fixed steps)
+ */
+export function keyedMotorSound(audio: DoorAudio, at: THREE.Object3D, key: () => number | null, rising: MotorCues, falling: MotorCues): (dt: number) => void {
+  let last: number | null = null;
+  let playing: MotorCues | null = null;
+  let still = 0;
+  const halt = (stopCue: boolean) => {
+    if (!playing) return;
+    audio.stop(playing.move, at, MOTOR_FADE);
+    if (stopCue) audio.play(playing.stop, at);
+    playing = null;
+  };
+  return (dt) => {
+    const v = key();
+    if (v === null || last === null) {
+      halt(false);
+      last = v;
+      return;
+    }
+    const d = v - last;
+    last = v;
+    if (Math.abs(d) > 1e-5) {
+      still = 0;
+      const cues = d > 0 ? rising : falling;
+      if (playing !== cues) {
+        halt(false);
+        audio.play(cues.move, at);
+        playing = cues;
+      }
+    } else if (playing && (still += Math.max(0, dt)) >= KEYED_SETTLE) halt(true);
+  };
+}
+
 /**
  * The doors' sounds: one place per door (the middle of the closed door, not each leaf or part).
  * Returns what to call each frame.
