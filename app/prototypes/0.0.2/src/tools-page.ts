@@ -26,7 +26,10 @@ const TOOLS: Record<string, Tool[]> = {
   Cutscenes: [{ name: 'Shot editor', href: '/shot-editor.html', about: 'Flybys (landings and take-offs later): pick seeds, nudge, watch them loop, save named shots.' },
     { name: 'Flame editor', href: '/flame-editor.html', about: 'The thrusters’ flames and the landing’s bloom, tuned on a saved shot; saved as the defaults (SC-189).' },
   ],
-  Prototypes: [{ name: 'Flight test', href: '/flight-test.html', about: 'The flight interfaces’ test scene: straight into the cockpit, no start screen (SC-195).' }],
+  Prototypes: [
+    { name: 'Flight test', href: '/flight-test.html', about: 'The flight interfaces’ test scene: straight into the cockpit, no start screen (SC-195).' },
+    { name: 'Planet map', href: '/planet-map.html', about: 'The navigation station’s map alone: the planet in green lines, at the screen’s shape (SC-195 pass 4).' },
+  ],
   'The game': [
     { name: 'New game', href: '/', about: 'From the start: the animatic, then chapter 1.' },
     { name: '0050 · Planet', href: '/?scene=0050', about: 'The animatic from the planet shot.' },

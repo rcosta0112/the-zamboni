@@ -3,6 +3,7 @@
   "presets": {
     "Blender": {
       "seed": 1,
+      "meridian": 111.4,
       "scale": 2.98,
       "detail": 16,
       "roughness": 0.64,

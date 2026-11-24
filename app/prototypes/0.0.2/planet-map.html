@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planet map · 0.0.2</title>
+    <link rel="icon" href="data:," />
+    <!-- Dev only, as tools.html: not a build input; src/planet/map-page.ts refuses outside the dev server. -->
+    <link rel="stylesheet" href="/src/flight-shots/tools.css" />
+    <style>
+      /* The screen at the navigation display's shape (--aspect, set by map-page.ts), not 16:9. */
+      .player { width: min(100cqw, 100cqh * var(--aspect)); }
+      .frame { aspect-ratio: var(--aspect); }
+      /* The sidebar's two columns kept within it (as the flame editor's). */
+      #side { overflow-x: hidden; }
+      .values { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .field > span { overflow: hidden; text-overflow: ellipsis; }
+      input[type='number'] { width: 4rem; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section id="side">
+        <div class="title"><h1>Planet map</h1><a class="back" href="/tools.html">← Tools</a></div>
+      </section>
+      <section class="view">
+        <div class="stage"><div class="player"><div class="frame"><canvas id="map"></canvas></div></div></div>
+      </section>
+    </div>
+    <footer class="status" id="status"></footer>
+    <script type="module" src="/src/planet/map-page.ts"></script>
+  </body>
+</html>

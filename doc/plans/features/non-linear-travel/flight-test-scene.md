@@ -1,6 +1,6 @@
 # Plan: a test scene for the flight interfaces
 
-**Status:** *approved* (owner, 2026-11-23: "Let's build this"); passes 0–3a built and approved. **Passes 4–6 rewritten 2026-11-24**: *waiting for review*. **Scope kept to the flight controls, navigation and signal processing** (owner, 2026-11-24). A **big task**: seven passes (0–6), a stop to assess after each.
+**Status:** *approved* (owner, 2026-11-23: "Let's build this"); passes 0–3b built and approved. **Passes 4–7 reordered 2026-11-24** (owner): pass 4, the planet map ([its plan](planet-map-page.md)), *waiting for review*. **Scope kept to the flight controls, navigation and signal processing** (owner, 2026-11-24). A **big task**: eight passes (0–7), a stop to assess after each.
 
 **A prototype to find the design** (owner, 2026-11-23): not checked against the other docs. If it works, the docs change to follow it.
 
@@ -74,17 +74,21 @@ A test scene to try every flight action from the cockpit: **taking off, landing,
 
 - > **[Agent note]** **Pass 3b built 2026-11-24** (`src/flight-test/bottom-view.ts`): **the bottom view**, one camera under the hull's bottom at the ship's centre, looking straight down (nose up, lens 120°: owner, 2026-11-24), drawn into a 160 × 120 texture (**80 × 60** since, shown at the same size with sharp pixels: owner, 2026-11-24) **every 10th frame, only at the pilot's station**, after the frame with the sun's shadow map reused (not redrawn for it); the flames and the hull's outside as seen from outside. Shown bottom right until the controls file's `scr-view-bottom` takes the same texture. Panel *Flight test: bottom view*: on, every n frames, width, size shown, lens; the cost readouts. **Measured** (headless Chrome, so a rough figure): **about 3 ms of CPU per draw** (54–78 draw calls, about 88 000 triangles: the whole ship and the ground, nothing culled for it), so about 0.3 ms a frame on average, but a 3 ms step every 10th frame. The GPU's share isn't separated (that needs timestamp queries on the whole renderer): compare the frame time with it on and off. Over the flat ice plain it shows almost only snow, with the edge of the hull's bottom (pointed elsewhere for a check, it showed the cockpit the right way up). Probe 94/94.
 
-**Pass 4: the signal station** (≈ 1 h · 1–2 rounds)
+> **[Agent note]** **Reordered 2026-11-24 (owner):** pass 3b approved; navigation now comes before the signal station (the signal station needs what navigation decides), with a new pass 4 before both: the planet map on its own page. Order: **4 the planet map, 5 navigation, 6 the signal station, 7 steering.**
+
+**Pass 4: the planet map, its own test page** (own plan: [planet-map-page.md](planet-map-page.md))
+
+**Pass 6 (was 4): the signal station** (≈ 1 h · 1–2 rounds)
 - The band switch (signal / infrared), the two dials (A grabs, D-pad turns, A or B lets go), the waveform clearing as they near, the radar.
 - **Signals from the scene's data:** each with a place and a range; only the ones the story makes available are heard. A lock → the spoken line (*"I've got a signal"*, test line) → **triangulated** → **handed to navigation** as a point.
 - Who sits where as Ink state: Dr. Kaufman at navigation, Adam Red at signal, Dr. Ogawa away (a switch on the page); the lines picked by who's seated.
 
 **Pass 5: navigation** (≈ 1 h · 1–2 rounds)
-- The map on its screen: the globe from the intro planet's preset, the quadrant grid every 16°, the points; pan (left stick), zoom (triggers).
+- The map from pass 4 on the station's screen.
 - Selecting a point: the spoken order (*"Adam, set a course to …"*, test line) → **the waypoint**, shown on navigation's map and **on the pilot's screen** (a pointer and the ETA).
 - **Green's refusals:** a point the story doesn't want (or a visited one, if the story says so) → her refusal line, nothing set.
 
-**Pass 6: steering and holding the course** (≈ 1 h · 1–2 rounds)
+**Pass 7 (was 6): steering and holding the course** (≈ 1 h · 1–2 rounds)
 - **Steering left and right** (left stick; keys too): the ship turns, banking a little; the joystick follows. The world turns round the ship (`flightHeading`, the treadmill).
 - **The course pointer** on the pilot's screen: the angle off the waypoint; turned onto it → the beat *on course*.
 - **Holding the course:** past a set angle for a set time → a crew line to correct it (test line), repeated no more than every few seconds. **Guardrails:** height and ground kept as in pass 3a; no crash possible.

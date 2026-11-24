@@ -63,6 +63,12 @@ export type Interpolation = 'constant' | 'linear' | 'ease';
 
 export interface PlanetPreset {
   seed: number;
+  /**
+   * The quadrants' meridian (planet-map.md): east–west 0, as a longitude in degrees in the planet's own frame
+   * (Blender's, Z up: about +Z from +X, eastward = anticlockwise seen from the north). Picked at random once
+   * (2026-11-24) and kept for the game. Read by the planet map only.
+   */
+  meridian?: number;
   /** The height noise (Blender: scale, detail, roughness, lacunarity). */
   scale: number;
   detail: number;
