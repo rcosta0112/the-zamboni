@@ -1,5 +1,5 @@
 // The flight interfaces' test scene (plan doc/plans/features/non-linear-travel/flight-test-scene.md), pass 0:
-// the page and the scene. Grows with each pass (pass 2: the stations and controls; pass 3: take-off and landing). In app/prototypes/0.0.2/:
+// the page and the scene. Grows with each pass (pass 2: the stations and controls; pass 3: take-off and landing; 3b: the bottom view). In app/prototypes/0.0.2/:
 //
 //     node tools/probe-01.mjs tools/flight-test-probe.js --page flight-test.html --stay --shots .export/flight-test
 //
@@ -101,6 +101,15 @@ const prompts = {};
 for (let i = 0; i < 3; i++) { await tab(); order.push(st?.current); prompts[st?.current] = verb(); if (st?.current) await shot(`station-${st.current}`); }
 report(order.join(' ') === 'navigation signal pilot', 'Tab cycles the three stations (no third-person view)', order.join(' → '));
 report(!prompts.pilot && !prompts.navigation && !prompts.signal, 'no interaction prompt at any station', JSON.stringify(prompts));
+// The bottom view (pass 3b, flight-test/bottom-view.ts): drawn every 10th frame at the pilot's station only.
+const bv = w.__bottomView();
+const drawsAt = async (ms) => { const d = bv.state.measured.draws; await wait(ms); return bv.state.measured.draws - d; };
+const pilotDraws = await drawsAt(2000);
+const bvm = bv.state.measured;
+report(bv.state.placed && pilotDraws >= 6 && pilotDraws <= 14, 'the bottom view: drawn about every 10th frame at the pilot’s station', `${pilotDraws} in 2 s; ${bvm.average} CPU, ${bvm.drawCalls} draw calls, ${bvm.triangles} triangles, ${bv.state.size.join('×')}`);
+await tab();
+report((await drawsAt(1000)) === 0, 'the bottom view: not drawn at another station', st?.current);
+await tab(); await tab();
 await tab(true);
 report(st?.current === 'signal', 'Shift+Tab goes back (to signal)', st?.current);
 const ogawa = w.__entity('ogawa').object;

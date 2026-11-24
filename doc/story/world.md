@@ -23,3 +23,5 @@
 - **The viewport** is the window in engineering (it opens from a lever). (2026-10-22)
 - **The pilot sits on the left** of the cockpit's two front seats (the standard); the copilot, Dr. Green, on the right. (2026-10-22)
 - **The ship flies over more than ice:** probably a rocky plain with distant mountains, green plains, and the ocean. (2026-10-22)
+- **The planet is large:** the crew can't travel all of it, and don't need to. (2026-11-23)
+- **Adam is the co-pilot and the navigator** in most scenes (one person, two bodies): that's why Dr. Green asks them to set the course. Adam is also **the backup pilot** who flies the ship when she doesn't. (2026-11-23)

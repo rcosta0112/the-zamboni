@@ -4,26 +4,27 @@
 > **Rewritten at the end of every session, not appended to. 60 lines at most.**
 > History is in git, the plans and the decision log.
 
-*Updated 2026-11-23 (latest: **flight test pass 3a approved, the joystick fix: uncommitted**; last commit: pass 2, 9c57ddb). Tag `v0.0.1` on be0ffae.*
-**Weekly budget (CLAUDE.md rule 7):** 50%; the hook reports it with every message (3.0% on 2026-11-23; the week resets Monday 09:30; calibration 1.86M per 1%). A pass's actual time: `node .claude/usage/agent-time.js ~/.claude/projects/c--Users-31658-Desktop-The-Zamboni .claude/usage/agent-time.json`.
+*Updated 2026-11-24 (latest: **pass 3b, the bottom view, built and committed with the session's docs**; waiting on the owner's look). Tag `v0.0.1` on be0ffae.*
+**Weekly budget (CLAUDE.md rule 7):** 50%; the hook reports it with every message (4.7% on 2026-11-24; the week resets Monday 09:30; calibration 1.86M per 1%). A pass's actual time: `node .claude/usage/agent-time.js ~/.claude/projects/c--Users-31658-Desktop-The-Zamboni .claude/usage/agent-time.json`.
 ## The versions
 - **0.0.2 is current**: `app/prototypes/0.0.2/`, http://localhost:5202/, Vercel https://002-teal.vercel.app/; exports from `resources/models/The Zamboni 1.22.blend`. **0.0.1 frozen** (5201, `*:0.0.1`). `?scene=<id>` or the script's number (main.ts `SCENE_NUMBERS`); probes take `--query scene=…`. Dev pages: http://localhost:5202/tools.html.
 ## Next session: start here
-- **Task: the flight test scene (SC-195, [plan](../plans/features/non-linear-travel/flight-test-scene.md)), pass 3b: the bottom view** (one small external view under the ship, drawn every 10th frame, its cost measured), then pass 4 (navigation). Passes 2 and 3a approved (owner, 2026-11-23); the owner said "continue" for the passes, but stop after each to assess. Pass 3a's controls are on the tuning panel (*Flight test: her seat*, owner's call) until the controls file (SC-196); their two poses wait on it; Adam's step-in line goes with pass 6's test Ink.
-- **The joystick fix (game too):** `ship.ts` puts the `Joystick` node with the moving parts; since SC-180 step 3 (2026-11-18) the per-room merge drew a still copy of it. The probe now checks the drawn stick.
-- **All committed** (owner, 2026-11-23): the joystick fix, pass 3a, the 2D overlay (`src/flight-test/overlay.ts`), the joystick only while flying forward, the heavy climb curve braking on time, the noise by thrust and doubled moving up/down (`flight.ts`, model.ts `pilotSpeed`); waits on the owner's look.
-- **Files:** `src/flight-test/flight.ts` (new; its `keys` give the flames for the bottom view: they show only for an exterior camera, `flames.update`'s `exterior`), `controls.ts`, `stations.ts`, `main.ts` (`FLIGHT_TEST`, `shipFlight`), `terrain.ts` (`standingHeight`), `ship.ts` (the joystick in `moving`). Code map: *flight-test*.
-- **Check first:** `node tools/probe-01.mjs tools/flight-test-probe.js --page flight-test.html --stay`: 92/92 (about 2 min).
-- **Found out:** `piloting-probe.js` fails since chapter 1's opening changed (Ogawa's line first, the coffee before *Sit down*): stale, not in the smoke; its joystick checks pass. The mouse's capture, hover and drag (pass 2) still untested in headless Chrome.
+- **Task: the flight test scene (SC-195, [plan](../plans/features/non-linear-travel/flight-test-scene.md)), pass 4: the signal station**, on the owner's go: it waits on their look at pass 3b and their review of the rewritten passes 4–6. **Scope (owner, 2026-11-24): flight controls, navigation and signal processing only** (the rest: the plan's *Deferred to the game*). Stop after each pass to assess.
+- **Pass 3b (the bottom view) built, committed:** `bottom-view.ts`, 80 × 60 shown at 240 × 180 px with sharp pixels, lens 120°, every 10th frame at the pilot's station only; about 3 ms CPU per draw (headless), the GPU's share not separated (would need timestamp queries on the whole renderer). Owner tweaks go to `bottomLook`.
+- Pass 3a's controls stay on the tuning panel (*Flight test: her seat*) until the controls file (SC-196); their poses wait on it. Adam's step-in line goes with the test Ink.
+- **Files:** `app/prototypes/0.0.2/src/flight-test/overlay.ts` (signal's placeholder band and dials), `controls.ts`, `stations.ts`, `flight.ts`, `bottom-view.ts`, `main.ts` (`FLIGHT_TEST`). Code map: *flight-test*. Not needed: the `player-flight*.md` discussion docs.
+- **Start state:** all committed and pushed (2026-11-24). Page: http://localhost:5202/flight-test.html.
+- **Check first:** `node tools/probe-01.mjs tools/flight-test-probe.js --page flight-test.html --stay`: 94/94 (about 2 min; before the 80 × 60 and 120° changes, which no check covers).
+- **Found out:** the bottom camera sits 0.1 m under the interior's floor (`s.interior.min.y`); looking forward from there the hull's lower parts fill the view, so only straight down works. Render-target textures need `uv().flipY()`. `piloting-probe.js` is stale (not in the smoke). The mouse's capture, hover and drag (pass 2) untested headless.
 ## Other threads
 - **Landing and take-off shots** ([plan](../plans/features/landing-takeoff-shots.md)): pass 1 committed; pass 2 on the owner's go; pass 3 needs the take-off's motion (SC-187).
-- **Non-linear game, discussion:** [summary](../plans/features/non-linear-travel/non-linear-travel-summary.md); owner questions SC-191–193.
+- **Non-linear game, discussion:** [summary](../plans/features/non-linear-travel/non-linear-travel-summary.md); owner questions SC-191–193. **The player flies the ship** (open world in chunks, Adam the backup pilot, signals → waypoints, the handover problem answered): [summary](../plans/features/non-linear-travel/player-flight-summary.md), SC-197.
 - **Flames and the flame editor: parked** (SC-189, SC-190).
 - **To try (owner):** viewport closed in chapter 1 (SC-186), flyby / 0500 scene (SC-185), coffee (SC-184), pond water (SC-181, http://localhost:5202/water-test.html).
 - **Optimisation, SC-180 ([plan](../plans/features/optimization.md)):** steps 1–4 done; ask the owner which step is next.
 - **The `.blend`:** if the `Scanner Array` rename wasn't redone, the file says `Contraption`: compare at the next export.
 - **Gadgets:** binoculars pass 3 on the owner's go; scanner synth (SC-178). **Landing (0600):** SC-174. **Dialogue:** SC-169, SC-170. **Flying scene:** SC-5, waits on SC-15.
-- **Owner's tasks:** [`doc/tasks.md`](../tasks.md); **new tasks continue from SC-197**. `doc/steps/handover-flight-test.md` (if still there) is ready to delete.
+- **Owner's tasks:** [`doc/tasks.md`](../tasks.md); **new tasks continue from SC-198**. `doc/steps/handover-flight-test.md` ready to delete (owner's yes).
 ## Where things stand (see-through: [`see-through-hull.md`](../features/see-through-hull.md))
 - `seeThroughStage = 'hull only'`, the hole ending in a hemisphere at her chest; never cut on her deck (`keepOnDeck`); bulkheads never cut while the camera collides with them. **The player must never lose track of her.**
 - Camera indoors stops at the shell, bulkheads, `CAMERA_BOXES` and the sitting area; it should move by itself as little as possible.
@@ -45,4 +46,4 @@
 - **Dev hooks** (`window`): `__director()`, `__cutscene()` (`play`, `load`, `skip`, `track.shot`, `track.buckets`), `__save` (`read`, `clear`, `recentShots`), `__story()`, `__start()`, `__character`, `__ship()`, `__entity(id)`, `__interaction()`, `__audio`, `__flames()`, `__treadmill()` and more (main.ts).
 - **No gamepad in the test browser** (fake `navigator.getGamepads`); probes press Q then the start button; a fresh profile loads in ~16 s.
 ## How to verify
-In `app/`: `npm run check` (with `tools/check-ids.mjs`: knows shot-built ids), `npm run build`; one thing: `npm run probe -- <file.js>`; the whole check once at the end: `npm run smoke`. **Last run 2026-11-23 (after the joystick fix, before pass 3a, which touches only flight-test.html): 81 passed, 6 failed, the known ones** (walking under the hull, `Turbine.001`, `.002`; the single-sided switch's 5 double-sided materials; the boombox's two, SC-51), no console errors. Small fixes: no plan, no record script, no new check. Code map: [`CODE-MAP.md`](../../app/prototypes/0.0.2/CODE-MAP.md).
+In `app/`: `npm run check` (with `tools/check-ids.mjs`: knows shot-built ids), `npm run build`; one thing: `npm run probe -- <file.js>`; the whole check once at the end: `npm run smoke`. **Last run 2026-11-24 (after pass 3b): 82 passed, 5 failed, the known ones** (walking under the hull, `Turbine.001`, `.002`; the single-sided switch's 5 double-sided materials; the boombox, SC-51), no console errors. Small fixes: no plan, no record script, no new check. Code map: [`CODE-MAP.md`](../../app/prototypes/0.0.2/CODE-MAP.md).

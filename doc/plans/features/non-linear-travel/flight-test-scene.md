@@ -1,6 +1,6 @@
 # Plan: a test scene for the flight interfaces
 
-**Status:** *approved* (owner, 2026-11-23: "Let's build this"); **pass 0 built 2026-11-23**, for the owner's look. A **big task**: seven passes (0–6), a stop to assess after each.
+**Status:** *approved* (owner, 2026-11-23: "Let's build this"); passes 0–3a built and approved. **Passes 4–6 rewritten 2026-11-24**: *waiting for review*. **Scope kept to the flight controls, navigation and signal processing** (owner, 2026-11-24). A **big task**: seven passes (0–6), a stop to assess after each.
 
 **A prototype to find the design** (owner, 2026-11-23): not checked against the other docs. If it works, the docs change to follow it.
 
@@ -8,8 +8,10 @@
 
 A test scene to try every flight action from the cockpit: **taking off, landing, navigating, tuning the signal, and the crew's dialogue**, with **physical controls** (owner, 2026-11-23). It loads straight into the cockpit, with no start screen.
 
-**In:** a copy of the first playable scene (`chapter-1`) with what isn't needed taken out; the owner's cockpit controls from **their own `.blend`**, imported once ready; the stations and controls, the ship's simple motion, the course-change cutscene, test lines in Ink; the relevant checks copied for the page.
-**Out:** walking the rest of the ship (*B gets up* stands her up in the cockpit), the real sites (the travel terrain outside), final art, the real script, the game's structure (hub, locations, saving), the external views beyond one bottom view to measure.
+**In:** a copy of the first playable scene (`chapter-1`) with what isn't needed taken out; the owner's cockpit controls from **their own `.blend`**, imported once ready; the stations and controls, the ship's simple motion, test lines in Ink; the relevant checks copied for the page.
+**Out:** the real sites (the travel terrain outside; one landing place stands in), final art, the real script, the game's structure (hub, locations, saving), the open world's chunks ([player-flight.md](player-flight.md)), the external views beyond one bottom view to measure.
+
+**Scope (owner, 2026-11-24):** **the flight controls, navigation and signal processing only**, plus steering left and right. The rest of the run below (the break, the playable scenes in the ship and outside, the time-passing cutscene, her seat's prompts) **waits for the non-linear travel in the game itself**, if it's built. **Flying the ship is not the focus of the game.**
 
 ## Ground rules
 
@@ -17,6 +19,30 @@ A test scene to try every flight action from the cockpit: **taking off, landing,
 - The ship's exports untouched: the scene uses `zamboni-ship.glb` and `zamboni-crew.glb` as they are; the controls come in as a separate file placed in the ship's coordinates.
 - Test lines are placeholders, marked as such, in a test Ink file (`public/test/`); never the owner's copy.
 - Gamepad first, keyboard second.
+
+## The run in the game (owner, 2026-11-24)
+
+> **[Agent note]** Kept for when non-linear travel goes into the game. **This scene covers steps 1–3, 7's course holding and 8's landing**; the rest is deferred (see *Deferred to the game* below).
+
+
+1. **Take-off:** the player does it (pass 3a).
+2. **Find the signals and plot the course:** the signal station finds them; navigation makes the waypoint.
+3. **Change course by flying the ship:** the player turns it onto the course.
+4. **A prompt to take a break.**
+5. **A playable scene inside the ship.**
+6. **Back to her seat:** an **external cutscene** shows time passing.
+7. **The final approach:** the player flies again and **holds the course**. Veering too far, a crew member tells them to correct it.
+8. **Landing:** the player lands the ship.
+9. **A playable scene outside** starts.
+
+**Guiding the player (owner, 2026-11-24):**
+- **Prompts on her seat** keep her from leaving before the story beats are met, like chapter 1's *"I want some coffee first."* ([interaction.md](../../../features/interaction.md)).
+- **Which signals are available** steers where she goes.
+- **Visited waypoints:** setting a course back to them is allowed or not, as the story needs.
+- **An action that doesn't fit the story:** Dr. Green refuses it (*"We don't have to go to that place right now."*: a placeholder line).
+- **Later:** the playable scenes get more events and conversations.
+
+> **[Agent note]** In this scene: which signals are available, the visited waypoints and Dr. Green's refusals (they're navigation and signal); not her seat's prompts. Their state lives in the test Ink file (`public/test/`); every line a marked placeholder.
 
 ## The work
 
@@ -46,17 +72,28 @@ A test scene to try every flight action from the cockpit: **taking off, landing,
 
 - > **[Agent note]** **Owner, 2026-11-23:** the joystick (her piloting loop) plays only while the ship moves forward; the climb starts very slowly and curves up (the ship's weight); the noise follows the thrust (40% with none) and is twice as loud while moving up or down. Built the same day (`flight.ts`, model.ts `pilotSpeed`). Then (owner): it slid down again after reaching the cruising height (the late braking overshot, the old 1.2 m/s floor pushed it back): it now brakes in time (1 m/s²) and holds the height; the floor only for a touchdown. Probe 92/92.
 
-**Pass 4: navigation** (≈ 1.5 h · 2 rounds)
-- The map on its screen: the globe from the intro planet's preset, the quadrant grid every 16°, test nav points; pan (left stick), zoom (triggers).
-- Selecting a point: the spoken order (test line) → the ship turns, banking → **the time-passing cutscene** (a flyby reused) → back to the cockpit; the ETA shown; arriving.
+- > **[Agent note]** **Pass 3b built 2026-11-24** (`src/flight-test/bottom-view.ts`): **the bottom view**, one camera under the hull's bottom at the ship's centre, looking straight down (nose up, lens 120°: owner, 2026-11-24), drawn into a 160 × 120 texture (**80 × 60** since, shown at the same size with sharp pixels: owner, 2026-11-24) **every 10th frame, only at the pilot's station**, after the frame with the sun's shadow map reused (not redrawn for it); the flames and the hull's outside as seen from outside. Shown bottom right until the controls file's `scr-view-bottom` takes the same texture. Panel *Flight test: bottom view*: on, every n frames, width, size shown, lens; the cost readouts. **Measured** (headless Chrome, so a rough figure): **about 3 ms of CPU per draw** (54–78 draw calls, about 88 000 triangles: the whole ship and the ground, nothing culled for it), so about 0.3 ms a frame on average, but a 3 ms step every 10th frame. The GPU's share isn't separated (that needs timestamp queries on the whole renderer): compare the frame time with it on and off. Over the flat ice plain it shows almost only snow, with the edge of the hull's bottom (pointed elsewhere for a check, it showed the cockpit the right way up). Probe 94/94.
 
-**Pass 5: the signal station** (≈ 1.5 h · 2 rounds)
-- The band switch (signal / infrared), the two dials (A grabs, D-pad turns, A or B lets go), the waveform clearing as they near, the radar; a lock → the spoken line → a new nav point (an infrared spot in infrared).
+**Pass 4: the signal station** (≈ 1 h · 1–2 rounds)
+- The band switch (signal / infrared), the two dials (A grabs, D-pad turns, A or B lets go), the waveform clearing as they near, the radar.
+- **Signals from the scene's data:** each with a place and a range; only the ones the story makes available are heard. A lock → the spoken line (*"I've got a signal"*, test line) → **triangulated** → **handed to navigation** as a point.
+- Who sits where as Ink state: Dr. Kaufman at navigation, Adam Red at signal, Dr. Ogawa away (a switch on the page); the lines picked by who's seated.
 
-**Pass 6: the crew and dialogue** (≈ 1 h · 1–2 rounds)
-- Who sits where as Ink state: Dr. Kaufman at navigation, Adam Red at signal, Dr. Ogawa away (a switch on the page); the spoken lines picked by who's seated; a test conversation while flying.
+**Pass 5: navigation** (≈ 1 h · 1–2 rounds)
+- The map on its screen: the globe from the intro planet's preset, the quadrant grid every 16°, the points; pan (left stick), zoom (triggers).
+- Selecting a point: the spoken order (*"Adam, set a course to …"*, test line) → **the waypoint**, shown on navigation's map and **on the pilot's screen** (a pointer and the ETA).
+- **Green's refusals:** a point the story doesn't want (or a visited one, if the story says so) → her refusal line, nothing set.
 
-Total ≈ 8.5 h of agent build, about 10 review rounds of 10–20 min.
+**Pass 6: steering and holding the course** (≈ 1 h · 1–2 rounds)
+- **Steering left and right** (left stick; keys too): the ship turns, banking a little; the joystick follows. The world turns round the ship (`flightHeading`, the treadmill).
+- **The course pointer** on the pilot's screen: the angle off the waypoint; turned onto it → the beat *on course*.
+- **Holding the course:** past a set angle for a set time → a crew line to correct it (test line), repeated no more than every few seconds. **Guardrails:** height and ground kept as in pass 3a; no crash possible.
+
+Total ≈ 8.5 h of agent build (passes 0–3a done), about 10 review rounds of 10–20 min.
+
+## Deferred to the game (owner, 2026-11-24)
+
+Not in this scene; for when non-linear travel goes into the game: **the prompt to take a break** (Adam takes over); **the playable scene in the ship** during the leg; **her seat's prompts** holding her until the beats are met; **the time-passing cutscene** on sitting back down (a flyby reused; answer 4 below); **landing at a site's place** and **the playable scene outside**; the whole run from take-off to walking out.
 
 ## The controls file (the owner's Blender work)
 
@@ -72,7 +109,7 @@ A separate `.blend`, in the ship file's coordinates and scale (1.22's), the cock
 ## Done when
 
 - Agent: each pass's probe, `npm run check`, screenshots; the smoke once at the end (the game itself untouched).
-- Owner: plays http://localhost:5202/flight-test.html with the pad: takes off, flies to a nav point, tunes in a signal in both bands, lands; hears the crew answer.
+- Owner: plays http://localhost:5202/flight-test.html with the pad: takes off, finds a signal in both bands, sets the course, turns onto it and holds it (the crew's correction when veering), lands; hears Dr. Green's refusals.
 
 ## Answered (owner, 2026-11-23)
 
@@ -80,6 +117,11 @@ A separate `.blend`, in the ship file's coordinates and scale (1.22's), the cock
 2. **Physical controls** in this build.
 3. The ids and properties above: fine.
 4. The time-passing cutscene: a flyby reused.
+
+## Answered (owner, 2026-11-24)
+
+5. **The scene's scope:** the flight controls, navigation and signal processing only; the rest of the run waits for the game. Flying isn't the game's focus; the playable scenes carry it.
+6. **Guiding:** her seat's prompts, which signals are available, visited waypoints allowed by the story, Dr. Green's refusals.
 
 ## After
 
