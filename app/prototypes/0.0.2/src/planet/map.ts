@@ -37,9 +37,11 @@ export interface MapLook {
   dim: number;
   /** The deepest contour's brightness, 0..1 of the first's: the levels in between darken evenly (owner, 2026-11-24). */
   deepest: number;
+  /** The grid's brightness, 0..1 of the coastline's (drawn by the page's 2D overlay, not this material). */
+  grid: number;
 }
 
-export const DEFAULT_LOOK: MapLook = { colour: '#39ff6a', coastWidth: 1.5, contourWidth: 1, contours: 6, contourSpacing: 0.03, dim: 0.35, deepest: 0.3 };
+export const DEFAULT_LOOK: MapLook = { colour: '#39ff6a', coastWidth: 1.5, contourWidth: 1, contours: 6, contourSpacing: 0.03, dim: 0.35, deepest: 0.3, grid: 0.3 };
 
 /** Where the map looks and how far it's zoomed. */
 export interface MapView {
@@ -152,12 +154,14 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
   }
 
   function project(northSouth: number, eastWest: number): { x: number; y: number } | null {
+    // No allocation but the result: the page's grid projects thousands of points a frame.
     const lat = (90 - northSouth) * DEG;
     const lon = ((preset.meridian ?? 0) + eastWest) * DEG;
-    const p = new THREE.Vector3(Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat));
-    if (p.dot(u.out.value) < 0) return null;
+    const cl = Math.cos(lat), px = cl * Math.cos(lon), py = cl * Math.sin(lon), pz = Math.sin(lat);
+    const o = u.out.value, e = u.east.value, n = u.north.value;
+    if (px * o.x + py * o.y + pz * o.z < 0) return null;
     const h = u.halfHeight.value;
-    return { x: 0.5 + p.dot(u.east.value) / (2 * h * u.aspect.value), y: 0.5 - p.dot(u.north.value) / (2 * h) };
+    return { x: 0.5 + (px * e.x + py * e.y + pz * e.z) / (2 * h * u.aspect.value), y: 0.5 - (px * n.x + py * n.y + pz * n.z) / (2 * h) };
   }
 
   function setLook(next: MapLook): void {
@@ -205,6 +209,10 @@ export function travel(northSouth: number, eastWest: number, bearing: number, di
 export function quadrantName(northSouth: number, eastWest: number): string {
   const ns = Math.min(180, Math.max(0, Math.floor(northSouth)));
   const ew = ((Math.floor(eastWest) % 360) + 360) % 360;
-  const hex = (n: number) => n.toString(16).toUpperCase().padStart(3, '0');
-  return `${hex(ns)}-${hex(ew)}`;
+  return `${hex3(ns)}-${hex3(ew)}`;
+}
+
+/** A whole number of degrees as the names write it: three hex digits, capitals (planet-map.md). */
+export function hex3(degrees: number): string {
+  return Math.round(degrees).toString(16).toUpperCase().padStart(3, '0');
 }

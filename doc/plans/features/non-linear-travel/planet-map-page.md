@@ -1,6 +1,6 @@
 # Plan: the planet map's test page (flight test, pass 4)
 
-**Status:** *approved* (owner, 2026-11-24: "step 1 is next"); **steps 1–2 built** (2026-11-24), for the owner's look. Open: whether the planet's code and preset count as "game assets" (assumed not). Pass 4 of the [flight test scene](flight-test-scene.md) (owner, 2026-11-24: a pass before navigation, its own page). A prototype: not checked against the other docs. Naming and quadrants: [planet-map.md](planet-map.md).
+**Status:** *approved* (owner, 2026-11-24: "step 1 is next"); **steps 1–3 built** (2026-11-24), for the owner's look. Open: whether the planet's code and preset count as "game assets" (assumed not). Pass 4 of the [flight test scene](flight-test-scene.md) (owner, 2026-11-24: a pass before navigation, its own page). A prototype: not checked against the other docs. Naming and quadrants: [planet-map.md](planet-map.md).
 
 ## What
 
@@ -47,8 +47,10 @@ The interface on the **navigation station's big screen**, built alone on a dev p
 
 > **[Agent note]** North up or heading up, the player's choice (owner, 2026-11-24), replacing 0050's roll: a sidebar choice, pad top face button / keyboard N (placeholders). Heading up turns the map by the ship's heading, so the ship points up when it's centred (following). The 0050 button now only centres the whole globe on the region. **Contours:** six levels (was four), each darker than the one before going inland; the deepest at 0.3 of the first (`deepest`, a slider). A look saved in the browser before this takes the six levels.
 
+> **[Agent note]** Step 3 as built (2026-11-24): `src/planet/map-overlay.ts` (`drawMapOverlay`, so pass 5 can draw it on the station's screen). Grid every 16° at the whole globe and 64°, 4° at 16°, 1° at 4° and the quadrant step (about four lines across); meridians stop at the parallel nearest each pole. Sector names on black boxes: parallels at the left edge, meridians at the top; turned (heading up), a line that misses its edge takes the other one; none on the whole globe (owner, 2026-11-24: hidden there). A name that would cover another is skipped. At the quadrant step each cell's name in it, moved onto the screen when its cell is cut by the edge. Marks: three test marks near 0050's region (one of each kind, not story places); the sidebar adds one at the centre, or clears them. A *grid brightness* in the look (0.3). A 2 px border round the screen in the line colour (owner, 2026-11-24). The overlay takes about 0.5 ms a frame zoomed in, 1.5–3 ms on the whole globe. **Seen:** with heading up, north–south and east–west names land on the same edge and read alike (`049` and `0C7` both on the left): the open question below.
+
 ## Open (yours, can wait for the look)
 
 - The five zoom steps' widths.
-- Heading up turns the grid with the map: step 3 will put the edge labels on the grid lines where they cross the screen's edges (they won't stay in neat rows); say if heading up should drop them.
+- Heading up turns the grid with the map: the edge names sit where the grid lines cross the screen's edges, and north–south and east–west names can share an edge and look alike. Keep them, drop them with heading up, or tell them apart (e.g. a dimmer style or a letter for one kind)?
 - Which coastline and contour style matches the nav display (the page has sliders; I'll copy your values in).

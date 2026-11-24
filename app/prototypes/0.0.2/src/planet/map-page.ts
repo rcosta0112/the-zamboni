@@ -6,8 +6,9 @@
  * Step 1: the globe in green lines; the look set in the sidebar, kept in the browser.
  * Step 2: zoom in fixed steps (L2 out / R2 in, Q / E, the wheel), pan (left stick, WASD; a share of the screen
  * per second, so every step feels the same), follow the simulated ship (R3 / F; panning stops it). The ship is
- * a heading and a speed in the sidebar, drawn as a triangle on a 2D overlay (step 3 adds the grid, labels and
- * the other icons there).
+ * a heading and a speed in the sidebar.
+ * Step 3: the 2D overlay (map-overlay.ts): the grid by zoom, sector names on the edges, quadrant names at the
+ * closest step, the marks (waypoints, signals, visited sites; added at the centre in the sidebar) and the ship.
  * Dev only, as tools.html.
  */
 
@@ -15,6 +16,7 @@ import * as THREE from 'three/webgpu';
 import presets from './presets.json';
 import type { PlanetPreset } from './planet';
 import { createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, travel, type MapLook, type MapView } from './map';
+import { drawMapOverlay, type MapMark, type MarkKind } from './map-overlay';
 
 /** The zoom steps (plan): the screen's width in degrees; 360 = the whole globe. */
 const ZOOM_STEPS = [
@@ -36,6 +38,12 @@ const DEAD_ZONE = 0.15;
  * heading up instead (owner, 2026-11-24).
  */
 const SHOT_END = { northSouth: 74.0, eastWest: 199.5 };
+/** Test marks around 0050's region, one of each kind, so the icons show on opening (not story places). */
+const TEST_MARKS: MapMark[] = [
+  { kind: 'waypoint', northSouth: 76.5, eastWest: 197.5 },
+  { kind: 'signal', northSouth: 75.5, eastWest: 201.5 },
+  { kind: 'visited', northSouth: 73.5, eastWest: 198.5 },
+];
 /** Standard-mapping pad buttons (by position): L2, R2, R3, the top face button (placeholder). */
 const PAD = { out: 6, in: 7, follow: 11, orient: 3 };
 /** The map's orientation, the player's choice: north up, or the ship's heading up. */
@@ -114,6 +122,7 @@ async function main(): Promise<void> {
   let orientation: Orientation = 'north';
   let zoomStep = 0;
   let following = true;
+  const marks: MapMark[] = TEST_MARKS.map((m) => ({ ...m }));
 
   document.documentElement.style.setProperty('--aspect', String(MAP_ASPECT));
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: false });
@@ -161,6 +170,26 @@ async function main(): Promise<void> {
   toCentre.textContent = 'Ship to the centre';
   toCentre.addEventListener('click', () => {
     Object.assign(ship, { northSouth: view.northSouth, eastWest: view.eastWest });
+    redraw();
+  });
+
+  // The marks (placeholders): added at the view's centre.
+  const marksBox = section('Marks');
+  const kind = document.createElement('select');
+  kind.add(new Option('Waypoint ○', 'waypoint'));
+  kind.add(new Option('Signal □', 'signal'));
+  kind.add(new Option('Visited ×', 'visited'));
+  field(marksBox, 'kind', kind, () => {});
+  const addMark = side.appendChild(document.createElement('button'));
+  addMark.textContent = 'Add at the centre';
+  addMark.addEventListener('click', () => {
+    marks.push({ kind: kind.value as MarkKind, northSouth: view.northSouth, eastWest: view.eastWest });
+    redraw();
+  });
+  const clearMarks = side.appendChild(document.createElement('button'));
+  clearMarks.textContent = 'Clear marks';
+  clearMarks.addEventListener('click', () => {
+    marks.length = 0;
     redraw();
   });
 
@@ -257,6 +286,7 @@ async function main(): Promise<void> {
     ['contour spacing', 'contourSpacing', 0.005, 0.001],
     ['contours, rim dim', 'dim', 0.05, 0],
     ['deepest contour', 'deepest', 0.05, 0],
+    ['grid brightness', 'grid', 0.05, 0],
   ];
   const inputs: Partial<Record<keyof MapLook, HTMLInputElement>> = {};
   for (const [label, key, step, min] of numeric) {
@@ -284,29 +314,19 @@ async function main(): Promise<void> {
   resize();
 
   const ctx = overlay.getContext('2d')!;
-  /** The overlay: the ship as a triangle along its heading (step 3: the grid, labels, other icons). */
+  let overlayMs = 0;
   function drawOverlay(): void {
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    const at = map.project(ship.northSouth, ship.eastWest);
-    if (!at) return;
-    // The heading on screen: towards a point a little ahead (the globe's turn included).
-    const ahead = travel(ship.northSouth, ship.eastWest, ship.heading, Math.min(view.width, 180) / 200);
-    const to = map.project(ahead.northSouth, ahead.eastWest) ?? at;
-    const w = overlay.width, h = overlay.height;
-    const angle = to.x === at.x && to.y === at.y ? -Math.PI / 2 : Math.atan2((to.y - at.y) * h, (to.x - at.x) * w);
-    const size = Math.max(8, h * 0.025);
-    ctx.save();
-    ctx.translate(at.x * w, at.y * h);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    ctx.moveTo(size, 0);
-    ctx.lineTo(-size * 0.7, size * 0.6);
-    ctx.lineTo(-size * 0.7, -size * 0.6);
-    ctx.closePath();
-    ctx.strokeStyle = look.colour;
-    ctx.lineWidth = Math.max(1, look.coastWidth * (window.devicePixelRatio || 1));
-    ctx.stroke();
-    ctx.restore();
+    const t = performance.now();
+    drawMapOverlay(ctx, map, {
+      view,
+      colour: look.colour,
+      grid: look.grid,
+      lineWidth: look.coastWidth * (window.devicePixelRatio || 1),
+      border: 2 * (window.devicePixelRatio || 1), // 2 px (owner, 2026-11-24)
+      ship,
+      marks,
+    });
+    overlayMs = performance.now() - t;
   }
 
   // Drawn when something changed, and every frame while the ship moves or the view pans.
@@ -346,12 +366,12 @@ async function main(): Promise<void> {
     status.appendChild(document.createElement('span')).textContent = `Centre ${quadrantName(view.northSouth, view.eastWest)} · ${ZOOM_STEPS[zoomStep]!.name}${following ? ' · following' : ''}`;
     status.appendChild(document.createElement('span')).textContent = `Ship ${quadrantName(ship.northSouth, ship.eastWest)}`;
     status.appendChild(document.createElement('span')).textContent = `Meridian ${preset.meridian ?? 0}° · aspect ${MAP_ASPECT.toFixed(3)} · ${renderer.domElement.width} × ${renderer.domElement.height} px`;
-    status.appendChild(document.createElement('small')).textContent = `${renderer.backend.constructor.name}, draw call ${drawMs.toFixed(1)} ms`;
+    status.appendChild(document.createElement('small')).textContent = `${renderer.backend.constructor.name}, draw call ${drawMs.toFixed(1)} ms, overlay ${overlayMs.toFixed(1)} ms`;
   });
 
   // For the probe (step 4).
   Object.assign(window, {
-    __planetMap: { SHOT_END, view, look, ship, redraw, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => following, zoomStep: () => zoomStep },
+    __planetMap: { SHOT_END, view, look, ship, marks, redraw, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => following, zoomStep: () => zoomStep },
   });
 }
 
