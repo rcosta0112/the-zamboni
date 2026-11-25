@@ -7,7 +7,10 @@
 // cut to what the pixel shows), then lines where the height crosses a level, their width from the height's
 // slope (`fwidth`), so they stay thin at every zoom:
 // - the **coastline** (the height at sea level; land is below it, as in planet.ts), bright;
-// - dim **contour lines** on the land, evenly spaced below sea level, darker level by level going inland;
+// - dim **contour lines** on the land, evenly spaced below sea level, darker the deeper they lie. Their spacing
+//   is set per zoom step by the page, nested (each step splits the step before's gaps): the lines kept from
+//   the coarser step are the **main** ones, the new ones **minor** and dimmer; lines closer than a few pixels
+//   fade out (plan step 3b: the same detail at every zoom);
 // - the globe's **rim**, dim (zoomed out, where the globe ends).
 // The sea is left black.
 //
@@ -15,7 +18,7 @@
 // eastward from the preset's meridian (planet-map.md). The planet's own frame is Blender's (Z up, planet.ts).
 
 import * as THREE from 'three/webgpu';
-import { abs, clamp, float, floor, Fn, fract, mix, fwidth, length, log2, max, min, mx_noise_vec3, sqrt, step, uniform, uv, vec3 } from 'three/tsl';
+import { abs, clamp, float, floor, Fn, fract, mix, mod, fwidth, length, log2, max, min, mx_noise_vec3, smoothstep, sqrt, step, uniform, uv, vec3 } from 'three/tsl';
 import { fbm, seedOffset, type PlanetPreset } from './planet';
 
 /** The navigation station's big screen (`Navigation_Display`'s face, *Topographical Map*): 0.806 × 0.677 m, measured 2026-11-24. */
@@ -29,19 +32,56 @@ export interface MapLook {
   coastWidth: number;
   /** The contour lines' width, in pixels. */
   contourWidth: number;
-  /** How many contour lines below sea level. */
-  contours: number;
-  /** The height between two contour lines (the planet's height runs about 0..1, sea level at 0.5). */
+  /** The height between two contour lines on the whole globe (the planet's height runs about 0..1, sea level at 0.5). */
   contourSpacing: number;
-  /** The contour lines' and the rim's brightness, 0..1 of the coastline's (the first contour's). */
+  /**
+   * Per zoom step after the whole globe: into how many each gap of the step before is split (whole numbers ≥ 1),
+   * so the lines seen zoomed out stay and new ones appear between (`contourSpacingAt`).
+   */
+  contourSplit: number[];
+  /** The contour lines' and the rim's brightness, 0..1 of the coastline's (a main line's at the coast). */
   dim: number;
-  /** The deepest contour's brightness, 0..1 of the first's: the levels in between darken evenly (owner, 2026-11-24). */
+  /** The minor contour lines' brightness (those new at this zoom step), 0..1 of the main ones'. */
+  minor: number;
+  /** How deep below sea level (in height) the contours have darkened to `deepest`; evenly from the coast down to it. */
+  fadeDepth: number;
+  /** The contours' brightness from `fadeDepth` on, 0..1 of theirs at the coast (owner, 2026-11-24: darker inland). */
   deepest: number;
   /** The grid's brightness, 0..1 of the coastline's (drawn by the page's 2D overlay, not this material). */
   grid: number;
+  /**
+   * Fewer noise layers than the pixel could show, for smoother lines (owner, 2026-11-24: too much detail). The
+   * map's own: the planet's shape (preset, 0050's planet) is untouched; only its finest wiggles are left out.
+   * One value per zoom step, the whole globe first (`setSmoothing`).
+   */
+  smoothing: number[];
 }
 
-export const DEFAULT_LOOK: MapLook = { colour: '#39ff6a', coastWidth: 1.5, contourWidth: 1, contours: 6, contourSpacing: 0.03, dim: 0.35, deepest: 0.3, grid: 0.3 };
+export const DEFAULT_LOOK: MapLook = {
+  colour: '#39ff6a',
+  coastWidth: 1.5,
+  contourWidth: 1,
+  contourSpacing: 0.1, // owner, 2026-11-25
+  // The owner's values (2026-11-25): the globe's spacing kept to 16°, a third of it from 4° on.
+  contourSplit: [1, 1, 3, 1],
+  dim: 0.35,
+  minor: 0.5,
+  fadeDepth: 0.18,
+  deepest: 0.05, // almost black far inland (owner, 2026-11-24: "darker and darker until they are almost black")
+  grid: 0.3,
+  smoothing: [1, 1, 1.2, 1.5, 1.5], // the owner's values (2026-11-25)
+};
+
+/** The contours at a zoom step (0 = the whole globe): their spacing, and every how many lines one is a main line. */
+export function contourSpacingAt(look: MapLook, step: number): { spacing: number; split: number } {
+  let spacing = Math.max(look.contourSpacing, 1e-4);
+  let split = 1;
+  for (let i = 0; i < step; i++) {
+    split = Math.max(1, Math.round(look.contourSplit[i] ?? 1));
+    spacing /= split;
+  }
+  return { spacing, split };
+}
 
 /** Where the map looks and how far it's zoomed. */
 export interface MapView {
@@ -61,6 +101,10 @@ export interface PlanetMap {
   /** Where a position falls on the screen with the last `setView`: x, y 0..1 (y down), or null on the far side. */
   project(northSouth: number, eastWest: number): { x: number; y: number } | null;
   setLook(look: MapLook): void;
+  /** Noise layers left out at the view's zoom step (`MapLook.smoothing`). */
+  setSmoothing(layers: number): void;
+  /** The contours at the view's zoom step (`contourSpacingAt`). */
+  setContours(spacing: number, split: number): void;
   apply(preset: PlanetPreset): void;
   dispose(): void;
 }
@@ -82,6 +126,7 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
     warpScale: uniform(preset.warpScale),
     seaLevel: uniform(preset.seaLevel),
     lodBias: uniform(preset.lodBias),
+    smoothing: uniform(look.smoothing[0] ?? 0),
     // The view: the screen's half height in globe radii, and the globe's frame at the screen's centre.
     halfHeight: uniform(1.08),
     aspect: uniform(aspect),
@@ -92,9 +137,11 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
     colour: uniform(new THREE.Color(look.colour)),
     coastWidth: uniform(look.coastWidth),
     contourWidth: uniform(look.contourWidth),
-    contours: uniform(look.contours),
     contourSpacing: uniform(look.contourSpacing),
+    contourSplit: uniform(1),
     dim: uniform(look.dim),
+    minor: uniform(look.minor),
+    fadeDepth: uniform(look.fadeDepth),
     deepest: uniform(look.deepest),
   };
 
@@ -112,7 +159,7 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
     const warp = mx_noise_vec3(gen.add(u.seedWarp).mul(u.warpScale)).mul(u.warp);
     const p = gen.add(u.seed).mul(u.scale).add(warp.mul(u.scale));
     const footprint = max(length(fwidth(p)), 1e-6);
-    const lodDetail = log2(float(0.5).div(footprint)).div(max(log2(u.lacunarity), 0.01)).add(u.lodBias);
+    const lodDetail = log2(float(0.5).div(footprint)).div(max(log2(u.lacunarity), 0.01)).add(u.lodBias).sub(u.smoothing);
     const detail = clamp(min(u.detail, lodDetail), 0, u.detail);
     const height = fbm(p, detail, u.roughness, u.lacunarity) as FloatNode;
     const slope = max(fwidth(height), 1e-6);
@@ -121,14 +168,20 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
     const line = (distance: FloatNode, width: FloatNode) => clamp(width.mul(0.5).add(0.5).sub(distance), 0, 1);
 
     const coast = line(abs(height.sub(u.seaLevel)).div(slope), u.coastWidth);
-    // Contours: levels seaLevel − k × spacing, k = 1 … contours (land only: below sea level).
-    const k = u.seaLevel.sub(height).div(u.contourSpacing);
-    const nearest = abs(fract(k.add(0.5)).sub(0.5)).mul(u.contourSpacing).div(slope);
-    const inRange = step(0.5, k).mul(step(k, u.contours.add(0.5)));
-    // Each level darker than the one before (level 1 at `dim`, the last at `dim` × `deepest`).
-    const level = clamp(floor(k.add(0.5)), 1, max(u.contours, 1));
-    const fade = mix(float(1), u.deepest, level.sub(1).div(max(u.contours.sub(1), 1)));
-    const contour = line(nearest, u.contourWidth).mul(inRange).mul(fade);
+    // Contours: levels seaLevel − k × spacing, k = 1, 2 … (land only: below sea level).
+    const depth = u.seaLevel.sub(height);
+    const k = depth.div(u.contourSpacing);
+    const gap = u.contourSpacing.div(slope); // pixels between two lines here
+    const nearest = abs(fract(k.add(0.5)).sub(0.5)).mul(gap);
+    const onLand = step(0.5, k);
+    // Every `split`-th line was there at the step before: a main line; the others minor.
+    const main = step(mod(floor(k.add(0.5)), u.contourSplit), 0.5);
+    const strength = mix(u.minor, float(1), main);
+    // Lines closer than a few pixels fade out (main lines are `split` gaps apart).
+    const room = smoothstep(2, 5, gap.mul(mix(float(1), u.contourSplit, main)));
+    // Darker the deeper they lie, by height (the same line keeps its brightness at every step).
+    const fade = mix(float(1), u.deepest, clamp(depth.div(max(u.fadeDepth, 1e-4)), 0, 1));
+    const contour = line(nearest, u.contourWidth).mul(onLand).mul(strength).mul(room).mul(fade);
     const rim = line(abs(r.sub(1)).div(max(fwidth(r), 1e-6)), u.contourWidth);
 
     const lit = max(max(coast, contour.mul(u.dim)).mul(onGlobe), rim.mul(u.dim));
@@ -168,10 +221,19 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
     u.colour.value.set(next.colour);
     u.coastWidth.value = next.coastWidth;
     u.contourWidth.value = next.contourWidth;
-    u.contours.value = next.contours;
-    u.contourSpacing.value = Math.max(next.contourSpacing, 1e-4);
     u.dim.value = next.dim;
+    u.minor.value = next.minor;
+    u.fadeDepth.value = next.fadeDepth;
     u.deepest.value = next.deepest;
+  }
+
+  function setSmoothing(layers: number): void {
+    u.smoothing.value = Math.max(0, layers);
+  }
+
+  function setContours(spacing: number, split: number): void {
+    u.contourSpacing.value = Math.max(spacing, 1e-6);
+    u.contourSplit.value = Math.max(1, Math.round(split));
   }
 
   function apply(next: PlanetPreset): void {
@@ -188,7 +250,7 @@ export function createPlanetMap(preset: PlanetPreset, look: MapLook = DEFAULT_LO
     u.lodBias.value = next.lodBias;
   }
 
-  return { material, setView, project, setLook, apply, dispose: () => material.dispose() };
+  return { material, setView, project, setLook, setSmoothing, setContours, apply, dispose: () => material.dispose() };
 }
 
 /**

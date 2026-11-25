@@ -9,13 +9,15 @@
  * a heading and a speed in the sidebar.
  * Step 3: the 2D overlay (map-overlay.ts): the grid by zoom, sector names on the edges, quadrant names at the
  * closest step, the marks (waypoints, signals, visited sites; added at the centre in the sidebar) and the ship.
+ * Step 3b: the contours' spacing by zoom step, nested (the look's `contourSplit`), so every step shows about as
+ * many lines; main and minor lines.
  * Dev only, as tools.html.
  */
 
 import * as THREE from 'three/webgpu';
 import presets from './presets.json';
 import type { PlanetPreset } from './planet';
-import { createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, travel, type MapLook, type MapView } from './map';
+import { contourSpacingAt, createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, travel, type MapLook, type MapView } from './map';
 import { drawMapOverlay, type MapMark, type MarkKind } from './map-overlay';
 
 /** The zoom steps (plan): the screen's width in degrees; 360 = the whole globe. */
@@ -69,14 +71,25 @@ function loadLook(): MapLook {
     const kept = localStorage.getItem(STORE);
     if (kept) {
       const saved = JSON.parse(kept) as Partial<MapLook>;
-      // Saved before the levels darkened (owner, 2026-11-24: six levels): take the new count.
-      if (saved.deepest === undefined) delete saved.contours;
-      return { ...DEFAULT_LOOK, ...saved };
+      // Saved before the spacing by zoom (step 3b): the contours' values taken anew.
+      if (saved.contourSplit?.length !== DEFAULT_LOOK.contourSplit.length) {
+        delete saved.contourSplit;
+        delete saved.contourSpacing;
+        delete saved.deepest;
+      }
+      // Smoothing per zoom step (2026-11-25; was one value).
+      if (!Array.isArray(saved.smoothing) || saved.smoothing.length !== DEFAULT_LOOK.smoothing.length) delete saved.smoothing;
+      return {
+        ...DEFAULT_LOOK,
+        ...saved,
+        contourSplit: [...(saved.contourSplit ?? DEFAULT_LOOK.contourSplit)],
+        smoothing: [...(saved.smoothing ?? DEFAULT_LOOK.smoothing)],
+      };
     }
   } catch {
     /* none kept, or storage blocked */
   }
-  return { ...DEFAULT_LOOK };
+  return { ...DEFAULT_LOOK, contourSplit: [...DEFAULT_LOOK.contourSplit], smoothing: [...DEFAULT_LOOK.smoothing] };
 }
 
 /** A labelled input in a `.values` grid; `onInput` gets its value. */
@@ -197,8 +210,15 @@ async function main(): Promise<void> {
     zoomStep = Math.min(ZOOM_STEPS.length - 1, Math.max(0, step));
     view.width = ZOOM_STEPS[zoomStep]!.width;
     zoom.value = String(zoomStep);
+    applyContours();
     redraw();
   }
+  function applyContours(): void {
+    const { spacing, split } = contourSpacingAt(look, zoomStep);
+    map.setContours(spacing, split);
+    map.setSmoothing(look.smoothing[zoomStep] ?? 0);
+  }
+  applyContours();
   function setOrientation(next: Orientation): void {
     orientation = next;
     orient.value = next;
@@ -268,6 +288,7 @@ async function main(): Promise<void> {
   const lookBox = section('Look');
   const lookChanged = () => {
     map.setLook(look);
+    applyContours();
     try {
       localStorage.setItem(STORE, JSON.stringify(look));
     } catch {
@@ -282,9 +303,10 @@ async function main(): Promise<void> {
   const numeric: [string, keyof MapLook, number, number][] = [
     ['coastline (px)', 'coastWidth', 0.25, 0],
     ['contour lines (px)', 'contourWidth', 0.25, 0],
-    ['contour count', 'contours', 1, 0],
-    ['contour spacing', 'contourSpacing', 0.005, 0.001],
+    ['contour spacing (globe)', 'contourSpacing', 0.005, 0.001],
     ['contours, rim dim', 'dim', 0.05, 0],
+    ['minor contours', 'minor', 0.05, 0],
+    ['fade depth', 'fadeDepth', 0.01, 0],
     ['deepest contour', 'deepest', 0.05, 0],
     ['grid brightness', 'grid', 0.05, 0],
   ];
@@ -294,12 +316,34 @@ async function main(): Promise<void> {
     inputs[key] = input;
     field(lookBox, label, input, (v) => (((look[key] as number) = Number(v)), lookChanged()));
   }
+  // By zoom step: the smoothing (noise layers left out), and into how many each step splits the step before's
+  // contour gaps (none for the whole globe).
+  const stepBox = section('Detail by zoom step');
+  const smoothings: HTMLInputElement[] = [];
+  const splits: HTMLInputElement[] = [];
+  ZOOM_STEPS.forEach((z, i) => {
+    const name = z.width >= 180 ? 'globe' : `${z.width}°`;
+    const smooth = numberInput(look.smoothing[i] ?? 0, 0.25, 0);
+    field(stepBox, `${name} smoothing`, smooth, (v) => ((look.smoothing[i] = Math.max(0, Number(v) || 0)), lookChanged()));
+    smoothings.push(smooth);
+    if (i === 0) {
+      stepBox.appendChild(document.createElement('span')); // the globe has no split: keeps the rows paired
+      return;
+    }
+    const split = numberInput(look.contourSplit[i - 1] ?? 1, 1, 1);
+    field(stepBox, `${name} split`, split, (v) => ((look.contourSplit[i - 1] = Math.max(1, Math.round(Number(v)) || 1)), lookChanged()));
+    splits.push(split);
+  });
   const reset = side.appendChild(document.createElement('button'));
   reset.textContent = 'Reset look';
   reset.addEventListener('click', () => {
     Object.assign(look, DEFAULT_LOOK);
     colour.value = look.colour;
+    look.contourSplit = [...DEFAULT_LOOK.contourSplit];
+    look.smoothing = [...DEFAULT_LOOK.smoothing];
+    smoothings.forEach((input, i) => (input.value = String(look.smoothing[i])));
     for (const [, key] of numeric) inputs[key]!.value = String(look[key]);
+    splits.forEach((input, i) => (input.value = String(look.contourSplit[i])));
     lookChanged();
   });
 
@@ -365,13 +409,14 @@ async function main(): Promise<void> {
     status.innerHTML = '';
     status.appendChild(document.createElement('span')).textContent = `Centre ${quadrantName(view.northSouth, view.eastWest)} · ${ZOOM_STEPS[zoomStep]!.name}${following ? ' · following' : ''}`;
     status.appendChild(document.createElement('span')).textContent = `Ship ${quadrantName(ship.northSouth, ship.eastWest)}`;
+    status.appendChild(document.createElement('span')).textContent = `Contours every ${contourSpacingAt(look, zoomStep).spacing.toPrecision(2)}`;
     status.appendChild(document.createElement('span')).textContent = `Meridian ${preset.meridian ?? 0}° · aspect ${MAP_ASPECT.toFixed(3)} · ${renderer.domElement.width} × ${renderer.domElement.height} px`;
     status.appendChild(document.createElement('small')).textContent = `${renderer.backend.constructor.name}, draw call ${drawMs.toFixed(1)} ms, overlay ${overlayMs.toFixed(1)} ms`;
   });
 
   // For the probe (step 4).
   Object.assign(window, {
-    __planetMap: { SHOT_END, view, look, ship, marks, redraw, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => following, zoomStep: () => zoomStep },
+    __planetMap: { SHOT_END, view, look, ship, marks, redraw, lookChanged, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => following, zoomStep: () => zoomStep },
   });
 }
 
