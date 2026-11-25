@@ -20,12 +20,13 @@
 import * as THREE from 'three/webgpu';
 import { abs, clamp, float, floor, Fn, fract, mix, mod, fwidth, length, log2, max, min, mx_noise_vec3, smoothstep, sqrt, step, uniform, uv, vec3 } from 'three/tsl';
 import { fbm, seedOffset, type PlanetPreset } from './planet';
+import type { CrtLook } from './crt';
 
 /** The navigation station's big screen (`Navigation_Display`'s face, *Topographical Map*): 0.806 × 0.677 m, measured 2026-11-24. */
 export const MAP_ASPECT = 0.8056 / 0.6772;
 
-/** The map's look (the test page's sliders). */
-export interface MapLook {
+/** The map's look (the test page's sliders), with the screen's CRT look (crt.ts, step 3c). */
+export interface MapLook extends CrtLook {
   /** sRGB hex. */
   colour: string;
   /** The coastline's width, in pixels. */
@@ -70,6 +71,16 @@ export const DEFAULT_LOOK: MapLook = {
   deepest: 0.05, // almost black far inland (owner, 2026-11-24: "darker and darker until they are almost black")
   grid: 0.3,
   smoothing: [1, 1, 1.2, 1.5, 1.5], // the owner's values (2026-11-25)
+  // The CRT (step 3c, owner, 2026-11-25: chunky; the noise as the planet shot's grain: 0.325, 0.54).
+  scanLines: 64, // owner, 2026-11-25
+  scanDark: 0.5,
+  noise: 0.325,
+  noiseResponse: 0.54,
+  noiseSize: 1,
+  noiseRate: 12,
+  noiseOnBlack: 0,
+  flicker: 0.05,
+  flickerRate: 12,
 };
 
 /** The contours at a zoom step (0 = the whole globe): their spacing, and every how many lines one is a main line. */

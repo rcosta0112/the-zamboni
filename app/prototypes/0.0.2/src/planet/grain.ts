@@ -38,14 +38,14 @@ const u = {
 };
 
 /** A random value 0..1 for a point (Dave Hoskins' hash13: no sine). */
-function hash13(p: Vec3Node): FloatNode {
+export function hash13(p: Vec3Node): FloatNode {
   const p3 = fract(p.mul(0.1031)).toVar();
   p3.addAssign(dot(p3, p3.zyx.add(31.32)));
   return fract(p3.x.add(p3.y).mul(p3.z));
 }
 
 /** −1..1, peaked at 0 (two random values summed: softer than flat noise), one per cell. */
-function signed(cell: Vec3Node): FloatNode {
+export function signed(cell: Vec3Node): FloatNode {
   return hash13(cell).add(hash13(cell.add(vec3(57.3, 11.9, 23.1)))).sub(1);
 }
 

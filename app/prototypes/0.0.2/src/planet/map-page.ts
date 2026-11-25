@@ -11,6 +11,8 @@
  * closest step, the marks (waypoints, signals, visited sites; added at the centre in the sidebar) and the ship.
  * Step 3b: the contours' spacing by zoom step, nested (the look's `contourSplit`), so every step shows about as
  * many lines; main and minor lines.
+ * Step 3c: a CRT look (crt.ts): the map drawn into a render target, the overlay's canvas as a texture, both shown
+ * through one pass with scanlines, noise and flicker (the overlay canvas itself hidden).
  * Dev only, as tools.html.
  */
 
@@ -19,6 +21,7 @@ import presets from './presets.json';
 import type { PlanetPreset } from './planet';
 import { contourSpacingAt, createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, travel, type MapLook, type MapView } from './map';
 import { drawMapOverlay, type MapMark, type MarkKind } from './map-overlay';
+import { createCrt } from './crt';
 
 /** The zoom steps (plan): the screen's width in degrees; 360 = the whole globe. */
 const ZOOM_STEPS = [
@@ -144,6 +147,13 @@ async function main(): Promise<void> {
   renderer.toneMapping = THREE.NoToneMapping;
   const map = createPlanetMap(preset, look);
   const quad = new THREE.QuadMesh(map.material);
+  // Step 3c: the map into a render target (only when it changes), shown with the overlay through the CRT pass.
+  const picture = new THREE.RenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+  const overlayTexture = new THREE.CanvasTexture(overlay);
+  overlayTexture.colorSpace = THREE.SRGBColorSpace;
+  overlayTexture.flipY = false; // the canvas's rows top-down, as the render target's
+  const crt = createCrt(picture.texture, overlayTexture, MAP_ASPECT, look);
+  const crtQuad = new THREE.QuadMesh(crt.material);
 
   let dirty = true;
   const redraw = () => (dirty = true);
@@ -288,6 +298,7 @@ async function main(): Promise<void> {
   const lookBox = section('Look');
   const lookChanged = () => {
     map.setLook(look);
+    crt.setLook(look);
     applyContours();
     try {
       localStorage.setItem(STORE, JSON.stringify(look));
@@ -334,6 +345,24 @@ async function main(): Promise<void> {
     field(stepBox, `${name} split`, split, (v) => ((look.contourSplit[i - 1] = Math.max(1, Math.round(Number(v)) || 1)), lookChanged()));
     splits.push(split);
   });
+  // The CRT (step 3c).
+  const crtBox = section('CRT');
+  const crtFields: [string, keyof MapLook, number, number][] = [
+    ['scanlines (count)', 'scanLines', 10, 1],
+    ['scanline dark', 'scanDark', 0.05, 0],
+    ['noise', 'noise', 0.025, 0],
+    ['noise in darks', 'noiseResponse', 0.05, 0],
+    ['noise size (lines)', 'noiseSize', 0.5, 0.5],
+    ['noise rate (Hz)', 'noiseRate', 1, 0],
+    ['noise on black', 'noiseOnBlack', 0.01, 0],
+    ['flicker', 'flicker', 0.01, 0],
+    ['flicker rate (Hz)', 'flickerRate', 1, 0],
+  ];
+  for (const [label, key, step, min] of crtFields) {
+    const input = numberInput(look[key] as number, step, min);
+    inputs[key] = input;
+    field(crtBox, label, input, (v) => (((look[key] as number) = Number(v)), lookChanged()));
+  }
   const reset = side.appendChild(document.createElement('button'));
   reset.textContent = 'Reset look';
   reset.addEventListener('click', () => {
@@ -342,7 +371,7 @@ async function main(): Promise<void> {
     look.contourSplit = [...DEFAULT_LOOK.contourSplit];
     look.smoothing = [...DEFAULT_LOOK.smoothing];
     smoothings.forEach((input, i) => (input.value = String(look.smoothing[i])));
-    for (const [, key] of numeric) inputs[key]!.value = String(look[key]);
+    for (const [, key] of [...numeric, ...crtFields]) inputs[key]!.value = String(look[key]);
     splits.forEach((input, i) => (input.value = String(look.contourSplit[i])));
     lookChanged();
   });
@@ -352,6 +381,7 @@ async function main(): Promise<void> {
     renderer.setSize(Math.max(1, Math.round(box.width)), Math.max(1, Math.round(box.height)), false);
     overlay.width = renderer.domElement.width;
     overlay.height = renderer.domElement.height;
+    picture.setSize(renderer.domElement.width, renderer.domElement.height);
     redraw();
   };
   new ResizeObserver(resize).observe(canvas);
@@ -397,13 +427,22 @@ async function main(): Promise<void> {
     }
     if (following) Object.assign(view, { northSouth: ship.northSouth, eastWest: ship.eastWest });
 
-    if (!dirty) return;
+    // The CRT's noise and flicker tick at their own stepped rates: the screen is shown again when one does.
+    const ticked = crt.tick(now / 1000);
+    if (!dirty) {
+      if (ticked) crtQuad.render(renderer);
+      return;
+    }
     dirty = false;
     map.setView(view);
     const t = performance.now();
+    renderer.setRenderTarget(picture);
     quad.render(renderer);
+    renderer.setRenderTarget(null);
     drawMs = performance.now() - t;
     drawOverlay();
+    overlayTexture.needsUpdate = true;
+    crtQuad.render(renderer);
     if (document.activeElement !== ns) ns.value = view.northSouth.toFixed(2);
     if (document.activeElement !== ew) ew.value = view.eastWest.toFixed(2);
     status.innerHTML = '';

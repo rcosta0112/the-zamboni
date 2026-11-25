@@ -18,6 +18,8 @@
       input[type='number'] { width: 4rem; }
       /* The 2D overlay (the ship, later the grid and labels) over the map. */
       #overlay { pointer-events: none; }
+      /* Step 3c: the overlay is drawn into the CRT pass (a texture); its own canvas stays hidden. */
+      #overlay { display: none; }
       #side > small { display: block; margin: 0.3rem 0 0.4rem; }
     </style>
   </head>
