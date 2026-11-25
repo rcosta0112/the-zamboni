@@ -49,6 +49,7 @@ import { CONTROL_SOURCES, Controls, controlsFolder } from './flight-test/control
 import { ShipFlight } from './flight-test/flight';
 import { Overlay, overlayFolder, overlayLook } from './flight-test/overlay';
 import { BottomView, bottomFolder } from './flight-test/bottom-view';
+import { NavigationScreen, navScreenFolder } from './flight-test/nav-screen';
 import { keptApart } from './merge-rooms';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
@@ -238,6 +239,8 @@ async function start(): Promise<void> {
   /** The camera drawn: a station's, or the game's. */
   const overlay = shipFlight ? new Overlay(shipFlight) : null; // flight-test.html: each station's 2D overlay
   const bottomView = shipFlight ? new BottomView(renderer, scene) : null; // flight-test.html: the view under the ship (pass 3b)
+  /** flight-test.html's navigation screen (pass 5): the planet map on `Navigation_Display`'s face, once the controls are found. */
+  let navScreen: NavigationScreen | null = null;
   const gameCamera = () => (stations?.current ? stations.camera : view.camera);
   const hand = new THREE.Vector3();
   const handAxis = new THREE.Vector3();
@@ -453,6 +456,7 @@ async function start(): Promise<void> {
       if (FLIGHT_TEST) {
         stations = new Stations(s.object, (who) => (who === 'green' ? (character.model?.object ?? null) : (s.entities.get(who)?.object ?? null)));
         controls = new Controls(s.object, () => audio.play('ui_interact'));
+        navScreen = new NavigationScreen(renderer, controls.list);
         bottomView?.place(s.object, s.interior.min.y);
       }
       // The scenery round the ship's centre, under its belly (the hull's bottom).
@@ -581,7 +585,7 @@ async function start(): Promise<void> {
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls, __flight: () => shipFlight, __overlay: () => overlay, __bottomView: () => bottomView });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls, __flight: () => shipFlight, __overlay: () => overlay, __bottomView: () => bottomView, __navScreen: () => navScreen });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -599,6 +603,7 @@ async function start(): Promise<void> {
     controlsFolder(gui); // the controls' outline
     stationsFolder(gui); // the station cameras' nudges
     bottomFolder(gui, bottomView!); // the view under the ship and its cost
+    navScreenFolder(gui); // the planet map on the navigation station's screen
   }
   gui.hide(); // until the start screen is gone: it would lie over it
   const input = new Input(canvas, () => (gui._closed ? gui.open() : gui.close()), () => resize());
@@ -1262,6 +1267,8 @@ async function start(): Promise<void> {
       bottomView.draw(world.sun.shadow);
     }
     bottomView?.show(atPilot, size.x, size.y);
+    // flight-test.html: the navigation screen's map (pass 5), drawn while that station is on (and once at first).
+    navScreen?.update(dt, stations?.current === 'navigation' && !cutscene?.playing && !planetShot?.playing, overlay?.values.zoom ?? 0, shipFlight?.pace ?? 0);
     stats.frame(dt, size.x, size.y);
   });
 }

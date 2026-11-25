@@ -3,7 +3,8 @@
 // flight-test.html uses it (main.ts FLIGHT_TEST).
 // - Her seat (`pilot`): ShipFlight's six controls (the tuning panel's, which stay): a change goes through its
 //   locks (`ShipFlight.use`: refused, the reason shown), the labels read back from it each frame.
-// - Navigation and signal: placeholders for passes 4 and 5 (their values kept here, nothing driven yet).
+// - Navigation: *Map zoom* drives the navigation screen's zoom steps (nav-screen.ts; zoomed in all the way at
+//   first); the nav points are placeholders for pass 5. Signal: placeholders for pass 6 (values kept, nothing driven).
 // - Input while it's on: the D-pad / arrows up and down pick an item, left and right move a slider (or flip a
 //   button), A / Enter flips a button; B is left to the caller (get up). The mouse clicks it when not captured
 //   (a slider: click or drag along it). Each station keeps its selection.
@@ -12,6 +13,7 @@
 import type GUI from 'three/addons/libs/lil-gui.module.min.js';
 import type { ShipFlight } from './flight';
 import type { StationId } from './stations';
+import { DEFAULT_ZOOM, ZOOM_STEPS } from '../planet/nav-screen';
 
 interface ButtonItem {
   kind: 'button';
@@ -44,7 +46,7 @@ export class Overlay {
   /** The placeholder stations' values (dev hook `__overlay().values`). */
   /** The panel's switch and opacity (dev hook: `__overlay().look`). */
   readonly look = overlayLook;
-  readonly values = { band: 'signal' as 'signal' | 'infrared', dial1: 0.5, dial2: 0.5, zoom: 0.3, point: 0 };
+  readonly values = { band: 'signal' as 'signal' | 'infrared', dial1: 0.5, dial2: 0.5, zoom: DEFAULT_ZOOM, point: 0 }; // zoom: the map's step (ZOOM_STEPS)
   private readonly root = document.createElement('div');
   private readonly items: Record<StationId, Item[]>;
   private readonly elements = new Map<Item, HTMLElement>();
@@ -67,7 +69,8 @@ export class Overlay {
       ],
       navigation: [
         ...[0, 1, 2].map((i): ButtonItem => ({ kind: 'button', id: `point-${i + 1}`, label: () => `Nav point ${i + 1}${v.point === i + 1 ? ' (set)' : ''}`, on: () => v.point === i + 1, press: () => (v.point = v.point === i + 1 ? 0 : i + 1) })),
-        { kind: 'slider', id: 'zoom', label: () => `Map zoom ${Math.round(v.zoom * 100)}%`, get: () => v.zoom, set: (z) => (v.zoom = round(z)) },
+        // The map's zoom steps on a slider: a press moves one step; a click or drag picks the nearest.
+        { kind: 'slider', id: 'zoom', label: () => `Map zoom: ${ZOOM_STEPS[v.zoom]!.name}`, get: () => v.zoom / (ZOOM_STEPS.length - 1), set: (z) => (v.zoom = zoomStepFor(z, v.zoom)) },
       ],
       signal: [
         { kind: 'button', id: 'band', label: () => `Band: ${v.band}`, on: () => v.band === 'infrared', press: () => (v.band = v.band === 'signal' ? 'infrared' : 'signal') },
@@ -171,6 +174,15 @@ export function overlayFolder(gui: GUI): void {
   const folder = gui.addFolder('Flight test: overlay');
   folder.add(overlayLook, 'on').name('overlay on (off: the 3D controls)');
   folder.add(overlayLook, 'opacity', 0.1, 1, 0.05).name('opacity');
+}
+
+/** The zoom step a slider value asks for: a press (one SLIDER_STEP off the current step's value) one step that
+ *  way; a click or drag the nearest. */
+function zoomStepFor(value: number, current: number): number {
+  const last = ZOOM_STEPS.length - 1;
+  const off = value - current / last;
+  if (Math.abs(Math.abs(off) - SLIDER_STEP) < 1e-6) return Math.min(last, Math.max(0, current + Math.sign(off)));
+  return Math.round(value * last);
 }
 
 function clamp01(v: number): number {

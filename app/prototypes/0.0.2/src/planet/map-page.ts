@@ -13,87 +13,24 @@
  * many lines; main and minor lines.
  * Step 3c: a CRT look (crt.ts): the map drawn into a render target, the overlay's canvas as a texture, both shown
  * through one pass with scanlines, noise and flicker (the overlay canvas itself hidden).
+ * The drawing and the view's state are in nav-screen.ts (shared with the flight test's cockpit screen, pass 5);
+ * this page is the sidebar, the status line and the controls. Opens zoomed in all the way (owner, 2026-11-25).
  * Dev only, as tools.html.
  */
 
 import * as THREE from 'three/webgpu';
-import presets from './presets.json';
-import type { PlanetPreset } from './planet';
-import { contourSpacingAt, createPlanetMap, DEFAULT_LOOK, MAP_ASPECT, quadrantName, travel, type MapLook, type MapView } from './map';
-import { drawMapOverlay, type MapMark, type MarkKind } from './map-overlay';
-import { createCrt } from './crt';
+import { contourSpacingAt, DEFAULT_LOOK, MAP_ASPECT, quadrantName, type MapLook } from './map';
+import type { MarkKind } from './map-overlay';
+import { createNavScreen, defaultPreset, loadLook, LOOK_STORE, SHOT_END, ZOOM_STEPS, type Orientation } from './nav-screen';
 
-/** The zoom steps (plan): the screen's width in degrees; 360 = the whole globe. */
-const ZOOM_STEPS = [
-  { name: 'Whole globe', width: 360 },
-  { name: '64°', width: 64 },
-  { name: '16°', width: 16 },
-  { name: '4°', width: 4 },
-  { name: 'Quadrants (2°)', width: 2 },
-];
-
-/** Panning at full stick: this share of the screen's width per second. The whole globe pans as if 120° wide. */
-const PAN_SHARE = 0.5;
-const PAN_WIDTH_WHOLE = 120;
 const DEAD_ZONE = 0.15;
-/**
- * 0050's last frame (shot.ts: the planet's end spin and tip, Blender's tilt, the camera on +Z): the point
- * facing the camera, where the crew will explore (owner, 2026-11-24). Worked out once with the meridian at
- * 111.4° (.export/end-frame.mjs). In that frame north is turned 17.5° from up; the map is north up or
- * heading up instead (owner, 2026-11-24).
- */
-const SHOT_END = { northSouth: 74.0, eastWest: 199.5 };
-/** Test marks around 0050's region, one of each kind, so the icons show on opening (not story places). */
-const TEST_MARKS: MapMark[] = [
-  { kind: 'waypoint', northSouth: 76.5, eastWest: 197.5 },
-  { kind: 'signal', northSouth: 75.5, eastWest: 201.5 },
-  { kind: 'visited', northSouth: 73.5, eastWest: 198.5 },
-];
 /** Standard-mapping pad buttons (by position): L2, R2, R3, the top face button (placeholder). */
 const PAD = { out: 6, in: 7, follow: 11, orient: 3 };
-/** The map's orientation, the player's choice: north up, or the ship's heading up. */
-type Orientation = 'north' | 'heading';
 
-/** The simulated ship: where it is, its heading (degrees clockwise from north) and speed (degrees of arc per second). */
-interface Ship {
-  northSouth: number;
-  eastWest: number;
-  heading: number;
-  speed: number;
-  moving: boolean;
-}
-
-const STORE = 'zamboni-planet-map-look';
 const side = document.getElementById('side')!;
 const status = document.getElementById('status')!;
 const canvas = document.getElementById('map') as HTMLCanvasElement;
 const overlay = document.getElementById('overlay') as HTMLCanvasElement;
-
-function loadLook(): MapLook {
-  try {
-    const kept = localStorage.getItem(STORE);
-    if (kept) {
-      const saved = JSON.parse(kept) as Partial<MapLook>;
-      // Saved before the spacing by zoom (step 3b): the contours' values taken anew.
-      if (saved.contourSplit?.length !== DEFAULT_LOOK.contourSplit.length) {
-        delete saved.contourSplit;
-        delete saved.contourSpacing;
-        delete saved.deepest;
-      }
-      // Smoothing per zoom step (2026-11-25; was one value).
-      if (!Array.isArray(saved.smoothing) || saved.smoothing.length !== DEFAULT_LOOK.smoothing.length) delete saved.smoothing;
-      return {
-        ...DEFAULT_LOOK,
-        ...saved,
-        contourSplit: [...(saved.contourSplit ?? DEFAULT_LOOK.contourSplit)],
-        smoothing: [...(saved.smoothing ?? DEFAULT_LOOK.smoothing)],
-      };
-    }
-  } catch {
-    /* none kept, or storage blocked */
-  }
-  return { ...DEFAULT_LOOK, contourSplit: [...DEFAULT_LOOK.contourSplit], smoothing: [...DEFAULT_LOOK.smoothing] };
-}
 
 /** A labelled input in a `.values` grid; `onInput` gets its value. */
 function field(parent: HTMLElement, label: string, input: HTMLInputElement | HTMLSelectElement, onInput: (value: string) => void): void {
@@ -131,32 +68,17 @@ function section(title: string): HTMLElement {
 }
 
 async function main(): Promise<void> {
-  const preset = presets.presets[presets.default as keyof typeof presets.presets] as unknown as PlanetPreset;
+  const preset = defaultPreset();
   const look = loadLook();
-  const ship: Ship = { northSouth: SHOT_END.northSouth, eastWest: SHOT_END.eastWest, heading: 45, speed: 0.05, moving: true };
-  const view: MapView = { northSouth: ship.northSouth, eastWest: ship.eastWest, width: ZOOM_STEPS[0]!.width, roll: 0 }; // opens on 0050's region (owner, 2026-11-24)
-  let orientation: Orientation = 'north';
-  let zoomStep = 0;
-  let following = true;
-  const marks: MapMark[] = TEST_MARKS.map((m) => ({ ...m }));
-
   document.documentElement.style.setProperty('--aspect', String(MAP_ASPECT));
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: false });
   await renderer.init();
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.toneMapping = THREE.NoToneMapping;
-  const map = createPlanetMap(preset, look);
-  const quad = new THREE.QuadMesh(map.material);
-  // Step 3c: the map into a render target (only when it changes), shown with the overlay through the CRT pass.
-  const picture = new THREE.RenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
-  const overlayTexture = new THREE.CanvasTexture(overlay);
-  overlayTexture.colorSpace = THREE.SRGBColorSpace;
-  overlayTexture.flipY = false; // the canvas's rows top-down, as the render target's
-  const crt = createCrt(picture.texture, overlayTexture, MAP_ASPECT, look);
-  const crtQuad = new THREE.QuadMesh(crt.material);
-
-  let dirty = true;
-  const redraw = () => (dirty = true);
+  // The map, its overlay and the CRT (nav-screen.ts, shared with the flight test's cockpit screen).
+  const nav = createNavScreen(renderer, overlay, look, preset);
+  const { view, ship, marks, map } = nav;
+  const redraw = () => nav.redraw();
 
   // The view: shown, and settable by number (the pad, keys and wheel are the real controls).
   const viewBox = section('View');
@@ -171,7 +93,7 @@ async function main(): Promise<void> {
   orient.add(new Option('North up', 'north'));
   orient.add(new Option('Heading up', 'heading'));
   field(viewBox, 'up (top button / N)', orient, (v) => setOrientation(v as Orientation));
-  const follow = checkbox(following);
+  const follow = checkbox(nav.following);
   field(viewBox, 'follow ship (R3 / F)', follow, () => setFollowing(follow.checked));
   const shotView = side.appendChild(document.createElement('button'));
   shotView.textContent = "0050's last frame";
@@ -216,29 +138,20 @@ async function main(): Promise<void> {
     redraw();
   });
 
+  // The page's controls: the shared screen's state, and the sidebar's inputs kept in step.
   function setZoom(step: number): void {
-    zoomStep = Math.min(ZOOM_STEPS.length - 1, Math.max(0, step));
-    view.width = ZOOM_STEPS[zoomStep]!.width;
-    zoom.value = String(zoomStep);
-    applyContours();
-    redraw();
+    nav.setZoom(step);
+    zoom.value = String(nav.zoomStep);
   }
-  function applyContours(): void {
-    const { spacing, split } = contourSpacingAt(look, zoomStep);
-    map.setContours(spacing, split);
-    map.setSmoothing(look.smoothing[zoomStep] ?? 0);
-  }
-  applyContours();
   function setOrientation(next: Orientation): void {
-    orientation = next;
+    nav.setOrientation(next);
     orient.value = next;
-    redraw();
   }
   function setFollowing(on: boolean): void {
-    following = on;
+    nav.setFollowing(on);
     follow.checked = on;
-    redraw();
   }
+  zoom.value = String(nav.zoomStep);
 
   // Keys (not while typing in the sidebar) and the wheel.
   const held = new Set<string>();
@@ -248,10 +161,10 @@ async function main(): Promise<void> {
     const key = e.key.toLowerCase();
     held.add(key);
     if (e.repeat) return;
-    if (key === 'q') setZoom(zoomStep - 1);
-    else if (key === 'e') setZoom(zoomStep + 1);
-    else if (key === 'f') setFollowing(!following);
-    else if (key === 'n') setOrientation(orientation === 'north' ? 'heading' : 'north');
+    if (key === 'q') setZoom(nav.zoomStep - 1);
+    else if (key === 'e') setZoom(nav.zoomStep + 1);
+    else if (key === 'f') setFollowing(!nav.following);
+    else if (key === 'n') setOrientation(nav.orientation === 'north' ? 'heading' : 'north');
   });
   addEventListener('keyup', (e) => held.delete(e.key.toLowerCase()));
   addEventListener('blur', () => held.clear());
@@ -259,7 +172,7 @@ async function main(): Promise<void> {
     'wheel',
     (e) => {
       e.preventDefault();
-      if (e.deltaY !== 0) setZoom(zoomStep + (e.deltaY < 0 ? 1 : -1));
+      if (e.deltaY !== 0) setZoom(nav.zoomStep + (e.deltaY < 0 ? 1 : -1));
     },
     { passive: false },
   );
@@ -283,10 +196,10 @@ async function main(): Promise<void> {
       now.follow ||= !!pad.buttons[PAD.follow]?.pressed;
       now.orient ||= !!pad.buttons[PAD.orient]?.pressed;
     }
-    if (now.out && !padHeld.out) setZoom(zoomStep - 1);
-    if (now.in && !padHeld.in) setZoom(zoomStep + 1);
-    if (now.follow && !padHeld.follow) setFollowing(!following);
-    if (now.orient && !padHeld.orient) setOrientation(orientation === 'north' ? 'heading' : 'north');
+    if (now.out && !padHeld.out) setZoom(nav.zoomStep - 1);
+    if (now.in && !padHeld.in) setZoom(nav.zoomStep + 1);
+    if (now.follow && !padHeld.follow) setFollowing(!nav.following);
+    if (now.orient && !padHeld.orient) setOrientation(nav.orientation === 'north' ? 'heading' : 'north');
     Object.assign(padHeld, now);
     x += (held.has('d') ? 1 : 0) - (held.has('a') ? 1 : 0);
     y += (held.has('w') ? 1 : 0) - (held.has('s') ? 1 : 0);
@@ -297,11 +210,9 @@ async function main(): Promise<void> {
   // The look, kept in the browser.
   const lookBox = section('Look');
   const lookChanged = () => {
-    map.setLook(look);
-    crt.setLook(look);
-    applyContours();
+    nav.lookChanged();
     try {
-      localStorage.setItem(STORE, JSON.stringify(look));
+      localStorage.setItem(LOOK_STORE, JSON.stringify(look));
     } catch {
       /* storage blocked: not remembered */
     }
@@ -379,83 +290,33 @@ async function main(): Promise<void> {
   const resize = () => {
     const box = canvas.getBoundingClientRect();
     renderer.setSize(Math.max(1, Math.round(box.width)), Math.max(1, Math.round(box.height)), false);
-    overlay.width = renderer.domElement.width;
-    overlay.height = renderer.domElement.height;
-    picture.setSize(renderer.domElement.width, renderer.domElement.height);
-    redraw();
+    nav.setSize(renderer.domElement.width, renderer.domElement.height, window.devicePixelRatio || 1);
   };
   new ResizeObserver(resize).observe(canvas);
   resize();
 
-  const ctx = overlay.getContext('2d')!;
-  let overlayMs = 0;
-  function drawOverlay(): void {
-    const t = performance.now();
-    drawMapOverlay(ctx, map, {
-      view,
-      colour: look.colour,
-      grid: look.grid,
-      lineWidth: look.coastWidth * (window.devicePixelRatio || 1),
-      border: 2 * (window.devicePixelRatio || 1), // 2 px (owner, 2026-11-24)
-      ship,
-      marks,
-    });
-    overlayMs = performance.now() - t;
-  }
-
-  // Drawn when something changed, and every frame while the ship moves or the view pans.
-  let drawMs = 0;
+  // Drawn when something changed, and every frame while the ship moves or the view pans (nav-screen.ts).
   let last = performance.now();
   renderer.setAnimationLoop(() => {
     const now = performance.now();
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
-
-    // Heading up: the screen turned by the ship's heading, so it points up (at the centre, when following).
-    view.roll = orientation === 'heading' ? ship.heading : 0;
-    const [px, py] = readControls();
-    if (px !== 0 || py !== 0) {
-      if (following) setFollowing(false);
-      const width = view.width >= 180 ? PAN_WIDTH_WHOLE : view.width;
-      const bearing = (Math.atan2(px, py) * 180) / Math.PI + (view.roll ?? 0); // the stick's up is the screen's up
-      Object.assign(view, travel(view.northSouth, view.eastWest, bearing, Math.hypot(px, py) * PAN_SHARE * width * dt));
-      dirty = true;
-    }
-    if (ship.moving && ship.speed > 0) {
-      Object.assign(ship, travel(ship.northSouth, ship.eastWest, ship.heading, ship.speed * dt));
-      dirty = true;
-    }
-    if (following) Object.assign(view, { northSouth: ship.northSouth, eastWest: ship.eastWest });
-
-    // The CRT's noise and flicker tick at their own stepped rates: the screen is shown again when one does.
-    const ticked = crt.tick(now / 1000);
-    if (!dirty) {
-      if (ticked) crtQuad.render(renderer);
-      return;
-    }
-    dirty = false;
-    map.setView(view);
-    const t = performance.now();
-    renderer.setRenderTarget(picture);
-    quad.render(renderer);
-    renderer.setRenderTarget(null);
-    drawMs = performance.now() - t;
-    drawOverlay();
-    overlayTexture.needsUpdate = true;
-    crtQuad.render(renderer);
+    const drew = nav.frame(dt, now / 1000, readControls(), null);
+    if (follow.checked !== nav.following) follow.checked = nav.following; // panning stops following
+    if (drew !== 'map') return;
     if (document.activeElement !== ns) ns.value = view.northSouth.toFixed(2);
     if (document.activeElement !== ew) ew.value = view.eastWest.toFixed(2);
     status.innerHTML = '';
-    status.appendChild(document.createElement('span')).textContent = `Centre ${quadrantName(view.northSouth, view.eastWest)} · ${ZOOM_STEPS[zoomStep]!.name}${following ? ' · following' : ''}`;
+    status.appendChild(document.createElement('span')).textContent = `Centre ${quadrantName(view.northSouth, view.eastWest)} · ${ZOOM_STEPS[nav.zoomStep]!.name}${nav.following ? ' · following' : ''}`;
     status.appendChild(document.createElement('span')).textContent = `Ship ${quadrantName(ship.northSouth, ship.eastWest)}`;
-    status.appendChild(document.createElement('span')).textContent = `Contours every ${contourSpacingAt(look, zoomStep).spacing.toPrecision(2)}`;
+    status.appendChild(document.createElement('span')).textContent = `Contours every ${contourSpacingAt(look, nav.zoomStep).spacing.toPrecision(2)}`;
     status.appendChild(document.createElement('span')).textContent = `Meridian ${preset.meridian ?? 0}° · aspect ${MAP_ASPECT.toFixed(3)} · ${renderer.domElement.width} × ${renderer.domElement.height} px`;
-    status.appendChild(document.createElement('small')).textContent = `${renderer.backend.constructor.name}, draw call ${drawMs.toFixed(1)} ms, overlay ${overlayMs.toFixed(1)} ms`;
+    status.appendChild(document.createElement('small')).textContent = `${renderer.backend.constructor.name}, draw call ${nav.timings.draw.toFixed(1)} ms, overlay ${nav.timings.overlay.toFixed(1)} ms`;
   });
 
   // For the probe (step 4).
   Object.assign(window, {
-    __planetMap: { SHOT_END, view, look, ship, marks, redraw, lookChanged, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => following, zoomStep: () => zoomStep },
+    __planetMap: { SHOT_END, view, look, ship, marks, redraw, lookChanged, setZoom, setFollowing, setOrientation, steps: ZOOM_STEPS, aspect: MAP_ASPECT, following: () => nav.following, zoomStep: () => nav.zoomStep },
   });
 }
 
