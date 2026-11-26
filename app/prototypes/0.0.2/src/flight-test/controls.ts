@@ -28,7 +28,11 @@ import type { StationId } from './stations';
 
 /** Each station's console: the ship file's objects (node names as loaded) whose loose parts become controls. */
 export const CONTROL_SOURCES: Record<StationId, string[]> = {
-  pilot: ['Dashboard'],
+  pilot: [
+    'Dashboard_Center', 'Compass', 'Horizon', 'Nav_Display', 'External_Cameras_Display',
+    'Engine_Tilt_Lever', 'Engine_Tilt_Rail', 'Landing_Gear_Lever', 'Landing_Gear_Rail',
+    'Thrust_Lever', 'Thrust_Rail', 'Light', 'Button_Panel001',
+  ],
   navigation: ['Navigation_Display'],
   signal: ['Dashboard_Body001', 'Signal_Receiver001', 'Signal_Receiver002'],
 };

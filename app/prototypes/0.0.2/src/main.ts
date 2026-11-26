@@ -37,7 +37,7 @@ import { LoadProgress } from './loading';
 import { readSave, clearSave, writeSave, type SaveData } from './save';
 import { recentShots, restoreRecentShots, RANDOM_FLYBY } from './flight-shots/shots';
 import { FIRST_SCENE, SceneDirector, TEST_SCENE } from './scenes';
-import { GameStory } from './story';
+import { GameStory, displayName } from './story';
 import { WatchedConversation } from './watched';
 import { ClosedWatch } from './when-closed';
 import { SkipPrompt } from './skip-prompt';
@@ -50,6 +50,8 @@ import { ShipFlight } from './flight-test/flight';
 import { Overlay, overlayFolder, overlayLook } from './flight-test/overlay';
 import { BottomView, bottomFolder } from './flight-test/bottom-view';
 import { NavigationScreen, navScreenFolder } from './flight-test/nav-screen';
+import { SignalStation, type FoundSignal } from './flight-test/signals';
+import { Announce } from './flight-test/announce';
 import { keptApart } from './merge-rooms';
 import { Stats } from './stats';
 import { antialiasEnabled, createTuningPanel } from './tuning';
@@ -62,12 +64,13 @@ import { LightColumn } from './light-column';
 import { Synth } from './synth/synth';
 import { PATCHES, SCANNER_PATCH } from './synth/presets';
 import { PlanetShot } from './planet/shot';
+import { bearingDistance } from './planet/map';
 import { Gadgets } from './gadgets';
 import { BinocularView } from './binocular-view';
 
 const STEP = 1 / 60; // fixed simulation step
-/** Her left hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
-const HAND = 'Hand_l';
+/** Her right hand's bone and its length (m): the joystick points at its tail while she pilots, as the ship file's damped track does. */
+const HAND = 'Hand_r';
 const HAND_LENGTH = 0.141;
 /** The binoculars' zoom sound dies away over this long (s) when the zoom stops. */
 const ZOOM_SOUND_FADE = 0.08;
@@ -236,11 +239,25 @@ async function start(): Promise<void> {
   let controls: Controls | null = null;
   /** flight-test.html's take-off and landing (pass 3): the controls on the panel for now, the ship's height and speed. */
   const shipFlight = FLIGHT_TEST ? new ShipFlight(() => treadmill?.standingHeight() ?? settings.flightHeight, () => ship?.rampState ?? null) : null;
-  /** The camera drawn: a station's, or the game's. */
-  const overlay = shipFlight ? new Overlay(shipFlight) : null; // flight-test.html: each station's 2D overlay
-  const bottomView = shipFlight ? new BottomView(renderer, scene) : null; // flight-test.html: the view under the ship (pass 3b)
+  /** flight-test.html pass 5: the signal station's dials (main.ts drives it from the overlay's values) and the
+   *  crew's one-off lines (no commands from Dr. Green: owner, 2026-11-25). */
+  const signalStation = FLIGHT_TEST ? new SignalStation() : null;
+  const announce = FLIGHT_TEST ? new Announce() : null;
   /** flight-test.html's navigation screen (pass 5): the planet map on `Navigation_Display`'s face, once the controls are found. */
   let navScreen: NavigationScreen | null = null;
+  /** A found signal picked as the course at navigation (overlay.ts): Adam Red's line, the waypoint mark, the map's state. */
+  const setCourse = (found: FoundSignal) => {
+    announce?.say(displayName('adam-red'), `Setting course to quadrant ${found.quadrant}.`);
+    const marks = navScreen?.screen.marks;
+    if (!marks) return;
+    const prior = marks.findIndex((m) => m.kind === 'waypoint');
+    if (prior >= 0) marks.splice(prior, 1);
+    marks.push({ kind: 'waypoint', northSouth: found.northSouth, eastWest: found.eastWest });
+    navScreen?.screen.redraw();
+  };
+  /** The camera drawn: a station's, or the game's. */
+  const overlay = shipFlight && signalStation ? new Overlay(shipFlight, signalStation, setCourse) : null; // flight-test.html: each station's 2D overlay
+  const bottomView = shipFlight ? new BottomView(renderer, scene) : null; // flight-test.html: the view under the ship (pass 3b)
   const gameCamera = () => (stations?.current ? stations.camera : view.camera);
   const hand = new THREE.Vector3();
   const handAxis = new THREE.Vector3();
@@ -585,7 +602,7 @@ async function start(): Promise<void> {
   const eye = new THREE.Vector3();
 
   // Dev only: reachable from the browser console and test scripts.
-  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls, __flight: () => shipFlight, __overlay: () => overlay, __bottomView: () => bottomView, __navScreen: () => navScreen });
+  if (import.meta.env.DEV) Object.assign(window, { __settings: settings, __renderer: renderer, __scene: scene, __world: world, __character: character, __physics: physics, __ship: () => ship, __coffee: () => coffee, __entity: (id: string) => ship?.entities.get(id) ?? null, __view: view, __THREE: THREE, __cut: () => ({ holeAmount, insideAmount }), __crew: () => crew, __look: () => look, __director: () => director, __treadmill: () => treadmill, __landmarks: () => landmarks, __flames: () => flames, __clouds: clouds, __exterior: () => exterior, __cutscene: () => cutscene, __watched: () => watched, __skip: skipPrompt,__story: () => story, __interaction: () => interaction, __dialogue: dialogue, __ladders: () => ladders, __boxes: () => ship?.boxColliders ?? null, __audio: audio, __boombox: () => boombox, __rack: () => rack, __clothes: () => clothes, __outfit: (set?: Outfit) => (set ? (settings.outfit = set) : settings.outfit), __exhaust: exhaust, __footsteps: footsteps, __wind: wind, __start: () => ({ ready, begun, share: loading.share, shown, animatic, black }), __planetShot: planetShot, __gadgets: gadgets, __binocularView: binocularView, __scanSynth: () => scanSynth, __save: { read: readSave, clear: clearSave, recentShots }, __stations: () => stations, __controls: () => controls, __flight: () => shipFlight, __overlay: () => overlay, __bottomView: () => bottomView, __navScreen: () => navScreen, __signals: () => signalStation, __announce: () => announce });
 
   const round = (v: number) => Math.round(v * 1000) / 1000;
   const gui = createTuningPanel({ pixelRatio: () => resize(), outerDoors: () => director?.applyOuterDoors() }, () => ({
@@ -1102,6 +1119,25 @@ async function start(): Promise<void> {
       const free = stations.current !== null && !watching && !dialogue.active && !dialogue.cooling;
       const overlayOn = overlay !== null && overlayLook.on && stations.current !== null;
       if (overlay) overlay.update(stations.current, free && overlayOn ? { step: selectStep, use: input.consumeUse() } : null);
+      // The signal station's dials (overlay.ts's values): a target locked → Dr. Ogawa's line, a signal mark on the map.
+      if (overlay && signalStation) {
+        const found = signalStation.update(overlay.values.band, overlay.values.dial1, overlay.values.dial2);
+        if (found) {
+          announce?.say(displayName('ogawa'), `I got a bearing on a signal on quadrant ${found.quadrant}.`);
+          navScreen?.screen.marks.push({ kind: 'signal', northSouth: found.northSouth, eastWest: found.eastWest });
+          navScreen?.screen.redraw();
+        }
+      }
+      // The pilot's course readout: the bearing and ETA to the set course, from the nav screen's simulated ship.
+      if (overlay) {
+        const course = overlay.course;
+        const ship = navScreen?.screen.ship;
+        if (course && ship) {
+          const { bearing, distance } = bearingDistance(ship.northSouth, ship.eastWest, course.northSouth, course.eastWest);
+          const etaS = ship.speed > 0 ? distance / ship.speed : Infinity;
+          overlay.pilotCourseText = `Course: ${course.quadrant} · bearing ${Math.round(bearing)}° · ETA ${Number.isFinite(etaS) ? `${Math.floor(etaS / 60)}:${String(Math.round(etaS % 60)).padStart(2, '0')}` : '—'}`;
+        } else overlay.pilotCourseText = '';
+      }
       if (overlayOn) {
         controls?.update(null, stations.camera, size.y, dt, null); // the 3D controls' outline and label hidden
         if (free && backPressed && stations.current === 'pilot' && getUp) {
@@ -1118,6 +1154,7 @@ async function start(): Promise<void> {
         }
       }
     }
+    announce?.update(dt); // flight-test.html: the crew's one-off lines fade on their own, station or not
     // She fades out when the camera comes close (not in a cutscene: its own camera), the glow with her.
     const shown = watching ? 1 : firstPerson || stations?.herHidden ? 0 : stations?.current ? 1 : view.shown; // another station's camera: all of her (the orbit's fade is stale)
     character.setShown(shown);

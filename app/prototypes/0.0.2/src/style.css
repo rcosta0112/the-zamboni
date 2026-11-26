@@ -204,6 +204,29 @@ body {
   display: none;
 }
 
+/* A crew member's line during flight (announce.ts): a plain banner, top centre, fading on its own. */
+#flight-announce {
+  position: fixed;
+  left: 50%;
+  top: 48px;
+  translate: -50% 0;
+  max-width: 60%;
+  padding: 8px 16px;
+  background: rgb(0 0 0 / 0.6);
+  border-radius: 6px;
+  font-family: var(--font-text);
+  font-size: 15px;
+  color: var(--color-white);
+  text-align: center;
+  pointer-events: none;
+  z-index: 6;
+  transition: opacity 0.2s linear;
+}
+
+#flight-announce[hidden] {
+  display: none;
+}
+
 #flight-overlay .title {
   font-size: 11px;
   text-transform: uppercase;
@@ -244,6 +267,12 @@ body {
 
 #flight-overlay .selected {
   outline-color: #ffc400;
+}
+
+/* A non-interactive line (overlay.ts's course readout): no button chrome, never selected. */
+#flight-overlay .readout {
+  padding: 4px 2px;
+  opacity: 0.85;
 }
 
 /* A gadget's prompts (binocular-view.ts: "R1 to Use"; in first person "R1 to Close" over "L1 / L2 to Zoom"; owner, 2026-11-16): the skip prompt's place (never together). */

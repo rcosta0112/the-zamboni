@@ -81,7 +81,6 @@
   "Cargo Ramp Keypad",
   "Engineering Door Panel Front",
   "Cockpit Door Panel Back",
-  "Dashboard",
   "Navigation Display",
   "Seat.001",
   "Back seat.001",
@@ -91,6 +90,20 @@
   "Polaroid",
   "Gojira poster",
   "Joystick",
+  "Dashboard Center",
+  "Compass",
+  "Horizon",
+  "Nav Display",
+  "External Cameras Display",
+  "Engine Tilt Lever",
+  "Engine Tilt Rail",
+  "Landing Gear Lever",
+  "Landing Gear Rail",
+  "Thrust Lever",
+  "Thrust Rail",
+  "Engines Panel",
+  "Light",
+  "Button Panel.001",
   "Seat base right",
   "Foot Rest",
   "Joystick base",
@@ -792,16 +805,6 @@
   {
    "name": "Jetpack 1",
    "group": "Cargo Bay"
-  },
-  {
-   "name": "Dashboard Keypad",
-   "group": "Cockpit",
-   "seeThrough": "solid"
-  },
-  {
-   "name": "Dashboard Keypad.001",
-   "group": "Cockpit",
-   "seeThrough": "solid"
   },
   {
    "name": "Dial",

@@ -1,5 +1,6 @@
 // The flight interfaces' test scene (plan doc/plans/features/non-linear-travel/flight-test-scene.md), pass 0:
-// the page and the scene. Grows with each pass (pass 2: the stations and controls; pass 3: take-off and landing; 3b: the bottom view). In app/prototypes/0.0.2/:
+// the page and the scene. Grows with each pass (pass 2: the stations and controls; pass 3: take-off and landing;
+// 3b: the bottom view; pass 5: tuning a signal, setting a course, no commands from Dr. Green). In app/prototypes/0.0.2/:
 //
 //     node tools/probe-01.mjs tools/flight-test-probe.js --page flight-test.html --stay --shots .export/flight-test
 //
@@ -151,6 +152,33 @@ await tap('ArrowUp');
 await tap('Enter');
 report(ov.values.band === 'infrared' && overlayEl.querySelector('[data-id="band"]').classList.contains('on'), 'up, Enter: the band to infrared, lit', ov.values.band);
 await shot('overlay-signal');
+// Pass 5 (owner, 2026-11-25: no commands from Dr. Green — whoever's at a station says what they're doing).
+// Tuning in a target directly (the dials' values, as the D-pad would reach after enough steps): Dr. Ogawa's line,
+// a signal mark on the map, the find kept (`__signals().found`).
+const signals = w.__signals(), announceHook = w.__announce();
+Object.assign(ov.values, { band: 'signal', dial1: 0.3, dial2: 0.7 });
+await wait(150);
+const sig = signals.found[0];
+report(signals.found.length === 1 && /^[0-9A-F]{3}-[0-9A-F]{3}$/.test(sig?.quadrant ?? ''), 'tuning in a target: found, a quadrant name', sig?.quadrant);
+report(new RegExp(`Ogawa.*${sig?.quadrant}`).test(announceHook.state.text), 'Dr. Ogawa’s line names the quadrant (not a command from Dr. Green)', announceHook.state.text);
+report(w.__navScreen()?.screen.marks.some((m) => m.kind === 'signal' && m.northSouth === sig?.northSouth && m.eastWest === sig?.eastWest), 'a signal mark added to the map');
+// Navigation: the found signal is its own button; pressing it sets the course (Adam Red's line, a waypoint mark).
+await tab(true); // signal → navigation (reverse order)
+report(st?.current === 'navigation', 'Shift+Tab to navigation', st?.current);
+report(ov.state.items[0] === `signal-${sig?.id}` && ov.state.selected === `signal-${sig?.id}`, 'the found signal is navigation’s first item, selected', ov.state.items.join());
+await tap('Enter');
+report(ov.course?.id === sig?.id, 'Enter: that signal set as the course', ov.course?.quadrant);
+report(new RegExp(`Adam:.*${sig?.quadrant}`).test(announceHook.state.text), 'Adam’s line names the quadrant (not Dr. Green)', announceHook.state.text);
+report(w.__navScreen()?.screen.marks.some((m) => m.kind === 'waypoint' && m.northSouth === sig?.northSouth && m.eastWest === sig?.eastWest), 'a waypoint mark at the course');
+await shot('overlay-navigation');
+// The pilot's screen: a course readout (bearing and ETA), no story gates in this pass (owner, 2026-11-25).
+await tab(true); // navigation → pilot
+report(st?.current === 'pilot', 'Shift+Tab to pilot', st?.current);
+await wait(150);
+const readout = overlayEl.querySelector('.readout')?.textContent ?? '';
+report(new RegExp(`Course: ${sig?.quadrant}.*bearing.*ETA`).test(readout), 'the pilot’s readout: the course, a bearing, an ETA', readout);
+await tab(true); // pilot → signal (back to where the controls checks below expect)
+report(st?.current === 'signal', 'Shift+Tab back to signal', st?.current);
 ov.look.on = false; // the 3D controls' checks below
 await wait(100);
 report(!ov.state.active && overlayEl.hidden, 'the panel’s switch off: the overlay hidden');

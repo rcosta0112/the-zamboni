@@ -8,8 +8,8 @@ import { settings } from './settings';
 import { ROCKS_MAX } from './terrain';
 
 const ANTIALIAS_KEY = 'zamboni-01-antialias';
-/** Every folder on the panel; false while the binoculars are built (their folder alone, owner 2026-11-16). */
-const ALL_FOLDERS = false as boolean;
+/** Every folder on the panel (was false while the binoculars and scanner were built, their folders alone; owner, 2026-11-25: those done, back to every folder, theirs removed). */
+const ALL_FOLDERS = true as boolean;
 
 /** Anti-aliasing (MSAA) is fixed when the renderer is created, so it's kept in local storage and applied on reload. Off unless turned on (owner, 2026-10-27). */
 export function antialiasEnabled(): boolean {
@@ -23,22 +23,6 @@ export function antialiasEnabled(): boolean {
 export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors: () => void }, describeView: () => object) {
   const gui = new GUI({ title: `Tuning · ${__VERSION__}  ( \` or View button )` });
 
-  // While the binoculars are built (owner, 2026-11-16): their folder alone; every other folder is off
-  // (ALL_FOLDERS false: the code below kept as it is, skipped). Back to true when the feature is done.
-  const binoculars = gui.addFolder('Binoculars');
-  binoculars.add(settings, 'binocularZoomMin', 1, 20, 0.1).name('zoom: widest (×)');
-  binoculars.add(settings, 'binocularZoomMax', 1, 40, 0.1).name('zoom: narrowest (×)');
-  // The scanner (owner, 2026-11-16), also shown while gadgets are built.
-  const scanner = gui.addFolder('Scanner');
-  scanner.add(settings, 'scannerTurnDeg', 0, 60, 1).name('turn: at most (°)');
-  scanner.add(settings, 'scannerTurnSpeed', 0.1, 4, 0.05).name('turn: speed (×)');
-  scanner.add(settings, 'scannerRayStrength', 0, 4, 0.05).name('ray: brightness (×)');
-  scanner.add(settings, 'scannerReach', 0.5, 4, 0.1).name('aim: reach (m)');
-  scanner.add(settings, 'scannerAimYawDeg', 0, 90, 1).name('aim: turn at most (°)');
-  scanner.add(settings, 'scannerAimPitchDeg', 0, 60, 1).name('aim: up/down at most (°)');
-  scanner.add(settings, 'scannerAimEase', 0.05, 1.5, 0.05).name('aim: ease (s)');
-  scanner.add(settings, 'scannerAimHold', 0, 1, 0.05).name('aim: switch when closer by (m)');
-  scanner.add(settings, 'scannerAimWobble', 0, 1, 0.05).name('aim: random scan kept (×)');
   if (ALL_FOLDERS) {
 
   const move = gui.addFolder('Movement');
@@ -414,8 +398,8 @@ export function createTuningPanel(onChange: { pixelRatio: () => void; outerDoors
 
   }
 
-  // Everything starts collapsed: the folders (but the binoculars'), and the panel itself.
-  for (const folder of gui.foldersRecursive()) if (folder !== binoculars && folder !== scanner) folder.close();
+  // Everything starts collapsed: the folders, and the panel itself.
+  for (const folder of gui.foldersRecursive()) folder.close();
   gui.close();
   return gui;
 }

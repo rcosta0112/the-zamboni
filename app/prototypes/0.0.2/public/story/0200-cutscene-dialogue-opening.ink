@@ -21,7 +21,7 @@ Adam Blue: My apologies.
 Adam Blue: This ship is a veritable work of art.
 Adam Red: Is that a red light on engine 2?
 Ogawa: ...
-Ogawa: Burned capacitor.
+Ogawa: Burnt capacitor.
 Ogawa: I’ll replace it when we land.
 Adam Blue: Setting the course.
 Green: Hang on.

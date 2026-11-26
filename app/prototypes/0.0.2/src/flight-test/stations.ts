@@ -50,8 +50,8 @@ export interface StationNudge {
 }
 
 const start = (nudge: Partial<StationNudge> = {}): StationNudge => ({ side: 0, up: 0, forward: 0, turn: 0, pitch: -20, fov: 90, ...nudge }); // lens 90° (owner, 2026-11-23)
-/** The owner's values (2026-11-23, second round). */
-export const stationNudges: Record<StationId, StationNudge> = { pilot: start({ up: 0.25, forward: 0.1 }), navigation: start({ up: 0.3, forward: 0.2 }), signal: start({ up: 0.2 }) };
+/** The owner's values (2026-11-23, second round; navigation's, 2026-11-25). */
+export const stationNudges: Record<StationId, StationNudge> = { pilot: start({ up: 0.25, forward: 0.1 }), navigation: start({ side: -0.05, up: 0.34, forward: 0.38 }), signal: start({ up: 0.2 }) };
 
 const HEAD = /^Head(_\d+)?$/;
 /** How far the player may look round from a station's view: left / right, up / down (rad). */
@@ -68,6 +68,9 @@ export class Stations {
   }
   /** The head bone's root as the station was entered, in the ship's space. */
   private head = new THREE.Vector3();
+  /** Each station's head position, taken once (the crew's idle loop keeps the bone moving; resampling it on
+   * every entry would reframe the view by a fraction of a degree each time, depending on the loop's phase). */
+  private readonly heads = new Map<StationId, THREE.Vector3>();
   private hidden: THREE.Object3D | null = null;
   /** The player's look from the station's view (rad): yaw + left, pitch + up. */
   private lookYaw = 0;
@@ -118,16 +121,22 @@ export class Stations {
     this.lookYaw = kept?.yaw ?? 0;
     this.lookPitch = kept?.pitch ?? 0;
     const model = this.modelOf(station.who);
-    let bone: THREE.Object3D | null = null;
-    model?.traverse((o) => {
-      if (!bone && (o as THREE.Bone).isBone && HEAD.test(o.name)) bone = o;
-    });
-    if (bone) {
-      (bone as THREE.Object3D).updateWorldMatrix(true, false);
-      this.ship.worldToLocal((bone as THREE.Object3D).getWorldPosition(this.head));
+    const cached = this.heads.get(station.id);
+    if (cached) {
+      this.head.copy(cached);
     } else {
-      console.warn(`[0.0.2] station ${station.id}: no head bone for ${station.who}; the console's middle used, 0.6 m back`);
-      this.head.set(...station.target).add(new THREE.Vector3(0, 0, -0.6));
+      let bone: THREE.Object3D | null = null;
+      model?.traverse((o) => {
+        if (!bone && (o as THREE.Bone).isBone && HEAD.test(o.name)) bone = o;
+      });
+      if (bone) {
+        (bone as THREE.Object3D).updateWorldMatrix(true, false);
+        this.ship.worldToLocal((bone as THREE.Object3D).getWorldPosition(this.head));
+      } else {
+        console.warn(`[0.0.2] station ${station.id}: no head bone for ${station.who}; the console's middle used, 0.6 m back`);
+        this.head.set(...station.target).add(new THREE.Vector3(0, 0, -0.6));
+      }
+      this.heads.set(station.id, this.head.clone());
     }
     if (station.who !== 'green' && model) {
       model.visible = false;

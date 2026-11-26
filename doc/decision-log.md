@@ -8,6 +8,7 @@ A running record of project decisions: technology, architecture, pipeline, scope
 
 | Date | Decision | Area | In one line |
 |---|---|---|---|
+| 2026-11-25 | No commands from Dr. Green; each station's crew member reports their own action | story / feature | Dr. Green isn't the captain: Dr. Ogawa says "I got a bearing on a signal on [quadrant]", Adam Red says "Setting course to [quadrant]"; replaces the travel interface's *"Adam, please set a course to …"* framing |
 | 2026-11-22 | Dr. Green flies the ship from her seat; the player has no direct control | scope | In the cockpit idea ([travel interface](plans/features/non-linear-travel/travel-interface.md)), the player takes off and lands with the engines' rotation and power; Dr. Green flies while seated, never steered directly; supersedes *the crew pilot it in cutscenes only* when that feature is built |
 | 2026-11-20 | Flight shots: generated, picked by the owner in an editor | cutscenes | Flybys, landings, take-offs from a generator; the owner picks seeds in a shot editor and names them in the script (`# shot:`); random play kept; a dev-only tools page |
 | 2026-11-20 | 0500 its own scene; the flyby (0400) an orbit | story structure | *Sit down* plays the flyby (the `whats-that` scene's intro: 0100's middle frame orbited 90° left to right), then the conversation, then the landed scene (a `watch` command's `then`); the landed scene's `before` gone |
@@ -75,6 +76,20 @@ A running record of project decisions: technology, architecture, pipeline, scope
 | 2026-10-08 | Documentation structure | docs | Overview, decision log, open-ended steps, architecture, features, story, reference, archive |
 | 2026-10-08 | Source art stays out of git | pipeline | The repo holds code and production assets only |
 | 2026-10-08 | Engine: plain Three.js r186 with TSL | tech | Plain Three.js, `WebGPURenderer`, TSL, pinned to 0.186.1 |
+
+---
+
+## [2026-11-25] — No commands from Dr. Green; each station's crew member reports their own action (story / feature)
+
+**Context:** the travelling interface's discussion ([travel-interface.md](plans/features/non-linear-travel/travel-interface.md)) and the flight test scene's pass 5 ([flight-test-scene.md](plans/features/non-linear-travel/flight-test-scene.md)) had every station action spoken to the crew member as an order from Dr. Green (*"Adam, please set a course to …"*). The owner pointed out she isn't the captain.
+
+**Decision (owner, 2026-11-25):** each crew member states what they're doing instead of being told. Example: tuning in a signal → Dr. Ogawa, "I got a bearing on a signal on [quadrant]"; the player moves to navigation and sets the course from that signal → Adam Red, "Setting course to [quadrant]."
+
+**Alternatives considered:** keeping the order framing with a different nominal captain; dropping spoken lines for these actions entirely.
+
+**Rationale:** the owner's call, fixing a cast error (Dr. Green commanding the crew) baked into the original interface idea.
+
+**Status:** decided. `travel-interface.md` and `flight-test-scene.md` updated; pass 5 builds navigation on this model, with the story gates (Green's refusals, visited-waypoint rules) deferred to a later pass.
 
 ---
 

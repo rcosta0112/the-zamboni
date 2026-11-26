@@ -25,6 +25,8 @@
  "Cargo": true,
  "Fixtures": true,
  "Cockpit": true,
+ "Dashboard": true,
+ "Dashboard - Archive": false,
  "Crew.001": true,
  "Archive": false,
  "Crew (do not export)": false,

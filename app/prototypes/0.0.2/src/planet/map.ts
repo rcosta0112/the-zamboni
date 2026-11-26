@@ -278,6 +278,17 @@ export function travel(northSouth: number, eastWest: number, bearing: number, di
   };
 }
 
+/**
+ * The bearing (degrees clockwise from north) and great-circle distance (degrees of arc) from one position to
+ * another; `travel`'s inverse. Flight test pass 5: the pilot's course readout.
+ */
+export function bearingDistance(fromNS: number, fromEW: number, toNS: number, toEW: number): { bearing: number; distance: number } {
+  const lat1 = (90 - fromNS) * DEG, lat2 = (90 - toNS) * DEG, dLon = (toEW - fromEW) * DEG;
+  const d = Math.acos(Math.min(1, Math.max(-1, Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLon))));
+  const b = Math.atan2(Math.sin(dLon) * Math.cos(lat2), Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon));
+  return { bearing: ((b / DEG) % 360 + 360) % 360, distance: d / DEG };
+}
+
 /** A position's quadrant name (planet-map.md): north–south and east–west, whole degrees, three hex digits each. */
 export function quadrantName(northSouth: number, eastWest: number): string {
   const ns = Math.min(180, Math.max(0, Math.floor(northSouth)));
